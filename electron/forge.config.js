@@ -19,10 +19,11 @@ module.exports = {
     {
       name: "@electron-forge/maker-deb",
       platforms: ["linux"],
-      config: {
-        options: {
-          arch: ["x64"]
-        }
+      options: {
+        name: "flow",
+        genericName: "Flow Browser",
+        icon: "./assets/AppIcon.png",
+        arch: ["arm64", "x64"]
       }
     }
   ],
