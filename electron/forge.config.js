@@ -15,6 +15,10 @@ module.exports = {
     {
       name: "@electron-forge/maker-dmg",
       platforms: ["darwin"]
+    },
+    {
+      name: "@electron-forge/maker-deb",
+      platforms: ["linux"]
     }
   ],
   plugins: [
