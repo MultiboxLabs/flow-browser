@@ -18,7 +18,12 @@ module.exports = {
     },
     {
       name: "@electron-forge/maker-deb",
-      platforms: ["linux"]
+      platforms: ["linux"],
+      config: {
+        options: {
+          arch: ["x64"]
+        }
+      }
     }
   ],
   plugins: [
