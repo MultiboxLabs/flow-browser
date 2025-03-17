@@ -16,7 +16,8 @@
     "electron-chrome-context-menu": "npm:@iamevan/electron-chrome-context-menu@1.1.0",
     "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.6.5",
     "electron-chrome-web-store": "npm:@iamevan/electron-chrome-web-store@0.10.0",
-    "electron-squirrel-startup": "^1.0.0"
+    "electron-squirrel-startup": "^1.0.0",
+    "mime-types": "^2.1.35"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.5.0",
@@ -25,6 +26,7 @@
     "@electron-forge/maker-zip": "^7.5.0",
     "@electron-forge/plugin-auto-unpack-natives": "^7.5.0",
     "@electron-forge/plugin-webpack": "^7.5.0",
+    "@types/mime-types": "^2.1.4",
     "copy-webpack-plugin": "^11.0.0",
     "cross-env": "^7.0.2",
     "electron": "^35.0.2",
