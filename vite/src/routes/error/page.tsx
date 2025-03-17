@@ -1,5 +1,6 @@
 import { FrownIcon, RefreshCwIcon, ArrowLeftIcon } from "lucide-react";
 import { motion } from "motion/react";
+import { useEffect } from "react";
 
 function App() {
   const params = new URLSearchParams(window.location.search);
@@ -53,12 +54,27 @@ function App() {
 
   const handleReload = () => {
     if (!url) return;
-    window.location.href = url;
+    window.location.replace(url);
   };
+
+  const canGoBack = window.history.length > 1;
 
   const handleGoBack = () => {
     window.history.back();
   };
+
+  useEffect(() => {
+    const initial = params.get("initial");
+    if (initial) {
+      // remove initial param
+      const newURL = new URL(window.location.href);
+      newURL.searchParams.delete("initial");
+      window.history.replaceState({}, "", newURL.toString());
+    } else {
+      handleReload();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-zinc-900 text-gray-800 dark:text-zinc-200 flex flex-col items-center pt-24 px-4 transition-colors duration-300">
@@ -89,15 +105,17 @@ function App() {
         {/* Buttons */}
         <div className="flex gap-3">
           {/* Go back button */}
-          <motion.button
-            onClick={handleGoBack}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-gray-800 dark:text-zinc-200 px-6 py-2 rounded-full text-sm font-medium transition-colors duration-200 shadow-md"
-          >
-            <ArrowLeftIcon className="w-4 h-4" />
-            Go Back
-          </motion.button>
+          {canGoBack && (
+            <motion.button
+              onClick={handleGoBack}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-gray-800 dark:text-zinc-200 px-6 py-2 rounded-full text-sm font-medium transition-colors duration-200 shadow-md"
+            >
+              <ArrowLeftIcon className="w-4 h-4" />
+              Go Back
+            </motion.button>
+          )}
 
           {/* Reload button */}
           <motion.button

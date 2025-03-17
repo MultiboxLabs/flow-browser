@@ -73,6 +73,17 @@ export function transformUrl(url: string): string | null {
     }
   }
 
+  // Error Page
+  const urlObject = new URL(url);
+  if (urlObject.protocol === "flow-utility:" && urlObject.host === "page" && urlObject.pathname === "/error") {
+    const erroredURL = urlObject.searchParams.get("url");
+    if (erroredURL) {
+      return erroredURL;
+    } else {
+      return "";
+    }
+  }
+
   // Other Protocols
   for (const [key, value] of Object.entries(protocolReplacements)) {
     if (url.startsWith(key)) {

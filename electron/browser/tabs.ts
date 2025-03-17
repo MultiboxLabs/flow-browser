@@ -40,6 +40,7 @@ class Tab {
         const errorPageURL = new URL("flow-utility://page/error");
         errorPageURL.searchParams.set("errorCode", errorCode.toString());
         errorPageURL.searchParams.set("url", validatedURL);
+        errorPageURL.searchParams.set("initial", "1");
 
         this.webContents.executeJavaScript(`window.location.replace("${errorPageURL.toString()}")`);
         // this.webContents.loadURL(errorPageURL.toString());
