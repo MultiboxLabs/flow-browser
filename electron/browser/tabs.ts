@@ -1,5 +1,6 @@
 import { EventEmitter } from "events";
 import { WebContents, BrowserWindow, WebContentsView } from "electron";
+import { FLAGS } from "../modules/flags";
 
 const toolbarHeight = 68;
 
@@ -42,8 +43,11 @@ class Tab {
         errorPageURL.searchParams.set("url", validatedURL);
         errorPageURL.searchParams.set("initial", "1");
 
-        this.webContents.executeJavaScript(`window.location.replace("${errorPageURL.toString()}")`);
-        // this.webContents.loadURL(errorPageURL.toString());
+        if (FLAGS.ERROR_PAGE_LOAD_MODE === "replace") {
+          this.webContents.executeJavaScript(`window.location.replace("${errorPageURL.toString()}")`);
+        } else {
+          this.webContents.loadURL(errorPageURL.toString());
+        }
       }
     });
 
