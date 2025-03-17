@@ -518,6 +518,13 @@ app.whenReady().then(() => {
       // Check if path exists
       const stats = await fsPromises.stat(filePath);
 
+      // Ensure the requested path is within the allowed directory structure
+      const normalizedPath = path.normalize(filePath);
+      const distDir = path.normalize(path.join(PATHS.VITE_WEBUI, "dist"));
+      if (!normalizedPath.startsWith(distDir)) {
+        return new Response("Access denied", { status: 403 });
+      }
+
       // If direct file is a directory, try serving index.html from that directory
       if (stats.isDirectory() && FLOW_UTILITY_ALLOWED_DIRECTORIES.includes(pagePath)) {
         const indexPath = path.join(filePath, "index.html");
