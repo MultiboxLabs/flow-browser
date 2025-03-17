@@ -74,14 +74,18 @@ export function transformUrl(url: string): string | null {
   }
 
   // Error Page
-  const urlObject = new URL(url);
-  if (urlObject.protocol === "flow-utility:" && urlObject.host === "page" && urlObject.pathname === "/error") {
-    const erroredURL = urlObject.searchParams.get("url");
-    if (erroredURL) {
-      return erroredURL;
-    } else {
-      return "";
+  try {
+    const urlObject = new URL(url);
+    if (urlObject.protocol === "flow-utility:" && urlObject.host === "page" && urlObject.pathname === "/error") {
+      const erroredURL = urlObject.searchParams.get("url");
+      if (erroredURL) {
+        return erroredURL;
+      } else {
+        return "";
+      }
     }
+  } catch {
+    // Do nothing
   }
 
   // Other Protocols
