@@ -1,6 +1,7 @@
-import { app, session, BrowserWindow, dialog, WebContents, Menu } from "electron";
+import { app, session, BrowserWindow, dialog, WebContents, Menu, protocol } from "electron";
 import path from "path";
 import fs from "fs";
+import fsPromises from "fs/promises";
 import { ElectronChromeExtensions } from "electron-chrome-extensions";
 import { buildChromeContextMenu } from "electron-chrome-context-menu";
 import { installChromeWebStore, loadAllExtensions } from "electron-chrome-web-store";
@@ -9,6 +10,7 @@ import { installChromeWebStore, loadAllExtensions } from "electron-chrome-web-st
 import { Tabs } from "./tabs";
 import { setupMenu } from "./menu";
 import { FLAGS } from "../modules/flags";
+import { getContentType } from "./utils";
 
 // Constants
 const FLOW_ROOT_DIR = path.join(__dirname, "../../");
@@ -142,7 +144,7 @@ interface BrowserUrls {
   newtab: string;
 }
 
-class Browser {
+export class Browser {
   private windows: TabbedBrowserWindow[] = [];
   private urls: BrowserUrls = {
     newtab: "about:blank"
@@ -483,4 +485,59 @@ class Browser {
   }
 }
 
-export = Browser;
+app.whenReady().then(() => {
+  protocol.handle("flow-utility", async (request) => {
+    const urlString = request.url;
+
+    // Extract the entire path correctly from custom protocol URL
+    // For flow-utility://error/index.html, we need "error/index.html"
+    const fullPath = urlString.substring(urlString.indexOf("://") + 3);
+    const urlPath = fullPath.split("?")[0]; // Remove query parameters
+
+    console.log("urlPath", urlPath);
+
+    // Check if this is a page request (starts with /page)
+    if (!urlPath.startsWith("page/")) {
+      return new Response("Invalid request path", { status: 400 });
+    }
+
+    // Remove the /page prefix to get the actual path
+    const pagePath = urlPath.substring(5); // Remove "page/"
+    console.log("pagePath", pagePath);
+
+    // Build file path and check if it exists
+    let filePath = path.join(PATHS.VITE_WEBUI, "dist", pagePath);
+
+    try {
+      // Check if path exists
+      const stats = await fsPromises.stat(filePath);
+
+      // If direct file is a directory, try serving index.html from that directory
+      if (stats.isDirectory()) {
+        const indexPath = path.join(filePath, "index.html");
+        try {
+          await fsPromises.access(indexPath);
+          filePath = indexPath;
+        } catch (error) {
+          // Index.html doesn't exist in directory
+          return new Response("Directory index not found", { status: 404 });
+        }
+      }
+
+      // Read file contents
+      const buffer = await fsPromises.readFile(filePath);
+
+      // Determine content type based on file extension
+      const contentType = getContentType(filePath);
+
+      return new Response(buffer, {
+        headers: {
+          "Content-Type": contentType
+        }
+      });
+    } catch (error) {
+      console.error("Error serving file:", error);
+      return new Response("File not found", { status: 404 });
+    }
+  });
+});

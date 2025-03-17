@@ -1,5 +1,5 @@
-import { app, BrowserWindow } from "electron";
-import Browser from "./browser/main";
+import { app } from "electron";
+import { Browser } from "./browser/main";
 
 const gotTheLock = app.requestSingleInstanceLock();
 
