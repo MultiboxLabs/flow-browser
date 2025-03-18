@@ -2,6 +2,7 @@ import { SidebarTab } from "@/components/browser-ui/sidebar/tab";
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton } from "@/components/ui/sidebar";
 import { useBrowser } from "@/components/main/browser-context";
 import { PlusIcon } from "lucide-react";
+import { AnimatePresence } from "motion/react";
 
 function NewTabButton() {
   const { handleCreateTab } = useBrowser();
@@ -22,9 +23,11 @@ export function SidebarTabs() {
       <SidebarGroupLabel className="select-none">Tabs</SidebarGroupLabel>
       <SidebarMenu>
         <NewTabButton />
-        {tabs.map((tab) => (
-          <SidebarTab key={tab.id} tab={tab} />
-        ))}
+        <AnimatePresence initial={false}>
+          {tabs.map((tab) => (
+            <SidebarTab key={tab.id} tab={tab} />
+          ))}
+        </AnimatePresence>
       </SidebarMenu>
     </SidebarGroup>
   );
