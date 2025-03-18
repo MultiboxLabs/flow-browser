@@ -394,6 +394,8 @@ export class Browser {
       urls: this.urls,
       extensions: this.extensions,
       window: {
+        minWidth: 800,
+        minHeight: 400,
         width: 1280,
         height: 720,
         frame: false,

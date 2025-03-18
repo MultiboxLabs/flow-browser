@@ -1,4 +1,5 @@
-import { Sidebar, SidebarHeader, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar";
+import { SidebarTabs } from "@/components/browser-ui/sidebar/tabs";
 
 export function BrowserSidebar() {
   return (
@@ -9,6 +10,9 @@ export function BrowserSidebar() {
           <SidebarMenuItem>Flow Browser</SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+      <SidebarContent>
+        <SidebarTabs />
+      </SidebarContent>
     </Sidebar>
   );
 }
