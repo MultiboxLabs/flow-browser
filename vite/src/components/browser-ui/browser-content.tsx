@@ -1,11 +1,14 @@
 import { memo, useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useBrowser } from "@/components/main/browser-context";
+import { PageBounds, setPageBounds } from "@/lib/flow";
+
+const DEBUG_SHOW_BOUNDS = false;
 
 function BrowserContent() {
   const { activeTabId } = useBrowser();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [dimensions, setDimensions] = useState<PageBounds>({ x: 0, y: 0, width: 0, height: 0 });
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -49,16 +52,17 @@ function BrowserContent() {
   };
 
   useEffect(() => {
-    console.log("dimensions", dimensions);
+    setPageBounds(dimensions);
   }, [dimensions]);
 
   return (
     <div ref={containerRef} className="flex-1 bg-background text-foreground border-t border-border relative rounded-lg">
-      {/* For debugging - remove this in production */}
-      <div className="absolute top-2 right-2 z-50 text-xs text-muted-foreground bg-background/80 p-1 rounded">
-        x: {dimensions.x.toFixed(0)}, y: {dimensions.y.toFixed(0)}, w: {dimensions.width.toFixed(0)}, h:{" "}
-        {dimensions.height.toFixed(0)}
-      </div>
+      {DEBUG_SHOW_BOUNDS && (
+        <div className="absolute top-2 right-2 z-50 text-xs text-muted-foreground bg-background/80 p-1 rounded">
+          x: {dimensions.x.toFixed(0)}, y: {dimensions.y.toFixed(0)}, w: {dimensions.width.toFixed(0)}, h:{" "}
+          {dimensions.height.toFixed(0)}
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         {activeTabId && activeTabId > 0 ? (

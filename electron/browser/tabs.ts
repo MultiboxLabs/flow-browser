@@ -1,8 +1,16 @@
 import { EventEmitter } from "events";
-import { WebContents, BrowserWindow, WebContentsView } from "electron";
+import { WebContents, BrowserWindow, WebContentsView, ipcMain } from "electron";
 import { FLAGS } from "../modules/flags";
 
-const toolbarHeight = 68;
+type PageBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+const windowsBounds = new Map<BrowserWindow, PageBounds>();
+const windowsBoundsEmitter = new EventEmitter();
 
 class Tab {
   id: number;
@@ -12,6 +20,7 @@ class Tab {
   window: BrowserWindow | undefined;
   webContents: WebContents | undefined;
   view: WebContentsView | undefined;
+  boundsListener: (() => void) | null = null;
 
   constructor(
     parentWindow: BrowserWindow,
@@ -93,7 +102,7 @@ class Tab {
 
   show() {
     this.invalidateLayout();
-    this.startResizeListener();
+    this.startBoundsListener();
     if (this.view) {
       if (FLAGS.DEBUG_DISABLE_TAB_VIEW) {
         this.view.setVisible(false);
@@ -104,7 +113,7 @@ class Tab {
   }
 
   hide() {
-    this.stopResizeListener();
+    this.stopBoundsListener();
     if (this.view) {
       this.view.setVisible(false);
     }
@@ -124,30 +133,57 @@ class Tab {
       return;
     }
 
-    const [width, height] = this.window.getSize();
-    const padding = 4;
-    this.view.setBounds({
-      x: padding,
-      y: toolbarHeight,
-      width: width - padding * 2,
-      height: height - toolbarHeight - padding
-    });
-    this.view.setBorderRadius(8);
-  }
-
-  // Replacement for BrowserView.setAutoResize. This could probably be better...
-  startResizeListener() {
-    this.stopResizeListener();
-    if (this.window) {
-      this.window.on("resize", this.invalidateLayout);
+    const windowBounds = windowsBounds.get(this.window);
+    if (windowBounds) {
+      this.view.setBounds({
+        x: windowBounds.x,
+        y: windowBounds.y,
+        width: windowBounds.width,
+        height: windowBounds.height
+      });
+      this.view.setBorderRadius(8);
     }
   }
-  stopResizeListener() {
+
+  startBoundsListener() {
+    this.stopBoundsListener();
+    if (this.window) {
+      // Listen for resize events to update layout
+      this.window.on("resize", this.invalidateLayout);
+
+      // Listen for bounds changes
+      this.boundsListener = () => {
+        if (this.window) {
+          this.invalidateLayout();
+        }
+      };
+
+      windowsBoundsEmitter.on(`bounds-changed-${this.window.id}`, this.boundsListener);
+    }
+  }
+
+  stopBoundsListener() {
     if (this.window) {
       this.window.off("resize", this.invalidateLayout);
+
+      if (this.boundsListener) {
+        windowsBoundsEmitter.off(`bounds-changed-${this.window.id}`, this.boundsListener);
+        this.boundsListener = null;
+      }
     }
   }
 }
+
+ipcMain.on("set-page-bounds", (event, bounds: { x: number; y: number; width: number; height: number }) => {
+  const webContents = event.sender;
+  const window = BrowserWindow.fromWebContents(webContents);
+
+  if (window) {
+    windowsBounds.set(window, bounds);
+    // Emit an event when bounds are updated
+    windowsBoundsEmitter.emit(`bounds-changed-${window.id}`, bounds);
+  }
+});
 
 export class Tabs extends EventEmitter {
   window: BrowserWindow | undefined;

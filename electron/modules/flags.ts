@@ -13,5 +13,5 @@ export const FLAGS: Flags = {
   ERROR_PAGE_LOAD_MODE: "replace",
 
   // Debug: Disable the tab view
-  DEBUG_DISABLE_TAB_VIEW: true
+  DEBUG_DISABLE_TAB_VIEW: false
 };
