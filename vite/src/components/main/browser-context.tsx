@@ -175,6 +175,7 @@ export const BrowserProvider = ({ children }: { children: ReactNode }) => {
       setTabs((prevTabs) =>
         prevTabs.map((tab) => {
           // Ignore tabs that are not in the current window
+          // TODO: this still doesn't work, maybe the logic is in electron-chrome-extensions package?
           if (tab.windowId !== currentWindow?.id) return tab;
 
           // Update the active tab if it is in the current window

@@ -2,6 +2,7 @@ import React, { useRef, memo, useEffect } from "react";
 import Tab from "./tab";
 import { PlusIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { useBrowser } from "@/components/main/browser-context";
 
 interface TabListProps {
   tabs: chrome.tabs.Tab[];
@@ -31,6 +32,8 @@ const TabList: React.FC<TabListProps> = ({ tabs, onTabClick, onTabClose, onCreat
     }
   }, [tabs]);
 
+  const { currentWindow } = useBrowser();
+
   return (
     <div className="w-full h-8 min-h-[calc(env(titlebar-area-height)+1px)]">
       <div className="fixed left-[env(titlebar-area-x)] top-[env(titlebar-area-y)] w-[env(titlebar-area-width)] h-8 min-h-[calc(env(titlebar-area-height)+1px)] flex flex-row">
@@ -38,10 +41,10 @@ const TabList: React.FC<TabListProps> = ({ tabs, onTabClick, onTabClose, onCreat
         <ul ref={tabListRef} className="h-full flex flex-row min-w-0 overflow-x-none">
           <AnimatePresence initial={false}>
             {tabs.map((tab) => {
-              // TODO: If tab is not in this window, don't render it
-              // if (tab.windowId !== currentWindow?.id) {
-              //   return null
-              // }
+              // If tab is not in this window, don't render it
+              if (tab.windowId !== currentWindow?.id) {
+                return null;
+              }
 
               return (
                 <Tab
