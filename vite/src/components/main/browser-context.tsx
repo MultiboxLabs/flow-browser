@@ -172,8 +172,14 @@ export const BrowserProvider = ({ children }: { children: ReactNode }) => {
         setActiveTabId(activeInfo.tabId);
       }
 
-      setTabs((prevTabs) =>
-        prevTabs.map((tab) => {
+      setTabs((prevTabs) => {
+        const newActiveTab = prevTabs.find((t) => t.id === activeInfo.tabId)
+        if (newActiveTab && newActiveTab.windowId !== currentWindow?.id) {
+          // The new active tab is in another window, ignore.
+          return prevTabs
+        }
+
+        return prevTabs.map((tab) => {
           // Ignore tabs that are not in the current window
           // TODO: this still doesn't work, maybe the logic is in electron-chrome-extensions package?
           if (tab.windowId !== currentWindow?.id) return tab;
@@ -184,7 +190,7 @@ export const BrowserProvider = ({ children }: { children: ReactNode }) => {
             active: tab.id === activeInfo.tabId
           };
         })
-      );
+      });
 
       console.log("Tab Activated!", activeInfo.tabId, activeInfo.windowId);
     },
