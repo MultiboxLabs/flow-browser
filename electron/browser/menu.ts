@@ -71,7 +71,13 @@ export const setupMenu = (browser: Browser) => {
           accelerator: "CmdOrCtrl+W",
           click: () => {
             const tab = getTab();
-            if (!tab) return;
+            if (!tab) {
+              const window = getFocusedWindow();
+              if (window) {
+                window.destroy();
+              }
+              return;
+            }
             tab.destroy();
           }
         },

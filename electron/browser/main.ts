@@ -398,18 +398,23 @@ export class Browser {
         minHeight: 400,
         width: 1280,
         height: 720,
-        frame: false,
         titleBarStyle: "hidden",
         titleBarOverlay: {
-          height: 31,
-          color: "#39375b",
-          symbolColor: "#ffffff"
+          height: 30,
+          color: "#39375b"
         },
         webPreferences: {
           sandbox: true,
           nodeIntegration: false,
           contextIsolation: true
-        }
+        },
+        frame: false,
+        transparent: false,
+        resizable: true,
+        backgroundColor: "#00000000",
+        visualEffectState: "followWindow",
+        vibrancy: "content", // on MacOS
+        backgroundMaterial: "acrylic" // on Windows
       }
     });
 
@@ -417,6 +422,9 @@ export class Browser {
     win.getBrowserWindow().on("close", () => {
       this.windows = this.windows.filter((w) => w.id !== win.id);
       win.destroy();
+    });
+    win.getBrowserWindow().on("closed", () => {
+      this.windows = this.windows.filter((w) => w.id !== win.id);
     });
 
     if (process.env.FLOW_DEBUG) {
