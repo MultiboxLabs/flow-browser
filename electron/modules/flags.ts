@@ -1,6 +1,7 @@
 type Flags = {
   SCRUBBED_USER_AGENT: boolean;
   ERROR_PAGE_LOAD_MODE: "replace" | "load";
+  DEBUG_DISABLE_TAB_VIEW: boolean;
 };
 
 export const FLAGS: Flags = {
@@ -9,5 +10,8 @@ export const FLAGS: Flags = {
 
   // Replace - Use window.location.replace to load the error page.
   // Load - Add the page to the history stack by loading it normally.
-  ERROR_PAGE_LOAD_MODE: "replace"
+  ERROR_PAGE_LOAD_MODE: "replace",
+
+  // Debug: Disable the tab view
+  DEBUG_DISABLE_TAB_VIEW: true
 };

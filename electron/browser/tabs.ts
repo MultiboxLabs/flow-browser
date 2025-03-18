@@ -95,7 +95,11 @@ class Tab {
     this.invalidateLayout();
     this.startResizeListener();
     if (this.view) {
-      this.view.setVisible(true);
+      if (FLAGS.DEBUG_DISABLE_TAB_VIEW) {
+        this.view.setVisible(false);
+      } else {
+        this.view.setVisible(true);
+      }
     }
   }
 
