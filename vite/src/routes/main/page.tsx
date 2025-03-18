@@ -1,5 +1,5 @@
-import BrowserHeader from "@/components/browser-header";
-import BrowserContent from "@/components/browser-content";
+import BrowserHeader from "@/components/old-ui/browser-header";
+import BrowserContent from "@/components/old-ui/browser-content";
 import { BrowserProvider, useBrowser } from "@/components/main/browser-context";
 
 function BrowserApp() {
