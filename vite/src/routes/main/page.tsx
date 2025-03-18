@@ -1,47 +1,8 @@
-import BrowserHeader from "@/components/old-ui/browser-header";
-import BrowserContent from "@/components/old-ui/browser-content";
-import { BrowserProvider, useBrowser } from "@/components/main/browser-context";
+import { BrowserUI } from "@/components/browser-ui/main";
+import { BrowserProvider } from "@/components/main/browser-context";
 
 function BrowserApp() {
-  const {
-    tabs,
-    addressUrl,
-    activeTabId,
-    dynamicTitle,
-    handleTabClick,
-    handleTabClose,
-    handleCreateTab,
-    setAddressUrl,
-    handleAddressUrlSubmit,
-    handleGoBack,
-    handleGoForward,
-    handleReload,
-    handleMinimize,
-    handleMaximize,
-    handleClose
-  } = useBrowser();
-
-  return (
-    <div className="h-screen w-screen flex flex-col bg-background text-foreground">
-      {dynamicTitle && <title>{dynamicTitle} | Flow Browser</title>}
-      <BrowserHeader
-        tabs={tabs}
-        addressUrl={addressUrl}
-        onTabClick={handleTabClick}
-        onTabClose={handleTabClose}
-        onCreateTab={handleCreateTab}
-        onAddressChange={setAddressUrl}
-        onAddressSubmit={handleAddressUrlSubmit}
-        onGoBack={handleGoBack}
-        onGoForward={handleGoForward}
-        onReload={handleReload}
-        onMinimize={handleMinimize}
-        onMaximize={handleMaximize}
-        onClose={handleClose}
-      />
-      <BrowserContent activeTabId={activeTabId} />
-    </div>
-  );
+  return <BrowserUI />;
 }
 
 function App() {
