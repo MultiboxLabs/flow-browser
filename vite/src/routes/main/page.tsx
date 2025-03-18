@@ -23,7 +23,7 @@ function BrowserApp() {
 
   return (
     <div className="h-screen w-screen flex flex-col bg-background text-foreground">
-      {dynamicTitle && <title>{dynamicTitle}</title>}
+      {dynamicTitle && <title>{dynamicTitle} | Flow Browser</title>}
       <BrowserHeader
         tabs={tabs}
         addressUrl={addressUrl}

@@ -7,6 +7,7 @@ type Tab = chrome.tabs.Tab;
 type BrowserContextType = {
   tabs: Tab[];
   activeTabId: number;
+  activeTab: Tab | null;
   addressUrl: string;
   dynamicTitle: string | null;
   currentWindow: chrome.windows.Window | null;
@@ -29,6 +30,7 @@ export const BrowserProvider = ({ children }: { children: ReactNode }) => {
   // Setup Refs
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTabId, setActiveTabId] = useState<number>(-1);
+  const [activeTab, setActiveTab] = useState<Tab | null>(null);
   const [addressUrl, setAddressUrl] = useState<string>("");
   const [dynamicTitle, setDynamicTitle] = useState<string | null>(null);
 
@@ -66,10 +68,11 @@ export const BrowserProvider = ({ children }: { children: ReactNode }) => {
 
   // Get current window
   const [currentWindow, setCurrentWindow] = useState<chrome.windows.Window | null>(null);
+  const currentWindowRef = useRef<chrome.windows.Window | null>(null);
   useEffect(() => {
     chrome.windows.getCurrent().then((window) => {
-      console.log("window", window);
       setCurrentWindow(window);
+      currentWindowRef.current = window;
     });
   }, []);
 
@@ -91,8 +94,11 @@ export const BrowserProvider = ({ children }: { children: ReactNode }) => {
     // Set active tab id if no active tab is found
     if (tabs.length === 0) {
       setActiveTabId(-1);
-    } else if (activeTabId === -1 && tabs.length > 0 && tabs[0].id) {
-      setActiveTabId(tabs[0].id);
+    } else if (activeTabId === -1 && tabs.length > 0) {
+      const firstTabInWindow = tabs.find((tab) => tab.windowId === currentWindow?.id && tab.id);
+      if (firstTabInWindow?.id) {
+        setActiveTabId(firstTabInWindow.id);
+      }
     }
 
     // Set dynamic title
@@ -103,7 +109,19 @@ export const BrowserProvider = ({ children }: { children: ReactNode }) => {
       }
     });
     setDynamicTitle(newDynamicTitle);
-  }, [tabs, activeTabId]);
+  }, [tabs, activeTabId, currentWindow?.id]);
+
+  // Fetch active tab
+  useEffect(() => {
+    if (activeTabId === -1) {
+      setActiveTab(null);
+    } else {
+      const activeTab = tabs.find((tab) => tab.id === activeTabId);
+      if (activeTab) {
+        setActiveTab(activeTab);
+      }
+    }
+  }, [activeTabId, tabs]);
 
   // Tab event listeners
   // Use refs to always have access to the latest state and callbacks
@@ -125,27 +143,26 @@ export const BrowserProvider = ({ children }: { children: ReactNode }) => {
   }, [addressUrl]);
 
   // Stable event handlers that use the refs
-  const stableHandleTabCreated = useCallback(
-    (tab: chrome.tabs.Tab) => {
-      if (tab.windowId !== currentWindow?.id) return;
-      if (!tab.id) return;
+  const stableHandleTabCreated = useCallback((tab: chrome.tabs.Tab) => {
+    const currentWindow = currentWindowRef.current;
 
-      setTabs((prevTabs) => {
-        const filteredTabs = prevTabs
-          .map((t) => {
-            if (t.id === tab.id) {
-              return null;
-            }
-            return t;
-          })
-          .filter((t): t is Tab => t !== null);
-        return [...filteredTabs, tab];
-      });
+    if (tab.windowId !== currentWindow?.id) return;
+    if (!tab.id) return;
 
-      console.log("Tab Created!", tab.id, tab);
-    },
-    [currentWindow?.id]
-  );
+    setTabs((prevTabs) => {
+      const filteredTabs = prevTabs
+        .map((t) => {
+          if (t.id === tab.id) {
+            return null;
+          }
+          return t;
+        })
+        .filter((t): t is Tab => t !== null);
+      return [...filteredTabs, tab];
+    });
+
+    console.log("Tab Created!", tab.id, tab);
+  }, []);
 
   const stableHandleTabUpdated = useCallback(
     (tabId: number, _changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
@@ -166,36 +183,33 @@ export const BrowserProvider = ({ children }: { children: ReactNode }) => {
     console.log("Tab Removed!", tabId, removeInfo);
   }, []);
 
-  const stableHandleTabActivated = useCallback(
-    (activeInfo: chrome.tabs.TabActiveInfo) => {
-      if (activeInfo.windowId === currentWindow?.id) {
-        setActiveTabId(activeInfo.tabId);
+  const stableHandleTabActivated = useCallback((activeInfo: chrome.tabs.TabActiveInfo) => {
+    const currentWindow = currentWindowRef.current;
+
+    if (activeInfo.windowId === currentWindow?.id) {
+      setActiveTabId(activeInfo.tabId);
+    }
+
+    setTabs((prevTabs) => {
+      if (activeInfo.windowId !== currentWindow?.id) {
+        // The active tab is in another window, ignore.
+        return prevTabs;
       }
 
-      setTabs((prevTabs) => {
-        const newActiveTab = prevTabs.find((t) => t.id === activeInfo.tabId)
-        if (newActiveTab && newActiveTab.windowId !== currentWindow?.id) {
-          // The new active tab is in another window, ignore.
-          return prevTabs
-        }
+      return prevTabs.map((tab) => {
+        // Ignore tabs that are not in the current window
+        if (tab.windowId !== currentWindow?.id) return tab;
 
-        return prevTabs.map((tab) => {
-          // Ignore tabs that are not in the current window
-          // TODO: this still doesn't work, maybe the logic is in electron-chrome-extensions package?
-          if (tab.windowId !== currentWindow?.id) return tab;
-
-          // Update the active tab if it is in the current window
-          return {
-            ...tab,
-            active: tab.id === activeInfo.tabId
-          };
-        })
+        // Update the active tab if it is in the current window
+        return {
+          ...tab,
+          active: tab.id === activeInfo.tabId
+        };
       });
+    });
 
-      console.log("Tab Activated!", activeInfo.tabId, activeInfo.windowId);
-    },
-    [currentWindow?.id]
-  );
+    console.log("Tab Activated!", activeInfo.tabId, activeInfo.windowId);
+  }, []);
 
   // Setup listeners only once
   useEffect(() => {
@@ -281,6 +295,7 @@ export const BrowserProvider = ({ children }: { children: ReactNode }) => {
   const value = {
     tabs,
     activeTabId,
+    activeTab,
     addressUrl,
     dynamicTitle,
     currentWindow,

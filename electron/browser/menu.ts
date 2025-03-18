@@ -1,5 +1,5 @@
 import { Menu, type MenuItem, type MenuItemConstructorOptions } from "electron";
-import Browser from "./main";
+import { Browser } from "./main";
 
 export const setupMenu = (browser: Browser) => {
   const isMac = process.platform === "darwin";
@@ -76,7 +76,7 @@ export const setupMenu = (browser: Browser) => {
           }
         },
         {
-          label: "Toggle Developer Tool",
+          label: "Toggle Developer Tools",
           accelerator: isMac ? "Alt+Command+I" : "Ctrl+Shift+I",
           click: () => {
             const tabWc = getTabWc();
