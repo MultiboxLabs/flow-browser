@@ -14,5 +14,13 @@ contextBridge.exposeInMainWorld("flow", {
   setPageBounds: (bounds: { x: number; y: number; width: number; height: number }) => {
     if (!isBrowserUI) return;
     return ipcRenderer.send("set-page-bounds", bounds);
+  },
+  setWindowButtonPosition: (position: { x: number; y: number }) => {
+    if (!isBrowserUI) return;
+    return ipcRenderer.send("set-window-button-position", position);
+  },
+  setWindowButtonVisibility: (visible: boolean) => {
+    if (!isBrowserUI) return;
+    return ipcRenderer.send("set-window-button-visibility", visible);
   }
 });

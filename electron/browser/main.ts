@@ -1,4 +1,4 @@
-import { app, session, BrowserWindow, dialog, WebContents, Menu, protocol } from "electron";
+import { app, session, BrowserWindow, dialog, WebContents, Menu, protocol, ipcMain } from "electron";
 import path from "path";
 import fs from "fs";
 import fsPromises from "fs/promises";
@@ -575,4 +575,19 @@ app.whenReady().then(() => {
       return new Response("File not found", { status: 404 });
     }
   });
+});
+
+// IPC Handlers //
+ipcMain.on("set-window-button-position", (event, position: { x: number; y: number }) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) {
+    win.setWindowButtonPosition(position);
+  }
+});
+
+ipcMain.on("set-window-button-visibility", (event, visible: boolean) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) {
+    win.setWindowButtonVisibility(visible);
+  }
 });

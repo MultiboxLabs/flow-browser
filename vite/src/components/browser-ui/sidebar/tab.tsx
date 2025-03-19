@@ -1,6 +1,6 @@
 import { useBrowser } from "@/components/main/browser-context";
 import { Button } from "@/components/ui/button";
-import { SidebarMenuButton } from "@/components/ui/resizable-sidebar";
+import { SidebarMenuButton, useSidebar } from "@/components/ui/resizable-sidebar";
 import { cn } from "@/lib/utils";
 import { XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -15,6 +15,7 @@ export function SidebarTab({ tab }: { tab: chrome.tabs.Tab }) {
   const noFavicon = !cachedFaviconUrl || isError;
 
   const { activeTab, handleTabClick, handleTabClose } = useBrowser();
+  const { open } = useSidebar();
 
   useEffect(() => {
     if (tab.favIconUrl) {
@@ -70,7 +71,7 @@ export function SidebarTab({ tab }: { tab: chrome.tabs.Tab }) {
       >
         <div className="flex flex-row justify-between w-full h-full">
           {/* Left side */}
-          <div className="flex flex-row items-center gap-2 min-w-0 flex-1 overflow-hidden mr-1">
+          <div className={cn("flex flex-row items-center gap-2 flex-1", open && "min-w-0 overflow-hidden mr-1")}>
             <motion.div className="w-4 h-4 flex-shrink-0" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
               {!noFavicon && (
                 <img
@@ -87,7 +88,7 @@ export function SidebarTab({ tab }: { tab: chrome.tabs.Tab }) {
             <span className="truncate min-w-0 flex-1">{tab.title}</span>
           </div>
           {/* Right side */}
-          <div className="flex flex-row items-center gap-2 rounded-md aspect-square flex-shrink-0">
+          <div className={cn("flex flex-row items-center gap-2 rounded-md aspect-square", open && "flex-shrink-0")}>
             {/* Close tab button */}
             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
               <Button

@@ -16,6 +16,20 @@ interface FlowAPI {
    * @param bounds The bounds object containing position and dimensions
    */
   setPageBounds: (bounds: PageBounds) => void;
+
+  /**
+   * Sets the position of the window button
+   * This can only be called from the Browser UI
+   * @param position The position object containing x and y coordinates
+   */
+  setWindowButtonPosition: (position: { x: number; y: number }) => void;
+
+  /**
+   * Sets the visibility of the window button
+   * This can only be called from the Browser UI
+   * @param visible Whether the window button should be visible
+   */
+  setWindowButtonVisibility: (visible: boolean) => void;
 }
 
 declare global {
@@ -28,4 +42,12 @@ declare global {
 
 export function setPageBounds(bounds: PageBounds) {
   return flow.setPageBounds(bounds);
+}
+
+export function setWindowButtonPosition(position: { x: number; y: number }) {
+  return flow.setWindowButtonPosition(position);
+}
+
+export function setWindowButtonVisibility(visible: boolean) {
+  return flow.setWindowButtonVisibility(visible);
 }
