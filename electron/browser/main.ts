@@ -466,12 +466,10 @@ export class Browser {
           return {
             action: "allow",
             outlivesOpener: true,
-            createWindow: ({ webPreferences }) => {
+            createWindow: (constructionOptions) => {
               const win = this.getWindowFromWebContents(webContents);
               if (!win) throw new Error("Unable to find window for web contents");
-              const tab = win.tabs.create({
-                webPreferences
-              });
+              const tab = win.tabs.create(constructionOptions);
               tab.loadURL(details.url);
               return tab.webContents;
             }

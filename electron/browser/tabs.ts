@@ -29,12 +29,22 @@ class Tab {
   ) {
     this.invalidateLayout = this.invalidateLayout.bind(this);
 
-    this.view = new WebContentsView({
-      ...webContentsViewOptions,
-      webPreferences: {
-        ...(webContentsViewOptions.webPreferences || {})
-      }
-    });
+    if (webContentsViewOptions.webContents) {
+      // If webContents is provided, use it
+      this.view = new WebContentsView({
+        webContents: webContentsViewOptions.webContents,
+        webPreferences: {
+          ...(webContentsViewOptions.webPreferences || {})
+        }
+      });
+    } else {
+      // Otherwise create a new WebContentsView without specifying webContents
+      this.view = new WebContentsView({
+        webPreferences: {
+          ...(webContentsViewOptions.webPreferences || {})
+        }
+      });
+    }
 
     this.id = this.view.webContents.id;
     this.destroyOnNoTabs = destroyOnNoTabs;
