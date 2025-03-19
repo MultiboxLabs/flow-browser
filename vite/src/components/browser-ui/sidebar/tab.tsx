@@ -10,20 +10,17 @@ const MotionSidebarMenuButton = motion(SidebarMenuButton);
 
 export function SidebarTab({ tab }: { tab: chrome.tabs.Tab }) {
   const [cachedFaviconUrl, setCachedFaviconUrl] = useState<string | undefined>(tab.favIconUrl);
-  const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
-  const noFavicon = !cachedFaviconUrl || isLoading || isError;
+  const noFavicon = !cachedFaviconUrl || isError;
 
   const { activeTab, handleTabClick, handleTabClose } = useBrowser();
 
   useEffect(() => {
     if (tab.favIconUrl) {
       setCachedFaviconUrl(tab.favIconUrl);
-      setIsLoading(true);
     } else {
       setCachedFaviconUrl(undefined);
-      setIsLoading(false);
     }
 
     // Reset error state when favicon url changes
@@ -80,7 +77,6 @@ export function SidebarTab({ tab }: { tab: chrome.tabs.Tab }) {
                   src={tab.favIconUrl}
                   alt={tab.title}
                   className="size-full"
-                  onLoad={() => setIsLoading(false)}
                   onError={() => setIsError(true)}
                   onClick={handleClick}
                   onMouseDown={handleMouseDown}
