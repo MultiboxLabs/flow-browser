@@ -70,8 +70,8 @@ export function SidebarTab({ tab }: { tab: chrome.tabs.Tab }) {
       >
         <div className="flex flex-row justify-between w-full h-full">
           {/* Left side */}
-          <div className="flex flex-row items-center gap-2">
-            <motion.div className="w-4 h-4" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+          <div className="flex flex-row items-center gap-2 min-w-0 flex-1 overflow-hidden mr-1">
+            <motion.div className="w-4 h-4 flex-shrink-0" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
               {!noFavicon && (
                 <img
                   src={tab.favIconUrl}
@@ -84,10 +84,10 @@ export function SidebarTab({ tab }: { tab: chrome.tabs.Tab }) {
               )}
               {noFavicon && <div className="size-full bg-muted-foreground/10 dark:bg-muted-foreground/25 rounded-sm" />}
             </motion.div>
-            <span className="truncate">{tab.title}</span>
+            <span className="truncate min-w-0 flex-1">{tab.title}</span>
           </div>
           {/* Right side */}
-          <div className="flex flex-row items-center gap-2 rounded-md aspect-square">
+          <div className="flex flex-row items-center gap-2 rounded-md aspect-square flex-shrink-0">
             {/* Close tab button */}
             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
               <Button
