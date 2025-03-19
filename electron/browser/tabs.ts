@@ -174,17 +174,6 @@ class Tab {
   }
 }
 
-ipcMain.on("set-page-bounds", (event, bounds: { x: number; y: number; width: number; height: number }) => {
-  const webContents = event.sender;
-  const window = BrowserWindow.fromWebContents(webContents);
-
-  if (window) {
-    windowsBounds.set(window, bounds);
-    // Emit an event when bounds are updated
-    windowsBoundsEmitter.emit(`bounds-changed-${window.id}`, bounds);
-  }
-});
-
 export class Tabs extends EventEmitter {
   window: BrowserWindow | undefined;
   tabList: Tab[] = [];
@@ -258,3 +247,15 @@ export class Tabs extends EventEmitter {
     this.emit("tab-selected", tab);
   }
 }
+
+// IPC Handlers //
+ipcMain.on("set-page-bounds", (event, bounds: { x: number; y: number; width: number; height: number }) => {
+  const webContents = event.sender;
+  const window = BrowserWindow.fromWebContents(webContents);
+
+  if (window) {
+    windowsBounds.set(window, bounds);
+    // Emit an event when bounds are updated
+    windowsBoundsEmitter.emit(`bounds-changed-${window.id}`, bounds);
+  }
+});

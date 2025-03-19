@@ -5,6 +5,11 @@ export type PageBounds = {
   height: number;
 };
 
+export type TabNavigationStatus = {
+  canGoBack: boolean;
+  canGoForward: boolean;
+};
+
 /**
  * Interface for the Flow API exposed by the Electron preload script
  */
@@ -30,6 +35,20 @@ interface FlowAPI {
    * @param visible Whether the window button should be visible
    */
   setWindowButtonVisibility: (visible: boolean) => void;
+
+  /**
+   * Gets the navigation status of a tab
+   * This can only be called from the Browser UI
+   * @param tabId The id of the tab to get the navigation status of
+   */
+  getTabNavigationStatus: (tabId: number) => Promise<TabNavigationStatus | null>;
+
+  /**
+   * Stops loading a tab
+   * This can only be called from the Browser UI
+   * @param tabId The id of the tab to stop loading
+   */
+  stopLoadingTab: (tabId: number) => void;
 }
 
 declare global {
@@ -50,4 +69,12 @@ export function setWindowButtonPosition(position: { x: number; y: number }) {
 
 export function setWindowButtonVisibility(visible: boolean) {
   return flow.setWindowButtonVisibility(visible);
+}
+
+export function getTabNavigationStatus(tabId: number) {
+  return flow.getTabNavigationStatus(tabId);
+}
+
+export function stopLoadingTab(tabId: number) {
+  return flow.stopLoadingTab(tabId);
 }

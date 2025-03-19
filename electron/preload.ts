@@ -22,5 +22,13 @@ contextBridge.exposeInMainWorld("flow", {
   setWindowButtonVisibility: (visible: boolean) => {
     if (!isBrowserUI) return;
     return ipcRenderer.send("set-window-button-visibility", visible);
+  },
+  getTabNavigationStatus: (tabId: number) => {
+    if (!isBrowserUI) return;
+    return ipcRenderer.invoke("get-tab-navigation-status", tabId);
+  },
+  stopLoadingTab: (tabId: number) => {
+    if (!isBrowserUI) return;
+    return ipcRenderer.send("stop-loading-tab", tabId);
   }
 });

@@ -1,4 +1,4 @@
-import { app } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import { Browser } from "./browser/main";
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -14,5 +14,33 @@ if (!gotTheLock) {
     if (window) {
       window.getBrowserWindow().focus();
     }
+  });
+
+  // IPC Handlers //
+  // This is not exposed through the Chrome Extension API, so we need to handle it here.
+  ipcMain.on("stop-loading-tab", (event, tabId: number) => {
+    const webContents = event.sender;
+    const window = browser.getWindowFromWebContents(webContents);
+    if (!window) return;
+
+    const tab = window.tabs.get(tabId);
+    if (!tab) return;
+
+    tab.webContents.stop();
+  });
+
+  // This is not exposed through the Chrome Extension API either, so we need to handle it here.
+  ipcMain.handle("get-tab-navigation-status", async (event, tabId: number) => {
+    const webContents = event.sender;
+    const window = browser.getWindowFromWebContents(webContents);
+    if (!window) return null;
+
+    const tab = window.tabs.get(tabId);
+    if (!tab) return null;
+
+    return {
+      canGoBack: tab.webContents.navigationHistory.canGoBack(),
+      canGoForward: tab.webContents.navigationHistory.canGoForward()
+    };
   });
 }
