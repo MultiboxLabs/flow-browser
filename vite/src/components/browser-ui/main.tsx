@@ -1,7 +1,7 @@
 import BrowserContent from "@/components/browser-ui/browser-content";
 import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar";
 import { useBrowser } from "@/components/main/browser-context";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/resizable-sidebar";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 
@@ -22,7 +22,7 @@ export function BrowserUI() {
       {dynamicTitle && <title>{dynamicTitle} | Flow Browser</title>}
       <BrowserSidebar />
       <SidebarInset>
-        <div className="bg-sidebar flex-1 flex p-3 app-drag">
+        <div className="bg-sidebar flex-1 flex p-3 pl-0.5 app-drag">
           {/* Topbar */}
           <div className="absolute top-0 left-0 w-full h-3 flex justify-center items-center">
             {isActiveTabLoading && (

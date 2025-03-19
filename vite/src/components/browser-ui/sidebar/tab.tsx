@@ -1,6 +1,6 @@
 import { useBrowser } from "@/components/main/browser-context";
 import { Button } from "@/components/ui/button";
-import { SidebarMenuButton } from "@/components/ui/sidebar";
+import { SidebarMenuButton } from "@/components/ui/resizable-sidebar";
 import { cn } from "@/lib/utils";
 import { XIcon } from "lucide-react";
 import { useEffect, useState } from "react";

@@ -1,5 +1,5 @@
 import { SidebarTab } from "@/components/browser-ui/sidebar/tab";
-import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton } from "@/components/ui/sidebar";
+import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton } from "@/components/ui/resizable-sidebar";
 import { useBrowser } from "@/components/main/browser-context";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
