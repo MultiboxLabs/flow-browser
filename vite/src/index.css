@@ -1,5 +1,4 @@
 @import "tailwindcss";
-
 @plugin 'tailwindcss-animate';
 
 @custom-variant dark (&:is(.dark *));
@@ -10,8 +9,8 @@
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* color: rgba(255, 255, 255, 0.87); */
+  background-color: transparent !important;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -53,6 +52,10 @@
 
 .app-drag {
   -webkit-app-region: drag;
+}
+
+.remove-app-drag {
+  -webkit-app-region: no-drag;
 }
 
 .dark {
@@ -134,4 +137,8 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+body {
+  background-color: transparent !important;
 }

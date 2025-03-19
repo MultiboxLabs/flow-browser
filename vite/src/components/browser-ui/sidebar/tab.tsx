@@ -75,7 +75,7 @@ export function SidebarTab({ tab }: { tab: chrome.tabs.Tab }) {
           {/* Left side */}
           <div className="flex flex-row items-center gap-2">
             <motion.div className="w-4 h-4" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-              {tab.favIconUrl && (
+              {!noFavicon && (
                 <img
                   src={tab.favIconUrl}
                   alt={tab.title}

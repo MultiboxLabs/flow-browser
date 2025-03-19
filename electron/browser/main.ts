@@ -117,8 +117,19 @@ class TabbedBrowserWindow {
   async loadWebUI(): Promise<void> {
     if (webuiExtensionId) {
       console.log("Loading WebUI from extension");
+
+      // const webuiUrl = "flow-utility://page/error?url=http://abc.com&initial=1";
+      // const webuiUrl = `chrome-extension://${webuiExtensionId}/error/index.html?url=http://abc.com&initial=1`;
       const webuiUrl = `chrome-extension://${webuiExtensionId}/main/index.html`;
       await this.webContents.loadURL(webuiUrl);
+      await this.webContents.insertCSS(
+        `:root, html, body {
+  background: unset !important;
+  background-color: unset !important;
+  color: unset !important;
+}`,
+        { cssOrigin: "user" }
+      );
     } else {
       console.error("WebUI extension ID not available");
     }
@@ -413,7 +424,7 @@ export class Browser {
         resizable: true,
         backgroundColor: "#00000000",
         visualEffectState: "followWindow",
-        vibrancy: "content", // on MacOS
+        vibrancy: "fullscreen-ui", // on MacOS
         backgroundMaterial: "acrylic" // on Windows
       }
     });
@@ -497,7 +508,7 @@ export class Browser {
 }
 
 app.whenReady().then(() => {
-  const FLOW_UTILITY_ALLOWED_DIRECTORIES = ["error"];
+  const FLOW_UTILITY_ALLOWED_DIRECTORIES = ["error", "main"];
 
   protocol.handle("flow-utility", async (request) => {
     const urlString = request.url;

@@ -2,15 +2,35 @@ import { SidebarTab } from "@/components/browser-ui/sidebar/tab";
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton } from "@/components/ui/sidebar";
 import { useBrowser } from "@/components/main/browser-context";
 import { PlusIcon } from "lucide-react";
+import { useState } from "react";
+import { motion } from "motion/react";
+
+const MotionSidebarMenuButton = motion(SidebarMenuButton);
 
 function NewTabButton() {
   const { handleCreateTab } = useBrowser();
+  const [isPressed, setIsPressed] = useState(false);
+
+  const handleMouseDown = () => {
+    setIsPressed(true);
+  };
 
   return (
-    <SidebarMenuButton className="select-none" onClick={handleCreateTab}>
+    <MotionSidebarMenuButton
+      className="select-none"
+      onClick={handleCreateTab}
+      animate={{
+        scale: isPressed ? 0.975 : 1
+      }}
+      onMouseDown={handleMouseDown}
+      onMouseUp={() => setIsPressed(false)}
+      transition={{
+        scale: { type: "spring", stiffness: 600, damping: 20 }
+      }}
+    >
       <PlusIcon className="size-4 text-muted-foreground" />
       <span className="text-muted-foreground">New Tab</span>
-    </SidebarMenuButton>
+    </MotionSidebarMenuButton>
   );
 }
 

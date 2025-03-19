@@ -56,7 +56,10 @@ function BrowserContent() {
   }, [dimensions]);
 
   return (
-    <div ref={containerRef} className="flex-1 bg-background text-foreground border-t border-border relative rounded-lg">
+    <div
+      ref={containerRef}
+      className="flex-1 bg-background text-foreground border-t border-border relative rounded-lg remove-app-drag"
+    >
       {DEBUG_SHOW_BOUNDS && (
         <div className="absolute top-2 right-2 z-50 text-xs text-muted-foreground bg-background/80 p-1 rounded">
           x: {dimensions.x.toFixed(0)}, y: {dimensions.y.toFixed(0)}, w: {dimensions.width.toFixed(0)}, h:{" "}
