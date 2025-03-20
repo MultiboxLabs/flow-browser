@@ -1,31 +1,34 @@
+import { GoBackButton, GoForwardButton } from "@/components/browser-ui/sidebar/navigation-buttons";
 import { useBrowser } from "@/components/main/browser-context";
 import { Button } from "@/components/ui/button";
 import { SidebarGroup, useSidebar } from "@/components/ui/resizable-sidebar";
-import { getTabNavigationStatus, stopLoadingTab } from "@/lib/flow";
-import { ArrowLeftIcon, RefreshCwIcon, SidebarCloseIcon, XIcon } from "lucide-react";
-import { ArrowRightIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { getTabNavigationStatus, NavigationEntry, stopLoadingTab } from "@/lib/flow";
+import { RefreshCwIcon, SidebarCloseIcon, XIcon } from "lucide-react";
+import { ComponentProps, useEffect, useState } from "react";
 
-function SidebarActionButton({
+export type NavigationEntryWithIndex = NavigationEntry & { index: number };
+
+export function SidebarActionButton({
   icon,
-  onClick,
-  disabled = false
+  disabled = false,
+  ...props
 }: {
   icon: React.ReactNode;
-  onClick: () => void;
   disabled?: boolean;
-}) {
+} & ComponentProps<typeof Button>) {
   return (
-    <Button onClick={onClick} size="icon" variant="ghost" className="size-8" disabled={disabled}>
+    <Button size="icon" variant="ghost" className="size-8" disabled={disabled} {...props}>
       {icon}
     </Button>
   );
 }
 
 export function NavigationControls() {
-  const { handleGoBack, handleGoForward, handleReload, activeTab } = useBrowser();
+  const { handleReload, activeTab } = useBrowser();
   const { open, setOpen } = useSidebar();
 
+  const [entries, setEntries] = useState<NavigationEntryWithIndex[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
 
@@ -39,6 +42,8 @@ export function NavigationControls() {
       if (!status) return;
       setCanGoBack(status.canGoBack);
       setCanGoForward(status.canGoForward);
+      setEntries(status.navigationHistory.map((entry, index) => ({ ...entry, index })));
+      setActiveIndex(status.activeIndex);
     });
   }, [activeTab]);
 
@@ -59,16 +64,8 @@ export function NavigationControls() {
         <SidebarActionButton icon={<SidebarCloseIcon className="w-4 h-4" />} onClick={closeSidebar} />
       </div>
       <div className="flex flex-row gap-1">
-        <SidebarActionButton
-          icon={<ArrowLeftIcon className="w-4 h-4" />}
-          onClick={handleGoBack}
-          disabled={!canGoBack}
-        />
-        <SidebarActionButton
-          icon={<ArrowRightIcon className="w-4 h-4" />}
-          onClick={handleGoForward}
-          disabled={!canGoForward}
-        />
+        <GoBackButton canGoBack={canGoBack} backwardTabs={entries.slice(0, activeIndex).reverse()} />
+        <GoForwardButton canGoForward={canGoForward} forwardTabs={entries.slice(activeIndex + 1)} />
         {!isLoading && <SidebarActionButton icon={<RefreshCwIcon className="w-4 h-4" />} onClick={handleReload} />}
         {isLoading && <SidebarActionButton icon={<XIcon className="w-4 h-4" />} onClick={handleStopLoading} />}
       </div>

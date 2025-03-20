@@ -30,7 +30,7 @@ function InternalBrowserUI() {
 
   return (
     <>
-      {dynamicTitle && <title>{dynamicTitle} | Flow Browser</title>}
+      {dynamicTitle && <title>{`${dynamicTitle} | Flow`}</title>}
       <BrowserSidebar collapseMode={collapseMode} variant={variant} side={side} />
       <SidebarInset>
         <div className={cn("bg-sidebar flex-1 flex p-3 app-drag", open && "pl-0.5")}>

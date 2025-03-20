@@ -30,5 +30,9 @@ contextBridge.exposeInMainWorld("flow", {
   stopLoadingTab: (tabId: number) => {
     if (!isBrowserUI) return;
     return ipcRenderer.send("stop-loading-tab", tabId);
+  },
+  goToNavigationEntry: (tabId: number, index: number) => {
+    if (!isBrowserUI) return;
+    return ipcRenderer.send("go-to-navigation-entry", tabId, index);
   }
 });

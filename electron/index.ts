@@ -16,8 +16,7 @@ if (!gotTheLock) {
     }
   });
 
-  // IPC Handlers //
-  // This is not exposed through the Chrome Extension API, so we need to handle it here.
+  // IPC Handlers for actions not exposed through the Chrome Extension API //
   ipcMain.on("stop-loading-tab", (event, tabId: number) => {
     const webContents = event.sender;
     const window = browser.getWindowFromWebContents(webContents);
@@ -29,7 +28,6 @@ if (!gotTheLock) {
     tab.webContents.stop();
   });
 
-  // This is not exposed through the Chrome Extension API either, so we need to handle it here.
   ipcMain.handle("get-tab-navigation-status", async (event, tabId: number) => {
     const webContents = event.sender;
     const window = browser.getWindowFromWebContents(webContents);
@@ -38,9 +36,25 @@ if (!gotTheLock) {
     const tab = window.tabs.get(tabId);
     if (!tab) return null;
 
+    const tabWebContents = tab.webContents;
+    const navigationHistory = tabWebContents.navigationHistory;
+
     return {
-      canGoBack: tab.webContents.navigationHistory.canGoBack(),
-      canGoForward: tab.webContents.navigationHistory.canGoForward()
+      navigationHistory: navigationHistory.getAllEntries(),
+      activeIndex: navigationHistory.getActiveIndex(),
+      canGoBack: navigationHistory.canGoBack(),
+      canGoForward: navigationHistory.canGoForward()
     };
+  });
+
+  ipcMain.on("go-to-navigation-entry", (event, tabId: number, index: number) => {
+    const webContents = event.sender;
+    const window = browser.getWindowFromWebContents(webContents);
+    if (!window) return;
+
+    const tab = window.tabs.get(tabId);
+    if (!tab) return;
+
+    return tab.webContents.navigationHistory.goToIndex(index);
   });
 }
