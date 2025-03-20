@@ -6,6 +6,7 @@ import { NavigationControls } from "@/components/browser-ui/sidebar/action-butto
 import { setWindowButtonPosition } from "@/lib/flow";
 import { setWindowButtonVisibility } from "@/lib/flow";
 import { CollapseMode, SidebarVariant, SidebarSide } from "@/components/browser-ui/main";
+import { SidebarAddressBar } from "@/components/browser-ui/sidebar/address-bar";
 
 type BrowserSidebarProps = {
   collapseMode: CollapseMode;
@@ -48,6 +49,7 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
           />
         )}
         <NavigationControls />
+        <SidebarAddressBar />
       </SidebarHeader>
       <SidebarContent>
         <SidebarTabs />

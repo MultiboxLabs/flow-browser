@@ -96,3 +96,19 @@ export function transformUrl(url: string): string | null {
 
   return null;
 }
+
+export function simplifyUrl(url: string): string {
+  try {
+    const parsedUrl = new URL(url);
+
+    let hostname = parsedUrl.hostname;
+    if (hostname.startsWith("www.")) {
+      hostname = hostname.slice(4);
+    }
+
+    return hostname;
+  } catch {
+    // Not a valid URL, return the original string
+    return url;
+  }
+}
