@@ -233,11 +233,10 @@ export const BrowserProvider = ({ children }: { children: ReactNode }) => {
   // Event Handlers
   const handleTabClick = useCallback(
     (tabId: number) => {
+      // Only update if the tab exists
       tabs.forEach((tab) => {
         if (tab.id === tabId) {
           chrome.tabs.update(tabId, { active: true });
-        } else {
-          chrome.tabs.update(tabId, { active: false });
         }
       });
     },
