@@ -1,19 +1,20 @@
+import { createSearchUrl } from "@/lib/search";
+
 const extensionId = chrome.runtime.id;
 const fakeBrowserProtocol = "flow";
-const whitelistedPages = ["new"];
+const whitelistedPages = ["new", "omnibox"];
 
 // Real Target Protocol -> Fake Browser Protocol
 const protocolReplacements = {
   "chrome-extension://": "extension://"
 };
 
-const SEARCH_ENGINE = "https://www.google.com/search?q=%s";
-export function parseAddressBarInput(input: string): string {
+export function getURLFromInput(input: string): string | null {
   // Trim whitespace
   const trimmedInput = input.trim();
 
   // Check if input is empty
-  if (!trimmedInput) return "";
+  if (!trimmedInput) return null;
 
   // Check for common protocols
   const commonProtocols = [
@@ -57,8 +58,28 @@ export function parseAddressBarInput(input: string): string {
     }
   }
 
+  return null;
+}
+
+export function isInputURL(input: string): boolean {
+  return getURLFromInput(input) !== null;
+}
+
+export function parseAddressBarInput(input: string): string {
+  // Trim whitespace
+  const trimmedInput = input.trim();
+
+  // Check if input is empty
+  if (!trimmedInput) return "";
+
+  // Parse as URL
+  const url = getURLFromInput(input);
+  if (url) {
+    return url;
+  }
+
   // Treat as search query
-  return SEARCH_ENGINE.replace("%s", encodeURIComponent(trimmedInput));
+  return createSearchUrl(trimmedInput);
 }
 
 export function transformUrl(url: string): string | null {
@@ -106,7 +127,14 @@ export function simplifyUrl(url: string): string {
       hostname = hostname.slice(4);
     }
 
-    return hostname;
+    let shortenedURL = hostname;
+
+    const isHttp = ["http:", "https:"].includes(parsedUrl.protocol);
+    if (!isHttp) {
+      shortenedURL = `${parsedUrl.protocol}//${hostname}`;
+    }
+
+    return shortenedURL;
   } catch {
     // Not a valid URL, return the original string
     return url;

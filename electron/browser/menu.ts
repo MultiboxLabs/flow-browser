@@ -1,6 +1,6 @@
 import { Menu, type MenuItem, type MenuItemConstructorOptions } from "electron";
 import { Browser } from "./main";
-
+import { getNewTabMode, hideOmnibox, isOmniboxOpen, loadOmnibox, setOmniboxBounds, showOmnibox } from "./omnibox";
 export const setupMenu = (browser: Browser) => {
   const isMac = process.platform === "darwin";
 
@@ -32,7 +32,19 @@ export const setupMenu = (browser: Browser) => {
           click: () => {
             const win = getFocusedWindow();
             if (!win) return;
-            win.tabs.create();
+
+            const browserWindow = win.getBrowserWindow();
+            if (getNewTabMode() === "omnibox") {
+              if (isOmniboxOpen(browserWindow)) {
+                hideOmnibox(browserWindow);
+              } else {
+                loadOmnibox(browserWindow, null);
+                setOmniboxBounds(browserWindow, null);
+                showOmnibox(browserWindow);
+              }
+            } else {
+              win.tabs.create();
+            }
           }
         },
         {
@@ -70,15 +82,26 @@ export const setupMenu = (browser: Browser) => {
           label: "Close Tab",
           accelerator: "CmdOrCtrl+W",
           click: () => {
-            const tab = getTab();
-            if (!tab) {
-              const window = getFocusedWindow();
-              if (window) {
-                window.destroy();
+            const win = getFocusedWindow();
+            if (!win) return;
+
+            const browserWindow = win.getBrowserWindow();
+            if (isOmniboxOpen(browserWindow)) {
+              // Close Omnibox
+              hideOmnibox(browserWindow);
+            } else {
+              const tab = getTab();
+              if (tab) {
+                // Close Tab
+                tab.destroy();
+              } else {
+                // Close Window
+                const window = getFocusedWindow();
+                if (window) {
+                  window.destroy();
+                }
               }
-              return;
             }
-            tab.destroy();
           }
         },
         {

@@ -19,6 +19,8 @@ export type TabNavigationStatus = {
   canGoForward: boolean;
 };
 
+type QueryParams = { [key: string]: string };
+
 /**
  * Interface for the Flow API exposed by the Electron preload script
  */
@@ -68,6 +70,18 @@ interface FlowInterfaceAPI {
   goToNavigationEntry: (tabId: number, index: number) => void;
 }
 
+interface FlowOmniboxAPI {
+  /**
+   * Shows the omnibox
+   */
+  show: (bounds: PageBounds | null, params: QueryParams | null) => void;
+
+  /**
+   * Hides the omnibox
+   */
+  hide: () => void;
+}
+
 declare global {
   /**
    * The Flow API instance exposed by the Electron preload script
@@ -75,9 +89,11 @@ declare global {
    */
   const flow: {
     interface: FlowInterfaceAPI;
+    omnibox: FlowOmniboxAPI;
   };
 }
 
+// Browser Interface API //
 export function setPageBounds(bounds: PageBounds) {
   return flow.interface.setPageBounds(bounds);
 }
@@ -100,4 +116,13 @@ export function stopLoadingTab(tabId: number) {
 
 export function goToNavigationEntry(tabId: number, index: number) {
   return flow.interface.goToNavigationEntry(tabId, index);
+}
+
+// Omnibox API //
+export function showOmnibox(bounds: PageBounds | null, params: QueryParams | null) {
+  return flow.omnibox.show(bounds, params);
+}
+
+export function hideOmnibox() {
+  return flow.omnibox.hide();
 }

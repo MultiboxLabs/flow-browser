@@ -4,6 +4,8 @@ import { useBrowser } from "@/components/main/browser-context";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { motion } from "motion/react";
+import { showOmnibox } from "@/lib/flow";
+import { getNewTabMode } from "@/lib/omnibox";
 
 const MotionSidebarMenuButton = motion(SidebarMenuButton);
 
@@ -15,10 +17,18 @@ function NewTabButton() {
     setIsPressed(true);
   };
 
+  const handleNewTab = () => {
+    if (getNewTabMode() === "omnibox") {
+      showOmnibox(null, null);
+    } else {
+      handleCreateTab();
+    }
+  };
+
   return (
     <MotionSidebarMenuButton
       className="select-none"
-      onClick={handleCreateTab}
+      onClick={handleNewTab}
       animate={{
         scale: isPressed ? 0.975 : 1
       }}

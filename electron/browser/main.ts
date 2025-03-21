@@ -1,4 +1,4 @@
-import { app, session, BrowserWindow, dialog, WebContents, Menu, protocol, ipcMain } from "electron";
+import { app, session, BrowserWindow, dialog, WebContents, protocol, ipcMain } from "electron";
 import path from "path";
 import fs from "fs";
 import fsPromises from "fs/promises";
@@ -11,6 +11,7 @@ import { Tabs } from "./tabs";
 import { setupMenu } from "./menu";
 import { FLAGS } from "../modules/flags";
 import { getContentType } from "./utils";
+import { getNewTabMode, Omnibox } from "./omnibox";
 
 // Constants
 const FLOW_ROOT_DIR = path.join(__dirname, "../../");
@@ -68,6 +69,7 @@ class TabbedBrowserWindow {
   private extensions: ElectronChromeExtensions;
   private window: BrowserWindow;
   tabs: Tabs;
+  omnibox: Omnibox;
   public id: number;
   public webContents: WebContents;
 
@@ -104,7 +106,23 @@ class TabbedBrowserWindow {
       self.extensions.selectTab(tab.webContents);
     });
 
+    if (webuiExtensionId) {
+      this.omnibox = new Omnibox(this.window, webuiExtensionId);
+    }
+
     queueMicrotask(() => {
+      // If you do not create a tab, ElectronChromeExtensions will not register the new window.
+      // This is such a weird behavior, but oh well.
+      if (getNewTabMode() === "omnibox") {
+        const tab = this.tabs.create();
+        tab.loadURL("about:blank");
+        // may need to adjust the delay here in the future
+        setTimeout(() => {
+          tab.destroy();
+        }, 150);
+        return;
+      }
+
       // Create initial tab
       const tab = this.tabs.create();
 

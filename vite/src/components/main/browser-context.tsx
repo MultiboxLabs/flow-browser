@@ -78,11 +78,13 @@ export const BrowserProvider = ({ children }: { children: ReactNode }) => {
 
   // Get all tabs at initial load
   useEffect(() => {
-    chrome.tabs.query({}, (tabsFound) => {
+    if (!currentWindow?.id) return;
+
+    chrome.tabs.query({ windowId: currentWindow.id }, (tabsFound) => {
       setTabs(tabsFound);
 
       // Find the active tab in the current window and set it as active
-      const activeTab = tabsFound.find((tab) => tab.active && tab.windowId === currentWindow?.id);
+      const activeTab = tabsFound.find((tab) => tab.active);
       if (activeTab && activeTab.id) {
         setActiveTabId(activeTab.id);
       }
