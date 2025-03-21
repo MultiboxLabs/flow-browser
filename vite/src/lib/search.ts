@@ -23,7 +23,7 @@ interface GoogleSuggestResponse {
 }
 
 export async function getSearchSuggestions(query: string, signal?: AbortSignal): Promise<SearchSuggestions> {
-  const baseURL = `http://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}`;
+  const baseURL = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}`;
   const response = await fetch(baseURL, { signal });
   const data = (await response.json()) as GoogleSuggestResponse;
   return data[1];
