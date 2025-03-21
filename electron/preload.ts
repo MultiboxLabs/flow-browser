@@ -11,28 +11,30 @@ if (isBrowserUI) {
 // Listen for change to dimensions
 contextBridge.exposeInMainWorld("flow", {
   // Browser UI Only //
-  setPageBounds: (bounds: { x: number; y: number; width: number; height: number }) => {
-    if (!isBrowserUI) return;
-    return ipcRenderer.send("set-page-bounds", bounds);
-  },
-  setWindowButtonPosition: (position: { x: number; y: number }) => {
-    if (!isBrowserUI) return;
-    return ipcRenderer.send("set-window-button-position", position);
-  },
-  setWindowButtonVisibility: (visible: boolean) => {
-    if (!isBrowserUI) return;
-    return ipcRenderer.send("set-window-button-visibility", visible);
-  },
-  getTabNavigationStatus: (tabId: number) => {
-    if (!isBrowserUI) return;
-    return ipcRenderer.invoke("get-tab-navigation-status", tabId);
-  },
-  stopLoadingTab: (tabId: number) => {
-    if (!isBrowserUI) return;
-    return ipcRenderer.send("stop-loading-tab", tabId);
-  },
-  goToNavigationEntry: (tabId: number, index: number) => {
-    if (!isBrowserUI) return;
-    return ipcRenderer.send("go-to-navigation-entry", tabId, index);
+  interface: {
+    setPageBounds: (bounds: { x: number; y: number; width: number; height: number }) => {
+      if (!isBrowserUI) return;
+      return ipcRenderer.send("set-page-bounds", bounds);
+    },
+    setWindowButtonPosition: (position: { x: number; y: number }) => {
+      if (!isBrowserUI) return;
+      return ipcRenderer.send("set-window-button-position", position);
+    },
+    setWindowButtonVisibility: (visible: boolean) => {
+      if (!isBrowserUI) return;
+      return ipcRenderer.send("set-window-button-visibility", visible);
+    },
+    getTabNavigationStatus: (tabId: number) => {
+      if (!isBrowserUI) return;
+      return ipcRenderer.invoke("get-tab-navigation-status", tabId);
+    },
+    stopLoadingTab: (tabId: number) => {
+      if (!isBrowserUI) return;
+      return ipcRenderer.send("stop-loading-tab", tabId);
+    },
+    goToNavigationEntry: (tabId: number, index: number) => {
+      if (!isBrowserUI) return;
+      return ipcRenderer.send("go-to-navigation-entry", tabId, index);
+    }
   }
 });

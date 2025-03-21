@@ -22,7 +22,7 @@ export type TabNavigationStatus = {
 /**
  * Interface for the Flow API exposed by the Electron preload script
  */
-interface FlowAPI {
+interface FlowInterfaceAPI {
   /**
    * Sets the bounds of the page content
    * Similar to setTabBounds but specifically for the page content area
@@ -73,29 +73,31 @@ declare global {
    * The Flow API instance exposed by the Electron preload script
    * This is defined in electron/preload.ts and exposed via contextBridge
    */
-  const flow: FlowAPI;
+  const flow: {
+    interface: FlowInterfaceAPI;
+  };
 }
 
 export function setPageBounds(bounds: PageBounds) {
-  return flow.setPageBounds(bounds);
+  return flow.interface.setPageBounds(bounds);
 }
 
 export function setWindowButtonPosition(position: { x: number; y: number }) {
-  return flow.setWindowButtonPosition(position);
+  return flow.interface.setWindowButtonPosition(position);
 }
 
 export function setWindowButtonVisibility(visible: boolean) {
-  return flow.setWindowButtonVisibility(visible);
+  return flow.interface.setWindowButtonVisibility(visible);
 }
 
 export function getTabNavigationStatus(tabId: number) {
-  return flow.getTabNavigationStatus(tabId);
+  return flow.interface.getTabNavigationStatus(tabId);
 }
 
 export function stopLoadingTab(tabId: number) {
-  return flow.stopLoadingTab(tabId);
+  return flow.interface.stopLoadingTab(tabId);
 }
 
 export function goToNavigationEntry(tabId: number, index: number) {
-  return flow.goToNavigationEntry(tabId, index);
+  return flow.interface.goToNavigationEntry(tabId, index);
 }
