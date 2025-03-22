@@ -1,21 +1,44 @@
-module.exports = {
+import type { ForgeConfig } from "@electron-forge/shared-types";
+import { MakerDMG } from "@electron-forge/maker-dmg";
+import { MakerSquirrel } from "@electron-forge/maker-squirrel";
+import { MakerFlatpak } from "@electron-forge/maker-flatpak";
+import { PublisherGithub } from "@electron-forge/publisher-github";
+import { execSync } from "child_process";
+
+import packageJson from "../package.json";
+
+function getGitHash(): string | null {
+  try {
+    const fullHash = execSync("git rev-parse HEAD").toString().trim();
+    return fullHash.slice(0, 7);
+  } catch (error) {
+    return null;
+  }
+}
+
+const config: ForgeConfig = {
   packagerConfig: {
     name: "Flow",
     asar: true,
     extraResource: ["../vite/dist", "assets"],
     icon: "assets/AppIcon",
+    appVersion: packageJson.version,
+    buildVersion: getGitHash(),
     appCopyright: "© 2025 Multibox Labs"
   },
   rebuildConfig: {},
   makers: [
-    {
-      name: "@electron-forge/maker-zip",
-      platforms: ["darwin", "win32"]
-    },
-    {
-      name: "@electron-forge/maker-dmg",
-      platforms: ["darwin"]
-    }
+    // Windows
+    new MakerSquirrel({}),
+
+    // MacOS
+    new MakerDMG({
+      title: "Flow Installer",
+      icon: "./assets/AppIcon.icns"
+    }),
+
+    // Linux
+    new MakerFlatpak({})
   ],
   plugins: [
     {
@@ -45,6 +68,17 @@ module.exports = {
       config: {}
     }
   ].filter(Boolean),
+  publishers: [
+    new PublisherGithub({
+      repository: {
+        owner: "multiboxlabs",
+        name: "flow-browser"
+      },
+      authToken: process.env.GITHUB_TOKEN,
+      generateReleaseNotes: true,
+      prerelease: true
+    })
+  ],
   hooks: {
     packageAfterCopy: async (config, buildPath, electronVersion, platform, arch) => {
       const fs = require("fs");
@@ -68,3 +102,5 @@ module.exports = {
     }
   }
 };
+
+export default config;

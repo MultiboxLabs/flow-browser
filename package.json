@@ -1,6 +1,6 @@
 {
   "name": "flow-browser",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "A minimal browser shell built on Electron.",
   "private": true,
   "workspaces": [
@@ -10,7 +10,8 @@
   "scripts": {
     "start": "bun --cwd ./vite build && bun --cwd ./electron start",
     "start:debug": "cross-env FLOW_DEBUG=true && bun --cwd ./vite build && bun --cwd ./electron start",
-    "build": "bun --cwd ./vite build && bun --cwd ./electron package",
+    "build": "bun --cwd ./vite build && bun --cwd ./electron make",
+    "release": "bun --cwd ./vite build && bun --cwd ./electron make && bun --cwd ./electron release",
     "format": "prettier --write ."
   },
   "devDependencies": {
