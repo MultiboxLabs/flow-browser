@@ -1,5 +1,7 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, ipcMain } from "electron";
 import { Browser } from "./browser/main";
+
+if (require("electron-squirrel-startup")) app.quit();
 
 const gotTheLock = app.requestSingleInstanceLock();
 
