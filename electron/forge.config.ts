@@ -3,8 +3,8 @@ import { MakerDMG } from "@electron-forge/maker-dmg";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerFlatpak } from "@electron-forge/maker-flatpak";
 import { PublisherGithub } from "@electron-forge/publisher-github";
-import PluginWebpack from "@electron-forge/plugin-webpack";
-import PluginAutoUnpackNatives from "@electron-forge/plugin-auto-unpack-natives";
+import { WebpackPlugin } from "@electron-forge/plugin-webpack";
+import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives";
 import { execSync } from "child_process";
 
 import packageJson from "../package.json";
@@ -63,7 +63,7 @@ const config: ForgeConfig = {
     new MakerFlatpak({})
   ],
   plugins: [
-    new PluginWebpack({
+    new WebpackPlugin({
       mainConfig: "./webpack.main.config.js",
       renderer: {
         config: "./webpack.renderer.config.js",
@@ -82,7 +82,7 @@ const config: ForgeConfig = {
         }
       }
     }),
-    new PluginAutoUnpackNatives({})
+    new AutoUnpackNativesPlugin({})
   ],
   publishers: [
     new PublisherGithub({
