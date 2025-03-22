@@ -2,6 +2,8 @@ import type { ForgeConfig } from "@electron-forge/shared-types";
 import { MakerDMG } from "@electron-forge/maker-dmg";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerFlatpak } from "@electron-forge/maker-flatpak";
+import { MakerDeb } from "@electron-forge/maker-deb";
+import { MakerZIP } from "@electron-forge/maker-zip";
 import { PublisherGithub } from "@electron-forge/publisher-github";
 import { WebpackPlugin } from "@electron-forge/plugin-webpack";
 import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives";
@@ -55,12 +57,17 @@ const config: ForgeConfig = {
 
     // MacOS
     new MakerDMG({
+      name: "FlowInstaller.dmg",
       title: "Flow Installer",
       icon: "./assets/AppIcon.icns"
     }),
 
     // Linux
-    new MakerFlatpak({})
+    new MakerFlatpak({}),
+    new MakerDeb({}),
+
+    // Universal
+    new MakerZIP({})
   ],
   plugins: [
     new WebpackPlugin({

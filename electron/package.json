@@ -1,7 +1,7 @@
 {
   "name": "flow-browser",
   "productName": "Flow",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "An experimental browser built on Electron.",
   "main": ".webpack/main",
   "author": {
@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.7.0",
+    "@electron-forge/maker-deb": "^7.7.0",
     "@electron-forge/maker-dmg": "^7.7.0",
     "@electron-forge/maker-flatpak": "^7.7.0",
     "@electron-forge/maker-squirrel": "^7.7.0",
