@@ -23,7 +23,8 @@
     "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.6.5",
     "electron-chrome-web-store": "npm:@iamevan/electron-chrome-web-store@0.10.0",
     "electron-squirrel-startup": "^1.0.1",
-    "mime-types": "^2.1.35"
+    "mime-types": "^2.1.35",
+    "update-electron-app": "^3.1.1"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.7.0",

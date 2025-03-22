@@ -1,5 +1,6 @@
 import { app, ipcMain } from "electron";
 import { Browser } from "./browser/main";
+import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 
 if (require("electron-squirrel-startup")) app.quit();
 
@@ -58,5 +59,13 @@ if (!gotTheLock) {
     if (!tab) return;
 
     return tab.webContents.navigationHistory.goToIndex(index);
+  });
+
+  updateElectronApp({
+    updateSource: {
+      type: UpdateSourceType.ElectronPublicUpdateService,
+      repo: "multiboxlabs/flow-browser"
+    },
+    notifyUser: true
   });
 }
