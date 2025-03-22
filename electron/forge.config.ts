@@ -119,6 +119,4 @@ const config: ForgeConfig = {
   }
 };
 
-console.log(config.plugins);
-
 export default config;
