@@ -6,8 +6,22 @@ import { PublisherGithub } from "@electron-forge/publisher-github";
 import { execSync } from "child_process";
 
 import packageJson from "../package.json";
+import { syncVersion } from "../scripts/sync-version";
+
+function getPlatform(): string {
+  if (process.platform === "win32") {
+    return "win32";
+  }
+
+  return process.platform;
+}
 
 function getGitHash(): string | null {
+  if (getPlatform() === "win32") {
+    // Windows doesn't support non-numeric build versions
+    return null;
+  }
+
   try {
     const fullHash = execSync("git rev-parse HEAD").toString().trim();
     return fullHash.slice(0, 7);
@@ -15,6 +29,8 @@ function getGitHash(): string | null {
     return null;
   }
 }
+
+syncVersion();
 
 const config: ForgeConfig = {
   packagerConfig: {
