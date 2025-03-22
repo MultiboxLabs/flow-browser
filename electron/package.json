@@ -1,9 +1,14 @@
 {
   "name": "flow-browser",
   "productName": "Flow",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "An experimental browser built on Electron.",
   "main": ".webpack/main",
+  "author": {
+    "name": "iamEvan",
+    "email": "evan@iamevan.dev",
+    "url": "https://iamevan.dev"
+  },
   "scripts": {
     "start": "electron-forge start",
     "start:trace": "electron-forge start -- --trace-startup=\"*\" --trace-startup-file=\"$HOME/Desktop/trace.json\"",
