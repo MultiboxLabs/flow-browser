@@ -3,6 +3,8 @@ import { MakerDMG } from "@electron-forge/maker-dmg";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerFlatpak } from "@electron-forge/maker-flatpak";
 import { PublisherGithub } from "@electron-forge/publisher-github";
+import PluginWebpack from "@electron-forge/plugin-webpack";
+import PluginAutoUnpackNatives from "@electron-forge/plugin-auto-unpack-natives";
 import { execSync } from "child_process";
 
 import packageJson from "../package.json";
@@ -61,32 +63,26 @@ const config: ForgeConfig = {
     new MakerFlatpak({})
   ],
   plugins: [
-    {
-      name: "@electron-forge/plugin-webpack",
-      config: {
-        mainConfig: "./webpack.main.config.js",
-        renderer: {
-          config: "./webpack.renderer.config.js",
-          entryPoints: [
-            {
-              name: "browser",
-              preload: {
-                js: "./preload.ts"
-              }
+    new PluginWebpack({
+      mainConfig: "./webpack.main.config.js",
+      renderer: {
+        config: "./webpack.renderer.config.js",
+        entryPoints: [
+          {
+            name: "browser",
+            preload: {
+              js: "./preload.ts"
             }
-          ]
-        },
-        devServer: {
-          client: {
-            overlay: false
           }
+        ]
+      },
+      devServer: {
+        client: {
+          overlay: false
         }
       }
-    },
-    {
-      name: "@electron-forge/plugin-auto-unpack-natives",
-      config: {}
-    }
+    }),
+    new PluginAutoUnpackNatives({})
   ],
   publishers: [
     new PublisherGithub({
@@ -122,5 +118,7 @@ const config: ForgeConfig = {
     }
   }
 };
+
+console.log(config.plugins);
 
 export default config;
