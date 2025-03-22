@@ -21,14 +21,14 @@ function getPlatform(): string {
 function getGitHash(): string | null {
   if (getPlatform() === "win32") {
     // Windows doesn't support non-numeric build versions
-    return null;
+    return packageJson.version;
   }
 
   try {
     const fullHash = execSync("git rev-parse HEAD").toString().trim();
     return fullHash.slice(0, 7);
   } catch (error) {
-    return null;
+    return packageJson.version;
   }
 }
 
