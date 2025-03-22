@@ -40,5 +40,5 @@ jobs:
 
       - name: Build & Release App
         run: bun run release
-        with:
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
