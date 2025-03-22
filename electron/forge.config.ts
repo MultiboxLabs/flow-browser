@@ -45,7 +45,11 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [
     // Windows
-    new MakerSquirrel({}),
+    new MakerSquirrel({
+      name: "Flow",
+      setupIcon: "./assets/AppIcon.ico",
+      setupExe: "FlowSetup.exe"
+    }),
 
     // MacOS
     new MakerDMG({
@@ -83,7 +87,7 @@ const config: ForgeConfig = {
       name: "@electron-forge/plugin-auto-unpack-natives",
       config: {}
     }
-  ].filter(Boolean),
+  ],
   publishers: [
     new PublisherGithub({
       repository: {
