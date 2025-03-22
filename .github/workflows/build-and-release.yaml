@@ -35,6 +35,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y flatpak-builder elfutils
 
+      - name: Setup Flatpak
+        run: |
+          flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
       - name: Install dependencies
         run: bun install --development
 
