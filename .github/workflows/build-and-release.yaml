@@ -1,4 +1,4 @@
-name: Build/release
+name: Build & Release App
 
 permissions:
   contents: write
@@ -29,8 +29,14 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile --development
+      - name: Install Flatpak dependencies (Ubuntu only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak-builder elfutils
 
-      - name: Build & Release Electron app
+      - name: Install dependencies
+        run: bun install --development
+
+      - name: Build & Release App
         run: bun run release
