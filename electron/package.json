@@ -9,7 +9,7 @@
     "start:trace": "electron-forge start -- --trace-startup=\"*\" --trace-startup-file=\"$HOME/Desktop/trace.json\"",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "release": "electron-forge release"
+    "release": "electron-forge publish"
   },
   "license": "MIT",
   "private": true,
