@@ -41,7 +41,7 @@ jobs:
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
       - name: Install dependencies
-        run: bun install --development
+        run: npm install --legacy-peer-deps
 
       - name: Build & Release App
         run: bun run release
