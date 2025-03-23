@@ -3,6 +3,7 @@ import { Protocol, Session } from "electron";
 import { PATHS } from "../modules/paths";
 import fsPromises from "fs/promises";
 import { getContentType } from "./utils";
+import { getFavicon, normalizeURL } from "../modules/favicons";
 
 function registerFlowUtilityProtocol(protocol: Protocol) {
   const FLOW_UTILITY_ALLOWED_DIRECTORIES = ["error"];
@@ -74,7 +75,31 @@ function registerFlowUtilityProtocol(protocol: Protocol) {
   });
 }
 
+function registerFaviconProtocol(protocol: Protocol) {
+  protocol.handle("favicon", async (request) => {
+    const urlString = request.url;
+    const url = new URL(urlString);
+
+    const targetUrl = url.searchParams.get("url");
+    if (!targetUrl) {
+      return new Response("No URL provided", { status: 400 });
+    }
+
+    const normalizedTargetUrl = normalizeURL(targetUrl);
+
+    const favicon = await getFavicon(normalizedTargetUrl);
+    if (!favicon) {
+      return new Response("No favicon found", { status: 404 });
+    }
+
+    return new Response(favicon, {
+      headers: { "Content-Type": "image/png" }
+    });
+  });
+}
+
 export function registerProtocolsWithSession(session: Session) {
   const protocol = session.protocol;
   registerFlowUtilityProtocol(protocol);
+  registerFaviconProtocol(protocol);
 }

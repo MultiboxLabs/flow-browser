@@ -117,6 +117,9 @@ async function initDatabase() {
 // Initialize the database
 initDatabase();
 
+// Cleanup old favicons
+cleanupOldFavicons();
+
 /**
  * Converts an ICO file to a Sharp object ready for further processing
  * @param faviconData The ICO file data
@@ -252,11 +255,36 @@ async function storeFaviconInDb(
 }
 
 /**
+ * Normalizes a URL by ensuring it has a trailing slash
+ * @param url The URL to normalize
+ * @returns The normalized URL with a trailing slash
+ */
+export function normalizeURL(url: string): string {
+  try {
+    const parsedURL = new URL(url);
+
+    // Add trailing slash to pathname if it doesn't have one and isn't empty
+    if (parsedURL.pathname && parsedURL.pathname !== "/" && !parsedURL.pathname.endsWith("/")) {
+      parsedURL.pathname = `${parsedURL.pathname}/`;
+    }
+
+    return parsedURL.toString();
+  } catch (error) {
+    // If URL parsing fails, just return the original URL
+    console.error(`Failed to normalize URL: ${url}`, error);
+    return url;
+  }
+}
+
+/**
  * Fetches and processes a favicon from the given URL
  * @param url The page URL
  * @param faviconURL The URL of the favicon
  */
 export function cacheFavicon(url: string, faviconURL: string): void {
+  // Normalize the URL
+  const normalizedURL = normalizeURL(url);
+
   // Queue the operation to limit concurrency
   operationQueue.push(async () => {
     try {
@@ -268,7 +296,7 @@ export function cacheFavicon(url: string, faviconURL: string): void {
       const isIco = faviconURLObject.pathname.endsWith(".ico");
 
       // Process the image and get a Sharp object
-      const sharpObj = await processIconImage(faviconData, url, isIco);
+      const sharpObj = await processIconImage(faviconData, normalizedURL, isIco);
 
       // Resize the image and convert to PNG in a single operation
       const resizedImageBuffer = await sharpObj
@@ -284,11 +312,11 @@ export function cacheFavicon(url: string, faviconURL: string): void {
 
       // Store in database within a transaction to prevent SQLITE_BUSY errors
       await db.transaction(async (trx) => {
-        await storeFaviconInDb(trx, imageHash, resizedImageBuffer, url);
+        await storeFaviconInDb(trx, imageHash, resizedImageBuffer, normalizedURL);
       });
 
       if (FLAGS.SHOW_DEBUG_PRINTS) {
-        console.log(`Cached ${isIco ? "ICO→PNG" : "original"} favicon for ${url} with hash ${imageHash}`);
+        console.log(`Cached ${isIco ? "ICO→PNG" : "original"} favicon for ${normalizedURL} with hash ${imageHash}`);
       }
     } catch (error) {
       console.error("Error caching favicon:", error);
@@ -305,12 +333,15 @@ export function cacheFavicon(url: string, faviconURL: string): void {
  * @returns The favicon data as a Buffer, or null if not found
  */
 export async function getFavicon(url: string): Promise<Buffer | null> {
+  // Normalize the URL
+  const normalizedURL = normalizeURL(url);
+
   try {
     return await db.transaction(async (trx) => {
       // Look up the favicon in the database
       const result = await trx("favicon_urls")
         .join("favicons", "favicon_urls.icon_id", "favicons.id")
-        .where("favicon_urls.url", url)
+        .where("favicon_urls.url", normalizedURL)
         .select("favicons.favicon", "favicons.id")
         .first();
 
@@ -337,8 +368,11 @@ export async function getFavicon(url: string): Promise<Buffer | null> {
  * @returns True if a favicon exists, false otherwise
  */
 export async function hasFavicon(url: string): Promise<boolean> {
+  // Normalize the URL
+  const normalizedURL = normalizeURL(url);
+
   try {
-    const count = await db("favicon_urls").where("url", url).count("* as count").first();
+    const count = await db("favicon_urls").where("url", normalizedURL).count("* as count").first();
     return count && Number(count.count) > 0;
   } catch (error) {
     console.error("Error checking favicon:", error);
@@ -352,8 +386,11 @@ export async function hasFavicon(url: string): Promise<boolean> {
  * @returns A data URL containing the favicon, or null if not found
  */
 export async function getFaviconDataUrl(url: string): Promise<string | null> {
+  // Normalize the URL
+  const normalizedURL = normalizeURL(url);
+
   try {
-    const favicon = await getFavicon(url);
+    const favicon = await getFavicon(normalizedURL);
     if (!favicon) {
       return null;
     }
