@@ -84,30 +84,6 @@ function getModuleDependencies(moduleName: string, seen = new Set<string>()): st
   }
 }
 
-// Special case handling for sharp's dependencies
-function getSharpDependencies(): string[] {
-  const fs = require("fs");
-  const path = require("path");
-  const imgModules: string[] = [];
-
-  // Look for all @img/* packages
-  const imgPath = path.join(__dirname, "../node_modules/@img");
-  if (fs.existsSync(imgPath)) {
-    try {
-      const imgContents = fs.readdirSync(imgPath);
-      for (const item of imgContents) {
-        if (fs.statSync(path.join(imgPath, item)).isDirectory()) {
-          imgModules.push(`@img/${item}`);
-        }
-      }
-    } catch (error) {
-      console.warn("Error reading @img directory:", error);
-    }
-  }
-
-  return imgModules;
-}
-
 const config: ForgeConfig = {
   packagerConfig: {
     name: "Flow",
