@@ -1,16 +1,6 @@
-import {
-  app,
-  session,
-  BrowserWindow,
-  dialog,
-  WebContents,
-  protocol,
-  ipcMain,
-  OpenExternalPermissionRequest
-} from "electron";
+import { app, session, BrowserWindow, dialog, WebContents, ipcMain, OpenExternalPermissionRequest } from "electron";
 import path from "path";
 import fs from "fs";
-import fsPromises from "fs/promises";
 import { ElectronChromeExtensions } from "electron-chrome-extensions";
 import { buildChromeContextMenu } from "electron-chrome-context-menu";
 import { installChromeWebStore, loadAllExtensions } from "electron-chrome-web-store";
@@ -19,9 +9,9 @@ import { installChromeWebStore, loadAllExtensions } from "electron-chrome-web-st
 import { Tabs } from "./tabs";
 import { setupMenu } from "./menu";
 import { FLAGS } from "../modules/flags";
-import { getContentType } from "./utils";
 import { Omnibox } from "./omnibox";
 import { homedir } from "os";
+import { registerProtocolsWithSession } from "./protocols";
 
 // Constants
 const FLOW_ROOT_DIR = path.join(__dirname, "../../");
@@ -37,7 +27,7 @@ interface Paths {
   LOCAL_EXTENSIONS: string;
 }
 
-const PATHS: Paths = {
+export const PATHS: Paths = {
   ASSETS: app.isPackaged
     ? path.resolve(process.resourcesPath as string, "assets")
     : path.resolve(FLOW_ROOT_DIR, "assets"),
@@ -401,6 +391,8 @@ export class Browser {
     const sessionPath = path.join(FLOW_DATA_DIR, "profiles", profileName);
     this.session = session.fromPath(sessionPath);
 
+    registerProtocolsWithSession(this.session);
+
     this.session.setPermissionRequestHandler((webContents, permission, callback, details) => {
       if (FLAGS.SHOW_DEBUG_PRINTS) {
         console.log("permission request", webContents?.getURL(), permission);
@@ -572,76 +564,6 @@ export class Browser {
     });
   }
 }
-
-app.whenReady().then(() => {
-  const FLOW_UTILITY_ALLOWED_DIRECTORIES = ["error"];
-
-  protocol.handle("flow-utility", async (request) => {
-    const urlString = request.url;
-
-    // Extract the entire path correctly from custom protocol URL
-    // For flow-utility://error/index.html, we need "error/index.html"
-    const fullPath = urlString.substring(urlString.indexOf("://") + 3);
-    const urlPath = fullPath.split("?")[0]; // Remove query parameters
-    const queryString = fullPath.includes("?") ? fullPath.substring(fullPath.indexOf("?")) : "";
-
-    // Check if this is a page request (starts with /page)
-    if (!urlPath.startsWith("page/")) {
-      return new Response("Invalid request path", { status: 400 });
-    }
-
-    // Remove the /page prefix to get the actual path
-    const pagePath = urlPath.substring(5); // Remove "page/"
-
-    // Redirect index.html to directory path
-    if (pagePath.endsWith("/index.html")) {
-      const redirectPath = `flow-utility://page/${pagePath.replace("/index.html", "/")}${queryString}`;
-      return Response.redirect(redirectPath, 301);
-    }
-
-    // Build file path and check if it exists
-    let filePath = path.join(PATHS.VITE_WEBUI, "dist", pagePath);
-
-    try {
-      // Check if path exists
-      const stats = await fsPromises.stat(filePath);
-
-      // Ensure the requested path is within the allowed directory structure
-      const normalizedPath = path.normalize(filePath);
-      const distDir = path.normalize(path.join(PATHS.VITE_WEBUI, "dist"));
-      if (!normalizedPath.startsWith(distDir)) {
-        return new Response("Access denied", { status: 403 });
-      }
-
-      // If direct file is a directory, try serving index.html from that directory
-      if (stats.isDirectory() && FLOW_UTILITY_ALLOWED_DIRECTORIES.includes(pagePath)) {
-        const indexPath = path.join(filePath, "index.html");
-        try {
-          await fsPromises.access(indexPath);
-          filePath = indexPath;
-        } catch (error) {
-          // Index.html doesn't exist in directory
-          return new Response("Directory index not found", { status: 404 });
-        }
-      }
-
-      // Read file contents
-      const buffer = await fsPromises.readFile(filePath);
-
-      // Determine content type based on file extension
-      const contentType = getContentType(filePath);
-
-      return new Response(buffer, {
-        headers: {
-          "Content-Type": contentType
-        }
-      });
-    } catch (error) {
-      console.error("Error serving file:", error);
-      return new Response("File not found", { status: 404 });
-    }
-  });
-});
 
 // IPC Handlers //
 ipcMain.on("set-window-button-position", (event, position: { x: number; y: number }) => {
