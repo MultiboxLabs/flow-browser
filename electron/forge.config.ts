@@ -8,12 +8,16 @@ import { PublisherGithub } from "@electron-forge/publisher-github";
 import { WebpackPlugin } from "@electron-forge/plugin-webpack";
 import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives";
 import { execSync } from "child_process";
+import { copySync } from "fs-extra";
+import path from "path";
+import fs from "fs";
+
 // import { rebuild } from "@electron/rebuild";
 
 import packageJson from "../package.json";
 import { syncVersion } from "../scripts/sync-version";
-import path from "path";
-import fs from "fs";
+
+import generateLocaleSetter from "./build/set-locales";
 
 function getPlatform(): string {
   if (process.platform === "win32") {
@@ -43,9 +47,6 @@ const externalModules = ["sharp", "knex", "better-sqlite3"];
 
 // Helper function to recursively get dependencies
 function getModuleDependencies(moduleName: string, seen = new Set<string>()): string[] {
-  const fs = require("fs");
-  const path = require("path");
-
   if (seen.has(moduleName)) return [];
   seen.add(moduleName);
 
@@ -175,9 +176,13 @@ const config: ForgeConfig = {
   ],
   hooks: {
     packageAfterCopy: async (config, buildPath, electronVersion, platform, arch) => {
-      const fs = require("fs");
-      const path = require("path");
-      const { copySync } = require("fs-extra");
+      // Remove unused languages to reduce the size of the app
+      try {
+        const setLocales = generateLocaleSetter(["en", "zh_CN"]);
+        setLocales(buildPath, electronVersion, platform, arch, () => {});
+      } catch (error) {
+        console.error("Failed to set locales:", error);
+      }
 
       // Copy external modules
       const externalModulesPath = path.resolve(__dirname, "../node_modules");

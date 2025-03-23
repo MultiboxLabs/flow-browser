@@ -46,6 +46,7 @@
     "cross-env": "^7.0.3",
     "electron": "^35.0.3",
     "fs-extra": "^11.3.0",
+    "rimraf": "^6.0.1",
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2"
   }
