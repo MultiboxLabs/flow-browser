@@ -8,10 +8,12 @@ import { PublisherGithub } from "@electron-forge/publisher-github";
 import { WebpackPlugin } from "@electron-forge/plugin-webpack";
 import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives";
 import { execSync } from "child_process";
-import { rebuild } from "@electron/rebuild";
+// import { rebuild } from "@electron/rebuild";
 
 import packageJson from "../package.json";
 import { syncVersion } from "../scripts/sync-version";
+import path from "path";
+import fs from "fs";
 
 function getPlatform(): string {
   if (process.platform === "win32") {
@@ -84,14 +86,25 @@ function getModuleDependencies(moduleName: string, seen = new Set<string>()): st
   }
 }
 
+const viteWebUIPath = path.resolve(__dirname, "../vite/dist");
+const uiPath = path.resolve(viteWebUIPath, "..", "ui");
+fs.cpSync(viteWebUIPath, uiPath, { recursive: true });
+
+process.on("beforeExit", () => {
+  fs.rmSync(uiPath, { recursive: true, force: true });
+});
+
 const config: ForgeConfig = {
   packagerConfig: {
     name: "Flow",
     executableName: "flow-browser",
     asar: {
-      unpack: "**/node_modules/@img/**/*"
+      unpack: [
+        // Special case for sharp's dependencies
+        "**/node_modules/@img/**/*"
+      ].join(",")
     },
-    extraResource: ["../vite/dist", "assets"],
+    extraResource: [uiPath, "assets"],
     icon: "assets/AppIcon",
     appVersion: packageJson.version,
     buildVersion: getGitHash(),
@@ -164,21 +177,6 @@ const config: ForgeConfig = {
       const fs = require("fs");
       const path = require("path");
       const { copySync } = require("fs-extra");
-
-      const viteDistPath = path.resolve(__dirname, "../vite/dist");
-
-      const destPath = path.join(buildPath, "dist");
-
-      if (!fs.existsSync(path.dirname(destPath))) {
-        fs.mkdirSync(path.dirname(destPath), { recursive: true });
-      }
-
-      if (fs.existsSync(viteDistPath)) {
-        console.log(`Copying Vite app from ${viteDistPath} to ${destPath}`);
-        copySync(viteDistPath, destPath);
-      } else {
-        console.warn(`Vite app not found at ${viteDistPath}`);
-      }
 
       // Copy external modules
       const externalModulesPath = path.resolve(__dirname, "../node_modules");

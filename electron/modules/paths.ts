@@ -26,7 +26,7 @@ export const PATHS: Paths = {
   ASSETS: app.isPackaged
     ? path.resolve(process.resourcesPath as string, "assets")
     : path.resolve(FLOW_ROOT_DIR, "assets"),
-  VITE_WEBUI: app.isPackaged ? path.resolve(process.resourcesPath as string) : path.resolve(ROOT_DIR, "vite"),
+  VITE_WEBUI: app.isPackaged ? path.resolve(process.resourcesPath, "ui") : path.resolve(ROOT_DIR, "vite", "dist"),
   PRELOAD: path.join(WEBPACK_ROOT_DIR, "renderer", "browser", "preload.js"),
   LOCAL_EXTENSIONS: path.join(ROOT_DIR, "extensions")
 };

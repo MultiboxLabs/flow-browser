@@ -31,7 +31,7 @@ function registerFlowUtilityProtocol(protocol: Protocol) {
     }
 
     // Build file path and check if it exists
-    let filePath = path.join(PATHS.VITE_WEBUI, "dist", pagePath);
+    let filePath = path.join(PATHS.VITE_WEBUI, pagePath);
 
     try {
       // Check if path exists
@@ -39,7 +39,7 @@ function registerFlowUtilityProtocol(protocol: Protocol) {
 
       // Ensure the requested path is within the allowed directory structure
       const normalizedPath = path.normalize(filePath);
-      const distDir = path.normalize(path.join(PATHS.VITE_WEBUI, "dist"));
+      const distDir = path.normalize(path.join(PATHS.VITE_WEBUI));
       if (!normalizedPath.startsWith(distDir)) {
         return new Response("Access denied", { status: 403 });
       }

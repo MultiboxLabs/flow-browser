@@ -297,7 +297,7 @@ export class Browser {
 
     // Load the Vite WebUI extension first
     try {
-      const viteWebUIPath = path.join(PATHS.VITE_WEBUI, "dist");
+      const viteWebUIPath = PATHS.VITE_WEBUI;
       if (fs.existsSync(viteWebUIPath) && fs.existsSync(path.join(viteWebUIPath, "manifest.json"))) {
         console.log("Loading Vite WebUI extension from:", viteWebUIPath);
         const viteExtension = await this.session.loadExtension(viteWebUIPath);
