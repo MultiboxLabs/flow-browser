@@ -104,6 +104,7 @@ const config: ForgeConfig = {
         "**/node_modules/@img/**/*"
       ].join(",")
     },
+    appBundleId: "dev.iamevan.flow",
     extraResource: [uiPath, "assets"],
     icon: "assets/AppIcon",
     appVersion: packageJson.version,
