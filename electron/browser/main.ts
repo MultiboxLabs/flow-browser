@@ -21,11 +21,14 @@ import { setupMenu } from "./menu";
 import { FLAGS } from "../modules/flags";
 import { getContentType } from "./utils";
 import { Omnibox } from "./omnibox";
+import { homedir } from "os";
 
 // Constants
 const FLOW_ROOT_DIR = path.join(__dirname, "../../");
 const WEBPACK_ROOT_DIR = path.join(FLOW_ROOT_DIR, ".webpack");
 const ROOT_DIR = path.join(FLOW_ROOT_DIR, "../");
+
+const FLOW_DATA_DIR = path.join(homedir(), ".flow");
 
 interface Paths {
   ASSETS: string;
@@ -392,7 +395,11 @@ export class Browser {
   }
 
   initSession(): void {
-    this.session = session.defaultSession;
+    // this.session = session.defaultSession;
+
+    const profileName = "main";
+    const sessionPath = path.join(FLOW_DATA_DIR, "profiles", profileName);
+    this.session = session.fromPath(sessionPath);
 
     this.session.setPermissionRequestHandler((webContents, permission, callback, details) => {
       if (FLAGS.SHOW_DEBUG_PRINTS) {
@@ -460,6 +467,7 @@ export class Browser {
   createWindow(options: Partial<TabbedBrowserWindowOptions> = {}): TabbedBrowserWindow {
     const win = new TabbedBrowserWindow({
       ...options,
+      session: this.session,
       urls: this.urls,
       extensions: this.extensions,
       window: {
@@ -475,7 +483,8 @@ export class Browser {
         webPreferences: {
           sandbox: true,
           nodeIntegration: false,
-          contextIsolation: true
+          contextIsolation: true,
+          session: this.session
         },
         frame: false,
         transparent: false,

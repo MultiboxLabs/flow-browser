@@ -13,7 +13,11 @@ export class Omnibox {
   private bounds: Electron.Rectangle | null = null;
 
   constructor(parentWindow: BrowserWindow, extensionId: string) {
-    const onmiboxView = new WebContentsView();
+    const onmiboxView = new WebContentsView({
+      webPreferences: {
+        session: parentWindow.webContents.session
+      }
+    });
     const onmiboxWC = onmiboxView.webContents;
 
     onmiboxView.setBorderRadius(13);

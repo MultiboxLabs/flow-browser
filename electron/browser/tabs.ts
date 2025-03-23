@@ -29,19 +29,22 @@ class Tab {
   ) {
     this.invalidateLayout = this.invalidateLayout.bind(this);
 
+    const session = parentWindow.webContents.session;
     if (webContentsViewOptions.webContents) {
       // If webContents is provided, use it
       this.view = new WebContentsView({
         webContents: webContentsViewOptions.webContents,
         webPreferences: {
-          ...(webContentsViewOptions.webPreferences || {})
+          ...(webContentsViewOptions.webPreferences || {}),
+          session
         }
       });
     } else {
       // Otherwise create a new WebContentsView without specifying webContents
       this.view = new WebContentsView({
         webPreferences: {
-          ...(webContentsViewOptions.webPreferences || {})
+          ...(webContentsViewOptions.webPreferences || {}),
+          session
         }
       });
     }
