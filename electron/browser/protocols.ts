@@ -2,7 +2,7 @@ import path from "path";
 import { Protocol, Session } from "electron";
 import { PATHS } from "../modules/paths";
 import fsPromises from "fs/promises";
-import { getContentType } from "./utils";
+import { getContentType } from "../modules/utils";
 import { getFavicon, normalizeURL } from "../modules/favicons";
 
 function registerFlowUtilityProtocol(protocol: Protocol) {
