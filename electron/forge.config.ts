@@ -11,6 +11,8 @@ import { execSync } from "child_process";
 import { copySync } from "fs-extra";
 import path from "path";
 import fs from "fs";
+import { FusesPlugin } from "@electron-forge/plugin-fuses";
+import { FuseV1Options, FuseVersion } from "@electron/fuses";
 
 // import { rebuild } from "@electron/rebuild";
 
@@ -161,7 +163,14 @@ const config: ForgeConfig = {
         }
       }
     }),
-    new AutoUnpackNativesPlugin({})
+    new AutoUnpackNativesPlugin({}),
+    new FusesPlugin({
+      version: FuseVersion.V1,
+      [FuseV1Options.EnableCookieEncryption]: true,
+      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
+      [FuseV1Options.GrantFileProtocolExtraPrivileges]: false,
+      [FuseV1Options.OnlyLoadAppFromAsar]: true
+    })
   ],
   publishers: [
     new PublisherGithub({
