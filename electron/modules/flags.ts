@@ -4,6 +4,7 @@ type Flags = {
   SCRUBBED_USER_AGENT: boolean;
   ERROR_PAGE_LOAD_MODE: "replace" | "load";
   SHOW_DEBUG_PRINTS: boolean;
+  SHOW_PERMISSION_DEBUG_PRINTS: boolean;
   DEBUG_DISABLE_TAB_VIEW: boolean;
 };
 
@@ -17,6 +18,7 @@ export const FLAGS: Flags = {
 
   // Debug: Prints
   SHOW_DEBUG_PRINTS: !app.isPackaged,
+  SHOW_PERMISSION_DEBUG_PRINTS: false,
 
   // Debug: Disable the tab view
   DEBUG_DISABLE_TAB_VIEW: false

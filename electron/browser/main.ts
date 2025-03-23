@@ -371,7 +371,7 @@ export class Browser {
     registerProtocolsWithSession(this.session);
 
     this.session.setPermissionRequestHandler((webContents, permission, callback, details) => {
-      if (FLAGS.SHOW_DEBUG_PRINTS) {
+      if (FLAGS.SHOW_PERMISSION_DEBUG_PRINTS) {
         console.log("permission request", webContents?.getURL(), permission);
       }
 
@@ -404,7 +404,7 @@ export class Browser {
     });
 
     this.session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
-      if (FLAGS.SHOW_DEBUG_PRINTS) {
+      if (FLAGS.SHOW_PERMISSION_DEBUG_PRINTS) {
         console.log("permission check", webContents?.getURL(), permission);
       }
       return true;
