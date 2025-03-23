@@ -226,7 +226,7 @@ export class Tabs extends EventEmitter {
     return this.tabList.find((tab) => tab.id === tabId);
   }
 
-  create(webContentsViewOptions: Electron.WebContentsViewConstructorOptions = {}) {
+  create(webContentsViewOptions: Electron.WebContentsViewConstructorOptions = {}, shouldShow: boolean = true) {
     if (!this.window) {
       throw new Error("Tabs.create: window is not set");
     }
@@ -234,9 +234,16 @@ export class Tabs extends EventEmitter {
     const tab = new Tab(this.window, webContentsViewOptions);
     this.tabList.push(tab);
     if (!this.selected) this.selected = tab;
-    tab.show(); // must be attached to window
+
+    if (shouldShow) {
+      tab.show(); // must be attached to window
+    }
+
     this.emit("tab-created", tab);
-    this.select(tab.id);
+
+    if (shouldShow) {
+      this.select(tab.id);
+    }
     return tab;
   }
 

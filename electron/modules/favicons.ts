@@ -9,7 +9,7 @@ import { createHash } from "crypto";
 import { FLOW_DATA_DIR } from "./paths";
 import * as sharpIco from "sharp-ico";
 import sharp from "sharp";
-import { FLAGS } from "./flags";
+import { debugError, debugPrint } from "./output";
 
 const dbPath = path.join(FLOW_DATA_DIR, "favicons.db");
 
@@ -46,9 +46,9 @@ async function configureDatabasePragmas() {
     // Wait up to 3 seconds for locks to be released
     await db.raw("PRAGMA busy_timeout = 3000");
 
-    console.log("Configured SQLite pragmas for favicons database");
+    debugPrint("FAVICONS", "Configured SQLite pragmas for favicons database");
   } catch (err) {
-    console.error("Error configuring SQLite pragmas:", err);
+    debugError("FAVICONS", "Error configuring SQLite pragmas:", err);
   }
 }
 
@@ -69,7 +69,7 @@ async function processQueue() {
   try {
     await operation!();
   } catch (error) {
-    console.error("Error in queued operation:", error);
+    debugError("FAVICONS", "Error in queued operation:", error);
   } finally {
     activeOperations--;
     // Process next operation in queue
@@ -95,7 +95,7 @@ async function initDatabase() {
           table.timestamp("last_requested");
           table.specificType("favicon", "blob").notNullable();
         });
-        console.log("Created favicons table");
+        debugPrint("FAVICONS", "Created favicons table");
       }
 
       // Create favicon_urls table if it doesn't exist
@@ -106,11 +106,11 @@ async function initDatabase() {
           table.string("url").notNullable().index(); // Add index for faster lookups
           table.integer("icon_id").references("id").inTable("favicons");
         });
-        console.log("Created favicon_urls table");
+        debugPrint("FAVICONS", "Created favicon_urls table");
       }
     });
   } catch (err) {
-    console.error("Failed to initialize favicon database:", err);
+    debugError("FAVICONS", "Failed to initialize favicon database:", err);
   }
 }
 
@@ -146,9 +146,7 @@ async function processIconImage(faviconData: Buffer, url: string, isIco: boolean
           }
         });
 
-        if (FLAGS.SHOW_DEBUG_PRINTS) {
-          console.log(`Extracted ${largestImage.width}x${largestImage.height} image from ICO for ${url}`);
-        }
+        debugPrint("FAVICONS", `Extracted ${largestImage.width}x${largestImage.height} image from ICO for ${url}`);
         return sharpObj;
       }
     }
@@ -156,7 +154,7 @@ async function processIconImage(faviconData: Buffer, url: string, isIco: boolean
     // For non-ICO files or if ICO extraction failed, create a Sharp object from the original data
     return sharp(faviconData);
   } catch (err) {
-    console.error("Error processing image:", err);
+    debugError("FAVICONS", "Error processing image:", err);
     // If processing fails, return a Sharp object with the original data
     return sharp(faviconData);
   }
@@ -304,7 +302,9 @@ export function cacheFavicon(url: string, faviconURL: string): void {
           fit: "contain",
           background: { r: 0, g: 0, b: 0, alpha: 0 } // Transparent background
         })
-        .png()
+        .png({
+          colours: 256
+        })
         .toBuffer();
 
       // Generate content hash
@@ -315,11 +315,12 @@ export function cacheFavicon(url: string, faviconURL: string): void {
         await storeFaviconInDb(trx, imageHash, resizedImageBuffer, normalizedURL);
       });
 
-      if (FLAGS.SHOW_DEBUG_PRINTS) {
-        console.log(`Cached ${isIco ? "ICO→PNG" : "original"} favicon for ${normalizedURL} with hash ${imageHash}`);
-      }
+      debugPrint(
+        "FAVICONS",
+        `Cached ${isIco ? "ICO→PNG" : "original"} favicon for ${normalizedURL} with hash ${imageHash}`
+      );
     } catch (error) {
-      console.error("Error caching favicon:", error);
+      debugError("FAVICONS", "Error caching favicon:", error);
     }
   });
 
@@ -357,7 +358,7 @@ export async function getFavicon(url: string): Promise<Buffer | null> {
       return null;
     });
   } catch (error) {
-    console.error("Error getting favicon:", error);
+    debugError("FAVICONS", "Error getting favicon:", error);
     return null;
   }
 }
@@ -375,7 +376,7 @@ export async function hasFavicon(url: string): Promise<boolean> {
     const count = await db("favicon_urls").where("url", normalizedURL).count("* as count").first();
     return count && Number(count.count) > 0;
   } catch (error) {
-    console.error("Error checking favicon:", error);
+    debugError("FAVICONS", "Error checking favicon:", error);
     return false;
   }
 }
@@ -398,7 +399,7 @@ export async function getFaviconDataUrl(url: string): Promise<string | null> {
     // Convert the favicon to a data URL
     return `data:image/png;base64,${favicon.toString("base64")}`;
   } catch (error) {
-    console.error("Error getting favicon data URL:", error);
+    debugError("FAVICONS", "Error getting favicon data URL:", error);
     return null;
   }
 }
@@ -428,11 +429,11 @@ export async function cleanupOldFavicons(maxAge: number = 90): Promise<number> {
       // Remove old favicons
       const deletedCount = await trx("favicons").whereIn("id", oldFaviconIds).delete();
 
-      console.log(`Removed ${deletedCount} old favicons`);
+      debugPrint("FAVICONS", `Removed ${deletedCount} old favicons`);
       return deletedCount;
     });
   } catch (error) {
-    console.error("Error cleaning up old favicons:", error);
+    debugError("FAVICONS", "Error cleaning up old favicons:", error);
     return 0;
   }
 }

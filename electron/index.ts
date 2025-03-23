@@ -14,8 +14,27 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
 } else {
+  // Initial Header //
+
+  if (!app.isPackaged) {
+    // Hide all the build outputs
+    console.log("\n".repeat(75));
+  }
+
+  console.log("\x1b[34m%s\x1b[0m", "--- Flow Browser ---");
+
+  if (app.isPackaged) {
+    console.log("\x1b[32m%s\x1b[0m", `Production Build (${app.getVersion()})`);
+  } else {
+    console.log("\x1b[31m%s\x1b[0m", `Development Build (${app.getVersion()})`);
+  }
+
+  console.log("");
+
+  // Initialize the Browser //
   const browser = new Browser();
 
+  // Handle Second Instance //
   app.on("second-instance", (_event, commandLine, _workingDirectory, _additionalData) => {
     // Check if the second instance was launched with --new-window flag
     if (shouldCreateNewWindow(commandLine)) {

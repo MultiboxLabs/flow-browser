@@ -12,6 +12,7 @@ import { FLAGS } from "../modules/flags";
 import { Omnibox } from "./omnibox";
 import { registerProtocolsWithSession } from "./protocols";
 import { FLOW_DATA_DIR, PATHS } from "../modules/paths";
+import { debugError, debugPrint } from "../modules/output";
 
 let webuiExtensionId: string | undefined;
 
@@ -104,7 +105,7 @@ class TabbedBrowserWindow {
 
   async loadWebUI(): Promise<void> {
     if (webuiExtensionId) {
-      console.log("Loading WebUI from extension");
+      debugPrint("VITE_UI_EXTENSION", "Loading WebUI from extension");
 
       // const webuiUrl = "flow-utility://page/error?url=http://abc.com&initial=1";
       // const webuiUrl = `chrome-extension://${webuiExtensionId}/error/index.html?url=http://abc.com&initial=1`;
@@ -119,7 +120,7 @@ class TabbedBrowserWindow {
         { cssOrigin: "user" }
       );
     } else {
-      console.error("WebUI extension ID not available");
+      debugError("VITE_UI_EXTENSION", "WebUI extension ID not available");
     }
   }
 
@@ -299,15 +300,15 @@ export class Browser {
     try {
       const viteWebUIPath = PATHS.VITE_WEBUI;
       if (fs.existsSync(viteWebUIPath) && fs.existsSync(path.join(viteWebUIPath, "manifest.json"))) {
-        console.log("Loading Vite WebUI extension from:", viteWebUIPath);
+        debugPrint("VITE_UI_EXTENSION", "Loading Vite WebUI extension from:", viteWebUIPath);
         const viteExtension = await this.session.loadExtension(viteWebUIPath);
         webuiExtensionId = viteExtension.id;
-        console.log("Vite WebUI extension loaded with ID:", webuiExtensionId);
+        debugPrint("VITE_UI_EXTENSION", "Vite WebUI extension loaded with ID:", webuiExtensionId);
       } else {
         throw new Error("Vite WebUI extension not found");
       }
     } catch (error) {
-      console.error("Error loading Vite WebUI extension:", error);
+      debugError("VITE_UI_EXTENSION", "Error loading Vite WebUI extension:", error);
     }
 
     // Wait for web store extensions to finish loading as they may change the
@@ -348,11 +349,11 @@ export class Browser {
       this.session.getAllExtensions().map(async (extension) => {
         const manifest = extension.manifest;
         if (manifest.manifest_version === 3 && manifest?.background?.service_worker) {
-          console.log("[LAUNCHER] Starting service worker for scope", extension.url);
+          debugPrint("EXTENSION_SERVER_WORKERS", "Starting service worker for scope", extension.url);
           await this.session.serviceWorkers.startWorkerForScope(extension.url).catch((error) => {
-            console.error("[LAUNCHER] Error starting service worker for scope", extension.url, error);
+            debugError("EXTENSION_SERVER_WORKERS", "Error starting service worker for scope", extension.url, error);
           });
-          console.log("[LAUNCHER] Service worker started for scope", extension.url);
+          debugPrint("EXTENSION_SERVER_WORKERS", "Service worker started for scope", extension.url);
         }
       })
     );
@@ -371,9 +372,7 @@ export class Browser {
     registerProtocolsWithSession(this.session);
 
     this.session.setPermissionRequestHandler((webContents, permission, callback, details) => {
-      if (FLAGS.SHOW_PERMISSION_DEBUG_PRINTS) {
-        console.log("permission request", webContents?.getURL(), permission);
-      }
+      debugPrint("PERMISSIONS", "permission request", webContents?.getURL() || "unknown-url", permission);
 
       if (permission === "openExternal") {
         const openExternalDetails = details as OpenExternalPermissionRequest;
@@ -404,9 +403,7 @@ export class Browser {
     });
 
     this.session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
-      if (FLAGS.SHOW_PERMISSION_DEBUG_PRINTS) {
-        console.log("permission check", webContents?.getURL(), permission);
-      }
+      debugPrint("PERMISSIONS", "permission check", webContents?.getURL() || "unknown-url", permission);
       return true;
     });
 
@@ -420,7 +417,7 @@ export class Browser {
     }
 
     this.session.serviceWorkers.on("running-status-changed", (event) => {
-      console.info(`service worker ${event.versionId} ${event.runningStatus}`);
+      debugPrint("EXTENSION_SERVER_WORKERS", `service worker ${event.versionId} ${event.runningStatus}`);
     });
 
     if (process.env.FLOW_DEBUG) {
@@ -489,7 +486,7 @@ export class Browser {
   async onWebContentsCreated(_event: Event, webContents: WebContents): Promise<void> {
     const type = webContents.getType();
     const url = webContents.getURL();
-    console.log(`'web-contents-created' event [type:${type}, url:${url}]`);
+    debugPrint("WEB_CONTENTS_CREATED", `'web-contents-created' event [type:${type}, url:${url || "unknown-url"}]`);
 
     if (process.env.FLOW_DEBUG && ["backgroundPage", "remote"].includes(webContents.getType())) {
       webContents.openDevTools({ mode: "detach", activate: true });

@@ -1,10 +1,11 @@
 import { app } from "electron";
+import { DEBUG_AREA } from "./output";
 
 type Flags = {
   SCRUBBED_USER_AGENT: boolean;
   ERROR_PAGE_LOAD_MODE: "replace" | "load";
   SHOW_DEBUG_PRINTS: boolean;
-  SHOW_PERMISSION_DEBUG_PRINTS: boolean;
+  SHOW_DEBUG_ERRORS: boolean | DEBUG_AREA[];
   DEBUG_DISABLE_TAB_VIEW: boolean;
 };
 
@@ -16,9 +17,9 @@ export const FLAGS: Flags = {
   // Load - Add the page to the history stack by loading it normally.
   ERROR_PAGE_LOAD_MODE: "replace",
 
-  // Debug: Prints
+  // Debug: Prints & Errors
   SHOW_DEBUG_PRINTS: !app.isPackaged,
-  SHOW_PERMISSION_DEBUG_PRINTS: false,
+  SHOW_DEBUG_ERRORS: true,
 
   // Debug: Disable the tab view
   DEBUG_DISABLE_TAB_VIEW: false
