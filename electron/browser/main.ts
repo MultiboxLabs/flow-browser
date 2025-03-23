@@ -10,7 +10,6 @@ import { Tabs } from "./tabs";
 import { setupMenu } from "./menu";
 import { FLAGS } from "../modules/flags";
 import { Omnibox } from "./omnibox";
-import { homedir } from "os";
 import { registerProtocolsWithSession } from "./protocols";
 
 // Constants
@@ -18,7 +17,7 @@ const FLOW_ROOT_DIR = path.join(__dirname, "../../");
 const WEBPACK_ROOT_DIR = path.join(FLOW_ROOT_DIR, ".webpack");
 const ROOT_DIR = path.join(FLOW_ROOT_DIR, "../");
 
-const FLOW_DATA_DIR = path.join(homedir(), ".flow");
+const FLOW_DATA_DIR = app.getPath("userData");
 
 interface Paths {
   ASSETS: string;
@@ -388,7 +387,7 @@ export class Browser {
     // this.session = session.defaultSession;
 
     const profileName = "main";
-    const sessionPath = path.join(FLOW_DATA_DIR, "profiles", profileName);
+    const sessionPath = path.join(FLOW_DATA_DIR, "Profiles", profileName);
     this.session = session.fromPath(sessionPath);
 
     registerProtocolsWithSession(this.session);
