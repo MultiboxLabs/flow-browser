@@ -1,4 +1,5 @@
 module.exports = {
+  target: "electron-renderer",
   devtool: false,
   module: {
     rules: [

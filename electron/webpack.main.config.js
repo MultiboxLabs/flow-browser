@@ -1,7 +1,9 @@
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const { IgnorePlugin } = require("webpack");
 
 module.exports = {
   entry: "./index.ts",
+  target: "electron-main",
   module: {
     rules: [
       {
@@ -26,5 +28,6 @@ module.exports = {
         require.resolve("electron-chrome-web-store/preload")
       ]
     })
-  ]
+  ],
+  externals: ["sharp", "knex", "better-sqlite3"]
 };

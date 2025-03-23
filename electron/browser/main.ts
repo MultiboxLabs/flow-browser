@@ -11,29 +11,7 @@ import { setupMenu } from "./menu";
 import { FLAGS } from "../modules/flags";
 import { Omnibox } from "./omnibox";
 import { registerProtocolsWithSession } from "./protocols";
-
-// Constants
-const FLOW_ROOT_DIR = path.join(__dirname, "../../");
-const WEBPACK_ROOT_DIR = path.join(FLOW_ROOT_DIR, ".webpack");
-const ROOT_DIR = path.join(FLOW_ROOT_DIR, "../");
-
-const FLOW_DATA_DIR = app.getPath("userData");
-
-interface Paths {
-  ASSETS: string;
-  VITE_WEBUI: string;
-  PRELOAD: string;
-  LOCAL_EXTENSIONS: string;
-}
-
-export const PATHS: Paths = {
-  ASSETS: app.isPackaged
-    ? path.resolve(process.resourcesPath as string, "assets")
-    : path.resolve(FLOW_ROOT_DIR, "assets"),
-  VITE_WEBUI: app.isPackaged ? path.resolve(process.resourcesPath as string) : path.resolve(ROOT_DIR, "vite"),
-  PRELOAD: path.join(WEBPACK_ROOT_DIR, "renderer", "browser", "preload.js"),
-  LOCAL_EXTENSIONS: path.join(ROOT_DIR, "extensions")
-};
+import { FLOW_DATA_DIR, PATHS } from "../modules/paths";
 
 let webuiExtensionId: string | undefined;
 

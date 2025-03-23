@@ -1,6 +1,6 @@
 import path from "path";
 import { Protocol, Session } from "electron";
-import { PATHS } from "./main";
+import { PATHS } from "../modules/paths";
 import fsPromises from "fs/promises";
 import { getContentType } from "./utils";
 

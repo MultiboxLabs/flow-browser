@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
 import { WebContents, BrowserWindow, WebContentsView, ipcMain } from "electron";
 import { FLAGS } from "../modules/flags";
+import { cacheFavicon } from "../modules/favicons";
 
 type PageBounds = {
   x: number;
@@ -48,6 +49,14 @@ class Tab {
         }
       });
     }
+
+    this.view.webContents.on("page-favicon-updated", (_event, favicons) => {
+      const faviconURL = favicons[0];
+      const url = this.view.webContents.getURL();
+      if (faviconURL && url) {
+        cacheFavicon(url, faviconURL);
+      }
+    });
 
     this.id = this.view.webContents.id;
     this.destroyOnNoTabs = destroyOnNoTabs;
