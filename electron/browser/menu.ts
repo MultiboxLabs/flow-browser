@@ -1,4 +1,4 @@
-import { Menu, type MenuItem, type MenuItemConstructorOptions } from "electron";
+import { clipboard, Menu, type MenuItem, type MenuItemConstructorOptions } from "electron";
 import { Browser } from "./main";
 import { getNewTabMode, hideOmnibox, isOmniboxOpen, loadOmnibox, setOmniboxBounds, showOmnibox } from "./omnibox";
 
@@ -57,7 +57,34 @@ export const setupMenu = (browser: Browser) => {
         }
       ]
     },
-    { role: "editMenu" as const },
+    {
+      label: "Edit",
+      submenu: [
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        {
+          label: "Copy URL",
+          accelerator: "CmdOrCtrl+Shift+C",
+          click: () => {
+            const tabWc = getTabWc();
+            if (!tabWc) return;
+
+            const url = tabWc.getURL();
+            if (!url) return;
+
+            clipboard.writeText(url);
+            // TODO: Show notification to user that the URL has been copied
+          }
+        },
+        { role: "paste" },
+        { role: "pasteAndMatchStyle" },
+        { role: "delete" },
+        { role: "selectAll" }
+      ]
+    },
     {
       label: "View",
       submenu: [
