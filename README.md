@@ -15,8 +15,10 @@ Flow Browser is a lightweight, feature-rich web browser that combines the power 
 
 ## Screenshots
 
-![Flow Browser Screenshot](./assets/screenshots/beta-1.png)
-![Flow Browser Screenshot](./assets/screenshots/beta-2.png)
+![Flow Browser macOS Screenshot](./assets/screenshots/beta-1.png)
+![Flow Browser macOS Screenshot](./assets/screenshots/beta-2.png)
+![Flow Browser Windows Screenshot](./assets/screenshots/beta-3.png)
+![Flow Browser Windows Screenshot](./assets/screenshots/beta-4.png)
 
 ## Features
 
