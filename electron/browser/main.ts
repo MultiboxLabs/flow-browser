@@ -444,7 +444,7 @@ export class Browser {
         titleBarStyle: "hidden",
         titleBarOverlay: {
           height: 30,
-          color: "#39375b"
+          color: "rgba(0,0,0,0)"
         },
         webPreferences: {
           sandbox: true,
