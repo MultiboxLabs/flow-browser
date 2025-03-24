@@ -77,48 +77,113 @@ async function processQueue() {
   }
 }
 
-// Initialize the database
+let databaseInitialized = false;
+let resolveDatabaseInitialized: () => void = () => {
+  databaseInitialized = true;
+};
+const whenDatabaseInitialized = new Promise<void>((resolve) => {
+  if (databaseInitialized) {
+    resolve();
+  } else {
+    resolveDatabaseInitialized = resolve;
+  }
+});
+
+/**
+ * Initialize the database
+ */
 async function initDatabase() {
   try {
+    debugPrint("FAVICONS", "Starting database initialization...");
+
     // Configure database pragmas
     await configureDatabasePragmas();
+    debugPrint("FAVICONS", "Database pragmas configured");
 
-    // Run in a transaction to ensure consistency
-    await db.transaction(async (trx) => {
-      // Create favicons table if it doesn't exist
-      const hasFaviconsTable = await trx.schema.hasTable("favicons");
-      if (!hasFaviconsTable) {
-        await trx.schema.createTable("favicons", (table) => {
-          table.increments("id").primary();
-          table.string("hash").notNullable().index(); // Add index for faster lookups
-          table.timestamp("last_update");
-          table.timestamp("last_requested");
-          table.specificType("favicon", "blob").notNullable();
-        });
-        debugPrint("FAVICONS", "Created favicons table");
-      }
+    // Ensure tables exist by creating them in sequence
+    debugPrint("FAVICONS", "Checking favicons table...");
+    const hasFaviconsTable = await db.schema.hasTable("favicons");
+    debugPrint("FAVICONS", `Favicons table exists: ${hasFaviconsTable}`);
 
-      // Create favicon_urls table if it doesn't exist
-      const hasFaviconUrlsTable = await trx.schema.hasTable("favicon_urls");
-      if (!hasFaviconUrlsTable) {
-        await trx.schema.createTable("favicon_urls", (table) => {
-          table.increments("id").primary();
-          table.string("url").notNullable().index(); // Add index for faster lookups
-          table.integer("icon_id").references("id").inTable("favicons");
-        });
-        debugPrint("FAVICONS", "Created favicon_urls table");
-      }
-    });
+    if (!hasFaviconsTable) {
+      debugPrint("FAVICONS", "Creating favicons table...");
+      await db.schema.createTable("favicons", (table) => {
+        table.increments("id").primary();
+        table.string("hash").notNullable().index();
+        table.timestamp("last_update");
+        table.timestamp("last_requested");
+        table.specificType("favicon", "blob").notNullable();
+      });
+      debugPrint("FAVICONS", "Created favicons table successfully");
+    }
+
+    debugPrint("FAVICONS", "Checking favicon_urls table...");
+    const hasFaviconUrlsTable = await db.schema.hasTable("favicon_urls");
+    debugPrint("FAVICONS", `Favicon_urls table exists: ${hasFaviconUrlsTable}`);
+
+    if (!hasFaviconUrlsTable) {
+      debugPrint("FAVICONS", "Creating favicon_urls table...");
+      await db.schema.createTable("favicon_urls", (table) => {
+        table.increments("id").primary();
+        table.string("url").notNullable().index();
+        table.integer("icon_id").references("id").inTable("favicons");
+      });
+      debugPrint("FAVICONS", "Created favicon_urls table successfully");
+    }
+
+    // Verify tables exist before proceeding
+    debugPrint("FAVICONS", "Verifying tables exist...");
+    const [faviconsExists, faviconUrlsExists] = await Promise.all([
+      db.schema.hasTable("favicons"),
+      db.schema.hasTable("favicon_urls")
+    ]);
+
+    debugPrint(
+      "FAVICONS",
+      `Final verification - Tables exist: favicons=${faviconsExists}, favicon_urls=${faviconUrlsExists}`
+    );
+
+    if (!faviconsExists || !faviconUrlsExists) {
+      throw new Error("Failed to create required tables");
+    }
+
+    // Only cleanup and resolve if tables exist
+    debugPrint("FAVICONS", "Running cleanup of old favicons...");
+    await cleanupOldFavicons();
+    debugPrint("FAVICONS", "Cleanup completed");
+
+    resolveDatabaseInitialized();
+    debugPrint("FAVICONS", "Database initialized successfully");
   } catch (err) {
     debugError("FAVICONS", "Failed to initialize favicon database:", err);
+    throw err;
   }
 }
 
-// Initialize the database
-initDatabase();
+// Initialize the database with retries
+let retryCount = 0;
+const maxRetries = 3;
 
-// Cleanup old favicons
-cleanupOldFavicons();
+async function initDatabaseWithRetry() {
+  try {
+    debugPrint("FAVICONS", `Starting database initialization attempt ${retryCount + 1}/${maxRetries + 1}`);
+    await initDatabase();
+  } catch (err) {
+    retryCount++;
+    if (retryCount < maxRetries) {
+      debugPrint("FAVICONS", `Retrying database initialization (attempt ${retryCount + 1}/${maxRetries + 1})...`);
+      setTimeout(initDatabaseWithRetry, 1000 * retryCount); // Exponential backoff
+    } else {
+      debugError("FAVICONS", "Failed to initialize database after multiple attempts");
+      // Resolve to prevent app from hanging, but in failed state
+      resolveDatabaseInitialized();
+    }
+  }
+}
+
+// Start initialization
+debugPrint("FAVICONS", "Starting database initialization process");
+initDatabaseWithRetry();
 
 /**
  * Converts an ICO file to a Sharp object ready for further processing
@@ -161,16 +226,68 @@ async function processIconImage(faviconData: Buffer, url: string, isIco: boolean
 }
 
 /**
- * Fetches a favicon from a URL
+ * Detect image type from buffer content instead of relying on URL extension
+ * @param buffer The image buffer data
+ * @returns Object containing image type information
+ */
+async function detectImageType(buffer: Buffer): Promise<{ isIco: boolean; isValid: boolean }> {
+  // Simple mime type detection based on magic numbers
+  if (buffer.length < 4) {
+    return { isIco: false, isValid: false };
+  }
+
+  // Check for ICO header - should start with 00 00 01 00
+  if (buffer[0] === 0 && buffer[1] === 0 && buffer[2] === 1 && buffer[3] === 0) {
+    return { isIco: true, isValid: true };
+  }
+
+  // Check for PNG header - should start with 89 50 4E 47
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
+    return { isIco: false, isValid: true };
+  }
+
+  // Check for JPEG header - should start with FF D8
+  if (buffer[0] === 0xff && buffer[1] === 0xd8) {
+    return { isIco: false, isValid: true };
+  }
+
+  // Check for GIF header - should start with GIF8
+  if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38) {
+    return { isIco: false, isValid: true };
+  }
+
+  // Check for SVG - should contain "<svg" somewhere in the first few bytes
+  const svgCheck = buffer.slice(0, Math.min(buffer.length, 100)).toString().toLowerCase();
+  if (svgCheck.includes("<svg")) {
+    return { isIco: false, isValid: true };
+  }
+
+  // Unknown format but attempt to process anyway
+  return { isIco: false, isValid: true };
+}
+
+/**
+ * Fetches a favicon from a URL with timeout
  * @param faviconURL The URL to fetch the favicon from
  * @returns A Promise resolving to a Buffer containing the favicon data
  */
 async function fetchFavicon(faviconURL: string): Promise<Buffer> {
   return new Promise<Buffer>((resolve, reject) => {
-    const request = net.request(faviconURL);
+    const request = net.request({
+      url: faviconURL
+    });
+
     let data: Buffer[] = [];
 
+    // Set up timeout
+    const timeoutId = setTimeout(() => {
+      request.abort();
+      reject(new Error(`Request timed out for ${faviconURL}`));
+    }, 5000);
+
     request.on("response", (response) => {
+      clearTimeout(timeoutId);
+
       if (response.statusCode !== 200) {
         reject(new Error(`Failed to fetch favicon: ${response.statusCode}`));
         return;
@@ -190,6 +307,7 @@ async function fetchFavicon(faviconURL: string): Promise<Buffer> {
     });
 
     request.on("error", (error) => {
+      clearTimeout(timeoutId);
       reject(error);
     });
 
@@ -299,13 +417,25 @@ export function cacheFavicon(url: string, faviconURL: string): void {
 
   // Queue the operation to limit concurrency
   operationQueue.push(async () => {
+    await whenDatabaseInitialized;
+
     try {
       // Fetch the favicon
       const faviconData = await fetchFavicon(faviconURL);
 
-      // Determine if this is an ICO file
-      const faviconURLObject = new URL(faviconURL);
-      const isIco = faviconURLObject.pathname.endsWith(".ico");
+      // Check if we got valid data
+      if (!faviconData || faviconData.length === 0) {
+        debugPrint("FAVICONS", `Empty favicon data for ${normalizedURL}`);
+        return;
+      }
+
+      // Detect image type from content
+      const { isIco, isValid } = await detectImageType(faviconData);
+
+      if (!isValid) {
+        debugPrint("FAVICONS", `Invalid image data for ${normalizedURL}`);
+        return;
+      }
 
       // Process the image and get a Sharp object
       const sharpObj = await processIconImage(faviconData, normalizedURL, isIco);
@@ -316,9 +446,7 @@ export function cacheFavicon(url: string, faviconURL: string): void {
           fit: "contain",
           background: { r: 0, g: 0, b: 0, alpha: 0 } // Transparent background
         })
-        .png({
-          colours: 256
-        })
+        .png()
         .toBuffer();
 
       // Generate content hash
@@ -348,6 +476,7 @@ export function cacheFavicon(url: string, faviconURL: string): void {
  * @returns The favicon data as a Buffer, or null if not found
  */
 export async function getFavicon(url: string): Promise<Buffer | null> {
+  await whenDatabaseInitialized;
   // Normalize the URL
   const normalizedURL = normalizeURL(url);
 
@@ -383,6 +512,7 @@ export async function getFavicon(url: string): Promise<Buffer | null> {
  * @returns True if a favicon exists, false otherwise
  */
 export async function hasFavicon(url: string): Promise<boolean> {
+  await whenDatabaseInitialized;
   // Normalize the URL
   const normalizedURL = normalizeURL(url);
 
@@ -401,6 +531,7 @@ export async function hasFavicon(url: string): Promise<boolean> {
  * @returns A data URL containing the favicon, or null if not found
  */
 export async function getFaviconDataUrl(url: string): Promise<string | null> {
+  await whenDatabaseInitialized;
   // Normalize the URL
   const normalizedURL = normalizeURL(url);
 
@@ -425,29 +556,38 @@ export async function getFaviconDataUrl(url: string): Promise<string | null> {
  */
 export async function cleanupOldFavicons(maxAge: number = 90): Promise<number> {
   try {
-    return await db.transaction(async (trx) => {
-      // Calculate the cutoff date
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - maxAge);
+    debugPrint("FAVICONS", "Starting cleanup process...");
 
-      // Get favicon IDs that haven't been requested since the cutoff date
-      const oldFaviconIds = await trx("favicons").where("last_requested", "<", cutoffDate).pluck("id");
+    // Calculate the cutoff date
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - maxAge);
+    debugPrint("FAVICONS", `Cleanup cutoff date: ${cutoffDate.toISOString()}`);
 
-      if (oldFaviconIds.length === 0) {
-        return 0;
-      }
+    // Get favicon IDs that haven't been requested since the cutoff date
+    debugPrint("FAVICONS", "Finding old favicons...");
+    const oldFaviconIds = await db("favicons").where("last_requested", "<", cutoffDate).pluck("id");
 
-      // Remove favicon URL mappings for old favicons
-      await trx("favicon_urls").whereIn("icon_id", oldFaviconIds).delete();
+    debugPrint("FAVICONS", `Found ${oldFaviconIds.length} old favicons to remove`);
 
-      // Remove old favicons
-      const deletedCount = await trx("favicons").whereIn("id", oldFaviconIds).delete();
+    if (oldFaviconIds.length === 0) {
+      debugPrint("FAVICONS", "No old favicons to clean up");
+      return 0;
+    }
 
-      debugPrint("FAVICONS", `Removed ${deletedCount} old favicons`);
-      return deletedCount;
-    });
+    // Remove favicon URL mappings for old favicons
+    debugPrint("FAVICONS", "Removing old favicon URL mappings...");
+    const deletedUrlMappings = await db("favicon_urls").whereIn("icon_id", oldFaviconIds).delete();
+    debugPrint("FAVICONS", `Removed ${deletedUrlMappings} URL mappings`);
+
+    // Remove old favicons
+    debugPrint("FAVICONS", "Removing old favicons...");
+    const deletedCount = await db("favicons").whereIn("id", oldFaviconIds).delete();
+
+    debugPrint("FAVICONS", `Successfully removed ${deletedCount} old favicons`);
+    return deletedCount;
   } catch (error) {
-    debugError("FAVICONS", "Error cleaning up old favicons:", error);
+    debugError("FAVICONS", "Error during favicon cleanup:", error);
+    // Don't throw the error, just return 0 to allow initialization to continue
     return 0;
   }
 }

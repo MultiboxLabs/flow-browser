@@ -1,79 +1,23 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { parseAddressBarInput } from "@/lib/url";
-import { Search, Plus, X, Save, Trash2, Moon, Sun, Loader2 } from "lucide-react";
+import { Search, Plus, X, Save, Trash2, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/components/main/theme";
+import { WebsiteFavicon } from "@/components/main/website-favicon";
 
 // This interface will help with type safety for the quick links
 interface QuickLink {
   id: string;
   name: string;
   url: string;
-  logoUrl: string | null;
+  favicon?: string;
   extraClass?: string;
 }
-
-// Default logos for popular websites
-const websiteLogos = {
-  google: "https://www.google.com/favicon.ico",
-  youtube: "https://www.youtube.com/s/desktop/e4d15d2c/img/favicon_144x144.png",
-  github: "https://github.githubassets.com/favicons/favicon.svg",
-  gmail: "https://ssl.gstatic.com/ui/v1/icons/mail/rfr/gmail.ico",
-  twitter: "https://abs.twimg.com/responsive-web/client-web/icon-svg.168b89d5.svg",
-  reddit: "https://www.redditstatic.com/desktop2x/img/favicon/favicon-96x96.png",
-  netflix: "https://assets.nflxext.com/us/ffe/siteui/common/icons/nficon2016.ico",
-  spotify: "https://open.spotifycdn.com/cdn/images/favicon.0f31d2ea.ico"
-};
-
-// Background colors for letter avatars
-const bgColors = [
-  "bg-red-500",
-  "bg-blue-500",
-  "bg-green-500",
-  "bg-yellow-500",
-  "bg-purple-500",
-  "bg-pink-500",
-  "bg-indigo-500",
-  "bg-teal-500",
-  "bg-orange-500",
-  "bg-cyan-500"
-];
-
-// Function to get a consistent color based on a string
-const getColorForString = (str: string): string => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % bgColors.length;
-  return bgColors[index];
-};
-
-// Letter Avatar component
-interface LetterAvatarProps {
-  name: string;
-  size?: number;
-  className?: string;
-}
-
-const LetterAvatar: React.FC<LetterAvatarProps> = ({ name, size = 32, className = "" }) => {
-  const letter = name.charAt(0).toUpperCase();
-  const bgColor = getColorForString(name);
-
-  return (
-    <div
-      className={`flex items-center justify-center rounded-md text-white font-bold ${bgColor} ${className}`}
-      style={{ width: size, height: size }}
-    >
-      {letter}
-    </div>
-  );
-};
 
 export default function NewTabPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -83,9 +27,6 @@ export default function NewTabPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newLinkName, setNewLinkName] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
-  const [previewLogoUrl, setPreviewLogoUrl] = useState<string | null>(null);
-  const [isFetchingLogo, setIsFetchingLogo] = useState(false);
-  const [logoLoadError, setLogoLoadError] = useState(false);
 
   // Default quicklinks
   const defaultQuickLinks: QuickLink[] = [
@@ -93,109 +34,51 @@ export default function NewTabPage() {
       id: "google",
       name: "Google",
       url: "https://www.google.com",
-      logoUrl: websiteLogos.google
+      favicon: "https://www.google.com/favicon.ico"
     },
     {
       id: "youtube",
       name: "YouTube",
       url: "https://www.youtube.com",
-      logoUrl: websiteLogos.youtube
+      favicon: "https://www.youtube.com/favicon.ico"
     },
     {
       id: "github",
       name: "GitHub",
       url: "https://github.com",
-      logoUrl: websiteLogos.github
+      favicon: "https://github.com/favicon.ico"
     },
     {
       id: "gmail",
       name: "Gmail",
       url: "https://mail.google.com",
-      logoUrl: websiteLogos.gmail
+      favicon: "https://www.google.com/gmail/about/static/images/logo-gmail.png"
     },
     {
-      id: "twitter",
-      name: "Twitter",
-      url: "https://twitter.com",
-      logoUrl: websiteLogos.twitter
+      id: "x",
+      name: "X",
+      url: "https://x.com",
+      favicon: "https://x.com/favicon.ico"
     },
     {
       id: "reddit",
       name: "Reddit",
       url: "https://reddit.com",
-      logoUrl: websiteLogos.reddit
+      favicon: "https://reddit.com/favicon.ico"
     },
     {
       id: "netflix",
       name: "Netflix",
       url: "https://netflix.com",
-      logoUrl: websiteLogos.netflix
+      favicon: "https://netflix.com/favicon.ico"
     },
     {
       id: "spotify",
       name: "Spotify",
       url: "https://spotify.com",
-      logoUrl: websiteLogos.spotify
+      favicon: "https://open.spotifycdn.com/cdn/images/favicon.0f31d2ea.ico"
     }
   ];
-
-  // Function to try to get a favicon for a domain
-  const getFaviconUrl = (url: string): string => {
-    try {
-      const domain = new URL(url).hostname;
-      return `https://${domain}/favicon.ico`;
-    } catch {
-      return "";
-    }
-  };
-
-  // Handle image load error
-  const handleImageError = useCallback(() => {
-    setLogoLoadError(true);
-    setPreviewLogoUrl(null);
-  }, []);
-
-  // Function to fetch favicon when URL changes
-  useEffect(() => {
-    const fetchFavicon = async () => {
-      if (!newLinkUrl || !newLinkUrl.trim()) {
-        setPreviewLogoUrl(null);
-        setLogoLoadError(false);
-        return;
-      }
-
-      setIsFetchingLogo(true);
-      setLogoLoadError(false);
-
-      try {
-        // Ensure URL has http:// or https:// prefix
-        let url = newLinkUrl;
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
-          url = "https://" + url;
-        }
-
-        // Get the domain
-        const domain = new URL(url).hostname;
-
-        // Try to get the favicon
-        const faviconUrl = `https://${domain}/favicon.ico`;
-
-        // Set the preview logo URL
-        setPreviewLogoUrl(faviconUrl);
-      } catch (error) {
-        console.error("Error fetching favicon:", error);
-        setPreviewLogoUrl(null);
-        setLogoLoadError(true);
-      } finally {
-        setIsFetchingLogo(false);
-      }
-    };
-
-    // Debounce the favicon fetch to avoid too many requests
-    const timeoutId = setTimeout(fetchFavicon, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [newLinkUrl]);
 
   // Load quicklinks from localStorage on mount
   useEffect(() => {
@@ -253,15 +136,12 @@ export default function NewTabPage() {
       const newLink: QuickLink = {
         id: Date.now().toString(),
         name: newLinkName,
-        url: url,
-        logoUrl: logoLoadError ? null : previewLogoUrl || getFaviconUrl(url)
+        url: url
       };
 
       setQuickLinks([...quickLinks, newLink]);
       setNewLinkName("");
       setNewLinkUrl("");
-      setPreviewLogoUrl(null);
-      setLogoLoadError(false);
       setIsAddDialogOpen(false);
     }
   };
@@ -280,8 +160,6 @@ export default function NewTabPage() {
       // Reset form when dialog is closed
       setNewLinkName("");
       setNewLinkUrl("");
-      setPreviewLogoUrl(null);
-      setLogoLoadError(false);
     }
   };
 
@@ -291,7 +169,7 @@ export default function NewTabPage() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen bg-gradient-to-br from-gray-50 to-blue-100 dark:from-gray-900 dark:to-gray-800 text-gray-800 dark:text-white p-4 md:p-8 font-sans transition-colors duration-300">
+    <div className="flex flex-col items-center justify-start min-h-screen bg-gradient-to-br from-gray-50 to-blue-100 dark:from-gray-900 dark:to-gray-800 text-gray-800 dark:text-white p-4 md:p-8 font-sans transition-colors duration-300 select-none">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -385,30 +263,6 @@ export default function NewTabPage() {
                     placeholder="https://google.com"
                   />
                 </div>
-
-                {/* Logo Preview */}
-                <div className="flex justify-center items-center mt-2">
-                  {isFetchingLogo ? (
-                    <div className="w-16 h-16 flex items-center justify-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                    </div>
-                  ) : newLinkUrl ? (
-                    <div className="relative w-16 h-16 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-md p-2">
-                      {previewLogoUrl && !logoLoadError ? (
-                        <img
-                          src={previewLogoUrl || "/placeholder.svg"}
-                          alt="Website logo preview"
-                          width={32}
-                          height={32}
-                          className="object-contain"
-                          onError={handleImageError}
-                        />
-                      ) : (
-                        newLinkName && <LetterAvatar name={newLinkName} size={32} />
-                      )}
-                    </div>
-                  ) : null}
-                </div>
               </div>
               <div className="flex justify-end gap-2">
                 <Button
@@ -460,25 +314,7 @@ export default function NewTabPage() {
                   className="flex flex-col items-center justify-center bg-white text-gray-800 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 rounded-lg p-3 no-underline shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 h-full"
                 >
                   <div className="mb-2 flex items-center justify-center w-10 h-10 overflow-hidden">
-                    {link.logoUrl ? (
-                      <div className="relative w-8 h-8">
-                        <img
-                          src={link.logoUrl || "/placeholder.svg"}
-                          alt={`${link.name} logo`}
-                          width={32}
-                          height={32}
-                          className="object-contain"
-                          onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-                            // If the image fails to load, replace with letter avatar
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = "none";
-                            // We can't directly render a component here, so we'll hide the image
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <LetterAvatar name={link.name} size={32} />
-                    )}
+                    <WebsiteFavicon url={link.url} favicon={link.favicon} className="w-8 h-8" />
                   </div>
                   <div className="font-medium text-base">{link.name}</div>
                 </a>
