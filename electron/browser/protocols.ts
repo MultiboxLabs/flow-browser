@@ -8,22 +8,18 @@ import { getFavicon, normalizeURL } from "../modules/favicons";
 function registerFlowUtilityProtocol(protocol: Protocol) {
   const FLOW_UTILITY_ALLOWED_DIRECTORIES = ["error"];
 
-  protocol.handle("flow-utility", async (request) => {
-    const urlString = request.url;
-
-    // Extract the entire path correctly from custom protocol URL
-    // For flow-utility://error/index.html, we need "error/index.html"
-    const fullPath = urlString.substring(urlString.indexOf("://") + 3);
-    const urlPath = fullPath.split("?")[0]; // Remove query parameters
-    const queryString = fullPath.includes("?") ? fullPath.substring(fullPath.indexOf("?")) : "";
-
-    // Check if this is a page request (starts with /page)
-    if (!urlPath.startsWith("page/")) {
-      return new Response("Invalid request path", { status: 400 });
-    }
+  const handlePageRequest = async (request: Request, url: URL) => {
+    const queryString = url.search;
 
     // Remove the /page prefix to get the actual path
-    const pagePath = urlPath.substring(5); // Remove "page/"
+    const pathName = url.pathname;
+    let pagePath = pathName;
+    if (pagePath.startsWith("/")) {
+      pagePath = pagePath.slice(1);
+    }
+    if (pagePath.endsWith("/")) {
+      pagePath = pagePath.slice(0, -1);
+    }
 
     // Redirect index.html to directory path
     if (pagePath.endsWith("/index.html")) {
@@ -72,14 +68,9 @@ function registerFlowUtilityProtocol(protocol: Protocol) {
       console.error("Error serving file:", error);
       return new Response("File not found", { status: 404 });
     }
-  });
-}
+  };
 
-function registerFaviconProtocol(protocol: Protocol) {
-  protocol.handle("favicon", async (request) => {
-    const urlString = request.url;
-    const url = new URL(urlString);
-
+  const handleFaviconRequest = async (request: Request, url: URL) => {
     const targetUrl = url.searchParams.get("url");
     if (!targetUrl) {
       return new Response("No URL provided", { status: 400 });
@@ -95,11 +86,28 @@ function registerFaviconProtocol(protocol: Protocol) {
     return new Response(favicon, {
       headers: { "Content-Type": "image/png" }
     });
+  };
+
+  protocol.handle("flow-utility", async (request) => {
+    const urlString = request.url;
+
+    const url = new URL(urlString);
+
+    // flow-utility://page/:path
+    if (url.host === "page") {
+      return await handlePageRequest(request, url);
+    }
+
+    // flow-utility://favicon/:path
+    if (url.host === "favicon") {
+      return await handleFaviconRequest(request, url);
+    }
+
+    return new Response("Invalid request path", { status: 400 });
   });
 }
 
 export function registerProtocolsWithSession(session: Session) {
   const protocol = session.protocol;
   registerFlowUtilityProtocol(protocol);
-  registerFaviconProtocol(protocol);
 }
