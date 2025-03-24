@@ -253,13 +253,27 @@ async function storeFaviconInDb(
 }
 
 /**
- * Normalizes a URL by ensuring it has a trailing slash
+ * Normalizes a URL by ensuring it has a trailing slash, removing www, and converting https to http
+ * This normalization is only used for favicon caching and retrieval, not for actual requests.
+ * Converting https to http is safe here since we're only using it as a cache key and not making
+ * any actual network requests with the normalized URL.
+ *
  * @param url The URL to normalize
  * @returns The normalized URL with a trailing slash
  */
 export function normalizeURL(url: string): string {
   try {
     const parsedURL = new URL(url);
+
+    // Remove www from hostname if present
+    if (parsedURL.hostname.startsWith("www.")) {
+      parsedURL.hostname = parsedURL.hostname.slice(4);
+    }
+
+    // Convert https to http for consistency in cache keys
+    if (parsedURL.protocol === "https:") {
+      parsedURL.protocol = "http:";
+    }
 
     // Add trailing slash to pathname if it doesn't have one and isn't empty
     if (parsedURL.pathname && parsedURL.pathname !== "/" && !parsedURL.pathname.endsWith("/")) {
