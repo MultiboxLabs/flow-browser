@@ -2,54 +2,59 @@ import { app, ipcMain, Menu, MenuItem } from "electron";
 import { Browser } from "./browser/main";
 import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 
-if (require("electron-squirrel-startup")) app.quit();
-
 // Function to check if --new-window flag is present in command line arguments
 function shouldCreateNewWindow(args: string[]): boolean {
   return args.includes("--new-window");
 }
 
-const gotTheLock = app.requestSingleInstanceLock();
-
-if (!gotTheLock) {
-  app.quit();
-} else {
-  // Initial Header //
-
-  if (!app.isPackaged) {
-    // Hide all the build outputs
-    console.log("\n".repeat(75));
-  }
-
-  console.log("\x1b[34m%s\x1b[0m", "--- Flow Browser ---");
-
-  if (app.isPackaged) {
-    console.log("\x1b[32m%s\x1b[0m", `Production Build (${app.getVersion()})`);
-  } else {
-    console.log("\x1b[31m%s\x1b[0m", `Development Build (${app.getVersion()})`);
-  }
-
-  console.log("");
-
-  // Initialize the Browser //
-  const browser = new Browser();
-
-  // Handle Second Instance //
-  app.on("second-instance", (_event, commandLine, _workingDirectory, _additionalData) => {
-    // Check if the second instance was launched with --new-window flag
-    if (shouldCreateNewWindow(commandLine)) {
-      // Create a new window instead of focusing the existing one
-      browser.createWindow();
-    } else {
-      // Default behavior: focus the first window
-      const window = browser.getWindows()[0];
-      if (window) {
-        window.getBrowserWindow().focus();
-      }
-    }
+function setupAutoUpdate() {
+  updateElectronApp({
+    updateSource: {
+      type: UpdateSourceType.ElectronPublicUpdateService,
+      repo: "multiboxlabs/flow-browser"
+    },
+    notifyUser: true
   });
+}
 
-  // IPC Handlers for actions not exposed through the Chrome Extension API //
+function setupWindowsUserTasks() {
+  app.setUserTasks([
+    {
+      program: process.execPath,
+      arguments: "--new-window",
+      iconPath: process.execPath,
+      iconIndex: 0,
+      title: "New Window",
+      description: "Create a new window"
+    }
+  ]);
+}
+
+function setupMacOSDock(browser: Browser) {
+  const dockMenu = new Menu();
+
+  dockMenu.append(
+    new MenuItem({
+      label: "New Window",
+      click: () => {
+        browser.createWindow();
+      }
+    })
+  );
+
+  dockMenu.append(
+    new MenuItem({
+      label: "New Incognito Window",
+      enabled: false
+    })
+  );
+
+  app.whenReady().then(() => {
+    app.dock.setMenu(dockMenu);
+  });
+}
+
+function setupIPCHandlers(browser: Browser) {
   ipcMain.on("stop-loading-tab", (event, tabId: number) => {
     const webContents = event.sender;
     const window = browser.getWindowFromWebContents(webContents);
@@ -90,51 +95,68 @@ if (!gotTheLock) {
 
     return tab.webContents.navigationHistory.goToIndex(index);
   });
+}
 
-  // Auto Update //
-  updateElectronApp({
-    updateSource: {
-      type: UpdateSourceType.ElectronPublicUpdateService,
-      repo: "multiboxlabs/flow-browser"
-    },
-    notifyUser: true
+function printHeader() {
+  if (!app.isPackaged) {
+    console.log("\n".repeat(75));
+  }
+
+  console.log("\x1b[34m%s\x1b[0m", "--- Flow Browser ---");
+
+  if (app.isPackaged) {
+    console.log("\x1b[32m%s\x1b[0m", `Production Build (${app.getVersion()})`);
+  } else {
+    console.log("\x1b[31m%s\x1b[0m", `Development Build (${app.getVersion()})`);
+  }
+
+  console.log("");
+}
+
+function initializeApp() {
+  if (require("electron-squirrel-startup")) {
+    app.quit();
+    return;
+  }
+
+  const gotTheLock = app.requestSingleInstanceLock();
+
+  if (!gotTheLock) {
+    app.quit();
+    return;
+  }
+
+  // Print header
+  printHeader();
+
+  // Initialize the Browser
+  const browser = new Browser();
+
+  // Setup second instance handler
+  app.on("second-instance", (_event, commandLine, _workingDirectory, _additionalData) => {
+    if (shouldCreateNewWindow(commandLine)) {
+      browser.createWindow();
+    } else {
+      const window = browser.getWindows()[0];
+      if (window) {
+        window.getBrowserWindow().focus();
+      }
+    }
   });
 
-  // Set Toolbar Options //
+  // Setup IPC handlers
+  setupIPCHandlers(browser);
+
+  // Setup auto update
+  setupAutoUpdate();
+
+  // Setup platform specific features
   if (process.platform === "win32") {
-    app.setUserTasks([
-      {
-        program: process.execPath,
-        arguments: "--new-window",
-        iconPath: process.execPath,
-        iconIndex: 0,
-        title: "New Window",
-        description: "Create a new window"
-      }
-    ]);
+    setupWindowsUserTasks();
   } else if (process.platform === "darwin") {
-    const dockMenu = new Menu();
-
-    dockMenu.append(
-      new MenuItem({
-        label: "New Window",
-        click: () => {
-          browser.createWindow();
-        }
-      })
-    );
-
-    dockMenu.append(
-      // TODO: Incognito Window
-      // Not implemented yet
-      new MenuItem({
-        label: "New Incognito Window",
-        enabled: false
-      })
-    );
-
-    app.whenReady().then(() => {
-      app.dock.setMenu(dockMenu);
-    });
+    setupMacOSDock(browser);
   }
 }
+
+// Start the application
+initializeApp();
