@@ -1,4 +1,13 @@
-import { app, session, BrowserWindow, dialog, WebContents, ipcMain, OpenExternalPermissionRequest } from "electron";
+import {
+  app,
+  session,
+  BrowserWindow,
+  dialog,
+  WebContents,
+  ipcMain,
+  OpenExternalPermissionRequest,
+  nativeTheme
+} from "electron";
 import path from "path";
 import fs from "fs";
 import { ElectronChromeExtensions } from "electron-chrome-extensions";
@@ -444,6 +453,7 @@ export class Browser {
         titleBarStyle: "hidden",
         titleBarOverlay: {
           height: 30,
+          symbolColor: nativeTheme.shouldUseDarkColors ? "white" : "black",
           color: "rgba(0,0,0,0)"
         },
         webPreferences: {
