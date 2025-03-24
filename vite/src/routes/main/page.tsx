@@ -1,5 +1,6 @@
 import { BrowserUI } from "@/components/browser-ui/main";
 import { BrowserProvider } from "@/components/main/browser-context";
+import { PlatformProvider } from "@/components/main/platform";
 
 function BrowserApp() {
   return <BrowserUI />;
@@ -7,9 +8,11 @@ function BrowserApp() {
 
 function App() {
   return (
-    <BrowserProvider>
-      <BrowserApp />
-    </BrowserProvider>
+    <PlatformProvider>
+      <BrowserProvider>
+        <BrowserApp />
+      </BrowserProvider>
+    </PlatformProvider>
   );
 }
 

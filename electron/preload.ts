@@ -39,6 +39,10 @@ contextBridge.exposeInMainWorld("flow", {
     goToNavigationEntry: (tabId: number, index: number) => {
       if (!canUseInterfaceAPI) return;
       return ipcRenderer.send("go-to-navigation-entry", tabId, index);
+    },
+    getPlatform: () => {
+      if (!canUseInterfaceAPI) return;
+      return process.platform;
     }
   },
   omnibox: {

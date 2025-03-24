@@ -45,7 +45,7 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
         {open && (
           <div
             ref={titlebarRef}
-            className="h-[calc(env(titlebar-area-y)+env(titlebar-area-height)+1px-1.5rem)] w-full app-drag"
+            className="platform-darwin:h-[calc(env(titlebar-area-y)+env(titlebar-area-height)+1px-1.5rem)] w-full app-drag"
           />
         )}
         <NavigationControls />

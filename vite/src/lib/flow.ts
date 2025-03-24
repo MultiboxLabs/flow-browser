@@ -68,6 +68,11 @@ interface FlowInterfaceAPI {
    * @param index The index of the navigation entry to navigate to
    */
   goToNavigationEntry: (tabId: number, index: number) => void;
+
+  /**
+   * Gets the platform of the current device
+   */
+  getPlatform: () => string;
 }
 
 interface FlowOmniboxAPI {
@@ -116,6 +121,10 @@ export function stopLoadingTab(tabId: number) {
 
 export function goToNavigationEntry(tabId: number, index: number) {
   return flow.interface.goToNavigationEntry(tabId, index);
+}
+
+export function getPlatform() {
+  return flow.interface.getPlatform();
 }
 
 // Omnibox API //

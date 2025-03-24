@@ -3,6 +3,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@custom-variant platform-win32 (&:is(.platform-win32 *));
+@custom-variant platform-darwin (&:is(.platform-darwin *));
+@custom-variant platform-linux (&:is(.platform-linux *));
+@custom-variant platform-unknown (&:is(.platform-unknown *));
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;

@@ -33,7 +33,12 @@ function InternalBrowserUI() {
       {dynamicTitle && <title>{`${dynamicTitle} | Flow`}</title>}
       <BrowserSidebar collapseMode={collapseMode} variant={variant} side={side} />
       <SidebarInset>
-        <div className={cn("bg-sidebar flex-1 flex p-3 app-drag", open && "pl-0.5")}>
+        <div
+          className={cn(
+            "bg-sidebar flex-1 flex p-3 platform-win32:pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))] app-drag",
+            open && "pl-0.5"
+          )}
+        >
           {/* Topbar */}
           <div className="absolute top-0 left-0 w-full h-3 flex justify-center items-center">
             <AnimatePresence>
