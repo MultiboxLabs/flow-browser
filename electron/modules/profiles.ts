@@ -20,8 +20,19 @@ export function createProfile(profileName: string) {
 }
 
 export function getProfiles() {
-  return fs.readdirSync(PROFILES_DIR).map((profile) => ({
-    id: profile,
-    name: profile
-  }));
+  try {
+    // Check if directory exists first
+    if (!fs.existsSync(PROFILES_DIR)) {
+      fs.mkdirSync(PROFILES_DIR, { recursive: true });
+      return [];
+    }
+    
+    return fs.readdirSync(PROFILES_DIR).map((profile) => ({
+      id: profile,
+      name: profile
+    }));
+  } catch (error) {
+    console.error("Error reading profiles directory:", error);
+    return [];
+  }
 }
