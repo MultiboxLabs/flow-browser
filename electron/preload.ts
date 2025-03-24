@@ -43,6 +43,12 @@ contextBridge.exposeInMainWorld("flow", {
     getPlatform: () => {
       if (!canUseInterfaceAPI) return;
       return process.platform;
+    },
+    onToggleSidebar: (callback: () => void) => {
+      if (!canUseInterfaceAPI) return;
+      return ipcRenderer.on("toggle-sidebar", (_event) => {
+        callback();
+      });
     }
   },
   omnibox: {

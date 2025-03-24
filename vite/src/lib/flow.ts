@@ -73,6 +73,11 @@ interface FlowInterfaceAPI {
    * Gets the platform of the current device
    */
   getPlatform: () => string;
+
+  /**
+   * Adds a callback to be called when the sidebar is toggled
+   */
+  onToggleSidebar: (callback: () => void) => void;
 }
 
 interface FlowOmniboxAPI {
@@ -125,6 +130,10 @@ export function goToNavigationEntry(tabId: number, index: number) {
 
 export function getPlatform() {
   return flow.interface.getPlatform();
+}
+
+export function onToggleSidebar(callback: () => void) {
+  return flow.interface.onToggleSidebar(callback);
 }
 
 // Omnibox API //

@@ -1,6 +1,10 @@
-import { clipboard, Menu, type MenuItem, type MenuItemConstructorOptions } from "electron";
+import { clipboard, Menu, type WebContents, type MenuItem, type MenuItemConstructorOptions } from "electron";
 import { Browser } from "./main";
 import { getNewTabMode, hideOmnibox, isOmniboxOpen, loadOmnibox, setOmniboxBounds, showOmnibox } from "./omnibox";
+
+export function toggleSidebar(webContents: WebContents) {
+  webContents.send("toggle-sidebar");
+}
 
 export const setupMenu = (browser: Browser) => {
   const isMac = process.platform === "darwin";
@@ -89,9 +93,13 @@ export const setupMenu = (browser: Browser) => {
       label: "View",
       submenu: [
         {
-          // TODO: Implement toggle sidebar
           label: "Toggle Sidebar",
-          enabled: false
+          accelerator: "CmdOrCtrl+B",
+          click: () => {
+            const win = getFocusedWindow();
+            if (!win) return;
+            toggleSidebar(win.webContents);
+          }
         },
         { type: "separator" },
         {
