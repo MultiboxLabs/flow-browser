@@ -70,7 +70,7 @@ export default function NewTabPage() {
       id: "netflix",
       name: "Netflix",
       url: "https://netflix.com",
-      favicon: "https://netflix.com/favicon.ico"
+      favicon: "https://www.netflix.com/favicon.ico"
     },
     {
       id: "spotify",
