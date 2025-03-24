@@ -9,8 +9,14 @@ export function getProfilePath(profileId: string): string {
 }
 
 export function createProfile(profileName: string) {
-  const profilePath = getProfilePath(profileName);
-  fs.mkdirSync(profilePath, { recursive: true });
+  try {
+    const profilePath = getProfilePath(profileName);
+    fs.mkdirSync(profilePath, { recursive: true });
+    return true;
+  } catch (error) {
+    console.error(`Error creating profile ${profileName}:`, error);
+    return false;
+  }
 }
 
 export function getProfiles() {
