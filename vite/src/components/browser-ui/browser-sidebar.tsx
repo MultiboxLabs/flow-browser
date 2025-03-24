@@ -3,7 +3,7 @@ import { SidebarTabs } from "@/components/browser-ui/sidebar/tabs";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { NavigationControls } from "@/components/browser-ui/sidebar/action-buttons";
-import { setWindowButtonPosition } from "@/lib/flow";
+import { onToggleSidebar, setWindowButtonPosition } from "@/lib/flow";
 import { setWindowButtonVisibility } from "@/lib/flow";
 import { CollapseMode, SidebarVariant, SidebarSide } from "@/components/browser-ui/main";
 import { SidebarAddressBar } from "@/components/browser-ui/sidebar/address-bar";
@@ -17,11 +17,23 @@ type BrowserSidebarProps = {
 export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarProps) {
   const titlebarRef = useRef<HTMLDivElement>(null);
 
-  const { open } = useSidebar();
+  const { open, toggleSidebar } = useSidebar();
 
   useEffect(() => {
     setWindowButtonVisibility(open);
   }, [open]);
+
+  // This is to ensure a stable value for the effect.
+  const toggleSidebarRef = useRef(toggleSidebar);
+  toggleSidebarRef.current = toggleSidebar;
+  useEffect(() => {
+    const removeListener = onToggleSidebar(() => {
+      toggleSidebarRef.current();
+    });
+    return () => {
+      removeListener();
+    };
+  }, []);
 
   useEffect(() => {
     const titlebar = titlebarRef.current;

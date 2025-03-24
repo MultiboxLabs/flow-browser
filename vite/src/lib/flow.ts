@@ -77,7 +77,7 @@ interface FlowInterfaceAPI {
   /**
    * Adds a callback to be called when the sidebar is toggled
    */
-  onToggleSidebar: (callback: () => void) => void;
+  onToggleSidebar: (callback: () => void) => () => void;
 }
 
 interface FlowOmniboxAPI {
