@@ -2,6 +2,8 @@ import { app, ipcMain, Menu, MenuItem } from "electron";
 import { Browser } from "./browser/main";
 import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 
+export let browser: Browser;
+
 // Function to check if --new-window flag is present in command line arguments
 function shouldCreateNewWindow(args: string[]): boolean {
   return args.includes("--new-window");
@@ -130,7 +132,7 @@ function initializeApp() {
   printHeader();
 
   // Initialize the Browser
-  const browser = new Browser();
+  browser = new Browser();
 
   // Setup second instance handler
   app.on("second-instance", (_event, commandLine, _workingDirectory, _additionalData) => {
