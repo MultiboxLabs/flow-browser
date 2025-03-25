@@ -27,7 +27,32 @@ export const setupMenu = (browser: Browser) => {
   };
 
   const template: Array<MenuItemConstructorOptions | MenuItem> = [
-    ...(isMac ? [{ role: "appMenu" as const }] : []),
+    ...(isMac
+      ? [
+          {
+            role: "appMenu" as const,
+            submenu: [
+              {
+                role: "about"
+              },
+              { type: "separator" },
+              {
+                label: "Settings",
+                click: () => {
+                  // TODO: Open settings
+                }
+              },
+              { role: "services" },
+              { type: "separator" },
+              { role: "hide" },
+              { role: "hideOthers" },
+              { role: "showAllTabs" },
+              { type: "separator" },
+              { role: "quit" }
+            ]
+          } as MenuItemConstructorOptions
+        ]
+      : []),
     {
       label: "File",
       submenu: [
