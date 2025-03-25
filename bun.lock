@@ -9,11 +9,11 @@
     },
     "electron": {
       "name": "flow-browser",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "dependencies": {
         "better-sqlite3": "^11.9.1",
         "electron-chrome-context-menu": "npm:@iamevan/electron-chrome-context-menu@1.1.0",
-        "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.6.5",
+        "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.6.9",
         "electron-chrome-web-store": "npm:@iamevan/electron-chrome-web-store@0.10.0",
         "electron-squirrel-startup": "^1.0.1",
         "ico-to-png": "^0.2.2",
@@ -921,7 +921,7 @@
 
     "electron-chrome-context-menu": ["@iamevan/electron-chrome-context-menu@1.1.0", "", { "peerDependencies": { "electron": ">=9.0.0" } }, "sha512-p0UIEKBfwvMT6qd1uwwBKyX80fkMb+HBOSyKoQv0VHOqDHy7ij5U9P0UytD1iEhCujtUP2UMDDmJxcdZE+brFA=="],
 
-    "electron-chrome-extensions": ["@iamevan/electron-chrome-extensions@4.6.5", "", { "dependencies": { "debug": "^4.3.1" } }, "sha512-HOnpY0AgvD16A86eg3rOePNc7wVOXHi1DJgkon8DNC1De6jQbmGSja0r/71POiPVZ9BBxsm9FXw2oOg42Ycduw=="],
+    "electron-chrome-extensions": ["@iamevan/electron-chrome-extensions@4.6.9", "", { "dependencies": { "debug": "^4.3.1" } }, "sha512-jPhKm4eFpyM/htVC+XoYWfgBnUZIt2KQVpu1C9FU8B+6YjWT6Q2N292uHrVwmxyBGh5O8o9ZoH5WdhWi/rlOZA=="],
 
     "electron-chrome-web-store": ["@iamevan/electron-chrome-web-store@0.10.0", "", { "dependencies": { "@types/chrome": "^0.0.287", "adm-zip": "^0.5.16", "debug": "^4.3.7", "pbf": "^4.0.1" } }, "sha512-S7dGk6R/3iMGJR0BAWcInsdT8VPmh3FZALcWtaBg+bvvIA/GNwE2bBHEAfv80Wur5Y4wgkY/0MAv3lQZ/VEz3A=="],
 
