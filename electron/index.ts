@@ -2,7 +2,7 @@ import { app, ipcMain, Menu, MenuItem } from "electron";
 import { Browser } from "./browser/main";
 import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 
-export let browser: Browser;
+export let browser: Browser | null = null;
 
 // Function to check if --new-window flag is present in command line arguments
 function shouldCreateNewWindow(args: string[]): boolean {
