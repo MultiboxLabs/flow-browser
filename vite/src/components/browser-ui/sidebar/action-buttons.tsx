@@ -62,6 +62,10 @@ export function NavigationControls() {
     <SidebarGroup className="flex flex-row justify-between">
       <div className="flex flex-row gap-1">
         <SidebarActionButton icon={<SidebarCloseIcon className="w-4 h-4" />} onClick={closeSidebar} />
+
+        {/* Browser Actions */}
+        {/* @ts-expect-error - Custom injected element */}
+        <browser-action-list id="actions" alignment="bottom right" />
       </div>
       <div className="flex flex-row gap-1">
         <GoBackButton canGoBack={canGoBack} backwardTabs={entries.slice(0, activeIndex).reverse()} />
