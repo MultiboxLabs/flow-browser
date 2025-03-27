@@ -53,7 +53,7 @@ function getParentWindowOfTab(tab: WebContents): BrowserWindow {
   }
 }
 
-class TabbedBrowserWindow {
+export class TabbedBrowserWindow {
   private session: Electron.Session;
   private extensions: ElectronChromeExtensions;
   private window: BrowserWindow;

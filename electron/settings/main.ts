@@ -1,6 +1,7 @@
 import { BrowserWindow, nativeTheme } from "electron";
 import buildChromeContextMenu from "electron-chrome-context-menu";
 import { browser } from "../index";
+import { registerWindow, WindowType } from "../modules/windows";
 
 let settingsWindow: BrowserWindow | null = null;
 
@@ -47,6 +48,7 @@ function createSettingsWindow() {
     menu.popup();
   });
 
+  registerWindow(WindowType.SETTINGS, "settings", window);
   settingsWindow = window;
 }
 

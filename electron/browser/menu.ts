@@ -2,6 +2,7 @@ import { clipboard, Menu, type WebContents, type MenuItem, type MenuItemConstruc
 import { Browser } from "./main";
 import { getNewTabMode, hideOmnibox, isOmniboxOpen, loadOmnibox, setOmniboxBounds, showOmnibox } from "./omnibox";
 import { settings } from "../settings/main";
+import { getFocusedWindow, WindowData, WindowType } from "../modules/windows";
 
 export function toggleSidebar(webContents: WebContents) {
   webContents.send("toggle-sidebar");
@@ -10,21 +11,46 @@ export function toggleSidebar(webContents: WebContents) {
 export const setupMenu = (browser: Browser) => {
   const isMac = process.platform === "darwin";
 
-  const getFocusedWindow = () => {
-    return browser.getFocusedWindow();
+  const getFocusedWindowData = () => {
+    const winData = getFocusedWindow();
+    if (!winData) return null;
+    return winData;
   };
-  const getTab = () => {
-    const win = getFocusedWindow();
-    if (!win) return null;
+  const getFocusedBrowserWindowData = () => {
+    const winData = getFocusedWindowData();
+    if (!winData) return null;
 
-    const tab = win.getFocusedTab();
+    if (winData.type !== WindowType.BROWSER) {
+      return null;
+    }
+
+    return winData;
+  };
+
+  const getTab = (winData: WindowData) => {
+    if (winData.type !== WindowType.BROWSER) {
+      return null;
+    }
+
+    const tab = winData.tabbedBrowserWindow?.getFocusedTab();
     if (!tab) return null;
     return tab;
   };
-  const getTabWc = () => {
-    const tab = getTab();
+  const getTabFromFocusedWindow = () => {
+    const winData = getFocusedWindowData();
+    if (!winData) return null;
+    return getTab(winData);
+  };
+
+  const getTabWc = (winData: WindowData) => {
+    const tab = getTab(winData);
     if (!tab) return null;
     return tab.webContents;
+  };
+  const getTabWcFromFocusedWindow = () => {
+    const winData = getFocusedWindowData();
+    if (!winData) return null;
+    return getTabWc(winData);
   };
 
   const template: Array<MenuItemConstructorOptions | MenuItem> = [
@@ -61,10 +87,13 @@ export const setupMenu = (browser: Browser) => {
           label: "New Tab",
           accelerator: "CmdOrCtrl+T",
           click: () => {
-            const win = getFocusedWindow();
-            if (!win) return;
+            const winData = getFocusedBrowserWindowData();
+            if (!winData) return;
 
-            const browserWindow = win.getBrowserWindow();
+            const browserWindow = winData.window;
+            const win = winData.tabbedBrowserWindow;
+
+            // Open omnibox
             if (getNewTabMode() === "omnibox") {
               if (isOmniboxOpen(browserWindow)) {
                 hideOmnibox(browserWindow);
@@ -74,6 +103,7 @@ export const setupMenu = (browser: Browser) => {
                 showOmnibox(browserWindow);
               }
             } else {
+              // Create new tab
               win.tabs.create();
             }
           }
@@ -99,7 +129,10 @@ export const setupMenu = (browser: Browser) => {
           label: "Copy URL",
           accelerator: "CmdOrCtrl+Shift+C",
           click: () => {
-            const tabWc = getTabWc();
+            const winData = getFocusedWindowData();
+            if (!winData) return;
+
+            const tabWc = getTabWc(winData);
             if (!tabWc) return;
 
             const url = tabWc.getURL();
@@ -122,9 +155,9 @@ export const setupMenu = (browser: Browser) => {
           label: "Toggle Sidebar",
           accelerator: "CmdOrCtrl+B",
           click: () => {
-            const win = getFocusedWindow();
-            if (!win) return;
-            toggleSidebar(win.webContents);
+            const winData = getFocusedBrowserWindowData();
+            if (!winData) return;
+            toggleSidebar(winData.window.webContents);
           }
         },
         { type: "separator" },
@@ -132,7 +165,7 @@ export const setupMenu = (browser: Browser) => {
           label: "Reload",
           accelerator: "CmdOrCtrl+R",
           click: () => {
-            const tabWc = getTabWc();
+            const tabWc = getTabWcFromFocusedWindow();
             if (!tabWc) return;
             tabWc.reload();
           }
@@ -141,7 +174,7 @@ export const setupMenu = (browser: Browser) => {
           label: "Force Reload",
           accelerator: "Shift+CmdOrCtrl+R",
           click: () => {
-            const tabWc = getTabWc();
+            const tabWc = getTabWcFromFocusedWindow();
             if (!tabWc) return;
             tabWc.reloadIgnoringCache();
           }
@@ -150,23 +183,30 @@ export const setupMenu = (browser: Browser) => {
           label: "Close Tab",
           accelerator: "CmdOrCtrl+W",
           click: () => {
-            const win = getFocusedWindow();
-            if (!win) return;
+            const winData = getFocusedWindowData();
+            if (!winData) return;
 
+            if (winData.type !== WindowType.BROWSER) {
+              if (winData.window.closable) {
+                winData.window.close();
+              }
+              return;
+            }
+
+            const win = winData.tabbedBrowserWindow;
             const browserWindow = win.getBrowserWindow();
             if (isOmniboxOpen(browserWindow)) {
               // Close Omnibox
               hideOmnibox(browserWindow);
             } else {
-              const tab = getTab();
+              const tab = getTab(winData);
               if (tab) {
                 // Close Tab
                 tab.destroy();
               } else {
                 // Close Window
-                const window = getFocusedWindow();
-                if (window) {
-                  window.destroy();
+                if (winData.window) {
+                  winData.window.close();
                 }
               }
             }
@@ -176,8 +216,9 @@ export const setupMenu = (browser: Browser) => {
           label: "Toggle Developer Tools",
           accelerator: isMac ? "Alt+Command+I" : "Ctrl+Shift+I",
           click: () => {
-            const tabWc = getTabWc();
+            const tabWc = getTabWcFromFocusedWindow();
             if (!tabWc) return;
+
             tabWc.toggleDevTools();
           }
         },
@@ -196,7 +237,7 @@ export const setupMenu = (browser: Browser) => {
           label: "Go Back",
           accelerator: "CmdOrCtrl+Left",
           click: () => {
-            const tabWc = getTabWc();
+            const tabWc = getTabWcFromFocusedWindow();
             if (!tabWc) return;
             tabWc.navigationHistory.goBack();
           }
@@ -205,7 +246,7 @@ export const setupMenu = (browser: Browser) => {
           label: "Go Forward",
           accelerator: "CmdOrCtrl+Right",
           click: () => {
-            const tabWc = getTabWc();
+            const tabWc = getTabWcFromFocusedWindow();
             if (!tabWc) return;
             tabWc.navigationHistory.goForward();
           }
