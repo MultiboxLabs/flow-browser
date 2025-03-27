@@ -126,7 +126,7 @@ class TabbedBrowserWindow {
   background-color: unset !important;
   color: unset !important;
 }`,
-        { cssOrigin: "user" }
+        { cssOrigin: "author" }
       );
     } else {
       debugError("VITE_UI_EXTENSION", "WebUI extension ID not available");
@@ -497,6 +497,10 @@ export class Browser {
     const type = webContents.getType();
     const url = webContents.getURL();
     debugPrint("WEB_CONTENTS_CREATED", `'web-contents-created' event [type:${type}, url:${url || "unknown-url"}]`);
+
+    if (webContents.session == session.defaultSession) {
+      return;
+    }
 
     if (process.env.FLOW_DEBUG && ["backgroundPage", "remote"].includes(webContents.getType())) {
       webContents.openDevTools({ mode: "detach", activate: true });

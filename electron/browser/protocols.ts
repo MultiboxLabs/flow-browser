@@ -1,12 +1,12 @@
 import path from "path";
-import { Protocol, Session } from "electron";
+import { app, Protocol, session, Session } from "electron";
 import { PATHS } from "../modules/paths";
 import fsPromises from "fs/promises";
 import { getContentType } from "../modules/utils";
 import { getFavicon, normalizeURL } from "../modules/favicons";
 
 function registerFlowUtilityProtocol(protocol: Protocol) {
-  const FLOW_UTILITY_ALLOWED_DIRECTORIES = ["error"];
+  const FLOW_UTILITY_ALLOWED_DIRECTORIES = ["error", "settings"];
 
   const handlePageRequest = async (request: Request, url: URL) => {
     const queryString = url.search;
@@ -111,3 +111,8 @@ export function registerProtocolsWithSession(session: Session) {
   const protocol = session.protocol;
   registerFlowUtilityProtocol(protocol);
 }
+
+app.whenReady().then(() => {
+  const defaultSession = session.defaultSession;
+  registerProtocolsWithSession(defaultSession);
+});

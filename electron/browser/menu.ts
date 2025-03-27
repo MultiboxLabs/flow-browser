@@ -1,6 +1,7 @@
 import { clipboard, Menu, type WebContents, type MenuItem, type MenuItemConstructorOptions } from "electron";
 import { Browser } from "./main";
 import { getNewTabMode, hideOmnibox, isOmniboxOpen, loadOmnibox, setOmniboxBounds, showOmnibox } from "./omnibox";
+import { settings } from "../settings/main";
 
 export function toggleSidebar(webContents: WebContents) {
   webContents.send("toggle-sidebar");
@@ -39,7 +40,7 @@ export const setupMenu = (browser: Browser) => {
               {
                 label: "Settings",
                 click: () => {
-                  // TODO: Open settings
+                  settings.show();
                 }
               },
               { role: "services" },
