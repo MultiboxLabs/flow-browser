@@ -1,9 +1,19 @@
-import { BrowserWindow, nativeTheme } from "electron";
+import { app, BrowserWindow, nativeTheme, session } from "electron";
 import buildChromeContextMenu from "electron-chrome-context-menu";
 import { browser } from "../index";
 import { registerWindow, WindowType } from "../modules/windows";
+import { PATHS } from "../modules/paths";
 
 let settingsWindow: BrowserWindow | null = null;
+
+app.whenReady().then(() => {
+  const defaultSession = session.defaultSession;
+  defaultSession.registerPreloadScript({
+    id: "flow-preload",
+    type: "frame",
+    filePath: PATHS.PRELOAD
+  });
+});
 
 function createSettingsWindow() {
   const window = new BrowserWindow({

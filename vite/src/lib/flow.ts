@@ -92,6 +92,18 @@ interface FlowOmniboxAPI {
   hide: () => void;
 }
 
+interface FlowSettingsAPI {
+  getAppInfo: () => Promise<{
+    app_version: string;
+    build_number: string;
+    node_version: string;
+    chrome_version: string;
+    electron_version: string;
+    os: string;
+    update_channel: "Stable" | "Beta" | "Alpha" | "Development";
+  }>;
+}
+
 declare global {
   /**
    * The Flow API instance exposed by the Electron preload script
@@ -100,6 +112,7 @@ declare global {
   const flow: {
     interface: FlowInterfaceAPI;
     omnibox: FlowOmniboxAPI;
+    settings: FlowSettingsAPI;
   };
 }
 
@@ -143,4 +156,9 @@ export function showOmnibox(bounds: PageBounds | null, params: QueryParams | nul
 
 export function hideOmnibox() {
   return flow.omnibox.hide();
+}
+
+// Settings API //
+export function getAppInfo() {
+  return flow.settings.getAppInfo();
 }

@@ -567,3 +567,10 @@ ipcMain.on("set-window-button-visibility", (event, visible: boolean) => {
     win.setWindowButtonVisibility(visible);
   }
 });
+
+ipcMain.handle("get-app-info", async () => {
+  return {
+    version: app.getVersion(),
+    packaged: app.isPackaged
+  };
+});

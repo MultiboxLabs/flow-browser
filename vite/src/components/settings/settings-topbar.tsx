@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, Palette, Shield, Search, PuzzleIcon as PuzzlePiece, Info } from "lucide-react";
+import { Globe, Info } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "motion/react";
 
@@ -12,10 +12,6 @@ interface SettingsTopbarProps {
 export function SettingsTopbar({ activeSection, setActiveSection }: SettingsTopbarProps) {
   const sections = [
     { id: "general", label: "General", icon: <Globe className="h-4 w-4 mr-2" /> },
-    { id: "appearance", label: "Appearance", icon: <Palette className="h-4 w-4 mr-2" /> },
-    { id: "privacy", label: "Privacy & Security", icon: <Shield className="h-4 w-4 mr-2" /> },
-    { id: "search", label: "Search", icon: <Search className="h-4 w-4 mr-2" /> },
-    { id: "extensions", label: "Extensions", icon: <PuzzlePiece className="h-4 w-4 mr-2" /> },
     { id: "about", label: "About", icon: <Info className="h-4 w-4 mr-2" /> }
   ];
 
@@ -23,7 +19,7 @@ export function SettingsTopbar({ activeSection, setActiveSection }: SettingsTopb
     <>
       <div className="w-full border-b bg-background px-4 app-drag">
         <div className="flex items-center justify-center h-10">
-          <span className="font-bold">Settings | Flow Browser</span>
+          <span className="font-bold">Flow Settings</span>
         </div>
       </div>
       <div className="w-full border-b bg-background px-4 h-10">
