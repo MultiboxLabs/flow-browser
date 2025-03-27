@@ -22,6 +22,8 @@ import { Omnibox } from "./omnibox";
 import { registerProtocolsWithSession } from "./protocols";
 import { FLOW_DATA_DIR, PATHS } from "../modules/paths";
 import { debugError, debugPrint } from "../modules/output";
+import { generateBrowserWindowData, windowEvents, WindowEventType } from "../modules/windows";
+import "../modules/icons";
 
 let webuiExtensionId: string | undefined;
 
@@ -474,12 +476,20 @@ export class Browser {
     });
 
     this.windows.push(win);
+
+    // Emit window added event
+    windowEvents.emit(WindowEventType.ADDED, generateBrowserWindowData(win));
+
     win.getBrowserWindow().on("close", () => {
       this.windows = this.windows.filter((w) => w.id !== win.id);
       win.destroy();
     });
+
     win.getBrowserWindow().on("closed", () => {
       this.windows = this.windows.filter((w) => w.id !== win.id);
+
+      // Emit window removed event
+      windowEvents.emit(WindowEventType.REMOVED, generateBrowserWindowData(win));
     });
 
     if (process.env.FLOW_DEBUG) {

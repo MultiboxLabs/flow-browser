@@ -18,7 +18,7 @@ export function SettingsLayout() {
   }, [activeSection]);
 
   return (
-    <div className="flex flex-col h-screen bg-background text-gray-600 dark:text-gray-300">
+    <div className="select-none flex flex-col h-screen bg-background text-gray-600 dark:text-gray-300">
       <SettingsTopbar activeSection={activeSection} setActiveSection={setActiveSection} />
       <div className="flex-1 overflow-auto p-4 md:p-6">
         <div className="mx-auto max-w-3xl">{ActiveSection}</div>
