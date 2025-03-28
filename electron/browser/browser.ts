@@ -1,19 +1,9 @@
-import {
-  app,
-  session,
-  BrowserWindow,
-  dialog,
-  WebContents,
-  ipcMain,
-  OpenExternalPermissionRequest,
-  nativeTheme
-} from "electron";
+import { app, session, BrowserWindow, dialog, WebContents, OpenExternalPermissionRequest, nativeTheme } from "electron";
 import path from "path";
 import fs from "fs";
 import { ElectronChromeExtensions } from "electron-chrome-extensions";
 import { buildChromeContextMenu } from "electron-chrome-context-menu";
 import { installChromeWebStore, loadAllExtensions } from "electron-chrome-web-store";
-
 import { TabbedBrowserWindow, TabbedBrowserWindowOptions } from "./tabbed-browser-window";
 import { setupMenu } from "./menu";
 import { FLAGS } from "@/modules/flags";
@@ -23,6 +13,7 @@ import { debugError, debugPrint } from "@/modules/output";
 import { generateBrowserWindowData, windowEvents, WindowEventType } from "@/modules/windows";
 import { setWebuiExtensionId } from "./utils";
 import { MinimalEvent } from "@/modules/types";
+import "@/browser/ipc";
 
 interface BrowserUrls {
   newtab: string;

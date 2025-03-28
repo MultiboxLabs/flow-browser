@@ -7,7 +7,7 @@ const isSettingsUI = location.protocol === "flow-utility:" && location.pathname 
 
 const canUseInterfaceAPI = isBrowserUI;
 const canUseOmniboxAPI = isBrowserUI || isOmniboxUI;
-const canUseSettingsAPI = isSettingsUI;
+const canUseSettingsAPI = isBrowserUI || isSettingsUI;
 
 if (isBrowserUI) {
   // Inject <browser-action-list> element into WebUI
@@ -85,6 +85,14 @@ contextBridge.exposeInMainWorld("flow", {
 
   // Settings UI Only //
   settings: {
+    open: () => {
+      if (!canUseSettingsAPI) return;
+      return ipcRenderer.send("settings:open");
+    },
+    close: () => {
+      if (!canUseSettingsAPI) return;
+      return ipcRenderer.send("settings:close");
+    },
     getAppInfo: async () => {
       if (!canUseSettingsAPI) return;
 
@@ -105,6 +113,18 @@ contextBridge.exposeInMainWorld("flow", {
         os: os,
         update_channel: updateChannel
       };
+    },
+    getIcons: async () => {
+      if (!canUseSettingsAPI) return;
+      return ipcRenderer.invoke("get-icons");
+    },
+    getCurrentIcon: async () => {
+      if (!canUseSettingsAPI) return;
+      return ipcRenderer.invoke("get-current-icon-id");
+    },
+    setCurrentIcon: async (iconId: string) => {
+      if (!canUseSettingsAPI) return;
+      return ipcRenderer.invoke("set-current-icon-id", iconId);
     }
   }
 });

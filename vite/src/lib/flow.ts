@@ -19,6 +19,13 @@ export type TabNavigationStatus = {
   canGoForward: boolean;
 };
 
+export type IconData = {
+  id: string;
+  name: string;
+  image_id: string;
+  author?: string;
+};
+
 type QueryParams = { [key: string]: string };
 
 /**
@@ -93,6 +100,8 @@ interface FlowOmniboxAPI {
 }
 
 interface FlowSettingsAPI {
+  open: () => void;
+  close: () => void;
   getAppInfo: () => Promise<{
     app_version: string;
     build_number: string;
@@ -102,6 +111,9 @@ interface FlowSettingsAPI {
     os: string;
     update_channel: "Stable" | "Beta" | "Alpha" | "Development";
   }>;
+  getIcons: () => Promise<IconData[]>;
+  getCurrentIcon: () => Promise<string>;
+  setCurrentIcon: (iconId: string) => Promise<boolean>;
 }
 
 declare global {
@@ -161,4 +173,20 @@ export function hideOmnibox() {
 // Settings API //
 export function getAppInfo() {
   return flow.settings.getAppInfo();
+}
+
+export function getIcons() {
+  return flow.settings.getIcons();
+}
+
+export function getCurrentIcon() {
+  return flow.settings.getCurrentIcon();
+}
+
+export function setCurrentIcon(iconId: string) {
+  return flow.settings.setCurrentIcon(iconId);
+}
+
+export function openSettings() {
+  return flow.settings.open();
 }

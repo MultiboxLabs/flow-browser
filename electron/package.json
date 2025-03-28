@@ -29,7 +29,8 @@
     "mime-types": "^2.1.35",
     "sharp": "^0.33.5",
     "sharp-ico": "^0.1.5",
-    "update-electron-app": "^3.1.1"
+    "update-electron-app": "^3.1.1",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.7.0",

@@ -1,12 +1,23 @@
-import { Sidebar, SidebarContent, SidebarHeader, SidebarRail, useSidebar } from "@/components/ui/resizable-sidebar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+  useSidebar
+} from "@/components/ui/resizable-sidebar";
 import { SidebarTabs } from "@/components/browser-ui/sidebar/tabs";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { NavigationControls } from "@/components/browser-ui/sidebar/action-buttons";
-import { onToggleSidebar, setWindowButtonPosition } from "@/lib/flow";
+import { onToggleSidebar, openSettings, setWindowButtonPosition } from "@/lib/flow";
 import { setWindowButtonVisibility } from "@/lib/flow";
 import { CollapseMode, SidebarVariant, SidebarSide } from "@/components/browser-ui/main";
 import { SidebarAddressBar } from "@/components/browser-ui/sidebar/address-bar";
+import { HomeIcon, PlusIcon, SettingsIcon } from "lucide-react";
 
 type BrowserSidebarProps = {
   collapseMode: CollapseMode;
@@ -66,6 +77,30 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
       <SidebarContent>
         <SidebarTabs />
       </SidebarContent>
+      <SidebarFooter>
+        {open && (
+          <SidebarMenu className="flex flex-row justify-between">
+            {/* Left Side Buttons */}
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={openSettings}>
+                <SettingsIcon />
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            {/* Middle (Spaces) */}
+            <SidebarMenuItem className="flex flex-row gap-2">
+              <SidebarMenuButton>
+                <HomeIcon />
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            {/* Right Side Buttons */}
+            <SidebarMenuItem>
+              <SidebarMenuButton disabled>
+                <PlusIcon />
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        )}
+      </SidebarFooter>
       <SidebarRail
         className={cn(
           open && "w-1",

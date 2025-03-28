@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, Info } from "lucide-react";
+import { DockIcon, Globe, Info } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "motion/react";
 
@@ -12,6 +12,7 @@ interface SettingsTopbarProps {
 export function SettingsTopbar({ activeSection, setActiveSection }: SettingsTopbarProps) {
   const sections = [
     { id: "general", label: "General", icon: <Globe className="h-4 w-4 mr-2" /> },
+    { id: "icons", label: "Icon", icon: <DockIcon className="h-4 w-4 mr-2" /> },
     { id: "about", label: "About", icon: <Info className="h-4 w-4 mr-2" /> }
   ];
 

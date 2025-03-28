@@ -1,4 +1,4 @@
-import { app, BrowserWindow, nativeTheme, session } from "electron";
+import { app, BrowserWindow, ipcMain, nativeTheme, session } from "electron";
 import buildChromeContextMenu from "electron-chrome-context-menu";
 import { browser } from "@/index";
 import { registerWindow, WindowType } from "@/modules/windows";
@@ -39,25 +39,6 @@ function createSettingsWindow() {
     settingsWindow = null;
   });
 
-  const webContents = window.webContents;
-  webContents.on("context-menu", (_event, params) => {
-    const menu = buildChromeContextMenu({
-      params,
-      webContents,
-      openLink: (url) => {
-        if (!browser) return;
-
-        const win = browser.getFocusedWindow();
-        if (!win) return;
-
-        const tab = win.tabs.create();
-        tab.loadURL(url);
-      }
-    });
-
-    menu.popup();
-  });
-
   registerWindow(WindowType.SETTINGS, "settings", window);
   settingsWindow = window;
 }
@@ -94,3 +75,12 @@ export const settings = {
     }
   }
 };
+
+// IPC Handlers //
+ipcMain.on("settings:open", () => {
+  settings.show();
+});
+
+ipcMain.on("settings:close", () => {
+  settings.hide();
+});

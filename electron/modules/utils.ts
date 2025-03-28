@@ -12,3 +12,7 @@ export async function isFileExists(filePath: string) {
 export function getContentType(filePath: string) {
   return mimeTypes.lookup(filePath) || "text/plain";
 }
+
+export function waitFor(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}

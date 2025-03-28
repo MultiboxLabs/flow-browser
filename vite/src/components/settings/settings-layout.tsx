@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { SettingsTopbar } from "@/components/settings/settings-topbar";
 import { GeneralSettings } from "@/components/settings/sections/general-settings";
+import { IconSettings } from "@/components/settings/sections/icon-settings";
 import { AboutSettings } from "@/components/settings/sections/about-settings";
 
 export function SettingsLayout() {
@@ -10,6 +11,8 @@ export function SettingsLayout() {
     switch (activeSection) {
       case "general":
         return <GeneralSettings />;
+      case "icons":
+        return <IconSettings />;
       case "about":
         return <AboutSettings />;
       default:

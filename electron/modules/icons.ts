@@ -1,11 +1,66 @@
-import { app, NativeImage, nativeImage } from "electron";
+import { app, ipcMain, NativeImage, nativeImage } from "electron";
 import path from "path";
 import { PATHS } from "./paths";
 import fs from "fs";
 import sharp from "sharp";
 import { getWindows, windowEvents, WindowEventType } from "./windows";
+import z from "zod";
+import { SettingsDataStore } from "@/modules/datastore";
 
 const iconsDirectory = path.join(PATHS.ASSETS, "public", "icons");
+
+type IconData = {
+  id: string;
+  name: string;
+  image_id: string;
+  author?: string;
+};
+
+const icons = [
+  {
+    id: "default",
+    name: "Default",
+    image_id: "default.png"
+  },
+  {
+    id: "nature",
+    name: "Nature",
+    image_id: "nature.png"
+  },
+  {
+    id: "3d",
+    name: "3D",
+    image_id: "3d.png"
+  },
+  {
+    id: "darkness",
+    name: "Darkness",
+    image_id: "darkness.png"
+  },
+  {
+    id: "glowy",
+    name: "Glowy",
+    image_id: "glowy.png"
+  },
+  {
+    id: "minimal_flat",
+    name: "Minimal Flat",
+    image_id: "minimal_flat.png"
+  },
+  {
+    id: "retro",
+    name: "Retro",
+    image_id: "retro.png"
+  },
+  {
+    id: "summer",
+    name: "Summer",
+    image_id: "summer.png"
+  }
+] as const satisfies IconData[];
+
+type IconId = (typeof icons)[number]["id"];
+const IconIdSchema = z.enum(icons.map((icon) => icon.id) as [IconId, ...IconId[]]);
 
 async function transformAppIcon(imagePath: string): Promise<Buffer> {
   // Read the image file
@@ -89,6 +144,46 @@ app.whenReady().then(() => {
 });
 
 windowEvents.on(WindowEventType.ADDED, () => {
-  console.log("window added");
   updateAppIcon();
+});
+
+// Settings: Current Icon //
+let currentIconId: IconId = "default";
+
+async function cacheCurrentIcon() {
+  const iconId = await SettingsDataStore.get<IconId>("currentIcon");
+
+  const parseResult = IconIdSchema.safeParse(iconId);
+  if (parseResult.success) {
+    currentIconId = parseResult.data;
+    setAppIcon(currentIconId);
+  }
+}
+cacheCurrentIcon();
+
+export function getCurrentIconId() {
+  return currentIconId;
+}
+export async function setCurrentIconId(iconId: IconId) {
+  const parseResult = IconIdSchema.safeParse(iconId);
+  if (parseResult.success) {
+    await SettingsDataStore.set("currentIcon", iconId);
+    currentIconId = iconId;
+    setAppIcon(currentIconId);
+    return true;
+  }
+  return false;
+}
+
+// IPC Handlers //
+ipcMain.handle("get-icons", () => {
+  return icons;
+});
+
+ipcMain.handle("get-current-icon-id", () => {
+  return getCurrentIconId();
+});
+
+ipcMain.handle("set-current-icon-id", (_, iconId: IconId) => {
+  return setCurrentIconId(iconId);
 });

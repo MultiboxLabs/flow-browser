@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain } from "electron";
-import "../modules/icons";
+import "@/modules/icons";
 
 // IPC Handlers
 ipcMain.on("set-window-button-position", (event, position: { x: number; y: number }) => {
