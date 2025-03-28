@@ -88,6 +88,38 @@ function registerFlowUtilityProtocol(protocol: Protocol) {
     });
   };
 
+  const handleAssetRequest = async (request: Request, url: URL) => {
+    const assetPath = url.pathname;
+
+    // Normalize the path to prevent directory traversal attacks
+    const normalizedPath = path.normalize(assetPath).replace(/^(\.\.(\/|\\|$))+/, "");
+
+    const filePath = path.join(PATHS.ASSETS, "public", normalizedPath);
+
+    // Ensure the requested path is within the allowed directory
+    const assetsDir = path.normalize(path.join(PATHS.ASSETS, "public"));
+    if (!path.normalize(filePath).startsWith(assetsDir)) {
+      return new Response("Access denied", { status: 403 });
+    }
+
+    try {
+      // Read file contents
+      const buffer = await fsPromises.readFile(filePath);
+
+      // Determine content type based on file extension
+      const contentType = getContentType(filePath);
+
+      return new Response(buffer, {
+        headers: {
+          "Content-Type": contentType
+        }
+      });
+    } catch (error) {
+      console.error("Error serving asset:", error);
+      return new Response("Asset not found", { status: 404 });
+    }
+  };
+
   protocol.handle("flow-utility", async (request) => {
     const urlString = request.url;
 
@@ -101,6 +133,11 @@ function registerFlowUtilityProtocol(protocol: Protocol) {
     // flow-utility://favicon/:path
     if (url.host === "favicon") {
       return await handleFaviconRequest(request, url);
+    }
+
+    // flow-utility://asset/:path
+    if (url.host === "asset") {
+      return await handleAssetRequest(request, url);
     }
 
     return new Response("Invalid request path", { status: 400 });
