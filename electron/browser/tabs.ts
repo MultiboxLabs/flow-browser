@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import { WebContents, BrowserWindow, WebContentsView, ipcMain } from "electron";
-import { FLAGS } from "../modules/flags";
-import { cacheFavicon } from "../modules/favicons";
+import { FLAGS } from "@/modules/flags";
+import { cacheFavicon } from "@/modules/favicons";
 
 type PageBounds = {
   x: number;
@@ -52,7 +52,7 @@ class Tab {
 
     this.view.webContents.on("page-favicon-updated", (_event, favicons) => {
       const faviconURL = favicons[0];
-      const url = this.view.webContents.getURL();
+      const url = this.view?.webContents.getURL();
       if (faviconURL && url) {
         cacheFavicon(url, faviconURL);
       }
@@ -75,9 +75,9 @@ class Tab {
         errorPageURL.searchParams.set("initial", "1");
 
         if (FLAGS.ERROR_PAGE_LOAD_MODE === "replace") {
-          this.webContents.executeJavaScript(`window.location.replace("${errorPageURL.toString()}")`);
+          this.webContents?.executeJavaScript(`window.location.replace("${errorPageURL.toString()}")`);
         } else {
-          this.webContents.loadURL(errorPageURL.toString());
+          this.webContents?.loadURL(errorPageURL.toString());
         }
       }
     });

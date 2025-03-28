@@ -1,5 +1,6 @@
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const { IgnorePlugin } = require("webpack");
+const path = require("path");
 
 module.exports = {
   entry: "./index.ts",
@@ -19,7 +20,10 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: [".js", ".ts", ".jsx", ".tsx", ".css", ".json"]
+    extensions: [".js", ".ts", ".jsx", ".tsx", ".css", ".json"],
+    alias: {
+      "@": path.resolve(__dirname, "./")
+    }
   },
   plugins: [
     new CopyWebpackPlugin({

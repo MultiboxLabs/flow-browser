@@ -1,4 +1,4 @@
-import { app, contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
 import { injectBrowserAction } from "electron-chrome-extensions/browser-action";
 
 const isBrowserUI = location.protocol === "chrome-extension:" && location.pathname === "/main/index.html";

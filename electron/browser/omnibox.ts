@@ -1,6 +1,6 @@
 import { BrowserWindow, ipcMain, Rectangle, WebContents, WebContentsView } from "electron";
-import { debugPrint } from "../modules/output";
-import { browser } from "../index";
+import { debugPrint } from "@/modules/output";
+import { browser } from "@/index";
 
 const omniboxes = new Map<BrowserWindow, Omnibox>();
 
@@ -194,7 +194,7 @@ export function getNewTabMode(): "omnibox" | "tab" {
   return "omnibox";
 }
 
-export function setOmniboxBounds(parentWindow: BrowserWindow, bounds: Electron.Rectangle) {
+export function setOmniboxBounds(parentWindow: BrowserWindow, bounds: Electron.Rectangle | null) {
   const omnibox = omniboxes.get(parentWindow);
   if (omnibox) {
     omnibox.setBounds(bounds);
@@ -234,6 +234,10 @@ ipcMain.on("show-omnibox", (event, bounds: Electron.Rectangle | null, params: { 
     `IPC: show-omnibox received with bounds: ${JSON.stringify(bounds)} and params: ${JSON.stringify(params)}`
   );
   const parentWindow = BrowserWindow.fromWebContents(event.sender);
+  if (!parentWindow) {
+    debugPrint("OMNIBOX", "Parent window not found");
+    return;
+  }
   setOmniboxBounds(parentWindow, bounds);
   loadOmnibox(parentWindow, params);
   showOmnibox(parentWindow);
@@ -242,5 +246,9 @@ ipcMain.on("show-omnibox", (event, bounds: Electron.Rectangle | null, params: { 
 ipcMain.on("hide-omnibox", (event) => {
   debugPrint("OMNIBOX", "IPC: hide-omnibox received");
   const parentWindow = BrowserWindow.fromWebContents(event.sender);
+  if (!parentWindow) {
+    debugPrint("OMNIBOX", "Parent window not found");
+    return;
+  }
   hideOmnibox(parentWindow);
 });

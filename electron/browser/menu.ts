@@ -1,8 +1,15 @@
 import { clipboard, Menu, type WebContents, type MenuItem, type MenuItemConstructorOptions } from "electron";
-import { Browser } from "./main";
-import { getNewTabMode, hideOmnibox, isOmniboxOpen, loadOmnibox, setOmniboxBounds, showOmnibox } from "./omnibox";
-import { settings } from "../settings/main";
-import { getFocusedWindow, WindowData, WindowType } from "../modules/windows";
+import { Browser } from "./browser";
+import {
+  getNewTabMode,
+  hideOmnibox,
+  isOmniboxOpen,
+  loadOmnibox,
+  setOmniboxBounds,
+  showOmnibox
+} from "@/browser/omnibox";
+import { settings } from "@/settings/main";
+import { getFocusedWindow, WindowData, WindowType } from "@/modules/windows";
 
 export function toggleSidebar(webContents: WebContents) {
   webContents.send("toggle-sidebar");
@@ -104,7 +111,7 @@ export const setupMenu = (browser: Browser) => {
               }
             } else {
               // Create new tab
-              win.tabs.create();
+              win?.tabs.create();
             }
           }
         },
@@ -194,8 +201,8 @@ export const setupMenu = (browser: Browser) => {
             }
 
             const win = winData.tabbedBrowserWindow;
-            const browserWindow = win.getBrowserWindow();
-            if (isOmniboxOpen(browserWindow)) {
+            const browserWindow = win?.getBrowserWindow();
+            if (browserWindow && isOmniboxOpen(browserWindow)) {
               // Close Omnibox
               hideOmnibox(browserWindow);
             } else {

@@ -53,11 +53,11 @@ function updateAppIcon() {
   if (!currentIcon) return;
 
   if (process.platform === "darwin") {
-    app.dock.setIcon(currentIcon);
+    app.dock?.setIcon(currentIcon);
   } else if (["win32", "linux"].includes(process.platform)) {
-    getWindows().forEach(({ window }) => {
+    for (const { window } of getWindows()) {
       window.setIcon(currentIcon);
-    });
+    }
   }
 }
 

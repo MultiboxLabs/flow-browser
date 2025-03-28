@@ -1,3 +1,5 @@
+const path = require("path");
+
 module.exports = {
   target: "electron-renderer",
   devtool: false,
@@ -16,6 +18,9 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: [".js", ".ts", ".jsx", ".tsx", ".css"]
+    extensions: [".js", ".ts", ".jsx", ".tsx", ".css"],
+    alias: {
+      "@": path.resolve(__dirname, "./")
+    }
   }
 };

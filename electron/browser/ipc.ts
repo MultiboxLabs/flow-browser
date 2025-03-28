@@ -1,9 +1,5 @@
 import { app, BrowserWindow, ipcMain } from "electron";
-import { Browser } from "@/browser/browser";
-import "@/modules/icons";
-
-// Create browser instance
-const browser = new Browser();
+import "../modules/icons";
 
 // IPC Handlers
 ipcMain.on("set-window-button-position", (event, position: { x: number; y: number }) => {

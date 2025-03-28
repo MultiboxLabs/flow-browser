@@ -11,7 +11,7 @@ const DEBUG_AREAS = {
 
 export type DEBUG_AREA = keyof typeof DEBUG_AREAS;
 
-export function debugPrint(area: DEBUG_AREA, ...message: string[]) {
+export function debugPrint(area: DEBUG_AREA, ...message: any[]) {
   if (!FLAGS.SHOW_DEBUG_PRINTS) return;
 
   if (DEBUG_AREAS[area]) {
@@ -19,7 +19,7 @@ export function debugPrint(area: DEBUG_AREA, ...message: string[]) {
   }
 }
 
-export function debugError(area: DEBUG_AREA, ...message: string[]) {
+export function debugError(area: DEBUG_AREA, ...message: any[]) {
   if (FLAGS.SHOW_DEBUG_ERRORS === false) return;
 
   if (Array.isArray(FLAGS.SHOW_DEBUG_ERRORS)) {

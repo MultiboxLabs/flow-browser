@@ -1,5 +1,5 @@
 import { app, ipcMain, Menu, MenuItem } from "electron";
-import { Browser } from "./browser/main";
+import { Browser } from "@/browser/browser";
 import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 
 export let browser: Browser | null = null;
@@ -52,7 +52,9 @@ function setupMacOSDock(browser: Browser) {
   );
 
   app.whenReady().then(() => {
-    app.dock.setMenu(dockMenu);
+    if ("dock" in app) {
+      app.dock?.setMenu(dockMenu);
+    }
   });
 }
 
@@ -65,7 +67,7 @@ function setupIPCHandlers(browser: Browser) {
     const tab = window.tabs.get(tabId);
     if (!tab) return;
 
-    tab.webContents.stop();
+    tab.webContents?.stop();
   });
 
   ipcMain.handle("get-tab-navigation-status", async (event, tabId: number) => {
@@ -77,7 +79,8 @@ function setupIPCHandlers(browser: Browser) {
     if (!tab) return null;
 
     const tabWebContents = tab.webContents;
-    const navigationHistory = tabWebContents.navigationHistory;
+    const navigationHistory = tabWebContents?.navigationHistory;
+    if (!navigationHistory) return null;
 
     return {
       navigationHistory: navigationHistory.getAllEntries(),
@@ -95,7 +98,7 @@ function setupIPCHandlers(browser: Browser) {
     const tab = window.tabs.get(tabId);
     if (!tab) return;
 
-    return tab.webContents.navigationHistory.goToIndex(index);
+    return tab.webContents?.navigationHistory?.goToIndex(index);
   });
 }
 
@@ -136,6 +139,8 @@ function initializeApp() {
 
   // Setup second instance handler
   app.on("second-instance", (_event, commandLine, _workingDirectory, _additionalData) => {
+    if (!browser) return;
+
     if (shouldCreateNewWindow(commandLine)) {
       browser.createWindow();
     } else {

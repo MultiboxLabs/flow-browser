@@ -111,7 +111,7 @@ const config: ForgeConfig = {
     extraResource: [uiPath, "assets"],
     icon: "assets/AppIcon",
     appVersion: packageJson.version,
-    buildVersion: getGitHash(),
+    buildVersion: getGitHash() ?? undefined,
     appCopyright: "© 2025 Multibox Labs"
   },
   rebuildConfig: {

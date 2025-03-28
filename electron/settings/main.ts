@@ -1,8 +1,8 @@
 import { app, BrowserWindow, nativeTheme, session } from "electron";
 import buildChromeContextMenu from "electron-chrome-context-menu";
-import { browser } from "../index";
-import { registerWindow, WindowType } from "../modules/windows";
-import { PATHS } from "../modules/paths";
+import { browser } from "@/index";
+import { registerWindow, WindowType } from "@/modules/windows";
+import { PATHS } from "@/modules/paths";
 
 let settingsWindow: BrowserWindow | null = null;
 
@@ -68,6 +68,8 @@ export const settings = {
       createSettingsWindow();
     }
 
+    if (!settingsWindow) return;
+
     settingsWindow.show();
     settingsWindow.focus();
   },
@@ -83,6 +85,8 @@ export const settings = {
     return settingsWindow.isVisible();
   },
   toggle: () => {
+    if (!settingsWindow) return;
+
     if (settingsWindow.isVisible()) {
       settings.hide();
     } else {

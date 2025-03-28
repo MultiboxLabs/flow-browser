@@ -1,9 +1,9 @@
 import path from "path";
 import { app, Protocol, session, Session } from "electron";
-import { PATHS } from "../modules/paths";
+import { PATHS } from "@/modules/paths";
 import fsPromises from "fs/promises";
-import { getContentType } from "../modules/utils";
-import { getFavicon, normalizeURL } from "../modules/favicons";
+import { getContentType } from "@/modules/utils";
+import { getFavicon, normalizeURL } from "@/modules/favicons";
 
 function registerFlowUtilityProtocol(protocol: Protocol) {
   const FLOW_UTILITY_ALLOWED_DIRECTORIES = ["error", "settings"];

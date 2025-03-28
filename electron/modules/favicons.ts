@@ -518,7 +518,7 @@ export async function hasFavicon(url: string): Promise<boolean> {
 
   try {
     const count = await db("favicon_urls").where("url", normalizedURL).count("* as count").first();
-    return count && Number(count.count) > 0;
+    return (count && Number(count.count) > 0) ?? false;
   } catch (error) {
     debugError("FAVICONS", "Error checking favicon:", error);
     return false;
