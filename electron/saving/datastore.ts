@@ -73,7 +73,7 @@ async function accessDataStore(
   return newData;
 }
 
-async function getDataStoreNamespace<T>(namespace: string, callback: (data: Data) => Promise<T> | T): Promise<T> {
+function getDataStoreNamespace<T>(namespace: string, callback: (data: Data) => Promise<T> | T): Promise<T> {
   return new Promise((resolve, reject) => {
     const accessCallback = async (data: Data) => {
       try {
