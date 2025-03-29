@@ -122,7 +122,7 @@ export async function setAppIcon(iconId: string) {
     throw new Error(`Icon image not found: ${imagePath}`);
   }
 
-  const supportedPlatforms: NodeJS.Platform[] = ["darwin"];
+  const supportedPlatforms: NodeJS.Platform[] = ["darwin", "win32", "linux"];
 
   if (!supportedPlatforms.includes(process.platform)) {
     return false;
