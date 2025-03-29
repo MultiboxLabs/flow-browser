@@ -1,9 +1,15 @@
+import { BrowserActionList } from "@/components/browser-ui/browser-action";
 import { GoBackButton, GoForwardButton } from "@/components/browser-ui/sidebar/navigation-buttons";
 import { useBrowser } from "@/components/main/browser-context";
-import { Button } from "@/components/ui/button";
-import { SidebarGroup, useSidebar } from "@/components/ui/resizable-sidebar";
+import {
+  SidebarGroup,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar
+} from "@/components/ui/resizable-sidebar";
 import { getTabNavigationStatus, NavigationEntry, stopLoadingTab } from "@/lib/flow";
-import { RefreshCwIcon, SidebarCloseIcon, XIcon } from "lucide-react";
+import { RefreshCwIcon, SidebarCloseIcon, SidebarOpenIcon, XIcon } from "lucide-react";
 import { ComponentProps, useEffect, useState } from "react";
 
 export type NavigationEntryWithIndex = NavigationEntry & { index: number };
@@ -15,11 +21,11 @@ export function SidebarActionButton({
 }: {
   icon: React.ReactNode;
   disabled?: boolean;
-} & ComponentProps<typeof Button>) {
+} & ComponentProps<typeof SidebarMenuButton>) {
   return (
-    <Button size="icon" variant="ghost" className="size-8" disabled={disabled} {...props}>
+    <SidebarMenuButton disabled={disabled} {...props}>
       {icon}
-    </Button>
+    </SidebarMenuButton>
   );
 }
 
@@ -47,7 +53,18 @@ export function NavigationControls() {
     });
   }, [activeTab]);
 
-  if (!open) return null;
+  if (!open) {
+    return (
+      <SidebarMenu>
+        <div className="mt-3" />
+        <SidebarMenuItem>
+          <SidebarMenuButton onClick={() => setOpen(true)}>
+            <SidebarOpenIcon />
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    );
+  }
 
   const closeSidebar = () => {
     setOpen(false);
@@ -59,20 +76,23 @@ export function NavigationControls() {
   };
 
   return (
-    <SidebarGroup className="flex flex-row justify-between">
-      <div className="flex flex-row gap-1">
-        <SidebarActionButton icon={<SidebarCloseIcon className="w-4 h-4" />} onClick={closeSidebar} />
+    <SidebarGroup>
+      <SidebarMenu className="flex flex-row justify-between">
+        {/* Left Side Buttons */}
+        <SidebarMenuItem className="flex flex-row gap-0.5">
+          <SidebarActionButton icon={<SidebarCloseIcon className="w-4 h-4" />} onClick={closeSidebar} />
 
-        {/* Browser Actions */}
-        {/* @ts-expect-error - Custom injected element */}
-        {activeTab && <browser-action-list id="actions" alignment="bottom right" />}
-      </div>
-      <div className="flex flex-row gap-1">
-        <GoBackButton canGoBack={canGoBack} backwardTabs={entries.slice(0, activeIndex).reverse()} />
-        <GoForwardButton canGoForward={canGoForward} forwardTabs={entries.slice(activeIndex + 1)} />
-        {!isLoading && <SidebarActionButton icon={<RefreshCwIcon className="w-4 h-4" />} onClick={handleReload} />}
-        {isLoading && <SidebarActionButton icon={<XIcon className="w-4 h-4" />} onClick={handleStopLoading} />}
-      </div>
+          {/* Browser Actions */}
+          <BrowserActionList alignmentY="bottom" alignmentX="right" />
+        </SidebarMenuItem>
+        {/* Right Side Buttons */}
+        <SidebarMenuItem className="flex flex-row gap-0.5">
+          <GoBackButton canGoBack={canGoBack} backwardTabs={entries.slice(0, activeIndex).reverse()} />
+          <GoForwardButton canGoForward={canGoForward} forwardTabs={entries.slice(activeIndex + 1)} />
+          {!isLoading && <SidebarActionButton icon={<RefreshCwIcon className="w-4 h-4" />} onClick={handleReload} />}
+          {isLoading && <SidebarActionButton icon={<XIcon className="w-4 h-4" />} onClick={handleStopLoading} />}
+        </SidebarMenuItem>
+      </SidebarMenu>
     </SidebarGroup>
   );
 }
