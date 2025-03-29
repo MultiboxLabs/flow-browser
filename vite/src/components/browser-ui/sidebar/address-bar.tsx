@@ -35,7 +35,7 @@ function FakeAddressBar() {
       ref={inputRef}
       placeholder="Search or type URL"
       value={simplifyUrl(addressUrl)}
-      className="select-none rounded-xl"
+      className="rounded-xl"
       readOnly
       onClick={handleClick}
     />

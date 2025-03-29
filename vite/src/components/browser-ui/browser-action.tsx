@@ -218,7 +218,7 @@ export function BrowserActionList({
           <PuzzleIcon />
         </SidebarMenuButton>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-2">
+      <PopoverContent className="w-64 p-2 select-none">
         <SidebarMenu>
           {actions.map((action) => (
             <BrowserAction

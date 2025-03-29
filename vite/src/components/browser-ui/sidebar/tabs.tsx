@@ -35,7 +35,6 @@ function NewTabButton() {
 
   return (
     <MotionSidebarMenuButton
-      className="select-none"
       onClick={handleNewTab}
       animate={{
         scale: isPressed ? 0.975 : 1
@@ -57,7 +56,7 @@ export function SidebarTabs() {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel className="select-none">Tabs</SidebarGroupLabel>
+      <SidebarGroupLabel>Tabs</SidebarGroupLabel>
       <SidebarGroupAction onClick={handleCloseAllTabs}>
         <Trash2Icon className="size-1.5 m-1 text-muted-foreground" />
       </SidebarGroupAction>

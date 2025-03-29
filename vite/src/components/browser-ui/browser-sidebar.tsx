@@ -62,7 +62,7 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
       side={side}
       variant={variant}
       collapsible={collapseMode}
-      className={cn(open && "!border-0", variant === "floating" && "bg-sidebar")}
+      className={cn("select-none", open && "!border-0", variant === "floating" && "bg-sidebar")}
     >
       <SidebarHeader>
         {open && (

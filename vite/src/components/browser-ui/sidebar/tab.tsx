@@ -52,7 +52,7 @@ export function SidebarTab({ tab }: { tab: chrome.tabs.Tab }) {
     <MotionSidebarMenuButton
       key={tab.id}
       onClick={handleClick}
-      className={cn("select-none", activeTab?.id === tab.id && "bg-sidebar-accent")}
+      className={cn(activeTab?.id === tab.id && "bg-sidebar-accent")}
       initial={{ opacity: 0, x: -10 }}
       animate={{
         opacity: 1,
