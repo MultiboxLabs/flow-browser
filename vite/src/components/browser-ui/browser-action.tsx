@@ -1,5 +1,7 @@
-import { SidebarMenuButton } from "@/components/ui/resizable-sidebar";
-import { PuzzleIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SidebarMenu, SidebarMenuButton } from "@/components/ui/resizable-sidebar";
+import { PinIcon, PuzzleIcon } from "lucide-react";
 import { MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -153,10 +155,17 @@ function BrowserAction({ action, alignment, partition, activeTabId }: BrowserAct
   );
 
   return (
-    <SidebarMenuButton id={action.id} ref={buttonRef} onClick={onClick} onContextMenu={onContextMenu}>
-      <BrowserActionIcon action={action} activeTabId={activeTabId} tabInfo={tabInfo} />
-      <Badge color={tabInfo?.color} text={tabInfo?.text} />
-    </SidebarMenuButton>
+    <div className="flex flex-row justify-between gap-0.5">
+      <SidebarMenuButton id={action.id} ref={buttonRef} onClick={onClick} onContextMenu={onContextMenu}>
+        <BrowserActionIcon action={action} activeTabId={activeTabId} tabInfo={tabInfo} />
+        <Badge color={tabInfo?.color} text={tabInfo?.text} />
+        <span className="font-semibold">{action.title}</span>
+      </SidebarMenuButton>
+      {/* TODO: Add pin functionality */}
+      <Button variant="ghost" size="icon" disabled>
+        <PinIcon className="size-4" />
+      </Button>
+    </div>
   );
 }
 
@@ -185,12 +194,6 @@ export function BrowserActionList({
     });
   }, [fetchState]);
 
-  // DEBUG!!
-  useEffect(() => {
-    console.log("actions", actions);
-    console.log("activeTabId", activeTabId);
-  }, [actions, activeTabId]);
-
   const onActionsUpdate = useCallback((state: State) => {
     setActions(state.actions);
     setActiveTabId(state.activeTabId);
@@ -209,16 +212,25 @@ export function BrowserActionList({
   if (!activeTabId) return null;
 
   return (
-    <div className="flex flex-row gap-0.5">
-      {actions.map((action) => (
-        <BrowserAction
-          key={action.id}
-          action={action}
-          alignment={alignment}
-          partition={partition}
-          activeTabId={activeTabId}
-        />
-      ))}
-    </div>
+    <Popover>
+      <PopoverTrigger asChild>
+        <SidebarMenuButton>
+          <PuzzleIcon />
+        </SidebarMenuButton>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-2">
+        <SidebarMenu>
+          {actions.map((action) => (
+            <BrowserAction
+              key={action.id}
+              action={action}
+              alignment={alignment}
+              partition={partition}
+              activeTabId={activeTabId}
+            />
+          ))}
+        </SidebarMenu>
+      </PopoverContent>
+    </Popover>
   );
 }
