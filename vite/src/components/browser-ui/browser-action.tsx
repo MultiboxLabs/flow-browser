@@ -159,7 +159,7 @@ function BrowserAction({ action, alignment, partition, activeTabId }: BrowserAct
       <SidebarMenuButton id={action.id} ref={buttonRef} onClick={onClick} onContextMenu={onContextMenu}>
         <BrowserActionIcon action={action} activeTabId={activeTabId} tabInfo={tabInfo} />
         <Badge color={tabInfo?.color} text={tabInfo?.text} />
-        <span className="font-semibold">{action.title}</span>
+        <span className="font-semibold truncate">{action.title}</span>
       </SidebarMenuButton>
       {/* TODO: Add pin functionality */}
       <Button variant="ghost" size="icon" disabled>
@@ -218,7 +218,7 @@ export function BrowserActionList({
           <PuzzleIcon />
         </SidebarMenuButton>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-2 select-none">
+      <PopoverContent className="w-56 p-2 select-none">
         <SidebarMenu>
           {actions.map((action) => (
             <BrowserAction
