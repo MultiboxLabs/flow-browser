@@ -55,7 +55,7 @@ function getDataStoreNamespace<T>(namespace: string, callback: (data: Data) => P
   });
 }
 
-class DataStore {
+export class DataStore {
   constructor(private readonly namespace: string) {}
 
   async get<T>(key: string): Promise<T> {
@@ -69,5 +69,3 @@ class DataStore {
     });
   }
 }
-
-export const SettingsDataStore = new DataStore("settings");

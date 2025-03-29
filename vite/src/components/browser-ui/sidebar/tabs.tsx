@@ -24,11 +24,13 @@ function NewTabButton() {
   };
 
   const handleNewTab = () => {
-    if (getNewTabMode() === "omnibox") {
-      showOmnibox(null, null);
-    } else {
-      handleCreateTab();
-    }
+    getNewTabMode().then((newTabMode) => {
+      if (newTabMode === "omnibox") {
+        showOmnibox(null, null);
+      } else {
+        handleCreateTab();
+      }
+    });
   };
 
   return (

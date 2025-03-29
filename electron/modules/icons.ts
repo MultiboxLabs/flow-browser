@@ -5,7 +5,7 @@ import fs from "fs";
 import sharp from "sharp";
 import { getWindows, windowEvents, WindowEventType } from "./windows";
 import z from "zod";
-import { SettingsDataStore } from "@/modules/datastore";
+import { SettingsDataStore } from "@/saving/settings";
 
 const iconsDirectory = path.join(PATHS.ASSETS, "public", "icons");
 

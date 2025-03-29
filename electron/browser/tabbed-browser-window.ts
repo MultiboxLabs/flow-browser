@@ -1,4 +1,4 @@
-import { BrowserWindow, WebContents, nativeTheme, session } from "electron";
+import { BrowserWindow, WebContents, dialog, nativeTheme, session } from "electron";
 import { ElectronChromeExtensions } from "electron-chrome-extensions";
 import { debugError, debugPrint } from "@/modules/output";
 import { Tabs } from "./tabs";

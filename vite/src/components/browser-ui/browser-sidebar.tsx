@@ -87,11 +87,15 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
               </SidebarMenuButton>
             </SidebarMenuItem>
             {/* Middle (Spaces) */}
-            <SidebarMenuItem className="flex flex-row gap-2">
-              <SidebarMenuButton>
-                <HomeIcon />
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {/* Spaces not yet released */}
+            {/* eslint-disable-next-line no-constant-binary-expression */}
+            {false && (
+              <SidebarMenuItem className="flex flex-row gap-2">
+                <SidebarMenuButton>
+                  <HomeIcon />
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
             {/* Right Side Buttons */}
             <SidebarMenuItem>
               <SidebarMenuButton disabled>

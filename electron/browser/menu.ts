@@ -1,15 +1,9 @@
 import { clipboard, Menu, type WebContents, type MenuItem, type MenuItemConstructorOptions } from "electron";
 import { Browser } from "./browser";
-import {
-  getNewTabMode,
-  hideOmnibox,
-  isOmniboxOpen,
-  loadOmnibox,
-  setOmniboxBounds,
-  showOmnibox
-} from "@/browser/omnibox";
+import { hideOmnibox, isOmniboxOpen, loadOmnibox, setOmniboxBounds, showOmnibox } from "@/browser/omnibox";
 import { settings } from "@/settings/main";
 import { getFocusedWindow, WindowData, WindowType } from "@/modules/windows";
+import { getCurrentNewTabMode } from "@/saving/settings";
 
 export function toggleSidebar(webContents: WebContents) {
   webContents.send("toggle-sidebar");
@@ -101,7 +95,7 @@ export const setupMenu = (browser: Browser) => {
             const win = winData.tabbedBrowserWindow;
 
             // Open omnibox
-            if (getNewTabMode() === "omnibox") {
+            if (getCurrentNewTabMode() === "omnibox") {
               if (isOmniboxOpen(browserWindow)) {
                 hideOmnibox(browserWindow);
               } else {

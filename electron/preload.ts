@@ -1,3 +1,4 @@
+import { NewTabMode } from "@/saving/settings";
 import { contextBridge, ipcRenderer } from "electron";
 import { injectBrowserAction } from "electron-chrome-extensions/browser-action";
 
@@ -114,6 +115,8 @@ contextBridge.exposeInMainWorld("flow", {
         update_channel: updateChannel
       };
     },
+
+    // Settings: Icons //
     getIcons: async () => {
       if (!canUseSettingsAPI) return;
       return ipcRenderer.invoke("get-icons");
@@ -125,6 +128,16 @@ contextBridge.exposeInMainWorld("flow", {
     setCurrentIcon: async (iconId: string) => {
       if (!canUseSettingsAPI) return;
       return ipcRenderer.invoke("set-current-icon-id", iconId);
+    },
+
+    // Settings: New Tab Mode //
+    getCurrentNewTabMode: async () => {
+      if (!canUseSettingsAPI) return;
+      return ipcRenderer.invoke("get-current-new-tab-mode");
+    },
+    setCurrentNewTabMode: async (newTabMode: NewTabMode) => {
+      if (!canUseSettingsAPI) return;
+      return ipcRenderer.invoke("set-current-new-tab-mode", newTabMode);
     }
   }
 });

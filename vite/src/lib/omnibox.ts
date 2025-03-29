@@ -1,8 +1,9 @@
 import { getURLFromInput } from "@/lib/url";
 import { createSearchUrl, getSearchSuggestions } from "./search";
+import { getCurrentNewTabMode } from "@/lib/flow";
 
-export function getNewTabMode(): "omnibox" | "tab" {
-  return "omnibox";
+export async function getNewTabMode() {
+  return await getCurrentNewTabMode();
 }
 
 /**

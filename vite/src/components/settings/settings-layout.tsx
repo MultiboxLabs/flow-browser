@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { SettingsTopbar } from "@/components/settings/settings-topbar";
-import { GeneralSettings } from "@/components/settings/sections/general-settings";
-import { IconSettings } from "@/components/settings/sections/icon-settings";
-import { AboutSettings } from "@/components/settings/sections/about-settings";
+import { GeneralSettings } from "@/components/settings/sections/general/section";
+import { IconSettings } from "@/components/settings/sections/icon/section";
+import { AboutSettings } from "@/components/settings/sections/about/section";
 
 export function SettingsLayout() {
   const [activeSection, setActiveSection] = useState("general");

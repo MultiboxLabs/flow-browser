@@ -42,7 +42,7 @@ export class Omnibox {
     });
 
     // on window close, clear keep on top interval
-    parentWindow.on("close", () => {
+    parentWindow.on("closed", () => {
       debugPrint("OMNIBOX", "Parent window close event received");
       this.clearKeepOnTopInterval();
     });
@@ -192,10 +192,6 @@ export class Omnibox {
     this.bounds = bounds;
     this.updateBounds();
   }
-}
-
-export function getNewTabMode(): "omnibox" | "tab" {
-  return "omnibox";
 }
 
 export function setOmniboxBounds(parentWindow: BrowserWindow, bounds: Electron.Rectangle | null) {

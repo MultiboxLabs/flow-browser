@@ -374,11 +374,6 @@ export class Browser {
     // Emit window added event
     windowEvents.emit(WindowEventType.ADDED, generateBrowserWindowData(win));
 
-    win.getBrowserWindow().on("close", () => {
-      this.windows = this.windows.filter((w) => w.id !== win.id);
-      win.destroy();
-    });
-
     win.getBrowserWindow().on("closed", () => {
       this.windows = this.windows.filter((w) => w.id !== win.id);
 

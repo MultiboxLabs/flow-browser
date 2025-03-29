@@ -28,6 +28,8 @@ export type IconData = {
 
 type QueryParams = { [key: string]: string };
 
+export type NewTabMode = "omnibox" | "tab";
+
 /**
  * Interface for the Flow API exposed by the Electron preload script
  */
@@ -114,6 +116,8 @@ interface FlowSettingsAPI {
   getIcons: () => Promise<IconData[]>;
   getCurrentIcon: () => Promise<string>;
   setCurrentIcon: (iconId: string) => Promise<boolean>;
+  getCurrentNewTabMode: () => Promise<NewTabMode>;
+  setCurrentNewTabMode: (newTabMode: NewTabMode) => Promise<boolean>;
 }
 
 declare global {
@@ -189,4 +193,12 @@ export function setCurrentIcon(iconId: string) {
 
 export function openSettings() {
   return flow.settings.open();
+}
+
+export function getCurrentNewTabMode() {
+  return flow.settings.getCurrentNewTabMode();
+}
+
+export function setCurrentNewTabMode(newTabMode: NewTabMode) {
+  return flow.settings.setCurrentNewTabMode(newTabMode);
 }
