@@ -10,56 +10,96 @@ type Data = {
 
 type AccessResult = Data | null;
 
-function accessDataStore(
+class DataStoreError extends Error {
+  constructor(
+    message: string,
+    public readonly cause?: Error
+  ) {
+    super(message);
+    this.name = "DataStoreError";
+  }
+}
+
+async function accessDataStore(
   namespace: string,
   callback: (oldData: Data) => Promise<AccessResult> | AccessResult
 ): Promise<AccessResult> {
-  return new Promise(async (resolve, reject) => {
-    // Create the datastore directory if it doesn't exist
-    await fs.mkdir(DATASTORE_DIR, { recursive: true }).catch(() => {});
+  if (!namespace || typeof namespace !== "string") {
+    throw new DataStoreError("Invalid namespace provided");
+  }
 
-    // Get file path
-    const filePath = path.join(DATASTORE_DIR, `${namespace}.json`);
+  // Create the datastore directory if it doesn't exist
+  await fs.mkdir(DATASTORE_DIR, { recursive: true });
 
-    // Read data
-    const oldData = await fs
-      .readFile(filePath, "utf8")
-      .then((data) => {
-        return JSON.parse(data);
-      })
-      .catch(() => {
+  // Get file path
+  const dataFilePath = path.join(DATASTORE_DIR, `${namespace}.json`);
+
+  // Read data
+  const oldData: Data = await fs
+    .readFile(dataFilePath, "utf8")
+    .then((fileContent) => {
+      const jsonData = JSON.parse(fileContent);
+      return jsonData;
+    })
+    .catch((error) => {
+      if (error instanceof SyntaxError) {
+        // Invalid JSON, return empty object
         return {};
-      });
+      } else if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        // File doesn't exist, return empty object
+        return {};
+      } else {
+        throw error;
+      }
+    });
 
-    // Update data
-    const newData = await callback(oldData);
+  // Update data
+  let newData: AccessResult = null;
+  try {
+    newData = await callback(oldData);
+  } catch (error) {
+    throw new DataStoreError("Error in datastore callback execution", error as Error);
+  }
 
-    // Write data to file
-    if (newData !== null) {
-      await fs.writeFile(filePath, JSON.stringify(newData, null, 2));
+  // Write data to file
+  if (newData !== null) {
+    try {
+      await fs.writeFile(dataFilePath, JSON.stringify(newData, null, 2));
+    } catch (error) {
+      throw new DataStoreError(`Failed to write to datastore file: ${namespace}.json`, error as Error);
     }
+  }
 
-    // Resolve with new data
-    resolve(newData);
-  });
+  return newData;
 }
 
-function getDataStoreNamespace<T>(namespace: string, callback: (data: Data) => Promise<T> | T): Promise<T> {
-  return new Promise((resolve) => {
+async function getDataStoreNamespace<T>(namespace: string, callback: (data: Data) => Promise<T> | T): Promise<T> {
+  return new Promise((resolve, reject) => {
     const accessCallback = async (data: Data) => {
-      const result = await callback(data);
-      resolve(result);
-      return null;
+      try {
+        const result = await callback(data);
+        resolve(result);
+        return null;
+      } catch (error) {
+        reject(new DataStoreError("Error in namespace callback execution", error as Error));
+        return null;
+      }
     };
-    accessDataStore(namespace, accessCallback);
+    accessDataStore(namespace, accessCallback).catch(reject);
   });
 }
 
 export class DataStore {
-  constructor(private readonly namespace: string) {}
+  constructor(private readonly namespace: string) {
+    if (!namespace || typeof namespace !== "string") {
+      throw new DataStoreError("Invalid namespace provided to DataStore constructor");
+    }
+  }
 
-  async get<T>(key: string): Promise<T> {
-    return getDataStoreNamespace(this.namespace, (data) => data[key]);
+  get<T>(key: string): Promise<T> {
+    return getDataStoreNamespace(this.namespace, (data) => {
+      return data[key];
+    });
   }
 
   async set<T>(key: string, value: T): Promise<void> {

@@ -151,7 +151,8 @@ windowEvents.on(WindowEventType.ADDED, () => {
 let currentIconId: IconId = "default";
 
 async function cacheCurrentIcon() {
-  const iconId = await SettingsDataStore.get<IconId>("currentIcon");
+  // Use default value if error raised
+  const iconId = await SettingsDataStore.get<IconId>("currentIcon").catch(() => null);
 
   const parseResult = IconIdSchema.safeParse(iconId);
   if (parseResult.success) {
@@ -167,10 +168,15 @@ export function getCurrentIconId() {
 export async function setCurrentIconId(iconId: IconId) {
   const parseResult = IconIdSchema.safeParse(iconId);
   if (parseResult.success) {
-    await SettingsDataStore.set("currentIcon", iconId);
-    currentIconId = iconId;
-    setAppIcon(currentIconId);
-    return true;
+    const saveSuccess = await SettingsDataStore.set("currentIcon", iconId)
+      .then(() => true)
+      .catch(() => false);
+
+    if (saveSuccess) {
+      currentIconId = iconId;
+      setAppIcon(currentIconId);
+      return true;
+    }
   }
   return false;
 }

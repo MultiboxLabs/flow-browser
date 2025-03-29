@@ -14,7 +14,8 @@ export type NewTabMode = z.infer<typeof NewTabModeSchema>;
 let currentNewTabMode: NewTabMode = "omnibox";
 
 async function cacheNewTabMode() {
-  const iconId = await SettingsDataStore.get<NewTabMode>("newTabMode");
+  // Use default value if error raised
+  const iconId = await SettingsDataStore.get<NewTabMode>("newTabMode").catch(() => null);
 
   const parseResult = NewTabModeSchema.safeParse(iconId);
   if (parseResult.success) {
@@ -29,9 +30,14 @@ export function getCurrentNewTabMode() {
 export async function setCurrentNewTabMode(newTabMode: NewTabMode) {
   const parseResult = NewTabModeSchema.safeParse(newTabMode);
   if (parseResult.success) {
-    await SettingsDataStore.set("newTabMode", newTabMode);
-    currentNewTabMode = newTabMode;
-    return true;
+    const saveSuccess = await SettingsDataStore.set("newTabMode", newTabMode)
+      .then(() => true)
+      .catch(() => false);
+
+    if (saveSuccess) {
+      currentNewTabMode = newTabMode;
+      return true;
+    }
   }
   return false;
 }
