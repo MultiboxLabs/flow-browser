@@ -6,7 +6,8 @@ const DEBUG_AREAS = {
   VITE_UI_EXTENSION: false, // @/browser/main.ts
   EXTENSION_SERVER_WORKERS: false, // @/browser/main.ts
   WEB_CONTENTS_CREATED: false, // @/browser/main.ts
-  OMNIBOX: false // @/browser/omnibox.ts
+  OMNIBOX: false, // @/browser/omnibox.ts
+  DATASTORE: false // @/saving/datastore.ts
 } as const;
 
 export type DEBUG_AREA = keyof typeof DEBUG_AREAS;
