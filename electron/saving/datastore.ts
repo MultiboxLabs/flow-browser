@@ -23,11 +23,25 @@ class DataStoreError extends Error {
 }
 
 export class DataStore {
+  private directoryPath: string;
   private accessQueue: Queue;
 
-  constructor(private readonly namespace: string) {
+  constructor(
+    private readonly namespace: string,
+    private readonly folder?: string
+  ) {
     if (!namespace || typeof namespace !== "string") {
       throw new DataStoreError("Invalid namespace provided to DataStore constructor");
+    }
+
+    if (folder && typeof folder !== "string") {
+      throw new DataStoreError("Invalid folder provided to DataStore constructor");
+    }
+
+    if (this.folder) {
+      this.directoryPath = path.join(DATASTORE_DIR, this.folder);
+    } else {
+      this.directoryPath = DATASTORE_DIR;
     }
 
     this.accessQueue = new Queue();
@@ -42,11 +56,11 @@ export class DataStore {
       }
 
       // Create the datastore directory if it doesn't exist
-      await fs.mkdir(DATASTORE_DIR, { recursive: true });
-      debugPrint("DATASTORE", `Ensuring datastore directory exists: ${DATASTORE_DIR}`);
+      await fs.mkdir(this.directoryPath, { recursive: true });
+      debugPrint("DATASTORE", `Ensuring datastore directory exists: ${this.directoryPath}`);
 
       // Get file path
-      const dataFilePath = path.join(DATASTORE_DIR, `${namespace}.json`);
+      const dataFilePath = path.join(this.directoryPath, `${namespace}.json`);
       debugPrint("DATASTORE", `Accessing datastore file: ${dataFilePath}`);
 
       // Read data
