@@ -24,7 +24,7 @@ function createSettingsWindow() {
     center: true,
     show: false,
     frame: false,
-    titleBarStyle: "hiddenInset",
+    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "hidden",
     titleBarOverlay: {
       height: 40,
       symbolColor: nativeTheme.shouldUseDarkColors ? "white" : "black",
