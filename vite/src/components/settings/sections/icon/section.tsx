@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "motion/react";
-import { getIcons, getCurrentIcon, setCurrentIcon } from "@/lib/flow";
+import { getIcons, getCurrentIcon, setCurrentIcon, isPlatformSupportedForIcon } from "@/lib/flow";
 
 interface IconOption {
   id: string;
@@ -17,11 +17,21 @@ export function IconSettings() {
   const [iconOptions, setIconOptions] = useState<IconOption[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSupported, setIsSupported] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
+        // Check if platform supports icon customization
+        const supported = await isPlatformSupportedForIcon();
+        setIsSupported(supported);
+
+        if (!supported) {
+          setIsLoading(false);
+          return;
+        }
+
         // Fetch both icons and current icon in parallel
         const [icons, currentIconId] = await Promise.all([getIcons(), getCurrentIcon()]);
 
@@ -81,7 +91,11 @@ export function IconSettings() {
           <CardDescription className="text-sm">Select an icon for your browser application</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {!isSupported ? (
+            <div className="flex items-center justify-center h-40">
+              <div className="text-muted-foreground">Icon customization is not supported on this platform.</div>
+            </div>
+          ) : isLoading ? (
             <div className="flex items-center justify-center h-40">
               <div className="animate-pulse text-muted-foreground">Loading icons...</div>
             </div>

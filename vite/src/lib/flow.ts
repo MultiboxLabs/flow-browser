@@ -114,6 +114,7 @@ interface FlowSettingsAPI {
     update_channel: "Stable" | "Beta" | "Alpha" | "Development";
   }>;
   getIcons: () => Promise<IconData[]>;
+  isPlatformSupportedForIcon: () => Promise<boolean>;
   getCurrentIcon: () => Promise<string>;
   setCurrentIcon: (iconId: string) => Promise<boolean>;
   getCurrentNewTabMode: () => Promise<NewTabMode>;
@@ -181,6 +182,10 @@ export function getAppInfo() {
 
 export function getIcons() {
   return flow.settings.getIcons();
+}
+
+export function isPlatformSupportedForIcon() {
+  return flow.settings.isPlatformSupportedForIcon();
 }
 
 export function getCurrentIcon() {

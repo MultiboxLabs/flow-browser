@@ -121,6 +121,10 @@ contextBridge.exposeInMainWorld("flow", {
       if (!canUseSettingsAPI) return;
       return ipcRenderer.invoke("get-icons");
     },
+    isPlatformSupportedForIcon: async () => {
+      if (!canUseSettingsAPI) return;
+      return ipcRenderer.invoke("icon:is-platform-supported");
+    },
     getCurrentIcon: async () => {
       if (!canUseSettingsAPI) return;
       return ipcRenderer.invoke("get-current-icon-id");

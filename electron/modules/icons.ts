@@ -7,6 +7,13 @@ import { getWindows, windowEvents, WindowEventType } from "./windows";
 import z from "zod";
 import { SettingsDataStore } from "@/saving/settings";
 
+const supportedPlatforms: NodeJS.Platform[] = [
+  // macOS: through app.dock.setIcon()
+  "darwin",
+  // Linux: through BrowserWindow.setIcon()
+  "linux"
+  // No support for Windows or other platforms
+];
 const iconsDirectory = path.join(PATHS.ASSETS, "public", "icons");
 
 type IconData = {
@@ -109,7 +116,7 @@ function updateAppIcon() {
 
   if (process.platform === "darwin") {
     app.dock?.setIcon(currentIcon);
-  } else if (["win32", "linux"].includes(process.platform)) {
+  } else if (process.platform === "linux") {
     for (const { window } of getWindows()) {
       window.setIcon(currentIcon);
     }
@@ -121,8 +128,6 @@ export async function setAppIcon(iconId: string) {
   if (!fs.existsSync(imagePath) || !fs.statSync(imagePath).isFile()) {
     throw new Error(`Icon image not found: ${imagePath}`);
   }
-
-  const supportedPlatforms: NodeJS.Platform[] = ["darwin", "win32", "linux"];
 
   if (!supportedPlatforms.includes(process.platform)) {
     return false;
@@ -184,6 +189,10 @@ export async function setCurrentIconId(iconId: IconId) {
 // IPC Handlers //
 ipcMain.handle("get-icons", () => {
   return icons;
+});
+
+ipcMain.handle("icon:is-platform-supported", () => {
+  return supportedPlatforms.includes(process.platform);
 });
 
 ipcMain.handle("get-current-icon-id", () => {
