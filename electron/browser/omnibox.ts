@@ -231,7 +231,7 @@ export function isOmniboxOpen(parentWindow: BrowserWindow) {
 }
 
 // IPC Handlers //
-ipcMain.on("show-omnibox", (event, bounds: Electron.Rectangle | null, params: { [key: string]: string } | null) => {
+ipcMain.on("omnibox:show", (event, bounds: Electron.Rectangle | null, params: { [key: string]: string } | null) => {
   debugPrint(
     "OMNIBOX",
     `IPC: show-omnibox received with bounds: ${JSON.stringify(bounds)} and params: ${JSON.stringify(params)}`
@@ -246,7 +246,7 @@ ipcMain.on("show-omnibox", (event, bounds: Electron.Rectangle | null, params: { 
   showOmnibox(parentWindow);
 });
 
-ipcMain.on("hide-omnibox", (event) => {
+ipcMain.on("omnibox:hide", (event) => {
   debugPrint("OMNIBOX", "IPC: hide-omnibox received");
   const parentWindow = BrowserWindow.fromWebContents(event.sender);
   if (!parentWindow) {

@@ -59,7 +59,7 @@ function setupMacOSDock(browser: Browser) {
 }
 
 function setupIPCHandlers(browser: Browser) {
-  ipcMain.on("stop-loading-tab", (event, tabId: number) => {
+  ipcMain.on("navigation:stop-loading-tab", (event, tabId: number) => {
     const webContents = event.sender;
     const window = browser.getWindowFromWebContents(webContents);
     if (!window) return;
@@ -70,7 +70,7 @@ function setupIPCHandlers(browser: Browser) {
     tab.webContents?.stop();
   });
 
-  ipcMain.handle("get-tab-navigation-status", async (event, tabId: number) => {
+  ipcMain.handle("navigation:get-tab-status", async (event, tabId: number) => {
     const webContents = event.sender;
     const window = browser.getWindowFromWebContents(webContents);
     if (!window) return null;
@@ -90,7 +90,7 @@ function setupIPCHandlers(browser: Browser) {
     };
   });
 
-  ipcMain.on("go-to-navigation-entry", (event, tabId: number, index: number) => {
+  ipcMain.on("navigation:go-to-entry", (event, tabId: number, index: number) => {
     const webContents = event.sender;
     const window = browser.getWindowFromWebContents(webContents);
     if (!window) return;

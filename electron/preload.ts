@@ -36,27 +36,27 @@ contextBridge.exposeInMainWorld("flow", {
   interface: {
     setPageBounds: (bounds: { x: number; y: number; width: number; height: number }) => {
       if (!canUseInterfaceAPI) return;
-      return ipcRenderer.send("set-page-bounds", bounds);
+      return ipcRenderer.send("page:set-bounds", bounds);
     },
     setWindowButtonPosition: (position: { x: number; y: number }) => {
       if (!canUseInterfaceAPI) return;
-      return ipcRenderer.send("set-window-button-position", position);
+      return ipcRenderer.send("window-button:set-position", position);
     },
     setWindowButtonVisibility: (visible: boolean) => {
       if (!canUseInterfaceAPI) return;
-      return ipcRenderer.send("set-window-button-visibility", visible);
+      return ipcRenderer.send("window-button:set-visibility", visible);
     },
     getTabNavigationStatus: (tabId: number) => {
       if (!canUseInterfaceAPI) return;
-      return ipcRenderer.invoke("get-tab-navigation-status", tabId);
+      return ipcRenderer.invoke("navigation:get-tab-status", tabId);
     },
     stopLoadingTab: (tabId: number) => {
       if (!canUseInterfaceAPI) return;
-      return ipcRenderer.send("stop-loading-tab", tabId);
+      return ipcRenderer.send("navigation:stop-loading-tab", tabId);
     },
     goToNavigationEntry: (tabId: number, index: number) => {
       if (!canUseInterfaceAPI) return;
-      return ipcRenderer.send("go-to-navigation-entry", tabId, index);
+      return ipcRenderer.send("navigation:go-to-entry", tabId, index);
     },
     getPlatform: () => {
       if (!canUseInterfaceAPI) return;
@@ -64,12 +64,12 @@ contextBridge.exposeInMainWorld("flow", {
     },
     onToggleSidebar: (callback: () => void) => {
       if (!canUseInterfaceAPI) return;
-      const listener = ipcRenderer.on("toggle-sidebar", (_event) => {
+      const listener = ipcRenderer.on("sidebar:toggle", (_event) => {
         callback();
       });
 
       return () => {
-        listener.removeListener("toggle-sidebar", callback);
+        listener.removeListener("sidebar:toggle", callback);
       };
     }
   },
@@ -78,11 +78,11 @@ contextBridge.exposeInMainWorld("flow", {
   omnibox: {
     show: (bounds: Electron.Rectangle | null, params: { [key: string]: string } | null) => {
       if (!canUseOmniboxAPI) return;
-      return ipcRenderer.send("show-omnibox", bounds, params);
+      return ipcRenderer.send("omnibox:show", bounds, params);
     },
     hide: () => {
       if (!canUseOmniboxAPI) return;
-      return ipcRenderer.send("hide-omnibox");
+      return ipcRenderer.send("omnibox:hide");
     }
   },
 
@@ -102,7 +102,7 @@ contextBridge.exposeInMainWorld("flow", {
       const appInfo: {
         version: string;
         packaged: boolean;
-      } = await ipcRenderer.invoke("get-app-info");
+      } = await ipcRenderer.invoke("app:get-info");
       const appVersion = appInfo.version;
       const updateChannel: "Stable" | "Beta" | "Alpha" | "Development" = appInfo.packaged ? "Stable" : "Development";
       const os = getOSFromPlatform(process.platform);
@@ -121,29 +121,29 @@ contextBridge.exposeInMainWorld("flow", {
     // Settings: Icons //
     getIcons: async () => {
       if (!canUseSettingsAPI) return;
-      return ipcRenderer.invoke("get-icons");
+      return ipcRenderer.invoke("icons:get-all");
     },
     isPlatformSupportedForIcon: async () => {
       if (!canUseSettingsAPI) return;
-      return ipcRenderer.invoke("icon:is-platform-supported");
+      return ipcRenderer.invoke("icons:is-platform-supported");
     },
     getCurrentIcon: async () => {
       if (!canUseSettingsAPI) return;
-      return ipcRenderer.invoke("get-current-icon-id");
+      return ipcRenderer.invoke("icons:get-current-icon-id");
     },
     setCurrentIcon: async (iconId: string) => {
       if (!canUseSettingsAPI) return;
-      return ipcRenderer.invoke("set-current-icon-id", iconId);
+      return ipcRenderer.invoke("icons:set-current-icon-id", iconId);
     },
 
     // Settings: New Tab Mode //
     getCurrentNewTabMode: async () => {
       if (!canUseSettingsAPI) return;
-      return ipcRenderer.invoke("get-current-new-tab-mode");
+      return ipcRenderer.invoke("new-tab-mode:get");
     },
     setCurrentNewTabMode: async (newTabMode: NewTabMode) => {
       if (!canUseSettingsAPI) return;
-      return ipcRenderer.invoke("set-current-new-tab-mode", newTabMode);
+      return ipcRenderer.invoke("new-tab-mode:set", newTabMode);
     },
 
     // Settings: Profiles //

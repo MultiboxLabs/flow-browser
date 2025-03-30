@@ -1,6 +1,4 @@
 import { app, BrowserWindow, ipcMain, nativeTheme, session } from "electron";
-import buildChromeContextMenu from "electron-chrome-context-menu";
-import { browser } from "@/index";
 import { registerWindow, WindowType } from "@/modules/windows";
 import { PATHS } from "@/modules/paths";
 

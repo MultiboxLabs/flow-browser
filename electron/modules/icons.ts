@@ -187,18 +187,18 @@ export async function setCurrentIconId(iconId: IconId) {
 }
 
 // IPC Handlers //
-ipcMain.handle("get-icons", () => {
+ipcMain.handle("icons:get-all", () => {
   return icons;
 });
 
-ipcMain.handle("icon:is-platform-supported", () => {
+ipcMain.handle("icons:is-platform-supported", () => {
   return supportedPlatforms.includes(process.platform);
 });
 
-ipcMain.handle("get-current-icon-id", () => {
+ipcMain.handle("icons:get-current-icon-id", () => {
   return getCurrentIconId();
 });
 
-ipcMain.handle("set-current-icon-id", (_, iconId: IconId) => {
+ipcMain.handle("icons:set-current-icon-id", (_, iconId: IconId) => {
   return setCurrentIconId(iconId);
 });

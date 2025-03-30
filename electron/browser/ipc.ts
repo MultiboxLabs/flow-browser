@@ -6,23 +6,22 @@ import { generateID } from "@/browser/utils";
 import { getSpacesFromProfile, SpaceData, updateSpace } from "@/sessions/spaces";
 import { createSpace, deleteSpace, getSpaces } from "@/sessions/spaces";
 
-// Window Button IPCs //
-ipcMain.on("set-window-button-position", (event, position: { x: number; y: number }) => {
+// IPC Handlers
+ipcMain.on("window-button:set-position", (event, position: { x: number; y: number }) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (win && "setWindowButtonPosition" in win) {
     win.setWindowButtonPosition(position);
   }
 });
 
-ipcMain.on("set-window-button-visibility", (event, visible: boolean) => {
+ipcMain.on("window-button:set-visibility", (event, visible: boolean) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (win && "setWindowButtonVisibility" in win) {
     win.setWindowButtonVisibility(visible);
   }
 });
 
-// Settings IPCs //
-ipcMain.handle("get-app-info", async () => {
+ipcMain.handle("app:get-info", async () => {
   return {
     version: app.getVersion(),
     packaged: app.isPackaged

@@ -278,7 +278,7 @@ export class Tabs extends EventEmitter {
 }
 
 // IPC Handlers //
-ipcMain.on("set-page-bounds", (event, bounds: { x: number; y: number; width: number; height: number }) => {
+ipcMain.on("page:set-bounds", (event, bounds: { x: number; y: number; width: number; height: number }) => {
   const webContents = event.sender;
   const window = BrowserWindow.fromWebContents(webContents);
 

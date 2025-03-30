@@ -42,10 +42,10 @@ export async function setCurrentNewTabMode(newTabMode: NewTabMode) {
   return false;
 }
 
-ipcMain.handle("get-current-new-tab-mode", () => {
+ipcMain.handle("new-tab-mode:get", () => {
   return getCurrentNewTabMode();
 });
 
-ipcMain.handle("set-current-new-tab-mode", (_, newTabMode: NewTabMode) => {
+ipcMain.handle("new-tab-mode:set", (_, newTabMode: NewTabMode) => {
   return setCurrentNewTabMode(newTabMode);
 });

@@ -6,7 +6,7 @@ import { getFocusedWindow, WindowData, WindowType } from "@/modules/windows";
 import { getCurrentNewTabMode } from "@/saving/settings";
 
 export function toggleSidebar(webContents: WebContents) {
-  webContents.send("toggle-sidebar");
+  webContents.send("sidebar:toggle");
 }
 
 export const setupMenu = (browser: Browser) => {
