@@ -155,10 +155,13 @@ export class Omnibox {
   }
 
   hide() {
+    const omniboxWasFocused = this.webContents.isFocused()
+
     debugPrint("OMNIBOX", "Hiding omnibox");
     this.clearKeepOnTopInterval();
     this.view.setVisible(false);
-    if (this.webContents.isFocused()) {
+
+    if (omniboxWasFocused) {
       // Focuses the parent window instead
       this.window.webContents.focus();
     }
