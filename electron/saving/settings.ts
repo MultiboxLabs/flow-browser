@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { DataStore } from "./datastore";
+import { getDatastore } from "./datastore";
 import { ipcMain } from "electron";
 
-export const SettingsDataStore = new DataStore("settings");
+export const SettingsDataStore = getDatastore("settings");
 
 // Settings: Current Icon //
 // Find in `@/modules/icons.ts`

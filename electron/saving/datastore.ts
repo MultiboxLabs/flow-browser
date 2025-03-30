@@ -22,7 +22,7 @@ class DataStoreError extends Error {
   }
 }
 
-export class DataStore {
+class DataStore {
   private directoryPath: string;
   private accessQueue: Queue;
 
@@ -123,6 +123,12 @@ export class DataStore {
     });
   }
 
+  getFullData() {
+    return this.getDataStoreNamespace((data) => {
+      return data;
+    });
+  }
+
   get<T>(key: string, defaultValue?: T): Promise<T | undefined> {
     if (!key || typeof key !== "string") {
       throw new DataStoreError("Invalid key provided to get method");
@@ -143,4 +149,21 @@ export class DataStore {
       return data;
     });
   }
+}
+
+// Only export the type of the class, not the class itself
+// This makes sure the classes are only created using the singleton
+export type { DataStore };
+
+// Singleton //
+const datastores = new Map<string, DataStore>();
+
+export function getDatastore(namespace: string, folder?: string): DataStore {
+  if (datastores.has(namespace)) {
+    return datastores.get(namespace) as DataStore;
+  }
+
+  const datastore = new DataStore(namespace, folder);
+  datastores.set(namespace, datastore);
+  return datastore;
 }
