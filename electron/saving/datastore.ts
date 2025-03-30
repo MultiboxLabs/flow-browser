@@ -139,6 +139,18 @@ class DataStore {
     });
   }
 
+  getKeys<K extends string>(keys: K[]): Promise<{ [key in K]: any }> {
+    return this.getDataStoreNamespace((data) => {
+      return keys.reduce(
+        (acc, key) => {
+          acc[key] = data[key];
+          return acc;
+        },
+        {} as { [key in K]: any }
+      );
+    });
+  }
+
   async set<T>(key: string, value: T): Promise<void> {
     if (!key || typeof key !== "string") {
       throw new DataStoreError("Invalid key provided to set method");
