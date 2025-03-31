@@ -10,6 +10,8 @@ type Data = {
   [key: string]: any;
 };
 
+export type DataStoreData = Data;
+
 type AccessResult = Data | null;
 
 class DataStoreError extends Error {
@@ -28,18 +30,18 @@ class DataStore {
 
   constructor(
     private readonly namespace: string,
-    private readonly folder?: string
+    private readonly containers?: string[]
   ) {
     if (!namespace || typeof namespace !== "string") {
       throw new DataStoreError("Invalid namespace provided to DataStore constructor");
     }
 
-    if (folder && typeof folder !== "string") {
-      throw new DataStoreError("Invalid folder provided to DataStore constructor");
+    if (containers && !Array.isArray(containers)) {
+      throw new DataStoreError("Invalid containers provided to DataStore constructor");
     }
 
-    if (this.folder) {
-      this.directoryPath = path.join(DATASTORE_DIR, this.folder);
+    if (this.containers) {
+      this.directoryPath = path.join(DATASTORE_DIR, ...this.containers);
     } else {
       this.directoryPath = DATASTORE_DIR;
     }
@@ -170,12 +172,16 @@ export type { DataStore };
 // Singleton //
 const datastores = new Map<string, DataStore>();
 
-export function getDatastore(namespace: string, folder?: string): DataStore {
+export function getDatastore(namespace: string, containers?: string[] | string): DataStore {
   if (datastores.has(namespace)) {
     return datastores.get(namespace) as DataStore;
   }
 
-  const datastore = new DataStore(namespace, folder);
+  if (typeof containers === "string") {
+    containers = [containers];
+  }
+
+  const datastore = new DataStore(namespace, containers);
   datastores.set(namespace, datastore);
   return datastore;
 }
