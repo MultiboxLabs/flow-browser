@@ -7,7 +7,8 @@ const DEBUG_AREAS = {
   EXTENSION_SERVER_WORKERS: false, // @/browser/main.ts
   WEB_CONTENTS_CREATED: false, // @/browser/main.ts
   OMNIBOX: false, // @/browser/omnibox.ts
-  DATASTORE: false // @/saving/datastore.ts
+  DATASTORE: false, // @/saving/datastore.ts
+  PROFILES: false // @/modules/profiles.ts
 } as const;
 
 export type DEBUG_AREA = keyof typeof DEBUG_AREAS;

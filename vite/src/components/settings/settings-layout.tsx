@@ -3,6 +3,7 @@ import { SettingsTopbar } from "@/components/settings/settings-topbar";
 import { GeneralSettings } from "@/components/settings/sections/general/section";
 import { IconSettings } from "@/components/settings/sections/icon/section";
 import { AboutSettings } from "@/components/settings/sections/about/section";
+import { ProfilesSettings } from "@/components/settings/sections/profiles/section";
 
 export function SettingsLayout() {
   const [activeSection, setActiveSection] = useState("general");
@@ -15,6 +16,8 @@ export function SettingsLayout() {
         return <IconSettings />;
       case "about":
         return <AboutSettings />;
+      case "profiles":
+        return <ProfilesSettings />;
       default:
         return <GeneralSettings />;
     }

@@ -142,6 +142,12 @@ contextBridge.exposeInMainWorld("flow", {
     setCurrentNewTabMode: async (newTabMode: NewTabMode) => {
       if (!canUseSettingsAPI) return;
       return ipcRenderer.invoke("set-current-new-tab-mode", newTabMode);
+    },
+
+    // Settings: Profiles //
+    getProfiles: async () => {
+      if (!canUseSettingsAPI) return;
+      return ipcRenderer.invoke("profiles:get-all");
     }
   }
 });

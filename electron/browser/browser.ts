@@ -14,6 +14,7 @@ import { generateBrowserWindowData, windowEvents, WindowEventType } from "@/modu
 import { setWebuiExtensionId } from "./utils";
 import { MinimalEvent } from "@/modules/types";
 import "@/browser/ipc";
+import { getProfilePath } from "@/modules/profiles";
 
 interface BrowserUrls {
   newtab: string;
@@ -271,7 +272,7 @@ export class Browser {
     // this.session = session.defaultSession;
 
     const profileName = "main";
-    const sessionPath = path.join(FLOW_DATA_DIR, "Profiles", profileName);
+    const sessionPath = getProfilePath(profileName);
     this.session = session.fromPath(sessionPath);
 
     registerProtocolsWithSession(this.session);
