@@ -157,6 +157,10 @@ contextBridge.exposeInMainWorld("flow", {
     updateProfile: async (profileId: string, profileData: Partial<ProfileData>) => {
       if (!canUseSettingsAPI) return;
       return ipcRenderer.invoke("profiles:update", profileId, profileData);
+    },
+    deleteProfile: async (profileId: string) => {
+      if (!canUseSettingsAPI) return;
+      return ipcRenderer.invoke("profiles:delete", profileId);
     }
   }
 });

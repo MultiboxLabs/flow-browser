@@ -127,6 +127,7 @@ interface FlowSettingsAPI {
   getProfiles: () => Promise<Profile[]>;
   createProfile: (profileName: string) => Promise<boolean>;
   updateProfile: (profileId: string, profileData: Partial<Profile>) => Promise<boolean>;
+  deleteProfile: (profileId: string) => Promise<boolean>;
 }
 
 declare global {
@@ -226,4 +227,8 @@ export function createProfile(profileName: string) {
 
 export function updateProfile(profileId: string, profileData: Partial<Profile>) {
   return flow.settings.updateProfile(profileId, profileData);
+}
+
+export function deleteProfile(profileId: string) {
+  return flow.settings.deleteProfile(profileId);
 }

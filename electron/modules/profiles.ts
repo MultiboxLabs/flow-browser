@@ -66,8 +66,13 @@ export async function updateProfile(profileId: string, profileData: Partial<Prof
 
 export async function deleteProfile(profileId: string) {
   try {
+    // Delete Chromium Profile
     const profilePath = getProfilePath(profileId);
     fs.rmSync(profilePath, { recursive: true, force: true });
+
+    // Delete Profile Data
+    const profileStore = getProfileDataStore(profileId);
+    await profileStore.wipe();
 
     return true;
   } catch (error) {
