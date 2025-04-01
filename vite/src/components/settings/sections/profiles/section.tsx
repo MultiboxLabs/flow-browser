@@ -4,19 +4,11 @@ import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 import { getProfiles } from "@/lib/flow";
 import type { Profile } from "@/lib/flow";
-import { getLucideIcon } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
-import { CircleHelpIcon, Trash2, ArrowLeft, Settings, Palette, Globe, Save } from "lucide-react";
+import { Trash2, ArrowLeft, Settings, Globe, Save } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 function ProfileCard({ profile, activateEdit }: { profile: Profile; activateEdit: () => void }) {
-  const [Icon, setIcon] = useState<LucideIcon>(CircleHelpIcon);
-
-  useEffect(() => {
-    getLucideIcon(profile.iconId).then(setIcon);
-  }, [profile.iconId]);
-
   return (
     <motion.div
       key={profile.id}
@@ -25,16 +17,6 @@ function ProfileCard({ profile, activateEdit }: { profile: Profile; activateEdit
       className="flex items-center border rounded-lg p-4 cursor-pointer hover:border-primary/50"
       onClick={() => activateEdit()}
     >
-      <div
-        className="h-12 w-12 rounded-lg mr-4 flex-shrink-0"
-        style={{
-          background: `linear-gradient(135deg, ${profile.bgGradient[0]}, ${profile.bgGradient[1]})`
-        }}
-      >
-        <div className="h-full w-full flex items-center justify-center text-white font-semibold">
-          <Icon className="h-6 w-6" />
-        </div>
-      </div>
       <div className="flex-1 min-w-0">
         <h3 className="font-medium text-base truncate">{profile.name}</h3>
       </div>
@@ -50,12 +32,7 @@ interface ProfileEditorProps {
 
 function ProfileEditor({ profile, onClose, onDelete }: ProfileEditorProps) {
   const [editedProfile, setEditedProfile] = useState<Profile>({ ...profile });
-  const [Icon, setIcon] = useState<LucideIcon>(CircleHelpIcon);
   const [activeTab, setActiveTab] = useState("basic");
-
-  useEffect(() => {
-    getLucideIcon(editedProfile.iconId).then(setIcon);
-  }, [editedProfile.iconId]);
 
   const handleSave = async () => {
     // For now, we're just mocking the save functionality
@@ -67,22 +44,6 @@ function ProfileEditor({ profile, onClose, onDelete }: ProfileEditorProps) {
     setEditedProfile({
       ...editedProfile,
       name: e.target.value
-    });
-  };
-
-  const handleColorChange = (index: number, color: string) => {
-    const newGradient = [...editedProfile.bgGradient];
-    newGradient[index] = color;
-    setEditedProfile({
-      ...editedProfile,
-      bgGradient: newGradient
-    });
-  };
-
-  const handleIconChange = async (iconId: string) => {
-    setEditedProfile({
-      ...editedProfile,
-      iconId
     });
   };
 
@@ -123,14 +84,6 @@ function ProfileEditor({ profile, onClose, onDelete }: ProfileEditorProps) {
               Basic Settings
             </Button>
             <Button
-              variant={activeTab === "appearance" ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => setActiveTab("appearance")}
-            >
-              <Palette className="mr-2 h-5 w-5" />
-              Appearance
-            </Button>
-            <Button
               variant={activeTab === "search" ? "secondary" : "ghost"}
               className="w-full justify-start"
               onClick={() => setActiveTab("search")}
@@ -164,103 +117,6 @@ function ProfileEditor({ profile, onClose, onDelete }: ProfileEditorProps) {
                   <div className="space-y-2">
                     <Label>Profile ID</Label>
                     <div className="p-2 bg-muted rounded-md text-sm">{editedProfile.id}</div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {activeTab === "appearance" && (
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-xl">Appearance</CardTitle>
-                  <CardDescription>Customize how your profile looks</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <Label>Profile Icon</Label>
-                    <div className="flex items-center space-x-4">
-                      <div
-                        className="h-16 w-16 rounded-lg flex-shrink-0"
-                        style={{
-                          background: `linear-gradient(135deg, ${editedProfile.bgGradient[0]}, ${editedProfile.bgGradient[1]})`
-                        }}
-                      >
-                        <div className="h-full w-full flex items-center justify-center text-white">
-                          <Icon className="h-8 w-8" />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm">Current Icon: {editedProfile.iconId}</p>
-                        <div className="flex flex-wrap gap-2">
-                          {["orbit", "globe", "home", "star", "search"].map((iconId) => (
-                            <Button
-                              key={iconId}
-                              variant="outline"
-                              size="sm"
-                              className={editedProfile.iconId === iconId ? "border-primary" : ""}
-                              onClick={() => handleIconChange(iconId)}
-                            >
-                              {iconId}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <Label>Gradient Colors</Label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <Label htmlFor="start-color">Start Color</Label>
-                          <div className="text-sm text-muted-foreground">{editedProfile.bgGradient[0]}</div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="h-8 w-8 rounded border"
-                            style={{ backgroundColor: editedProfile.bgGradient[0] }}
-                          />
-                          <Input
-                            id="start-color"
-                            type="color"
-                            value={editedProfile.bgGradient[0]}
-                            onChange={(e) => handleColorChange(0, e.target.value)}
-                            className="w-full h-10"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <Label htmlFor="end-color">End Color</Label>
-                          <div className="text-sm text-muted-foreground">{editedProfile.bgGradient[1]}</div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="h-8 w-8 rounded border"
-                            style={{ backgroundColor: editedProfile.bgGradient[1] }}
-                          />
-                          <Input
-                            id="end-color"
-                            type="color"
-                            value={editedProfile.bgGradient[1]}
-                            onChange={(e) => handleColorChange(1, e.target.value)}
-                            className="w-full h-10"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      className="p-4 rounded-lg mt-4"
-                      style={{
-                        background: `linear-gradient(135deg, ${editedProfile.bgGradient[0]}, ${editedProfile.bgGradient[1]})`
-                      }}
-                    >
-                      <div className="text-white text-center font-medium">Preview</div>
-                    </div>
                   </div>
                 </CardContent>
               </Card>

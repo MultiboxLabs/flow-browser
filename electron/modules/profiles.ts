@@ -13,17 +13,13 @@ function getProfileDataStore(profileId: string) {
 }
 
 const ProfileDataSchema = z.object({
-  name: z.string(),
-  iconId: z.string(),
-  bgGradient: z.array(z.string())
+  name: z.string()
 });
 type ProfileData = z.infer<typeof ProfileDataSchema>;
 
 function reconcileProfileData(profileId: string, data: DataStoreData): ProfileData {
   return {
-    name: data.name ?? profileId,
-    iconId: data.iconId ?? "orbit",
-    bgGradient: data.bgGradient ?? ["#000000", "#000000"]
+    name: data.name ?? profileId
   };
 }
 

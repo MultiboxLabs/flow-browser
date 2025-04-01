@@ -29,8 +29,6 @@ export type IconData = {
 export type Profile = {
   id: string;
   name: string;
-  iconId: string;
-  bgGradient: string[];
 };
 
 type QueryParams = { [key: string]: string };
