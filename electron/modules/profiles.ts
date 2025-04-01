@@ -1,6 +1,6 @@
 import { FLOW_DATA_DIR } from "./paths";
 import path from "path";
-import fs from "fs";
+import fs from "fs/promises";
 import { DataStoreData, getDatastore } from "@/saving/datastore";
 import z from "zod";
 import { debugError } from "@/modules/output";
@@ -37,7 +37,7 @@ export function getProfilePath(profileId: string): string {
 export async function createProfile(profileId: string, profileName: string) {
   try {
     const profilePath = getProfilePath(profileId);
-    fs.mkdirSync(profilePath, { recursive: true });
+    await fs.mkdir(profilePath, { recursive: true });
 
     const profileStore = getProfileDataStore(profileId);
     await profileStore.set("name", profileName);
@@ -68,7 +68,7 @@ export async function deleteProfile(profileId: string) {
   try {
     // Delete Chromium Profile
     const profilePath = getProfilePath(profileId);
-    fs.rmSync(profilePath, { recursive: true, force: true });
+    await fs.rm(profilePath, { recursive: true, force: true });
 
     // Delete Profile Data
     const profileStore = getProfileDataStore(profileId);
@@ -84,27 +84,40 @@ export async function deleteProfile(profileId: string) {
 export async function getProfiles() {
   try {
     // Check if directory exists first
-    if (!fs.existsSync(PROFILES_DIR)) {
-      fs.mkdirSync(PROFILES_DIR, { recursive: true });
+    const dirExists = await fs
+      .stat(PROFILES_DIR)
+      .then((stats) => {
+        return stats.isDirectory();
+      })
+      .catch(() => false);
+
+    if (!dirExists) {
+      await fs.mkdir(PROFILES_DIR, { recursive: true });
       return [];
     }
 
-    const promises = fs.readdirSync(PROFILES_DIR).map(async (profileId) => {
-      const profileDir = path.join(PROFILES_DIR, profileId);
-      if (!fs.statSync(profileDir).isDirectory()) {
-        return null;
-      }
+    const profileDatas = await fs.readdir(PROFILES_DIR).then((profileIds) => {
+      const promises = profileIds.map(async (profileId) => {
+        const profileDir = path.join(PROFILES_DIR, profileId);
 
-      const profileStore = getProfileDataStore(profileId);
-      const profileData = await profileStore.getFullData().then((data) => reconcileProfileData(profileId, data));
+        const stats = await fs.stat(profileDir);
+        if (!stats.isDirectory()) {
+          return null;
+        }
 
-      return {
-        id: profileId,
-        ...profileData
-      };
+        const profileStore = getProfileDataStore(profileId);
+        const profileData = await profileStore.getFullData().then((data) => reconcileProfileData(profileId, data));
+
+        return {
+          id: profileId,
+          ...profileData
+        };
+      });
+
+      return Promise.all(promises);
     });
 
-    const profiles = (await Promise.all(promises)).filter((profile) => profile !== null);
+    const profiles = profileDatas.filter((profile) => profile !== null);
     return profiles;
   } catch (error) {
     console.error("Error reading profiles directory:", error);
