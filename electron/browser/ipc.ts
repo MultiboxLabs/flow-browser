@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import "@/modules/icons";
 import "@/modules/profiles";
-import { getProfiles } from "@/modules/profiles";
+import { createProfile, getProfiles, ProfileData, updateProfile } from "@/modules/profiles";
+import { generateID } from "@/browser/utils";
 
 // Window Button IPCs //
 ipcMain.on("set-window-button-position", (event, position: { x: number; y: number }) => {
@@ -29,4 +30,14 @@ ipcMain.handle("get-app-info", async () => {
 // Profiles IPCs //
 ipcMain.handle("profiles:get-all", async () => {
   return await getProfiles();
+});
+
+ipcMain.handle("profiles:create", async (event, profileName: string) => {
+  const profileId = generateID();
+  return await createProfile(profileId, profileName);
+});
+
+ipcMain.handle("profiles:update", async (event, profileId: string, profileData: Partial<ProfileData>) => {
+  console.log("Updating profile:", profileId, profileData);
+  return await updateProfile(profileId, profileData);
 });

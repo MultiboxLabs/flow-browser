@@ -125,6 +125,8 @@ interface FlowSettingsAPI {
   getCurrentNewTabMode: () => Promise<NewTabMode>;
   setCurrentNewTabMode: (newTabMode: NewTabMode) => Promise<boolean>;
   getProfiles: () => Promise<Profile[]>;
+  createProfile: (profileName: string) => Promise<boolean>;
+  updateProfile: (profileId: string, profileData: Partial<Profile>) => Promise<boolean>;
 }
 
 declare global {
@@ -216,4 +218,12 @@ export function setCurrentNewTabMode(newTabMode: NewTabMode) {
 
 export function getProfiles() {
   return flow.settings.getProfiles();
+}
+
+export function createProfile(profileName: string) {
+  return flow.settings.createProfile(profileName);
+}
+
+export function updateProfile(profileId: string, profileData: Partial<Profile>) {
+  return flow.settings.updateProfile(profileId, profileData);
 }

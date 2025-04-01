@@ -1,3 +1,5 @@
+import { randomUUID } from "crypto";
+
 // Shared utility variables
 let _webuiExtensionId: string | undefined;
 
@@ -16,4 +18,9 @@ export function assertNotNull<T>(value: T | null | undefined, message: string = 
 
 export function isDefined<T>(value: T | null | undefined): value is T {
   return value !== null && value !== undefined;
+}
+
+// UUID Utilities
+export function generateID(): string {
+  return randomUUID().split("-")[0];
 }

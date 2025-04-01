@@ -173,8 +173,10 @@ export type { DataStore };
 const datastores = new Map<string, DataStore>();
 
 export function getDatastore(namespace: string, containers?: string[] | string): DataStore {
-  if (datastores.has(namespace)) {
-    return datastores.get(namespace) as DataStore;
+  const key = [...(containers || []), namespace].join("/");
+
+  if (datastores.has(key)) {
+    return datastores.get(key) as DataStore;
   }
 
   if (typeof containers === "string") {
@@ -182,6 +184,6 @@ export function getDatastore(namespace: string, containers?: string[] | string):
   }
 
   const datastore = new DataStore(namespace, containers);
-  datastores.set(namespace, datastore);
+  datastores.set(key, datastore);
   return datastore;
 }

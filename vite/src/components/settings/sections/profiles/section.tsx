@@ -2,11 +2,19 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
-import { getProfiles } from "@/lib/flow";
+import { createProfile, getProfiles, updateProfile } from "@/lib/flow";
 import type { Profile } from "@/lib/flow";
-import { Trash2, ArrowLeft, Settings, Globe, Save } from "lucide-react";
+import { Trash2, ArrowLeft, Settings, Globe, Save, Loader2, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 
 function ProfileCard({ profile, activateEdit }: { profile: Profile; activateEdit: () => void }) {
   return (
@@ -19,6 +27,7 @@ function ProfileCard({ profile, activateEdit }: { profile: Profile; activateEdit
     >
       <div className="flex-1 min-w-0">
         <h3 className="font-medium text-base truncate">{profile.name}</h3>
+        <p className="text-xs text-muted-foreground truncate">ID: {profile.id}</p>
       </div>
     </motion.div>
   );
@@ -28,16 +37,34 @@ interface ProfileEditorProps {
   profile: Profile;
   onClose: () => void;
   onDelete: () => void;
+  onProfilesUpdate: () => void;
 }
 
-function ProfileEditor({ profile, onClose, onDelete }: ProfileEditorProps) {
+function ProfileEditor({ profile, onClose, onDelete, onProfilesUpdate }: ProfileEditorProps) {
   const [editedProfile, setEditedProfile] = useState<Profile>({ ...profile });
   const [activeTab, setActiveTab] = useState("basic");
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
-    // For now, we're just mocking the save functionality
-    console.log("Saving profile:", editedProfile);
-    onClose();
+    setIsSaving(true);
+    try {
+      // Only send the fields that have changed
+      const updatedFields: Partial<Profile> = {};
+      if (editedProfile.name !== profile.name) {
+        updatedFields.name = editedProfile.name;
+      }
+
+      if (Object.keys(updatedFields).length > 0) {
+        console.log("Updating profile:", profile.id, updatedFields);
+        await updateProfile(profile.id, updatedFields);
+        onProfilesUpdate(); // Refetch profiles after successful update
+      }
+      onClose();
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,9 +90,18 @@ function ProfileEditor({ profile, onClose, onDelete }: ProfileEditorProps) {
             <Trash2 className="h-4 w-4" />
             Delete
           </Button>
-          <Button variant="default" size="sm" onClick={handleSave} className="gap-1">
-            <Save className="h-4 w-4" />
-            Save
+          <Button variant="default" size="sm" onClick={handleSave} className="gap-1" disabled={isSaving}>
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Save
+              </>
+            )}
           </Button>
         </div>
       </div>
@@ -150,25 +186,49 @@ export function ProfilesSettings() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newProfileName, setNewProfileName] = useState("");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  const fetchProfiles = async () => {
+    setIsLoading(true);
+    try {
+      const fetchedProfiles = await getProfiles();
+      setProfiles(fetchedProfiles);
+    } catch (error) {
+      console.error("Failed to fetch profiles:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProfiles = async () => {
-      setIsLoading(true);
-      try {
-        const fetchedProfiles = await getProfiles();
-        setProfiles(fetchedProfiles);
-      } catch (error) {
-        console.error("Failed to fetch profiles:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchProfiles();
   }, []);
 
   const handleDeleteProfile = (deletedProfile: Profile) => {
     setProfiles(profiles.filter((profile) => profile.id !== deletedProfile.id));
+  };
+
+  const handleCreateProfile = async () => {
+    if (!newProfileName.trim()) return;
+
+    setIsCreating(true);
+    try {
+      const result = await createProfile(newProfileName);
+      console.log("Profile creation result:", result);
+
+      // Clear the form and close the dialog
+      setNewProfileName("");
+      setCreateDialogOpen(false);
+
+      // Refetch profiles to get the latest data
+      await fetchProfiles();
+    } catch (error) {
+      console.error("Failed to create profile:", error);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   if (activeProfile) {
@@ -180,6 +240,7 @@ export function ProfilesSettings() {
               profile={activeProfile}
               onClose={() => setActiveProfile(null)}
               onDelete={() => handleDeleteProfile(activeProfile)}
+              onProfilesUpdate={fetchProfiles}
             />
           </CardContent>
         </Card>
@@ -190,9 +251,15 @@ export function ProfilesSettings() {
   return (
     <div className="h-full flex flex-col">
       <Card className="flex-1">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Browser Profiles</CardTitle>
-          <CardDescription className="text-sm">Manage your browser profiles and their settings</CardDescription>
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-lg">Browser Profiles</CardTitle>
+            <CardDescription className="text-sm">Manage your browser profiles and their settings</CardDescription>
+          </div>
+          <Button onClick={() => setCreateDialogOpen(true)} size="sm" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Create Profile
+          </Button>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -201,13 +268,63 @@ export function ProfilesSettings() {
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-              {profiles.map((profile) => (
-                <ProfileCard key={profile.id} profile={profile} activateEdit={() => setActiveProfile(profile)} />
-              ))}
+              {profiles.length === 0 ? (
+                <div className="text-center p-6 text-muted-foreground">
+                  No profiles found. Create your first profile to get started.
+                </div>
+              ) : (
+                profiles.map((profile) => (
+                  <ProfileCard key={profile.id} profile={profile} activateEdit={() => setActiveProfile(profile)} />
+                ))
+              )}
             </div>
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Create New Profile</DialogTitle>
+            <DialogDescription>Enter a name for your new browser profile.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="profile-name" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="profile-name"
+                placeholder="Enter profile name"
+                value={newProfileName}
+                onChange={(e) => setNewProfileName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !isCreating && newProfileName.trim()) {
+                    handleCreateProfile();
+                  }
+                }}
+                className="col-span-3"
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)} disabled={isCreating}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateProfile} disabled={isCreating || !newProfileName.trim()} className="gap-2">
+              {isCreating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

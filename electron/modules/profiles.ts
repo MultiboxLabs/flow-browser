@@ -15,11 +15,16 @@ function getProfileDataStore(profileId: string) {
 const ProfileDataSchema = z.object({
   name: z.string()
 });
-type ProfileData = z.infer<typeof ProfileDataSchema>;
+export type ProfileData = z.infer<typeof ProfileDataSchema>;
 
 function reconcileProfileData(profileId: string, data: DataStoreData): ProfileData {
+  let defaultName = profileId;
+  if (profileId === "main") {
+    defaultName = "Main";
+  }
+
   return {
-    name: data.name ?? profileId
+    name: data.name ?? defaultName
   };
 }
 
@@ -40,6 +45,21 @@ export async function createProfile(profileId: string, profileName: string) {
     return true;
   } catch (error) {
     debugError("PROFILES", `Error creating profile ${profileId}:`, error);
+    return false;
+  }
+}
+
+export async function updateProfile(profileId: string, profileData: Partial<ProfileData>) {
+  try {
+    const profileStore = getProfileDataStore(profileId);
+
+    if (profileData.name) {
+      await profileStore.set("name", profileData.name);
+    }
+
+    return true;
+  } catch (error) {
+    debugError("PROFILES", `Error updating profile ${profileId}:`, error);
     return false;
   }
 }
@@ -79,7 +99,8 @@ export async function getProfiles() {
       };
     });
 
-    return (await Promise.all(promises)).filter((profile) => profile !== null);
+    const profiles = (await Promise.all(promises)).filter((profile) => profile !== null);
+    return profiles;
   } catch (error) {
     console.error("Error reading profiles directory:", error);
     return [];
