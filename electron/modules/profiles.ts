@@ -34,7 +34,36 @@ export function getProfilePath(profileId: string): string {
 }
 
 // CRUD Operations
+export async function getProfile(profileId: string) {
+  const profileDir = path.join(PROFILES_DIR, profileId);
+
+  const stats = await fs.stat(profileDir).catch(() => null);
+  if (!stats) return null;
+  if (!stats.isDirectory()) return null;
+
+  const profileStore = getProfileDataStore(profileId);
+  const profileData = await profileStore.getFullData().then((data) => reconcileProfileData(profileId, data));
+
+  return {
+    id: profileId,
+    ...profileData
+  };
+}
+
 export async function createProfile(profileId: string, profileName: string) {
+  // Validate profileId to prevent directory traversal attacks or invalid characters
+  if (!/^[a-zA-Z0-9_-]+$/.test(profileId)) {
+    debugError("PROFILES", `Invalid profile ID: ${profileId}`);
+    return false;
+  }
+
+  // Check if profile already exists
+  const existingProfile = await getProfile(profileId);
+  if (existingProfile) {
+    debugError("PROFILES", `Profile ${profileId} already exists`);
+    return false;
+  }
+
   try {
     const profilePath = getProfilePath(profileId);
     await fs.mkdir(profilePath, { recursive: true });
@@ -97,23 +126,7 @@ export async function getProfiles() {
     }
 
     const profileDatas = await fs.readdir(PROFILES_DIR).then((profileIds) => {
-      const promises = profileIds.map(async (profileId) => {
-        const profileDir = path.join(PROFILES_DIR, profileId);
-
-        const stats = await fs.stat(profileDir);
-        if (!stats.isDirectory()) {
-          return null;
-        }
-
-        const profileStore = getProfileDataStore(profileId);
-        const profileData = await profileStore.getFullData().then((data) => reconcileProfileData(profileId, data));
-
-        return {
-          id: profileId,
-          ...profileData
-        };
-      });
-
+      const promises = profileIds.map((profileId) => getProfile(profileId));
       return Promise.all(promises);
     });
 
