@@ -151,6 +151,21 @@ function ProfileEditor({ profile, onClose, onDelete, onProfilesUpdate }: Profile
   const [isSaving, setIsSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLastProfile, setIsLastProfile] = useState(false);
+
+  // Check if this is the last remaining profile
+  useEffect(() => {
+    const checkProfileCount = async () => {
+      try {
+        const allProfiles = await getProfiles();
+        setIsLastProfile(allProfiles.length <= 1);
+      } catch (error) {
+        console.error("Failed to check profile count:", error);
+      }
+    };
+
+    checkProfileCount();
+  }, []);
 
   // Handle profile update
   const handleSave = async () => {
@@ -209,7 +224,14 @@ function ProfileEditor({ profile, onClose, onDelete, onProfilesUpdate }: Profile
           <p className="text-sm text-muted-foreground">Customize your browsing profile</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="destructive" size="sm" onClick={() => setDeleteDialogOpen(true)} className="gap-1">
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setDeleteDialogOpen(true)}
+            className="gap-1"
+            disabled={isLastProfile}
+            title={isLastProfile ? "Cannot delete the last remaining profile" : "Delete profile"}
+          >
             <Trash2 className="h-4 w-4" />
             Delete
           </Button>
@@ -271,7 +293,7 @@ function ProfileEditor({ profile, onClose, onDelete, onProfilesUpdate }: Profile
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog
-        isOpen={deleteDialogOpen}
+        isOpen={deleteDialogOpen && !isLastProfile}
         onClose={setDeleteDialogOpen}
         profileName={profile.name}
         isDeleting={isDeleting}
