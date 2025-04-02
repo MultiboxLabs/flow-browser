@@ -4,6 +4,7 @@ import { GeneralSettings } from "@/components/settings/sections/general/section"
 import { IconSettings } from "@/components/settings/sections/icon/section";
 import { AboutSettings } from "@/components/settings/sections/about/section";
 import { ProfilesSettings } from "@/components/settings/sections/profiles/section";
+import { SpacesSettings } from "@/components/settings/sections/spaces/section";
 
 export function SettingsLayout() {
   const [activeSection, setActiveSection] = useState("general");
@@ -18,6 +19,8 @@ export function SettingsLayout() {
         return <AboutSettings />;
       case "profiles":
         return <ProfilesSettings />;
+      case "spaces":
+        return <SpacesSettings />;
       default:
         return <GeneralSettings />;
     }

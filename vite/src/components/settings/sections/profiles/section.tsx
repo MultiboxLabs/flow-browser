@@ -2,9 +2,17 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
-import { createProfile, deleteProfile, getProfiles, updateProfile } from "@/lib/flow";
-import type { Profile } from "@/lib/flow";
-import { Trash2, ArrowLeft, Settings, Globe, Save, Loader2, Plus } from "lucide-react";
+import {
+  createProfile,
+  deleteProfile,
+  getProfiles,
+  updateProfile,
+  getSpacesFromProfile,
+  createSpace,
+  deleteSpace
+} from "@/lib/flow";
+import type { Profile, Space } from "@/lib/flow";
+import { Trash2, ArrowLeft, Settings, Globe, Save, Loader2, Plus, Box } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -104,6 +112,186 @@ function SearchSettingsTab() {
   );
 }
 
+// Spaces Tab Component
+interface SpacesTabProps {
+  profile: Profile;
+  spaces: Space[];
+  onRefreshSpaces: () => void;
+}
+
+function SpacesTab({ profile, spaces, onRefreshSpaces }: SpacesTabProps) {
+  const [isCreating, setIsCreating] = useState(false);
+  const [newSpaceName, setNewSpaceName] = useState("");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [spaceToDelete, setSpaceToDelete] = useState<Space | null>(null);
+
+  // Handle space creation
+  const handleCreateSpace = async () => {
+    if (!newSpaceName.trim()) return;
+
+    setIsCreating(true);
+    try {
+      await createSpace(profile.id, newSpaceName);
+      setNewSpaceName("");
+      setCreateDialogOpen(false);
+      onRefreshSpaces();
+    } catch (error) {
+      console.error("Failed to create space:", error);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  // Handle space deletion
+  const handleDeleteSpace = async (space: Space) => {
+    setSpaceToDelete(space);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteSpace = async () => {
+    if (!spaceToDelete) return;
+
+    setIsDeleting(spaceToDelete.id);
+    try {
+      await deleteSpace(profile.id, spaceToDelete.id);
+      onRefreshSpaces();
+    } catch (error) {
+      console.error("Failed to delete space:", error);
+    } finally {
+      setIsDeleting(null);
+      setDeleteDialogOpen(false);
+      setSpaceToDelete(null);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div>
+          <CardTitle className="text-xl">Spaces</CardTitle>
+          <CardDescription>Manage spaces in this profile</CardDescription>
+        </div>
+        <Button onClick={() => setCreateDialogOpen(true)} size="sm" className="gap-1">
+          <Plus className="h-4 w-4" /> New Space
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {spaces.length === 0 ? (
+          <div className="text-center p-6 text-muted-foreground">
+            No spaces found. Create your first space to get started.
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {spaces.map((space) => (
+              <div key={space.id} className="flex items-center justify-between border rounded p-3">
+                <div className="flex items-center space-x-3">
+                  <Box className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">{space.name}</p>
+                    <p className="text-xs text-muted-foreground">ID: {space.id}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleDeleteSpace(space)}
+                  disabled={spaces.length <= 1}
+                  title={spaces.length <= 1 ? "Cannot delete the only space" : "Delete space"}
+                >
+                  {isDeleting === space.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Create Space Dialog */}
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Create New Space</DialogTitle>
+              <DialogDescription>Enter a name for the new space in profile "{profile.name}".</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="space-name" className="text-right">
+                  Name
+                </Label>
+                <Input
+                  id="space-name"
+                  placeholder="Enter space name"
+                  value={newSpaceName}
+                  onChange={(e) => setNewSpaceName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !isCreating && newSpaceName.trim()) {
+                      handleCreateSpace();
+                    }
+                  }}
+                  className="col-span-3"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCreateDialogOpen(false)} disabled={isCreating}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateSpace} disabled={isCreating || !newSpaceName.trim()} className="gap-2">
+                {isCreating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Space Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Delete Space</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete the space "{spaceToDelete?.name}"? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting !== null}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmDeleteSpace}
+                disabled={isDeleting !== null}
+                className="gap-2"
+              >
+                {isDeleting !== null ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
+
 // Delete Confirmation Dialog Component
 interface DeleteConfirmDialogProps {
   isOpen: boolean;
@@ -152,6 +340,8 @@ function ProfileEditor({ profile, onClose, onDelete, onProfilesUpdate }: Profile
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLastProfile, setIsLastProfile] = useState(false);
+  const [spaces, setSpaces] = useState<Space[]>([]);
+  const [loadingSpaces, setLoadingSpaces] = useState(true);
 
   // Check if this is the last remaining profile
   useEffect(() => {
@@ -166,6 +356,35 @@ function ProfileEditor({ profile, onClose, onDelete, onProfilesUpdate }: Profile
 
     checkProfileCount();
   }, []);
+
+  // Load spaces for this profile
+  useEffect(() => {
+    const fetchSpaces = async () => {
+      setLoadingSpaces(true);
+      try {
+        const profileSpaces = await getSpacesFromProfile(profile.id);
+        setSpaces(profileSpaces);
+      } catch (error) {
+        console.error("Failed to fetch spaces:", error);
+      } finally {
+        setLoadingSpaces(false);
+      }
+    };
+
+    fetchSpaces();
+  }, [profile.id]);
+
+  const refreshSpaces = async () => {
+    setLoadingSpaces(true);
+    try {
+      const profileSpaces = await getSpacesFromProfile(profile.id);
+      setSpaces(profileSpaces);
+    } catch (error) {
+      console.error("Failed to refresh spaces:", error);
+    } finally {
+      setLoadingSpaces(false);
+    }
+  };
 
   // Handle profile update
   const handleSave = async () => {
@@ -265,6 +484,14 @@ function ProfileEditor({ profile, onClose, onDelete, onProfilesUpdate }: Profile
               Basic Settings
             </Button>
             <Button
+              variant={activeTab === "spaces" ? "secondary" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => setActiveTab("spaces")}
+            >
+              <Box className="mr-2 h-5 w-5" />
+              Spaces
+            </Button>
+            <Button
               variant={activeTab === "search" ? "secondary" : "ghost"}
               className="w-full justify-start"
               onClick={() => setActiveTab("search")}
@@ -280,6 +507,18 @@ function ProfileEditor({ profile, onClose, onDelete, onProfilesUpdate }: Profile
           {activeTab === "basic" && (
             <div className="space-y-6">
               <BasicSettingsTab profile={profile} editedProfile={editedProfile} handleNameChange={handleNameChange} />
+            </div>
+          )}
+
+          {activeTab === "spaces" && (
+            <div className="space-y-6">
+              {loadingSpaces ? (
+                <div className="flex items-center justify-center h-40">
+                  <div className="animate-pulse text-muted-foreground">Loading spaces...</div>
+                </div>
+              ) : (
+                <SpacesTab profile={profile} spaces={spaces} onRefreshSpaces={refreshSpaces} />
+              )}
             </div>
           )}
 

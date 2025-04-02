@@ -31,6 +31,15 @@ export type Profile = {
   name: string;
 };
 
+export type Space = {
+  id: string;
+  name: string;
+  profileId: string;
+  bgStartColor: string;
+  bgEndColor: string;
+  icon: string;
+};
+
 type QueryParams = { [key: string]: string };
 
 export type NewTabMode = "omnibox" | "tab";
@@ -128,6 +137,11 @@ interface FlowSettingsAPI {
   createProfile: (profileName: string) => Promise<boolean>;
   updateProfile: (profileId: string, profileData: Partial<Profile>) => Promise<boolean>;
   deleteProfile: (profileId: string) => Promise<boolean>;
+  getSpaces: () => Promise<Space[]>;
+  getSpacesFromProfile: (profileId: string) => Promise<Space[]>;
+  createSpace: (profileId: string, spaceName: string) => Promise<boolean>;
+  deleteSpace: (profileId: string, spaceId: string) => Promise<boolean>;
+  updateSpace: (profileId: string, spaceId: string, spaceData: Partial<Space>) => Promise<boolean>;
 }
 
 declare global {
@@ -231,4 +245,24 @@ export function updateProfile(profileId: string, profileData: Partial<Profile>) 
 
 export function deleteProfile(profileId: string) {
   return flow.settings.deleteProfile(profileId);
+}
+
+export function getSpaces() {
+  return flow.settings.getSpaces();
+}
+
+export function getSpacesFromProfile(profileId: string) {
+  return flow.settings.getSpacesFromProfile(profileId);
+}
+
+export function createSpace(profileId: string, spaceName: string) {
+  return flow.settings.createSpace(profileId, spaceName);
+}
+
+export function deleteSpace(profileId: string, spaceId: string) {
+  return flow.settings.deleteSpace(profileId, spaceId);
+}
+
+export function updateSpace(profileId: string, spaceId: string, spaceData: Partial<Space>) {
+  return flow.settings.updateSpace(profileId, spaceId, spaceData);
 }

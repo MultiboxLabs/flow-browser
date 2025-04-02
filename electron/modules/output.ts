@@ -8,7 +8,8 @@ const DEBUG_AREAS = {
   WEB_CONTENTS_CREATED: false, // @/browser/main.ts
   OMNIBOX: false, // @/browser/omnibox.ts
   DATASTORE: false, // @/saving/datastore.ts
-  PROFILES: false // @/modules/profiles.ts
+  PROFILES: false, // @/modules/profiles.ts
+  SPACES: false // @/sessions/spaces.ts
 } as const;
 
 export type DEBUG_AREA = keyof typeof DEBUG_AREAS;

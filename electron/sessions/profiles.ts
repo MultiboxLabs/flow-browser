@@ -4,6 +4,7 @@ import fs from "fs/promises";
 import { DataStoreData, getDatastore } from "@/saving/datastore";
 import z from "zod";
 import { debugError } from "@/modules/output";
+import { getSpacesFromProfile, deleteSpace, createSpace } from "./spaces";
 
 const PROFILES_DIR = path.join(FLOW_DATA_DIR, "Profiles");
 
@@ -71,6 +72,12 @@ export async function createProfile(profileId: string, profileName: string) {
     const profileStore = getProfileDataStore(profileId);
     await profileStore.set("name", profileName);
 
+    await createSpace(profileId, "default", profileName).then((success) => {
+      if (!success) {
+        debugError("PROFILES", `Error creating default space for profile ${profileId}`);
+      }
+    });
+
     return true;
   } catch (error) {
     debugError("PROFILES", `Error creating profile ${profileId}:`, error);
@@ -95,6 +102,10 @@ export async function updateProfile(profileId: string, profileData: Partial<Prof
 
 export async function deleteProfile(profileId: string) {
   try {
+    // Delete all spaces associated with this profile
+    const spaces = await getSpacesFromProfile(profileId);
+    await Promise.all(spaces.map((space) => deleteSpace(profileId, space.id)));
+
     // Delete Chromium Profile
     const profilePath = getProfilePath(profileId);
     await fs.rm(profilePath, { recursive: true, force: true });

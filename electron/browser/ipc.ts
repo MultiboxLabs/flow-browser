@@ -3,6 +3,8 @@ import "@/modules/icons";
 import "@/sessions/profiles";
 import { createProfile, deleteProfile, getProfiles, ProfileData, updateProfile } from "@/sessions/profiles";
 import { generateID } from "@/browser/utils";
+import { getSpacesFromProfile, SpaceData, updateSpace } from "@/sessions/spaces";
+import { createSpace, deleteSpace, getSpaces } from "@/sessions/spaces";
 
 // Window Button IPCs //
 ipcMain.on("set-window-button-position", (event, position: { x: number; y: number }) => {
@@ -44,4 +46,25 @@ ipcMain.handle("profiles:update", async (event, profileId: string, profileData: 
 
 ipcMain.handle("profiles:delete", async (event, profileId: string) => {
   return await deleteProfile(profileId);
+});
+
+// Spaces IPCs //
+ipcMain.handle("spaces:get-all", async (event, profileId: string) => {
+  return await getSpaces();
+});
+
+ipcMain.handle("spaces:get-from-profile", async (event, profileId: string) => {
+  return await getSpacesFromProfile(profileId);
+});
+
+ipcMain.handle("spaces:create", async (event, profileId: string, spaceName: string) => {
+  return await createSpace(profileId, generateID(), spaceName);
+});
+
+ipcMain.handle("spaces:delete", async (event, profileId: string, spaceId: string) => {
+  return await deleteSpace(profileId, spaceId);
+});
+
+ipcMain.handle("spaces:update", async (event, profileId: string, spaceId: string, spaceData: Partial<SpaceData>) => {
+  return await updateSpace(profileId, spaceId, spaceData);
 });

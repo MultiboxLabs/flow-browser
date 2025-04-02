@@ -2,6 +2,7 @@ import { ProfileData } from "@/sessions/profiles";
 import { NewTabMode } from "@/saving/settings";
 import { contextBridge, ipcRenderer } from "electron";
 import { injectBrowserAction } from "electron-chrome-extensions/browser-action";
+import { SpaceData } from "@/sessions/spaces";
 
 const isBrowserUI = location.protocol === "chrome-extension:" && location.pathname === "/main/index.html";
 const isOmniboxUI = location.protocol === "chrome-extension:" && location.pathname === "/omnibox/index.html";
@@ -161,6 +162,28 @@ contextBridge.exposeInMainWorld("flow", {
     deleteProfile: async (profileId: string) => {
       if (!canUseSettingsAPI) return;
       return ipcRenderer.invoke("profiles:delete", profileId);
+    },
+
+    // Settings: Spaces //
+    getSpaces: async () => {
+      if (!canUseSettingsAPI) return;
+      return ipcRenderer.invoke("spaces:get-all");
+    },
+    getSpacesFromProfile: async (profileId: string) => {
+      if (!canUseSettingsAPI) return;
+      return ipcRenderer.invoke("spaces:get-from-profile", profileId);
+    },
+    createSpace: async (profileId: string, spaceName: string) => {
+      if (!canUseSettingsAPI) return;
+      return ipcRenderer.invoke("spaces:create", profileId, spaceName);
+    },
+    deleteSpace: async (profileId: string, spaceId: string) => {
+      if (!canUseSettingsAPI) return;
+      return ipcRenderer.invoke("spaces:delete", profileId, spaceId);
+    },
+    updateSpace: async (profileId: string, spaceId: string, spaceData: Partial<SpaceData>) => {
+      if (!canUseSettingsAPI) return;
+      return ipcRenderer.invoke("spaces:update", profileId, spaceId, spaceData);
     }
   }
 });
