@@ -1,4 +1,4 @@
-import { ProfileData } from "@/modules/profiles";
+import { ProfileData } from "@/sessions/profiles";
 import { NewTabMode } from "@/saving/settings";
 import { contextBridge, ipcRenderer } from "electron";
 import { injectBrowserAction } from "electron-chrome-extensions/browser-action";

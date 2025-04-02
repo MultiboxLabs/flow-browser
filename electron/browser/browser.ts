@@ -14,7 +14,7 @@ import { generateBrowserWindowData, windowEvents, WindowEventType } from "@/modu
 import { setWebuiExtensionId } from "./utils";
 import { MinimalEvent } from "@/modules/types";
 import "@/browser/ipc";
-import { getProfilePath } from "@/modules/profiles";
+import { getProfilePath } from "@/sessions/profiles";
 
 interface BrowserUrls {
   newtab: string;

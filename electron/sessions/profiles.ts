@@ -1,4 +1,4 @@
-import { FLOW_DATA_DIR } from "./paths";
+import { FLOW_DATA_DIR } from "@/modules/paths";
 import path from "path";
 import fs from "fs/promises";
 import { DataStoreData, getDatastore } from "@/saving/datastore";

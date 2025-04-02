@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import "@/modules/icons";
-import "@/modules/profiles";
-import { createProfile, deleteProfile, getProfiles, ProfileData, updateProfile } from "@/modules/profiles";
+import "@/sessions/profiles";
+import { createProfile, deleteProfile, getProfiles, ProfileData, updateProfile } from "@/sessions/profiles";
 import { generateID } from "@/browser/utils";
 
 // Window Button IPCs //
