@@ -148,3 +148,25 @@ export async function getProfiles() {
     return [];
   }
 }
+
+// Onboarding
+function setupInitialProfile() {
+  const profileId = "main";
+  const profileName = "Main";
+
+  const profileCreated = createProfile(profileId, profileName);
+  if (!profileCreated) {
+    debugError("PROFILES", `Error creating initial profile ${profileId}`);
+    return false;
+  }
+
+  const spaceCreated = createSpace(profileId, "default", profileName);
+  if (!spaceCreated) {
+    debugError("PROFILES", `Error creating initial space for profile ${profileId}`);
+    return false;
+  }
+
+  return true;
+}
+
+setupInitialProfile();
