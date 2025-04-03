@@ -8,6 +8,20 @@ import { SpacesSettings } from "@/components/settings/sections/spaces/section";
 
 export function SettingsLayout() {
   const [activeSection, setActiveSection] = useState("general");
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
+
+  const navigateToSpaces = (profileId: string) => {
+    setSelectedProfileId(profileId);
+    setSelectedSpaceId(null);
+    setActiveSection("spaces");
+  };
+
+  const navigateToSpace = (profileId: string, spaceId: string) => {
+    setSelectedProfileId(profileId);
+    setSelectedSpaceId(spaceId);
+    setActiveSection("spaces");
+  };
 
   const ActiveSection = useMemo(() => {
     switch (activeSection) {
@@ -18,13 +32,13 @@ export function SettingsLayout() {
       case "about":
         return <AboutSettings />;
       case "profiles":
-        return <ProfilesSettings />;
+        return <ProfilesSettings navigateToSpaces={navigateToSpaces} navigateToSpace={navigateToSpace} />;
       case "spaces":
-        return <SpacesSettings />;
+        return <SpacesSettings initialSelectedProfile={selectedProfileId} initialSelectedSpace={selectedSpaceId} />;
       default:
         return <GeneralSettings />;
     }
-  }, [activeSection]);
+  }, [activeSection, selectedProfileId, selectedSpaceId]);
 
   return (
     <div className="select-none flex flex-col h-screen bg-background text-gray-600 dark:text-gray-300">

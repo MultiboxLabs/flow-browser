@@ -11,7 +11,12 @@ import { CreateSpaceDialog } from "./space-dialogs";
 // ==============================
 // Main Spaces Settings Component
 // ==============================
-export function SpacesSettings() {
+export interface SpacesSettingsProps {
+  initialSelectedProfile?: string | null;
+  initialSelectedSpace?: string | null;
+}
+
+export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }: SpacesSettingsProps) {
   // State management
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -20,7 +25,14 @@ export function SpacesSettings() {
   const [isCreating, setIsCreating] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<string | null>(initialSelectedProfile || null);
+
+  // Use the initialSelectedProfile when it changes
+  useEffect(() => {
+    if (initialSelectedProfile) {
+      setSelectedProfile(initialSelectedProfile);
+    }
+  }, [initialSelectedProfile]);
 
   // Fetch spaces and profiles from the API
   const fetchData = async () => {
@@ -29,6 +41,14 @@ export function SpacesSettings() {
       const [fetchedProfiles, fetchedSpaces] = await Promise.all([getProfiles(), getSpaces()]);
       setProfiles(fetchedProfiles);
       setSpaces(fetchedSpaces);
+
+      // Set active space if initialSelectedSpace is provided
+      if (initialSelectedSpace) {
+        const selectedSpace = fetchedSpaces.find((space) => space.id === initialSelectedSpace);
+        if (selectedSpace) {
+          setActiveSpace(selectedSpace);
+        }
+      }
     } catch (error) {
       console.error("Failed to fetch data:", error);
     } finally {
@@ -39,7 +59,18 @@ export function SpacesSettings() {
   // Load data on component mount
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Set active space when initialSelectedSpace changes
+  useEffect(() => {
+    if (initialSelectedSpace && spaces.length > 0) {
+      const selectedSpace = spaces.find((space) => space.id === initialSelectedSpace);
+      if (selectedSpace) {
+        setActiveSpace(selectedSpace);
+      }
+    }
+  }, [initialSelectedSpace, spaces]);
 
   // Handle space deletion (local state update)
   const handleDeleteSpace = async (deletedSpace: Space) => {
@@ -81,6 +112,11 @@ export function SpacesSettings() {
   // Filter spaces based on selected profile
   const filteredSpaces = selectedProfile ? spaces.filter((space) => space.profileId === selectedProfile) : spaces;
 
+  // Get selected profile name for display
+  const selectedProfileName = selectedProfile
+    ? profiles.find((p) => p.id === selectedProfile)?.name || "Selected Profile"
+    : "All Profiles";
+
   // Render space editor if a space is active
   if (activeSpace) {
     return (
@@ -105,7 +141,9 @@ export function SpacesSettings() {
       <Card className="flex-1">
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-lg">Browser Spaces</CardTitle>
+            <CardTitle className="text-lg">
+              {selectedProfile ? `Spaces for ${selectedProfileName}` : "All Browser Spaces"}
+            </CardTitle>
             <CardDescription className="text-sm">Manage your browsing spaces and their settings</CardDescription>
           </div>
           <Button onClick={() => setCreateDialogOpen(true)} size="sm" className="gap-2">

@@ -8,8 +8,7 @@ import {
   getProfiles,
   updateProfile,
   getSpacesFromProfile,
-  createSpace,
-  deleteSpace
+  createSpace
 } from "@/lib/flow";
 import type { Profile, Space } from "@/lib/flow";
 import { Trash2, ArrowLeft, Settings, Globe, Save, Loader2, Plus, Box } from "lucide-react";
@@ -57,6 +56,8 @@ interface ProfileEditorProps {
   onClose: () => void;
   onDelete: () => void;
   onProfilesUpdate: () => void;
+  navigateToSpaces?: (profileId: string) => void;
+  navigateToSpace?: (profileId: string, spaceId: string) => void;
 }
 
 // Basic Settings Tab Component
@@ -117,15 +118,14 @@ interface SpacesTabProps {
   profile: Profile;
   spaces: Space[];
   onRefreshSpaces: () => void;
+  navigateToSpaces?: (profileId: string) => void;
+  navigateToSpace?: (profileId: string, spaceId: string) => void;
 }
 
-function SpacesTab({ profile, spaces, onRefreshSpaces }: SpacesTabProps) {
+function SpacesTab({ profile, spaces, onRefreshSpaces, navigateToSpaces, navigateToSpace }: SpacesTabProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [spaceToDelete, setSpaceToDelete] = useState<Space | null>(null);
 
   // Handle space creation
   const handleCreateSpace = async () => {
@@ -144,28 +144,6 @@ function SpacesTab({ profile, spaces, onRefreshSpaces }: SpacesTabProps) {
     }
   };
 
-  // Handle space deletion
-  const handleDeleteSpace = async (space: Space) => {
-    setSpaceToDelete(space);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDeleteSpace = async () => {
-    if (!spaceToDelete) return;
-
-    setIsDeleting(spaceToDelete.id);
-    try {
-      await deleteSpace(profile.id, spaceToDelete.id);
-      onRefreshSpaces();
-    } catch (error) {
-      console.error("Failed to delete space:", error);
-    } finally {
-      setIsDeleting(null);
-      setDeleteDialogOpen(false);
-      setSpaceToDelete(null);
-    }
-  };
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -173,9 +151,16 @@ function SpacesTab({ profile, spaces, onRefreshSpaces }: SpacesTabProps) {
           <CardTitle className="text-xl">Spaces</CardTitle>
           <CardDescription>Manage spaces in this profile</CardDescription>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)} size="sm" className="gap-1">
-          <Plus className="h-4 w-4" /> New Space
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setCreateDialogOpen(true)} size="sm" className="gap-1">
+            <Plus className="h-4 w-4" /> New Space
+          </Button>
+          {navigateToSpaces && (
+            <Button onClick={() => navigateToSpaces(profile.id)} size="sm" variant="outline" className="gap-1">
+              <Box className="h-4 w-4" /> View All Spaces
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {spaces.length === 0 ? (
@@ -185,7 +170,11 @@ function SpacesTab({ profile, spaces, onRefreshSpaces }: SpacesTabProps) {
         ) : (
           <div className="grid gap-3">
             {spaces.map((space) => (
-              <div key={space.id} className="flex items-center justify-between border rounded p-3">
+              <div
+                key={space.id}
+                className="flex items-center justify-between border rounded p-3 hover:border-primary/50 cursor-pointer"
+                onClick={navigateToSpace ? () => navigateToSpace(profile.id, space.id) : undefined}
+              >
                 <div className="flex items-center space-x-3">
                   <Box className="h-5 w-5 text-muted-foreground" />
                   <div>
@@ -193,19 +182,6 @@ function SpacesTab({ profile, spaces, onRefreshSpaces }: SpacesTabProps) {
                     <p className="text-xs text-muted-foreground">ID: {space.id}</p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDeleteSpace(space)}
-                  disabled={spaces.length <= 1}
-                  title={spaces.length <= 1 ? "Cannot delete the only space" : "Delete space"}
-                >
-                  {isDeleting === space.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
-                </Button>
               </div>
             ))}
           </div>
@@ -250,38 +226,6 @@ function SpacesTab({ profile, spaces, onRefreshSpaces }: SpacesTabProps) {
                   </>
                 ) : (
                   "Create"
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Space Confirmation Dialog */}
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Delete Space</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete the space "{spaceToDelete?.name}"? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting !== null}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={confirmDeleteSpace}
-                disabled={isDeleting !== null}
-                className="gap-2"
-              >
-                {isDeleting !== null ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
                 )}
               </Button>
             </DialogFooter>
@@ -332,7 +276,17 @@ function DeleteConfirmDialog({ isOpen, onClose, profileName, isDeleting, onConfi
 }
 
 // Main Profile Editor Component
-function ProfileEditor({ profile, onClose, onDelete, onProfilesUpdate }: ProfileEditorProps) {
+function ProfileEditor({
+  profile,
+  onClose,
+  onDelete,
+  onProfilesUpdate,
+  navigateToSpaces,
+  navigateToSpace
+}: ProfileEditorProps & {
+  navigateToSpaces?: (profileId: string) => void;
+  navigateToSpace?: (profileId: string, spaceId: string) => void;
+}) {
   // State management
   const [editedProfile, setEditedProfile] = useState<Profile>({ ...profile });
   const [activeTab, setActiveTab] = useState("basic");
@@ -517,7 +471,13 @@ function ProfileEditor({ profile, onClose, onDelete, onProfilesUpdate }: Profile
                   <div className="animate-pulse text-muted-foreground">Loading spaces...</div>
                 </div>
               ) : (
-                <SpacesTab profile={profile} spaces={spaces} onRefreshSpaces={refreshSpaces} />
+                <SpacesTab
+                  profile={profile}
+                  spaces={spaces}
+                  onRefreshSpaces={refreshSpaces}
+                  navigateToSpaces={navigateToSpaces}
+                  navigateToSpace={navigateToSpace}
+                />
               )}
             </div>
           )}
@@ -612,7 +572,12 @@ function CreateProfileDialog({
 // ==============================
 // Main Profiles Settings Component
 // ==============================
-export function ProfilesSettings() {
+export interface ProfilesSettingsProps {
+  navigateToSpaces?: (profileId: string) => void;
+  navigateToSpace?: (profileId: string, spaceId: string) => void;
+}
+
+export function ProfilesSettings({ navigateToSpaces, navigateToSpace }: ProfilesSettingsProps) {
   // State management
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -679,6 +644,8 @@ export function ProfilesSettings() {
               onClose={() => setActiveProfile(null)}
               onDelete={() => handleDeleteProfile(activeProfile)}
               onProfilesUpdate={fetchProfiles}
+              navigateToSpaces={navigateToSpaces}
+              navigateToSpace={navigateToSpace}
             />
           </CardContent>
         </Card>
