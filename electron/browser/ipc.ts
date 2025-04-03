@@ -49,7 +49,7 @@ ipcMain.handle("profiles:delete", async (event, profileId: string) => {
 });
 
 // Spaces IPCs //
-ipcMain.handle("spaces:get-all", async (event, profileId: string) => {
+ipcMain.handle("spaces:get-all", async (event) => {
   return await getSpaces();
 });
 

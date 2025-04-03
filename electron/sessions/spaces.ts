@@ -67,6 +67,13 @@ export async function createSpace(profileId: string, spaceId: string, spaceName:
     return false;
   }
 
+  // Make sure profile exists
+  const profile = await getProfile(profileId);
+  if (!profile) {
+    debugError("PROFILES", `Profile ${profileId} does not exist`);
+    return false;
+  }
+
   // Check if space already exists
   const existingSpace = await getSpace(profileId, spaceId);
   if (existingSpace) {
