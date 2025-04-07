@@ -7,6 +7,7 @@ type Flags = {
   SHOW_DEBUG_PRINTS: boolean;
   SHOW_DEBUG_ERRORS: boolean | DEBUG_AREA[];
   DEBUG_DISABLE_TAB_VIEW: boolean;
+  SHOW_DEBUG_DEVTOOLS: boolean;
 };
 
 export const FLAGS: Flags = {
@@ -20,6 +21,7 @@ export const FLAGS: Flags = {
   // Debug: Prints & Errors
   SHOW_DEBUG_PRINTS: !app.isPackaged,
   SHOW_DEBUG_ERRORS: true,
+  SHOW_DEBUG_DEVTOOLS: true,
 
   // Debug: Disable the tab view
   DEBUG_DISABLE_TAB_VIEW: false

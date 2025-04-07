@@ -1,6 +1,6 @@
 import { createSearchUrl } from "@/lib/search";
 
-const extensionId = chrome.runtime.id;
+const extensionId = "flow-extension"; // chrome.runtime.id;
 const fakeBrowserProtocol = "flow";
 const whitelistedPages = ["new", "omnibox"];
 

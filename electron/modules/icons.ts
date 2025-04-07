@@ -7,7 +7,7 @@ import { getWindows, windowEvents, WindowEventType } from "./windows";
 import z from "zod";
 import { SettingsDataStore } from "@/saving/settings";
 
-const supportedPlatforms: NodeJS.Platform[] = [
+export const supportedPlatforms: NodeJS.Platform[] = [
   // macOS: through app.dock.setIcon()
   "darwin",
   // Linux: through BrowserWindow.setIcon()
@@ -23,7 +23,7 @@ type IconData = {
   author?: string;
 };
 
-const icons = [
+export const icons = [
   {
     id: "default",
     name: "Default",
@@ -66,7 +66,7 @@ const icons = [
   }
 ] as const satisfies IconData[];
 
-type IconId = (typeof icons)[number]["id"];
+export type IconId = (typeof icons)[number]["id"];
 const IconIdSchema = z.enum(icons.map((icon) => icon.id) as [IconId, ...IconId[]]);
 
 async function transformAppIcon(imagePath: string): Promise<Buffer> {
@@ -185,20 +185,3 @@ export async function setCurrentIconId(iconId: IconId) {
   }
   return false;
 }
-
-// IPC Handlers //
-ipcMain.handle("icons:get-all", () => {
-  return icons;
-});
-
-ipcMain.handle("icons:is-platform-supported", () => {
-  return supportedPlatforms.includes(process.platform);
-});
-
-ipcMain.handle("icons:get-current-icon-id", () => {
-  return getCurrentIconId();
-});
-
-ipcMain.handle("icons:set-current-icon-id", (_, iconId: IconId) => {
-  return setCurrentIconId(iconId);
-});

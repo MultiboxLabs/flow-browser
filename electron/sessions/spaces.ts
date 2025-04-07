@@ -18,7 +18,8 @@ const SpaceDataSchema = z.object({
   profileId: z.string(),
   bgStartColor: z.string().optional(),
   bgEndColor: z.string().optional(),
-  icon: z.string().optional()
+  icon: z.string().optional(),
+  lastUsed: z.number().default(0)
 });
 
 export type SpaceData = z.infer<typeof SpaceDataSchema>;
@@ -34,7 +35,8 @@ function reconcileSpaceData(spaceId: string, profileId: string, data: DataStoreD
     profileId: data.profileId ?? profileId,
     bgStartColor: data.bgStartColor,
     bgEndColor: data.bgEndColor,
-    icon: data.icon
+    icon: data.icon,
+    lastUsed: data.lastUsed ?? 0
   };
 }
 
@@ -44,7 +46,18 @@ export function getSpacePath(profileId: string, spaceId: string): string {
 }
 
 // CRUD Operations
-export async function getSpace(profileId: string, spaceId: string) {
+export async function getSpace(spaceId: string) {
+  const profiles = await getProfiles();
+  for (const profile of profiles) {
+    const space = await getSpaceFromProfile(profile.id, spaceId);
+    if (space) {
+      return space;
+    }
+  }
+  return null;
+}
+
+export async function getSpaceFromProfile(profileId: string, spaceId: string) {
   const spaceDir = getSpacePath(profileId, spaceId);
 
   const stats = await fs.stat(spaceDir).catch(() => null);
@@ -75,7 +88,7 @@ export async function createSpace(profileId: string, spaceId: string, spaceName:
   }
 
   // Check if space already exists
-  const existingSpace = await getSpace(profileId, spaceId);
+  const existingSpace = await getSpaceFromProfile(profileId, spaceId);
   if (existingSpace) {
     debugError("PROFILES", `Space ${spaceId} already exists in profile ${profileId}`);
     return false;
@@ -156,7 +169,7 @@ export async function getSpacesFromProfile(profileId: string, prefetchedProfile?
     }
 
     const spaceDatas = await fs.readdir(profileSpacesDir).then((spaceIds) => {
-      const promises = spaceIds.map((spaceId) => getSpace(profileId, spaceId));
+      const promises = spaceIds.map((spaceId) => getSpaceFromProfile(profileId, spaceId));
       return Promise.all(promises);
     });
 
@@ -181,4 +194,36 @@ export async function getSpaces() {
   } catch {
     return [];
   }
+}
+
+export async function setSpaceLastUsed(profileId: string, spaceId: string) {
+  const spaceStore = getSpaceDataStore(profileId, spaceId);
+  return await spaceStore
+    .set("lastUsed", Date.now())
+    .then(() => {
+      return true;
+    })
+    .catch(() => {
+      return false;
+    });
+}
+
+export async function getLastUsedSpaceFromProfile(profileId: string) {
+  const spaces = await getSpacesFromProfile(profileId);
+  const sortedSpaces = spaces.sort((a, b) => {
+    const transformedA = reconcileSpaceData(a.id, a.profileId, a);
+    const transformedB = reconcileSpaceData(b.id, b.profileId, b);
+    return transformedB.lastUsed - transformedA.lastUsed;
+  });
+  return sortedSpaces[0];
+}
+
+export async function getLastUsedSpace() {
+  const spaces = await getSpaces();
+  const sortedSpaces = spaces.sort((a, b) => {
+    const transformedA = reconcileSpaceData(a.id, a.profileId, a);
+    const transformedB = reconcileSpaceData(b.id, b.profileId, b);
+    return transformedB.lastUsed - transformedA.lastUsed;
+  });
+  return sortedSpaces[0] || null;
 }

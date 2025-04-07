@@ -1,42 +1,26 @@
 import BrowserContent from "@/components/browser-ui/browser-content";
-import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar";
-import { useBrowser } from "@/components/main/browser-context";
-import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/resizable-sidebar";
-import { useEffect, useState } from "react";
+import { SidebarInset, SidebarProvider } from "@/components/ui/resizable-sidebar";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
+import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar";
+import { SpacesProvider } from "@/components/providers/spaces-provider";
 
 export type CollapseMode = "icon" | "offcanvas";
 export type SidebarVariant = "sidebar" | "floating";
 export type SidebarSide = "left" | "right";
 
 function InternalBrowserUI() {
-  const { dynamicTitle, activeTab } = useBrowser();
-  const [isActiveTabLoading, setIsActiveTabLoading] = useState(false);
-
-  const [collapseMode] = useState<CollapseMode>("icon");
-  const [variant] = useState<SidebarVariant>("sidebar");
-  const [side] = useState<SidebarSide>("left");
-
-  const { open } = useSidebar();
-
-  useEffect(() => {
-    if (activeTab && activeTab.status === "loading") {
-      setIsActiveTabLoading(true);
-    } else {
-      setIsActiveTabLoading(false);
-    }
-  }, [activeTab]);
+  const dynamicTitle: string | null = null;
+  const isActiveTabLoading = true;
 
   return (
     <>
       {dynamicTitle && <title>{`${dynamicTitle} | Flow`}</title>}
-      <BrowserSidebar collapseMode={collapseMode} variant={variant} side={side} />
-      <SidebarInset>
+      <BrowserSidebar collapseMode="icon" variant="sidebar" side="left" />
+      <SidebarInset className="bg-transparent">
         <div
           className={cn(
-            "bg-sidebar flex-1 flex p-3 platform-win32:pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))] app-drag",
-            open && "pl-0.5"
+            "bg-sidebar/50 flex-1 flex p-3 platform-win32:pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))] app-drag"
           )}
         >
           {/* Topbar */}
@@ -78,7 +62,9 @@ function InternalBrowserUI() {
 export function BrowserUI() {
   return (
     <SidebarProvider>
-      <InternalBrowserUI />
+      <SpacesProvider>
+        <InternalBrowserUI />
+      </SpacesProvider>
     </SidebarProvider>
   );
 }

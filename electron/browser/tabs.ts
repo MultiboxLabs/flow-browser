@@ -1,290 +1,415 @@
-import { EventEmitter } from "events";
-import { WebContents, BrowserWindow, WebContentsView, ipcMain } from "electron";
-import { FLAGS } from "@/modules/flags";
-import { cacheFavicon } from "@/modules/favicons";
+import { Browser } from "@/browser/browser";
+import { Tab } from "@/browser/tab";
+import { PageBoundsWithWindow } from "@/ipc/page";
+import { TypedEventEmitter } from "@/modules/typed-event-emitter";
+import { getLastUsedSpaceFromProfile } from "@/sessions/spaces";
+import { Session } from "electron";
+import { ElectronChromeExtensions } from "electron-chrome-extensions";
 
-type PageBounds = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
-
-const windowsBounds = new Map<BrowserWindow, PageBounds>();
-const windowsBoundsEmitter = new EventEmitter();
-
-class Tab {
-  id: number;
-  destroyOnNoTabs: boolean;
-  destroyed: boolean;
-
-  window: BrowserWindow | undefined;
-  webContents: WebContents | undefined;
-  view: WebContentsView | undefined;
-  boundsListener: (() => void) | null = null;
-
-  constructor(
-    parentWindow: BrowserWindow,
-    webContentsViewOptions: Electron.WebContentsViewConstructorOptions = {},
-    destroyOnNoTabs: boolean = false
-  ) {
-    this.invalidateLayout = this.invalidateLayout.bind(this);
-
-    const session = parentWindow.webContents.session;
-    if (webContentsViewOptions.webContents) {
-      // If webContents is provided, use it
-      this.view = new WebContentsView({
-        webContents: webContentsViewOptions.webContents,
-        webPreferences: {
-          ...(webContentsViewOptions.webPreferences || {}),
-          session
-        }
-      });
-    } else {
-      // Otherwise create a new WebContentsView without specifying webContents
-      this.view = new WebContentsView({
-        webPreferences: {
-          ...(webContentsViewOptions.webPreferences || {}),
-          session
-        }
-      });
-    }
-
-    this.view.webContents.on("page-favicon-updated", (_event, favicons) => {
-      const faviconURL = favicons[0];
-      const url = this.view?.webContents.getURL();
-      if (faviconURL && url) {
-        cacheFavicon(url, faviconURL);
-      }
-    });
-
-    this.id = this.view.webContents.id;
-    this.destroyOnNoTabs = destroyOnNoTabs;
-    this.window = parentWindow;
-    this.webContents = this.view.webContents;
-    this.destroyed = false;
-
-    this.webContents.on("did-fail-load", (event, errorCode, _errorDescription, validatedURL, isMainFrame) => {
-      event.preventDefault();
-
-      // ignore -3 (ABORTED) - An operation was aborted (due to user action).
-      if (isMainFrame && errorCode !== -3) {
-        const errorPageURL = new URL("flow-utility://page/error");
-        errorPageURL.searchParams.set("errorCode", errorCode.toString());
-        errorPageURL.searchParams.set("url", validatedURL);
-        errorPageURL.searchParams.set("initial", "1");
-
-        if (FLAGS.ERROR_PAGE_LOAD_MODE === "replace") {
-          this.webContents?.executeJavaScript(`window.location.replace("${errorPageURL.toString()}")`);
-        } else {
-          this.webContents?.loadURL(errorPageURL.toString());
-        }
-      }
-    });
-
-    this.window.contentView.addChildView(this.view);
-  }
-
-  destroy() {
-    if (this.destroyed) return;
-
-    this.destroyed = true;
-
-    this.hide();
-
-    if (this.window) {
-      if (this.window && !this.window.isDestroyed() && this.view) {
-        this.window.contentView.removeChildView(this.view);
-      }
-      this.window = undefined;
-    }
-
-    if (this.webContents && !this.webContents.isDestroyed()) {
-      if (this.webContents.isDevToolsOpened()) {
-        this.webContents.closeDevTools();
-      }
-
-      // TODO: why is this no longer called?
-      this.webContents.emit("destroyed");
-
-      // Undocumented method
-      (this.webContents as any).destroy();
-    }
-
-    this.webContents = undefined;
-    this.view = undefined;
-  }
-
-  loadURL(url: string) {
-    if (!this.view) {
-      return Promise.reject(new Error("Tab is not loaded"));
-    }
-    return this.view.webContents.loadURL(url);
-  }
-
-  show() {
-    this.invalidateLayout();
-    this.startBoundsListener();
-    if (this.view) {
-      if (FLAGS.DEBUG_DISABLE_TAB_VIEW) {
-        this.view.setVisible(false);
-      } else {
-        this.view.setVisible(true);
-      }
-    }
-  }
-
-  hide() {
-    this.stopBoundsListener();
-    if (this.view) {
-      this.view.setVisible(false);
-    }
-  }
-
-  reload() {
-    if (this.view) {
-      this.view.webContents.reload();
-    }
-  }
-
-  invalidateLayout() {
-    if (!this.window) {
-      return;
-    }
-    if (!this.view) {
-      return;
-    }
-
-    const windowBounds = windowsBounds.get(this.window);
-    if (windowBounds) {
-      this.view.setBounds({
-        x: windowBounds.x,
-        y: windowBounds.y,
-        width: windowBounds.width,
-        height: windowBounds.height
-      });
-      this.view.setBorderRadius(8);
-    }
-  }
-
-  startBoundsListener() {
-    this.stopBoundsListener();
-    if (this.window) {
-      // Listen for resize events to update layout
-      this.window.on("resize", this.invalidateLayout);
-
-      // Listen for bounds changes
-      this.boundsListener = () => {
-        if (this.window) {
-          this.invalidateLayout();
-        }
-      };
-
-      windowsBoundsEmitter.on(`bounds-changed-${this.window.id}`, this.boundsListener);
-    }
-  }
-
-  stopBoundsListener() {
-    if (this.window) {
-      this.window.off("resize", this.invalidateLayout);
-
-      if (this.boundsListener) {
-        windowsBoundsEmitter.off(`bounds-changed-${this.window.id}`, this.boundsListener);
-        this.boundsListener = null;
-      }
-    }
-  }
+enum TabMode {
+  Standard = "standard",
+  // TODO: Implement these modes in the future
+  Glance = "glance",
+  Split = "split"
 }
 
-export class Tabs extends EventEmitter {
-  window: BrowserWindow | undefined;
-  tabList: Tab[] = [];
-  selected: Tab | null | undefined = null;
-  destroyOnNoTabs: boolean = false;
-  constructor(browserWindow: BrowserWindow) {
+type TabShowMode = TabMode;
+type ActiveTabsMode = TabMode;
+
+interface TabEvents {
+  "tab-created": [Tab];
+  "tab-destroyed": [Tab];
+  "tab-selected": [Tab];
+  "tab-deselected": [Tab];
+  "tab-focused": [Tab];
+  "tab-unfocused": [Tab];
+  "tab-updated": [Tab];
+  "page-bounds-changed": [PageBoundsWithWindow];
+}
+
+interface TabActiveData {
+  mode: ActiveTabsMode;
+  tabs: Array<{
+    tabId: number;
+    show: TabShowMode;
+  }>;
+}
+
+// Tab Manager
+export class TabManager extends TypedEventEmitter<TabEvents> {
+  // Private properties
+  private readonly browser: Browser;
+  private readonly profileId: string;
+  private readonly session: Session;
+  private readonly tabs: Map<number, Tab> = new Map();
+  private extensions: ElectronChromeExtensions | null = null;
+  private isDestroyed: boolean = false;
+  private readonly pageBounds: Map<number, PageBoundsWithWindow> = new Map();
+
+  // Tab state tracking
+  activeTabsMode: ActiveTabsMode = TabMode.Standard;
+  private readonly activeTabs: Map<number, TabShowMode> = new Map();
+  focusedTabId: number | null = null;
+
+  /**
+   * Creates a new tab manager
+   */
+  constructor(browser: Browser, profileId: string, session: Session) {
     super();
-    this.window = browserWindow;
+
+    this.browser = browser;
+    this.profileId = profileId;
+    this.session = session;
+
+    // Listen for page-bounds-changed events
+    this.on("page-bounds-changed", this.handlePageBoundsChanged.bind(this));
   }
 
-  destroy() {
-    this.tabList.forEach((tab) => {
-      tab.destroy();
-    });
-    this.tabList = [];
+  /**
+   * Handles changes to page bounds
+   */
+  private handlePageBoundsChanged(bounds: PageBoundsWithWindow): void {
+    if (this.isDestroyed) return;
 
-    this.selected = undefined;
+    // Update the bounds for the specific window
+    const windowId = bounds.windowId;
+    if (windowId !== undefined) {
+      this.pageBounds.set(windowId, bounds);
 
-    if (this.window) {
-      if (!this.window.isDestroyed()) {
-        this.window.destroy();
+      // Update all active tabs in the affected window
+      for (const [tabId] of this.activeTabs.entries()) {
+        const tab = this.tabs.get(tabId);
+        if (tab && tab.windowId === windowId) {
+          tab.updateLayout();
+        }
       }
-      this.window = undefined;
     }
   }
 
-  get(tabId: number) {
-    return this.tabList.find((tab) => tab.id === tabId);
+  /**
+   * Sets the extensions manager for this tab manager
+   */
+  setExtensions(extensions: ElectronChromeExtensions): void {
+    this.extensions = extensions;
   }
 
-  create(webContentsViewOptions: Electron.WebContentsViewConstructorOptions = {}, shouldShow: boolean = true) {
-    if (!this.window) {
-      throw new Error("Tabs.create: window is not set");
-    }
-
-    const tab = new Tab(this.window, webContentsViewOptions);
-    this.tabList.push(tab);
-    if (!this.selected) this.selected = tab;
-
-    if (shouldShow) {
-      tab.show(); // must be attached to window
-    }
-
-    this.emit("tab-created", tab);
-
-    if (shouldShow) {
-      this.select(tab.id);
-    }
-    return tab;
+  /**
+   * Gets a tab by ID
+   */
+  get(tabId: number): Tab | undefined {
+    return this.tabs.get(tabId);
   }
 
-  remove(tabId: number) {
-    const tabIndex = this.tabList.findIndex((tab) => tab.id === tabId);
-    if (tabIndex < 0) {
-      throw new Error(`Tabs.remove: unable to find tab.id = ${tabId}`);
+  /**
+   * Creates a new tab
+   */
+  async create(
+    windowId: number,
+    webContentsViewOptions: Electron.WebContentsViewConstructorOptions = {},
+    spaceId?: string
+  ): Promise<Tab> {
+    if (this.isDestroyed) {
+      throw new Error("TabManager has been destroyed");
     }
-    const tab = this.tabList[tabIndex];
-    this.tabList.splice(tabIndex, 1);
-    tab.destroy();
-    if (this.selected === tab) {
-      this.selected = undefined;
-      const nextTab = this.tabList[tabIndex] || this.tabList[tabIndex - 1];
-      if (nextTab) this.select(nextTab.id);
-    }
-    this.emit("tab-destroyed", tab);
 
-    if (this.destroyOnNoTabs && this.tabList.length === 0) {
-      this.destroy();
+    // Get space ID if not provided
+    if (!spaceId) {
+      try {
+        const lastUsedSpace = await getLastUsedSpaceFromProfile(this.profileId);
+        spaceId = lastUsedSpace.id;
+      } catch (error) {
+        console.error("Failed to get last used space:", error);
+        throw new Error("Could not determine space ID for new tab");
+      }
+    }
+
+    // Get window
+    const window = this.browser.getWindowById(windowId);
+    if (!window) {
+      throw new Error(`Window with ID ${windowId} not found`);
+    }
+
+    // Create and register tab
+    try {
+      const tab = new Tab(
+        {
+          parentWindow: window.window,
+          spaceId,
+          webContentsViewOptions
+        },
+        this
+      );
+
+      this.tabs.set(tab.id, tab);
+      this.emit("tab-created", tab);
+
+      return tab;
+    } catch (error) {
+      console.error("Failed to create tab:", error);
+      throw new Error("Failed to create tab: " + (error instanceof Error ? error.message : String(error)));
     }
   }
 
-  select(tabId: number) {
-    const tab = this.get(tabId);
-    if (!tab) return;
-    if (this.selected) this.selected.hide();
-    tab.show();
-    this.selected = tab;
+  /**
+   * Removes a tab by ID
+   */
+  remove(tabId: number): boolean {
+    if (this.isDestroyed) return false;
+
+    const tab = this.tabs.get(tabId);
+    if (!tab) return false;
+
+    // Clean up tab state
+    if (this.isTabActive(tabId)) {
+      this.deselect(tabId);
+    }
+
+    // Remove tab and notify
+    this.tabs.delete(tabId);
+    return true;
+  }
+
+  /**
+   * Sets the active tabs mode (standard, glance, split)
+   */
+  setActiveTabsMode(mode: ActiveTabsMode): void {
+    if (this.isDestroyed) return;
+
+    // If trying to set to an unsupported mode, use standard
+    if (mode !== TabMode.Standard) {
+      console.warn(`Tab mode ${mode} is not implemented yet. Using standard mode instead.`);
+      mode = TabMode.Standard;
+    }
+
+    this.activeTabsMode = mode;
+
+    // Re-layout all active tabs according to new mode
+    for (const [tabId, showMode] of this.activeTabs.entries()) {
+      const tab = this.tabs.get(tabId);
+      if (tab) {
+        tab.updateLayout();
+      }
+    }
+  }
+
+  /**
+   * Checks if a tab is currently active
+   */
+  isTabActive(tabId: number): boolean {
+    return this.activeTabs.has(tabId);
+  }
+
+  /**
+   * Focuses a tab by ID
+   */
+  focus(tabId: number): boolean {
+    if (this.isDestroyed) return false;
+
+    if (this.focusedTabId === tabId) {
+      return true;
+    }
+
+    // Unfocus current tab if any
+    if (this.focusedTabId) {
+      this.unfocus(this.focusedTabId);
+    }
+
+    const tab = this.tabs.get(tabId);
+    if (!tab) {
+      return false;
+    }
+
+    tab.focused = true;
+    this.focusedTabId = tabId;
+    this.emit("tab-focused", tab);
+    return true;
+  }
+
+  /**
+   * Unfocuses a tab by ID
+   */
+  unfocus(tabId: number): boolean {
+    if (this.isDestroyed) return false;
+
+    const tab = this.tabs.get(tabId);
+    if (!tab) {
+      return false;
+    }
+
+    tab.focused = false;
+    this.focusedTabId = null;
+    this.emit("tab-unfocused", tab);
+    return true;
+  }
+
+  /**
+   * Selects a tab by ID
+   */
+  select(tabId: number): boolean {
+    if (this.isDestroyed) return false;
+
+    const tab = this.tabs.get(tabId);
+    if (!tab) {
+      return false;
+    }
+
+    const isActive = this.isTabActive(tabId);
+    if (isActive) {
+      return true;
+    }
+
+    // For now, always use standard mode
+    this.handleStandardModeSelection(tab);
     this.emit("tab-selected", tab);
+    return true;
+  }
+
+  /**
+   * Handles selection in standard mode
+   */
+  private handleStandardModeSelection(tab: Tab): void {
+    // Hide all other tabs
+    for (const [tabId, _showMode] of this.activeTabs.entries()) {
+      if (tabId !== tab.id) {
+        this.deselect(tabId);
+      }
+    }
+
+    // Show the selected tab
+    this.activeTabs.set(tab.id, TabMode.Standard);
+    tab.show(TabMode.Standard);
+    tab.updateLayout();
+
+    this.focus(tab.id);
+  }
+
+  /**
+   * Handles selection in glance mode
+   * TODO: Implement Glance mode in the future
+   */
+  private handleGlanceModeSelection(tab: Tab): void {
+    // For now, just use standard mode
+    this.handleStandardModeSelection(tab);
+  }
+
+  /**
+   * Handles selection in split mode
+   * TODO: Implement Split mode in the future
+   */
+  private handleSplitModeSelection(tab: Tab): void {
+    // For now, just use standard mode
+    this.handleStandardModeSelection(tab);
+  }
+
+  /**
+   * Updates the layout of tabs in split mode
+   * TODO: Implement Split layout in the future
+   */
+  private updateSplitLayout(): void {
+    // No-op for now - will be implemented in the future
+  }
+
+  /**
+   * Deselects a tab by ID
+   */
+  deselect(tabId: number): boolean {
+    if (this.isDestroyed) return false;
+
+    const tab = this.tabs.get(tabId);
+    if (!tab) {
+      return false;
+    }
+
+    const isActive = this.isTabActive(tabId);
+    if (!isActive) {
+      return false;
+    }
+
+    this.activeTabs.delete(tabId);
+    tab.hide();
+
+    if (this.focusedTabId === tabId) {
+      this.unfocus(tabId);
+
+      // Auto-focus another tab if available
+      const nextActiveTab = Array.from(this.activeTabs.keys())[0];
+      if (nextActiveTab) {
+        this.focus(nextActiveTab);
+      }
+    }
+
+    this.emit("tab-deselected", tab);
+    return true;
+  }
+
+  /**
+   * Gets active tabs data
+   */
+  getActiveData(): TabActiveData {
+    return {
+      mode: this.activeTabsMode,
+      tabs: Array.from(this.activeTabs.entries()).map(([tabId, show]) => ({
+        tabId,
+        show
+      }))
+    };
+  }
+
+  /**
+   * Gets all tabs
+   */
+  getTabs(): Tab[] {
+    return Array.from(this.tabs.values());
+  }
+
+  /**
+   * Gets IDs of all active tabs
+   */
+  getActiveTabIds(): number[] {
+    return Array.from(this.activeTabs.keys());
+  }
+
+  /**
+   * Gets page bounds for a window
+   */
+  getPageBounds(windowId: number): PageBoundsWithWindow | undefined {
+    return this.pageBounds.get(windowId);
+  }
+
+  /**
+   * Sets page bounds for a window
+   */
+  setPageBounds(windowId: number, bounds: PageBoundsWithWindow): void {
+    if (this.isDestroyed) return;
+
+    this.pageBounds.set(windowId, bounds);
+    // Create a new object that includes windowId
+    const boundsWithWindow: PageBoundsWithWindow = { ...bounds };
+    this.emit("page-bounds-changed", boundsWithWindow);
+  }
+
+  /**
+   * Destroys the tab manager and all tabs
+   */
+  destroy(): void {
+    if (this.isDestroyed) return;
+
+    this.isDestroyed = true;
+    this.destroyEmitter();
+
+    // Destroy all tabs
+    for (const tab of this.tabs.values()) {
+      try {
+        tab.destroy();
+      } catch (error) {
+        console.error("Error destroying tab:", error);
+      }
+    }
+
+    this.tabs.clear();
+    this.activeTabs.clear();
+    this.focusedTabId = null;
+    this.extensions = null;
+    this.pageBounds.clear();
   }
 }
-
-// IPC Handlers //
-ipcMain.on("page:set-bounds", (event, bounds: { x: number; y: number; width: number; height: number }) => {
-  const webContents = event.sender;
-  const window = BrowserWindow.fromWebContents(webContents);
-
-  if (window) {
-    windowsBounds.set(window, bounds);
-    // Emit an event when bounds are updated
-    windowsBoundsEmitter.emit(`bounds-changed-${window.id}`, bounds);
-  }
-});

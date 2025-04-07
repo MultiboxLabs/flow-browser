@@ -2,7 +2,7 @@ import { ChangeEvent, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { Space } from "@/lib/flow";
+import type { Space } from "@/lib/flow/interfaces/sessions/spaces";
 import { ColorPicker } from "./color-picker";
 import { LucideIconPicker, IconPreview } from "./icon-picker";
 

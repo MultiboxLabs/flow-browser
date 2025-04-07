@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { getLucideIcon } from "@/lib/utils";
-import type { Space } from "@/lib/flow";
+import type { Space } from "@/lib/flow/interfaces/sessions/spaces";
 
 // ==============================
 // Space Card Component
@@ -50,7 +50,7 @@ export function SpaceCard({ space, activateEdit }: SpaceCardProps) {
               : "var(--muted)"
         }}
       >
-        {SpaceIcon && <SpaceIcon className="size-8 text-white" />}
+        {SpaceIcon && <SpaceIcon className="size-6 text-white" />}
       </div>
       <div className="flex-1 min-w-0">
         <h3 className="font-medium text-base truncate">{space.name}</h3>

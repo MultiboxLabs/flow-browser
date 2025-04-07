@@ -9,15 +9,11 @@ import {
   SidebarRail,
   useSidebar
 } from "@/components/ui/resizable-sidebar";
-import { SidebarTabs } from "@/components/browser-ui/sidebar/tabs";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { NavigationControls } from "@/components/browser-ui/sidebar/action-buttons";
-import { onToggleSidebar, openSettings, setWindowButtonPosition } from "@/lib/flow";
-import { setWindowButtonVisibility } from "@/lib/flow";
 import { CollapseMode, SidebarVariant, SidebarSide } from "@/components/browser-ui/main";
-import { SidebarAddressBar } from "@/components/browser-ui/sidebar/address-bar";
-import { HomeIcon, PlusIcon, SettingsIcon } from "lucide-react";
+import { PlusIcon, SettingsIcon } from "lucide-react";
+import { SidebarSpacesSwitcher } from "@/components/browser-ui/sidebar/spaces-switcher";
 
 type BrowserSidebarProps = {
   collapseMode: CollapseMode;
@@ -31,14 +27,14 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
   const { open, toggleSidebar } = useSidebar();
 
   useEffect(() => {
-    setWindowButtonVisibility(open);
+    flow.interface.setWindowButtonVisibility(open);
   }, [open]);
 
   // This is to ensure a stable value for the effect.
   const toggleSidebarRef = useRef(toggleSidebar);
   toggleSidebarRef.current = toggleSidebar;
   useEffect(() => {
-    const removeListener = onToggleSidebar(() => {
+    const removeListener = flow.interface.onToggleSidebar(() => {
       toggleSidebarRef.current();
     });
     return () => {
@@ -50,7 +46,7 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
     const titlebar = titlebarRef.current;
     if (titlebar) {
       const titlebarBounds = titlebar.getBoundingClientRect();
-      setWindowButtonPosition({
+      flow.interface.setWindowButtonPosition({
         x: titlebarBounds.x,
         y: titlebarBounds.y
       });
@@ -62,7 +58,7 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
       side={side}
       variant={variant}
       collapsible={collapseMode}
-      className={cn("select-none", open && "!border-0", variant === "floating" && "bg-sidebar")}
+      className={cn("select-none *:bg-background/50", open && "!border-0", variant === "floating" && "bg-sidebar")}
     >
       <SidebarHeader>
         {open && (
@@ -71,31 +67,19 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
             className="platform-darwin:h-[calc(env(titlebar-area-y)+env(titlebar-area-height)+1px-1.5rem)] w-full app-drag"
           />
         )}
-        <NavigationControls />
-        <SidebarAddressBar />
       </SidebarHeader>
-      <SidebarContent>
-        <SidebarTabs />
-      </SidebarContent>
+      <SidebarContent></SidebarContent>
       <SidebarFooter>
         {open && (
           <SidebarMenu className="flex flex-row justify-between">
             {/* Left Side Buttons */}
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={openSettings}>
+              <SidebarMenuButton onClick={() => flow.settings.open()}>
                 <SettingsIcon />
               </SidebarMenuButton>
             </SidebarMenuItem>
             {/* Middle (Spaces) */}
-            {/* Spaces not yet released */}
-            {/* eslint-disable-next-line no-constant-binary-expression */}
-            {false && (
-              <SidebarMenuItem className="flex flex-row gap-2">
-                <SidebarMenuButton>
-                  <HomeIcon />
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
+            <SidebarSpacesSwitcher />
             {/* Right Side Buttons */}
             <SidebarMenuItem>
               <SidebarMenuButton disabled>

@@ -2,8 +2,8 @@ import { SelectItem } from "@/components/ui/select";
 import { SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
-import { getCurrentNewTabMode, NewTabMode, setCurrentNewTabMode } from "@/lib/flow";
 import { useEffect, useState } from "react";
+import { NewTabMode } from "@/lib/flow/interfaces/app/newTab";
 
 export function NewTabModeCard() {
   const [mode, setMode] = useState<NewTabMode>("omnibox");
@@ -13,7 +13,7 @@ export function NewTabModeCard() {
   useEffect(() => {
     const fetchMode = async () => {
       try {
-        const currentMode = await getCurrentNewTabMode();
+        const currentMode = await flow.newTab.getCurrentNewTabMode();
         setMode(currentMode);
       } catch (error) {
         console.error("Failed to fetch new tab mode:", error);
@@ -27,7 +27,7 @@ export function NewTabModeCard() {
   const handleModeChange = async (newMode: NewTabMode) => {
     setIsSaving(true);
     try {
-      await setCurrentNewTabMode(newMode);
+      await flow.newTab.setCurrentNewTabMode(newMode);
       setMode(newMode);
     } catch (error) {
       console.error("Failed to update new tab mode:", error);

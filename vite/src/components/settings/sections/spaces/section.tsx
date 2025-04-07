@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { createSpace, getSpaces, getProfiles } from "@/lib/flow";
-import type { Space, Profile } from "@/lib/flow";
 import { SpaceCard } from "./space-card";
 import { SpaceEditor } from "./space-editor";
 import { CreateSpaceDialog } from "./space-dialogs";
+import type { Space } from "@/lib/flow/interfaces/sessions/spaces";
+import type { Profile } from "@/lib/flow/interfaces/sessions/profiles";
 
 // ==============================
 // Main Spaces Settings Component
@@ -38,7 +38,10 @@ export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }:
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [fetchedProfiles, fetchedSpaces] = await Promise.all([getProfiles(), getSpaces()]);
+      const [fetchedProfiles, fetchedSpaces] = await Promise.all([
+        flow.profiles.getProfiles(),
+        flow.spaces.getSpaces()
+      ]);
       setProfiles(fetchedProfiles);
       setSpaces(fetchedSpaces);
 
@@ -93,7 +96,7 @@ export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }:
         icon: "Globe"
       };
 
-      const result = await createSpace(selectedProfile, spaceData.name);
+      const result = await flow.spaces.createSpace(selectedProfile, spaceData.name);
       console.log("Space creation result:", result);
 
       // Clear the form and close the dialog

@@ -1,16 +1,8 @@
-import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
-import {
-  createProfile,
-  deleteProfile,
-  getProfiles,
-  updateProfile,
-  getSpacesFromProfile,
-  createSpace
-} from "@/lib/flow";
-import type { Profile, Space } from "@/lib/flow";
+import type { Profile } from "@/lib/flow/interfaces/sessions/profiles";
+import type { Space } from "@/lib/flow/interfaces/sessions/spaces";
 import { Trash2, ArrowLeft, Settings, Globe, Save, Loader2, Plus, Box } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import { useEffect, useState } from "react";
 
 // ==============================
 // Profile Card Component
@@ -118,11 +111,10 @@ interface SpacesTabProps {
   profile: Profile;
   spaces: Space[];
   onRefreshSpaces: () => void;
-  navigateToSpaces?: (profileId: string) => void;
   navigateToSpace?: (profileId: string, spaceId: string) => void;
 }
 
-function SpacesTab({ profile, spaces, onRefreshSpaces, navigateToSpaces, navigateToSpace }: SpacesTabProps) {
+function SpacesTab({ profile, spaces, onRefreshSpaces, navigateToSpace }: SpacesTabProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -133,7 +125,7 @@ function SpacesTab({ profile, spaces, onRefreshSpaces, navigateToSpaces, navigat
 
     setIsCreating(true);
     try {
-      await createSpace(profile.id, newSpaceName);
+      await flow.spaces.createSpace(profile.id, newSpaceName);
       setNewSpaceName("");
       setCreateDialogOpen(false);
       onRefreshSpaces();
@@ -155,11 +147,6 @@ function SpacesTab({ profile, spaces, onRefreshSpaces, navigateToSpaces, navigat
           <Button onClick={() => setCreateDialogOpen(true)} size="sm" className="gap-1">
             <Plus className="h-4 w-4" /> New Space
           </Button>
-          {navigateToSpaces && (
-            <Button onClick={() => navigateToSpaces(profile.id)} size="sm" variant="outline" className="gap-1">
-              <Box className="h-4 w-4" /> View All Spaces
-            </Button>
-          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -281,10 +268,8 @@ function ProfileEditor({
   onClose,
   onDelete,
   onProfilesUpdate,
-  navigateToSpaces,
   navigateToSpace
 }: ProfileEditorProps & {
-  navigateToSpaces?: (profileId: string) => void;
   navigateToSpace?: (profileId: string, spaceId: string) => void;
 }) {
   // State management
@@ -301,7 +286,7 @@ function ProfileEditor({
   useEffect(() => {
     const checkProfileCount = async () => {
       try {
-        const allProfiles = await getProfiles();
+        const allProfiles = await flow.profiles.getProfiles();
         setIsLastProfile(allProfiles.length <= 1);
       } catch (error) {
         console.error("Failed to check profile count:", error);
@@ -316,7 +301,7 @@ function ProfileEditor({
     const fetchSpaces = async () => {
       setLoadingSpaces(true);
       try {
-        const profileSpaces = await getSpacesFromProfile(profile.id);
+        const profileSpaces = await flow.spaces.getSpacesFromProfile(profile.id);
         setSpaces(profileSpaces);
       } catch (error) {
         console.error("Failed to fetch spaces:", error);
@@ -331,7 +316,7 @@ function ProfileEditor({
   const refreshSpaces = async () => {
     setLoadingSpaces(true);
     try {
-      const profileSpaces = await getSpacesFromProfile(profile.id);
+      const profileSpaces = await flow.spaces.getSpacesFromProfile(profile.id);
       setSpaces(profileSpaces);
     } catch (error) {
       console.error("Failed to refresh spaces:", error);
@@ -352,7 +337,7 @@ function ProfileEditor({
 
       if (Object.keys(updatedFields).length > 0) {
         console.log("Updating profile:", profile.id, updatedFields);
-        await updateProfile(profile.id, updatedFields);
+        await flow.profiles.updateProfile(profile.id, updatedFields);
         onProfilesUpdate(); // Refetch profiles after successful update
       }
       onClose();
@@ -367,7 +352,7 @@ function ProfileEditor({
   const handleDeleteConfirm = async () => {
     setIsDeleting(true);
     try {
-      await deleteProfile(profile.id);
+      await flow.profiles.deleteProfile(profile.id);
       onDelete();
       onClose();
     } catch (error) {
@@ -475,7 +460,6 @@ function ProfileEditor({
                   profile={profile}
                   spaces={spaces}
                   onRefreshSpaces={refreshSpaces}
-                  navigateToSpaces={navigateToSpaces}
                   navigateToSpace={navigateToSpace}
                 />
               )}
@@ -590,7 +574,7 @@ export function ProfilesSettings({ navigateToSpaces, navigateToSpace }: Profiles
   const fetchProfiles = async () => {
     setIsLoading(true);
     try {
-      const fetchedProfiles = await getProfiles();
+      const fetchedProfiles = await flow.profiles.getProfiles();
       setProfiles(fetchedProfiles);
     } catch (error) {
       console.error("Failed to fetch profiles:", error);
@@ -617,7 +601,7 @@ export function ProfilesSettings({ navigateToSpaces, navigateToSpace }: Profiles
 
     setIsCreating(true);
     try {
-      const result = await createProfile(newProfileName);
+      const result = await flow.profiles.createProfile(newProfileName);
       console.log("Profile creation result:", result);
 
       // Clear the form and close the dialog

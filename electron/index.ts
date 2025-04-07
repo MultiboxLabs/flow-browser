@@ -1,6 +1,8 @@
 import { app, ipcMain, Menu, MenuItem } from "electron";
 import { Browser } from "@/browser/browser";
 import { updateElectronApp, UpdateSourceType } from "update-electron-app";
+import "@/ipc/main";
+import "@/settings/main";
 
 export let browser: Browser | null = null;
 
@@ -58,50 +60,6 @@ function setupMacOSDock(browser: Browser) {
   });
 }
 
-function setupIPCHandlers(browser: Browser) {
-  ipcMain.on("navigation:stop-loading-tab", (event, tabId: number) => {
-    const webContents = event.sender;
-    const window = browser.getWindowFromWebContents(webContents);
-    if (!window) return;
-
-    const tab = window.tabs.get(tabId);
-    if (!tab) return;
-
-    tab.webContents?.stop();
-  });
-
-  ipcMain.handle("navigation:get-tab-status", async (event, tabId: number) => {
-    const webContents = event.sender;
-    const window = browser.getWindowFromWebContents(webContents);
-    if (!window) return null;
-
-    const tab = window.tabs.get(tabId);
-    if (!tab) return null;
-
-    const tabWebContents = tab.webContents;
-    const navigationHistory = tabWebContents?.navigationHistory;
-    if (!navigationHistory) return null;
-
-    return {
-      navigationHistory: navigationHistory.getAllEntries(),
-      activeIndex: navigationHistory.getActiveIndex(),
-      canGoBack: navigationHistory.canGoBack(),
-      canGoForward: navigationHistory.canGoForward()
-    };
-  });
-
-  ipcMain.on("navigation:go-to-entry", (event, tabId: number, index: number) => {
-    const webContents = event.sender;
-    const window = browser.getWindowFromWebContents(webContents);
-    if (!window) return;
-
-    const tab = window.tabs.get(tabId);
-    if (!tab) return;
-
-    return tab.webContents?.navigationHistory?.goToIndex(index);
-  });
-}
-
 function printHeader() {
   if (!app.isPackaged) {
     console.log("\n".repeat(75));
@@ -146,13 +104,10 @@ function initializeApp() {
     } else {
       const window = browser.getWindows()[0];
       if (window) {
-        window.getBrowserWindow().focus();
+        window.window.focus();
       }
     }
   });
-
-  // Setup IPC handlers
-  setupIPCHandlers(browser);
 
   // Setup auto update
   setupAutoUpdate();

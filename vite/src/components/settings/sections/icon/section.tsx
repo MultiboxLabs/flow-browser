@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "motion/react";
-import { getIcons, getCurrentIcon, setCurrentIcon, isPlatformSupportedForIcon } from "@/lib/flow";
 
 interface IconOption {
   id: string;
@@ -24,7 +23,7 @@ export function IconSettings() {
       setIsLoading(true);
       try {
         // Check if platform supports icon customization
-        const supported = await isPlatformSupportedForIcon();
+        const supported = await flow.app.isPlatformSupportedForIcon();
         setIsSupported(supported);
 
         if (!supported) {
@@ -33,7 +32,7 @@ export function IconSettings() {
         }
 
         // Fetch both icons and current icon in parallel
-        const [icons, currentIconId] = await Promise.all([getIcons(), getCurrentIcon()]);
+        const [icons, currentIconId] = await Promise.all([flow.app.getIcons(), flow.app.getCurrentIcon()]);
 
         setSelectedIcon(currentIconId);
 
@@ -64,7 +63,7 @@ export function IconSettings() {
 
     setIsUpdating(true);
     try {
-      const success = await setCurrentIcon(iconId);
+      const success = await flow.app.setCurrentIcon(iconId);
       if (success) {
         setSelectedIcon(iconId);
 
