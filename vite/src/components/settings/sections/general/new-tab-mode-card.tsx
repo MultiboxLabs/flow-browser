@@ -48,7 +48,7 @@ export function NewTabModeCard() {
             <SelectValue placeholder={isLoading ? "Loading..." : "Select new tab mode"} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="omnibox">Popup Box</SelectItem>
+            <SelectItem value="omnibox">Command Palette</SelectItem>
             <SelectItem value="tab">Page</SelectItem>
           </SelectContent>
         </Select>
