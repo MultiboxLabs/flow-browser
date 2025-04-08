@@ -20,7 +20,7 @@ function InternalBrowserUI() {
       <SidebarInset className="bg-transparent">
         <div
           className={cn(
-            "bg-sidebar/50 flex-1 flex p-3 platform-win32:pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))] app-drag"
+            "flex-1 flex p-3 platform-win32:pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))] app-drag"
           )}
         >
           {/* Topbar */}
@@ -61,10 +61,12 @@ function InternalBrowserUI() {
 
 export function BrowserUI() {
   return (
-    <SidebarProvider>
-      <SpacesProvider>
-        <InternalBrowserUI />
-      </SpacesProvider>
-    </SidebarProvider>
+    <div className="w-screen h-screen bg-gradient-to-br from-space-background-start/50 to-space-background-end/50">
+      <SidebarProvider>
+        <SpacesProvider>
+          <InternalBrowserUI />
+        </SpacesProvider>
+      </SidebarProvider>
+    </div>
   );
 }

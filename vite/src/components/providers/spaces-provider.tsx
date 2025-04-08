@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { Space } from "../../lib/flow/interfaces/sessions/spaces";
+import { hexToOKLCHString } from "@/lib/colors";
 
 interface SpacesContextValue {
   spaces: Space[];
@@ -75,6 +76,9 @@ export const SpacesProvider = ({ children }: SpacesProviderProps) => {
     fetchSpaces();
   }, [fetchSpaces]);
 
+  const bgStart = hexToOKLCHString(currentSpace?.bgStartColor || "#000000");
+  const bgEnd = hexToOKLCHString(currentSpace?.bgEndColor || "#000000");
+
   return (
     <SpacesContext.Provider
       value={{
@@ -89,7 +93,8 @@ export const SpacesProvider = ({ children }: SpacesProviderProps) => {
         {currentSpace
           ? `
           :root {
-            --space-background: linear-gradient(135deg, ${currentSpace.bgStartColor}, ${currentSpace.bgEndColor});
+            --space-background-start: ${bgStart};
+            --space-background-end: ${bgEnd};
           }
         `
           : ""}

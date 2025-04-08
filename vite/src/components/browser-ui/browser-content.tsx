@@ -1,6 +1,7 @@
 import { memo, useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { PageBounds } from "@/lib/flow/types";
+import { cn } from "@/lib/utils";
 
 const DEBUG_SHOW_BOUNDS = false;
 
@@ -57,7 +58,10 @@ function BrowserContent() {
   return (
     <div
       ref={containerRef}
-      className="flex-1 bg-background/50 text-foreground border-t border-border relative rounded-lg shadow-md shadow-black/10 ring-1 ring-black/5 remove-app-drag"
+      className={cn(
+        "flex-1 -foreground border-t border-border relative rounded-lg shadow-md shadow-black/10 ring-1 ring-black/5 remove-app-drag",
+        "bg-white/5"
+      )}
     >
       {DEBUG_SHOW_BOUNDS && (
         <div className="absolute top-2 right-2 z-50 text-xs text-muted-foreground bg-background/80 p-1 rounded">
