@@ -48,4 +48,9 @@ export interface FlowSpacesAPI {
    * Reorders the spaces
    */
   reorderSpaces: (orderMap: { profileId: string; spaceId: string; order: number }[]) => Promise<boolean>;
+
+  /**
+   * Listens for changes to the spaces
+   */
+  onSpacesChanged: (callback: () => void) => () => void;
 }

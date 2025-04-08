@@ -43,6 +43,15 @@ function getOSFromPlatform(platform: NodeJS.Platform) {
   }
 }
 
+function listenOnIPCChannel(channel: string, callback: () => void) {
+  const listener = ipcRenderer.on(channel, (_event) => {
+    callback();
+  });
+  return () => {
+    listener.removeListener(channel, callback);
+  };
+}
+
 // BROWSER API //
 const browserAPI = {
   loadProfile: async (profileId: string) => {
@@ -108,12 +117,7 @@ const interfaceAPI = {
   },
   onToggleSidebar: (callback: () => void) => {
     if (!canUseAPI.browser) return;
-    const listener = ipcRenderer.on("sidebar:toggle", (_event) => {
-      callback();
-    });
-    return () => {
-      listener.removeListener("sidebar:toggle", callback);
-    };
+    return listenOnIPCChannel("sidebar:on-toggle", callback);
   }
 };
 
@@ -170,6 +174,10 @@ const spacesAPI = {
   reorderSpaces: async (orderMap: { profileId: string; spaceId: string; order: number }[]) => {
     if (!canUseAPI.session) return;
     return ipcRenderer.invoke("spaces:reorder", orderMap);
+  },
+  onSpacesChanged: (callback: () => void) => {
+    if (!canUseAPI.session) return;
+    return listenOnIPCChannel("spaces:on-changed", callback);
   }
 };
 

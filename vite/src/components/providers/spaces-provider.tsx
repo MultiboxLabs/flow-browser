@@ -84,6 +84,13 @@ export const SpacesProvider = ({ children }: SpacesProviderProps) => {
   const bgStart = hexToOKLCHString(currentSpace?.bgStartColor || "#000000");
   const bgEnd = hexToOKLCHString(currentSpace?.bgEndColor || "#000000");
 
+  useEffect(() => {
+    const unsub = flow.spaces.onSpacesChanged(() => {
+      revalidate();
+    });
+    return unsub;
+  }, [revalidate]);
+
   return (
     <SpacesContext.Provider
       value={{

@@ -5,6 +5,7 @@ import { DataStoreData, getDatastore } from "@/saving/datastore";
 import z from "zod";
 import { debugError } from "@/modules/output";
 import { getProfile, getProfiles, ProfileData } from "@/sessions/profiles";
+import { fireOnSpacesChanged } from "@/ipc/session/spaces";
 
 const SPACES_DIR = path.join(FLOW_DATA_DIR, "Spaces");
 
@@ -40,6 +41,10 @@ function reconcileSpaceData(spaceId: string, profileId: string, data: DataStoreD
     lastUsed: data.lastUsed ?? 0,
     order: data.order ?? 999
   };
+}
+
+function onSpacesChanged() {
+  fireOnSpacesChanged();
 }
 
 // Utilities
@@ -115,6 +120,7 @@ export async function createSpace(profileId: string, spaceId: string, spaceName:
     await spaceStore.set("profileId", profileId);
     await spaceStore.set("order", order);
 
+    onSpacesChanged();
     return true;
   } catch (error) {
     debugError("PROFILES", `Error creating space ${spaceId}:`, error);
@@ -141,6 +147,7 @@ export async function updateSpace(profileId: string, spaceId: string, spaceData:
 
     // Space order must be updated with updateSpaceOrder() / reorderSpaces()
 
+    onSpacesChanged();
     return true;
   } catch (error) {
     debugError("PROFILES", `Error updating space ${spaceId}:`, error);
@@ -158,6 +165,7 @@ export async function deleteSpace(profileId: string, spaceId: string) {
     const spaceStore = getSpaceDataStore(profileId, spaceId);
     await spaceStore.wipe();
 
+    onSpacesChanged();
     return true;
   } catch (error) {
     debugError("PROFILES", `Error deleting space ${spaceId}:`, error);
@@ -253,6 +261,7 @@ export async function updateSpaceOrder(profileId: string, spaceId: string, order
   try {
     const spaceStore = getSpaceDataStore(profileId, spaceId);
     await spaceStore.set("order", order);
+    onSpacesChanged();
     return true;
   } catch (error) {
     debugError("PROFILES", `Error updating order for space ${spaceId}:`, error);
@@ -268,6 +277,7 @@ export async function reorderSpaces(orderMap: { profileId: string; spaceId: stri
     });
 
     await Promise.all(updatePromises);
+    onSpacesChanged();
     return true;
   } catch (error) {
     debugError("PROFILES", "Error reordering spaces:", error);

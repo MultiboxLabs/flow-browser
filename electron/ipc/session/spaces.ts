@@ -1,4 +1,4 @@
-import { ipcMain } from "electron";
+import { ipcMain, webContents } from "electron";
 import {
   getSpaces,
   getSpacesFromProfile,
@@ -49,3 +49,10 @@ ipcMain.handle("spaces:get-last-used", async (event) => {
 ipcMain.handle("spaces:reorder", async (event, orderMap: { profileId: string; spaceId: string; order: number }[]) => {
   return await reorderSpaces(orderMap);
 });
+
+export function fireOnSpacesChanged() {
+  const contents = webContents.getAllWebContents();
+  for (const content of contents) {
+    content.send("spaces:on-changed");
+  }
+}
