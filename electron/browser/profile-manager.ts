@@ -1,4 +1,4 @@
-import { Session } from "electron";
+import { app, Session } from "electron";
 import { getSession } from "@/browser/sessions";
 import { TabManager } from "@/browser/tabs";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
@@ -7,6 +7,7 @@ import { BrowserEvents } from "@/browser/events";
 import { Browser } from "@/browser/browser";
 import { Tab } from "@/browser/tab";
 import { getSpacesFromProfile } from "@/sessions/spaces";
+import { FLAGS } from "@/modules/flags";
 
 /**
  * Represents a loaded browser profile
@@ -65,6 +66,15 @@ export class ProfileManager {
 
       const profileSession = getSession(profileId);
       const tabs = new TabManager(this.browser, profileId, profileSession);
+
+      // Remove Electron and App details to closer emulate Chrome's UA
+      if (FLAGS.SCRUBBED_USER_AGENT) {
+        const userAgent = profileSession
+          .getUserAgent()
+          .replace(/\sElectron\/\S+/, "")
+          .replace(new RegExp(`\\s${app.getName()}/\\S+`, "i"), "");
+        profileSession.setUserAgent(userAgent);
+      }
 
       // Test Code
       getSpacesFromProfile(profileId).then((spaces) => {
