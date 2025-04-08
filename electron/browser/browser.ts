@@ -17,7 +17,6 @@ import { Tab } from "@/browser/tab";
 export class Browser extends TypedEventEmitter<BrowserEvents> {
   private readonly profileManager: ProfileManager;
   private readonly windowManager: WindowManager;
-  private firstWindowLoaded: boolean = false;
   private _isDestroyed: boolean = false;
 
   /**
@@ -53,13 +52,6 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
   public async loadProfile(profileId: string): Promise<boolean> {
     try {
       const result = await this.profileManager.loadProfile(profileId);
-
-      // Create first window if this is the first profile loaded
-      if (result && !this.firstWindowLoaded) {
-        this.firstWindowLoaded = true;
-        await this.createWindow();
-      }
-
       return result;
     } catch (error) {
       return false;

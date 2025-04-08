@@ -9,6 +9,10 @@ protocolModule.registerSchemesAsPrivileged([
   {
     scheme: "flow-internal",
     privileges: { standard: true, secure: true, bypassCSP: true, codeCache: true, supportFetchAPI: true }
+  },
+  {
+    scheme: "flow-utility",
+    privileges: { standard: true, secure: true, bypassCSP: true, codeCache: true, supportFetchAPI: true }
   }
 ]);
 
@@ -77,56 +81,6 @@ export function registerFlowInternalProtocol(protocol: Protocol) {
     }
   };
 
-  const handleFaviconRequest = async (request: Request, url: URL) => {
-    const targetUrl = url.searchParams.get("url");
-    if (!targetUrl) {
-      return new Response("No URL provided", { status: 400 });
-    }
-
-    const normalizedTargetUrl = normalizeURL(targetUrl);
-
-    const favicon = await getFavicon(normalizedTargetUrl);
-    if (!favicon) {
-      return new Response("No favicon found", { status: 404 });
-    }
-
-    return new Response(favicon, {
-      headers: { "Content-Type": "image/png" }
-    });
-  };
-
-  const handleAssetRequest = async (request: Request, url: URL) => {
-    const assetPath = url.pathname;
-
-    // Normalize the path to prevent directory traversal attacks
-    const normalizedPath = path.normalize(assetPath).replace(/^(\.\.(\/|\\|$))+/, "");
-
-    const filePath = path.join(PATHS.ASSETS, "public", normalizedPath);
-
-    // Ensure the requested path is within the allowed directory
-    const assetsDir = path.normalize(path.join(PATHS.ASSETS, "public"));
-    if (!path.normalize(filePath).startsWith(assetsDir)) {
-      return new Response("Access denied", { status: 403 });
-    }
-
-    try {
-      // Read file contents
-      const buffer = await fsPromises.readFile(filePath);
-
-      // Determine content type based on file extension
-      const contentType = getContentType(filePath);
-
-      return new Response(buffer, {
-        headers: {
-          "Content-Type": contentType
-        }
-      });
-    } catch (error) {
-      console.error("Error serving asset:", error);
-      return new Response("Asset not found", { status: 404 });
-    }
-  };
-
   protocol.handle("flow-internal", async (request) => {
     const urlString = request.url;
 
@@ -142,7 +96,7 @@ export function registerFlowInternalProtocol(protocol: Protocol) {
 }
 
 function registerFlowUtilityProtocol(protocol: Protocol) {
-  const FLOW_UTILITY_ALLOWED_DIRECTORIES = ["error", "settings"];
+  const FLOW_UTILITY_ALLOWED_DIRECTORIES = ["error"];
 
   const handlePageRequest = async (request: Request, url: URL) => {
     const queryString = url.search;
@@ -287,6 +241,7 @@ export function registerProtocolsWithSession(session: Session) {
 
 app.whenReady().then(() => {
   const defaultSession = session.defaultSession;
+
   registerProtocolsWithSession(defaultSession);
   registerFlowInternalProtocol(defaultSession.protocol);
 

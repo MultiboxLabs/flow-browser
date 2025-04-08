@@ -22,7 +22,6 @@ Creates a new Browser instance and initializes the window and profile managers. 
 
 - `profileManager`: Manages browser profiles
 - `windowManager`: Manages browser windows
-- `firstWindowLoaded`: Tracks if the first window has been loaded
 - `_isDestroyed`: Indicates if the browser has been destroyed
 
 ## Profile Management Methods
@@ -193,12 +192,30 @@ Cleans up and destroys the browser instance. This method:
 
 - Destroys all windows
 - Unloads all profiles
-- Emits a "destroy" event
+- Marks as destroyed and emits a "destroy" event
 - Cleans up the event emitter
 
 **Throws:**
 
 - Error if the browser has already been destroyed
+
+## Tab Management
+
+### getTabFromId
+
+```typescript
+getTabFromId(tabId: number): Tab | undefined
+```
+
+Retrieves a tab by its ID.
+
+**Parameters:**
+
+- `tabId`: The ID of the tab to retrieve
+
+**Returns:**
+
+- The Tab if found, undefined otherwise
 
 ## Events
 

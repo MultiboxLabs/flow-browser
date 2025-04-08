@@ -52,7 +52,7 @@ function BrowserContent() {
   };
 
   useEffect(() => {
-    flow.interface.setPageBounds(dimensions);
+    flow.page.setPageBounds(dimensions);
   }, [dimensions]);
 
   return (

@@ -9,13 +9,19 @@ import { injectBrowserAction } from "electron-chrome-extensions/browser-action";
 import { SpaceData } from "@/sessions/spaces";
 
 // API CHECKS //
-const isBrowserUI = location.protocol === "flow-internal:" && location.pathname === "/main/"; // location.protocol === "chrome-extension:" && location.pathname === "/main/index.html";
-const isOmniboxUI = location.protocol === "chrome-extension:" && location.pathname === "/omnibox/index.html";
-const isSettingsUI = location.protocol === "flow-utility:" && location.pathname === "/settings/";
+const isInternalUI = location.protocol === "flow-internal:";
+const isUtilityUI = location.protocol === "flow-utility:";
 
-const canUseInterfaceAPI = isBrowserUI;
-const canUseOmniboxAPI = isBrowserUI || isOmniboxUI;
-const canUseSettingsAPI = isBrowserUI || isSettingsUI;
+const isBrowserUI = isInternalUI && location.pathname === "/main/";
+const isOmniboxUI = isInternalUI && location.pathname === "/omnibox/";
+const isSettingsUI = isInternalUI && location.pathname === "/settings/";
+
+const canUseAPI = {
+  browser: isBrowserUI,
+  session: isBrowserUI || isSettingsUI,
+  app: isBrowserUI || isSettingsUI,
+  window: isBrowserUI || isSettingsUI
+};
 
 // BROWSER ACTION //
 // Inject <browser-action-list> element into WebUI
@@ -37,51 +43,26 @@ function getOSFromPlatform(platform: NodeJS.Platform) {
   }
 }
 
-// INTERFACE API //
-const interfaceAPI = {
-  setPageBounds: (bounds: { x: number; y: number; width: number; height: number }) => {
-    if (!canUseInterfaceAPI) return;
-    return ipcRenderer.send("page:set-bounds", bounds);
+// BROWSER API //
+const browserAPI = {
+  loadProfile: async (profileId: string) => {
+    if (!canUseAPI.browser) return;
+    return ipcRenderer.send("browser:load-profile", profileId);
   },
-  setWindowButtonPosition: (position: { x: number; y: number }) => {
-    if (!canUseInterfaceAPI) return;
-    return ipcRenderer.send("window-button:set-position", position);
-  },
-  setWindowButtonVisibility: (visible: boolean) => {
-    if (!canUseInterfaceAPI) return;
-    return ipcRenderer.send("window-button:set-visibility", visible);
-  },
-  getTabNavigationStatus: (tabId: number) => {
-    if (!canUseInterfaceAPI) return;
-    return ipcRenderer.invoke("navigation:get-tab-status", tabId);
-  },
-  stopLoadingTab: (tabId: number) => {
-    if (!canUseInterfaceAPI) return;
-    return ipcRenderer.send("navigation:stop-loading-tab", tabId);
-  },
-  goToNavigationEntry: (tabId: number, index: number) => {
-    if (!canUseInterfaceAPI) return;
-    return ipcRenderer.send("navigation:go-to-entry", tabId, index);
-  },
-  onToggleSidebar: (callback: () => void) => {
-    if (!canUseInterfaceAPI) return;
-    const listener = ipcRenderer.on("sidebar:toggle", (_event) => {
-      callback();
-    });
-    return () => {
-      listener.removeListener("sidebar:toggle", callback);
-    };
+  unloadProfile: async (profileId: string) => {
+    if (!canUseAPI.browser) return;
+    return ipcRenderer.send("browser:unload-profile", profileId);
   }
 };
 
 // TABS API //
 const tabsAPI = {
   getData: async () => {
-    if (!canUseInterfaceAPI) return;
+    if (!canUseAPI.browser) return;
     return ipcRenderer.invoke("tabs:get-data");
   },
   onDataUpdated: (callback: (data: any) => void) => {
-    if (!canUseInterfaceAPI) return;
+    if (!canUseAPI.browser) return;
     const listener = ipcRenderer.on("tabs:on-data-updated", (_event, data) => {
       callback(data);
     });
@@ -91,22 +72,67 @@ const tabsAPI = {
   }
 };
 
+// PAGE API //
+const pageAPI = {
+  setPageBounds: (bounds: { x: number; y: number; width: number; height: number }) => {
+    if (!canUseAPI.browser) return;
+    return ipcRenderer.send("page:set-bounds", bounds);
+  }
+};
+
+// NAVIGATION API //
+const navigationAPI = {
+  getTabNavigationStatus: (tabId: number) => {
+    if (!canUseAPI.browser) return;
+    return ipcRenderer.invoke("navigation:get-tab-status", tabId);
+  },
+  stopLoadingTab: (tabId: number) => {
+    if (!canUseAPI.browser) return;
+    return ipcRenderer.send("navigation:stop-loading-tab", tabId);
+  },
+  goToNavigationEntry: (tabId: number, index: number) => {
+    if (!canUseAPI.browser) return;
+    return ipcRenderer.send("navigation:go-to-entry", tabId, index);
+  }
+};
+
+// INTERFACE API //
+const interfaceAPI = {
+  setWindowButtonPosition: (position: { x: number; y: number }) => {
+    if (!canUseAPI.browser) return;
+    return ipcRenderer.send("window-button:set-position", position);
+  },
+  setWindowButtonVisibility: (visible: boolean) => {
+    if (!canUseAPI.browser) return;
+    return ipcRenderer.send("window-button:set-visibility", visible);
+  },
+  onToggleSidebar: (callback: () => void) => {
+    if (!canUseAPI.browser) return;
+    const listener = ipcRenderer.on("sidebar:toggle", (_event) => {
+      callback();
+    });
+    return () => {
+      listener.removeListener("sidebar:toggle", callback);
+    };
+  }
+};
+
 // PROFILES API //
 const profilesAPI = {
   getProfiles: async () => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.session) return;
     return ipcRenderer.invoke("profiles:get-all");
   },
   createProfile: async (profileName: string) => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.session) return;
     return ipcRenderer.invoke("profiles:create", profileName);
   },
   updateProfile: async (profileId: string, profileData: Partial<ProfileData>) => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.session) return;
     return ipcRenderer.invoke("profiles:update", profileId, profileData);
   },
   deleteProfile: async (profileId: string) => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.session) return;
     return ipcRenderer.invoke("profiles:delete", profileId);
   }
 };
@@ -114,31 +140,31 @@ const profilesAPI = {
 // SPACES API //
 const spacesAPI = {
   getSpaces: async () => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.session) return;
     return ipcRenderer.invoke("spaces:get-all");
   },
   getSpacesFromProfile: async (profileId: string) => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.session) return;
     return ipcRenderer.invoke("spaces:get-from-profile", profileId);
   },
   createSpace: async (profileId: string, spaceName: string) => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.session) return;
     return ipcRenderer.invoke("spaces:create", profileId, spaceName);
   },
   deleteSpace: async (profileId: string, spaceId: string) => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.session) return;
     return ipcRenderer.invoke("spaces:delete", profileId, spaceId);
   },
   updateSpace: async (profileId: string, spaceId: string, spaceData: Partial<SpaceData>) => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.session) return;
     return ipcRenderer.invoke("spaces:update", profileId, spaceId, spaceData);
   },
   setUsingSpace: async (profileId: string, spaceId: string) => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.session) return;
     return ipcRenderer.invoke("spaces:set-using", profileId, spaceId);
   },
   getLastUsedSpace: async () => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.session) return;
     return ipcRenderer.invoke("spaces:get-last-used");
   }
 };
@@ -146,7 +172,7 @@ const spacesAPI = {
 // APP API //
 const appAPI = {
   getAppInfo: async () => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.app) return;
 
     const appInfo: {
       version: string;
@@ -167,25 +193,27 @@ const appAPI = {
     };
   },
   getPlatform: () => {
-    if (!canUseInterfaceAPI) return;
+    if (!canUseAPI.app) return;
     return process.platform;
-  },
+  }
+};
 
-  // Icons
+// ICONS API //
+const iconsAPI = {
   getIcons: async () => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.app) return;
     return ipcRenderer.invoke("icons:get-all");
   },
-  isPlatformSupportedForIcon: async () => {
-    if (!canUseSettingsAPI) return;
+  isPlatformSupported: async () => {
+    if (!canUseAPI.app) return;
     return ipcRenderer.invoke("icons:is-platform-supported");
   },
   getCurrentIcon: async () => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.app) return;
     return ipcRenderer.invoke("icons:get-current-icon-id");
   },
   setCurrentIcon: async (iconId: string) => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.app) return;
     return ipcRenderer.invoke("icons:set-current-icon-id", iconId);
   }
 };
@@ -193,11 +221,11 @@ const appAPI = {
 // NEW TAB API //
 const newTabAPI = {
   getCurrentNewTabMode: async () => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.app) return;
     return ipcRenderer.invoke("new-tab-mode:get");
   },
   setCurrentNewTabMode: async (newTabMode: NewTabMode) => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.app) return;
     return ipcRenderer.invoke("new-tab-mode:set", newTabMode);
   }
 };
@@ -205,11 +233,11 @@ const newTabAPI = {
 // OMNIBOX API //
 const omniboxAPI = {
   show: (bounds: Electron.Rectangle | null, params: { [key: string]: string } | null) => {
-    if (!canUseOmniboxAPI) return;
+    if (!canUseAPI.window) return;
     return ipcRenderer.send("omnibox:show", bounds, params);
   },
   hide: () => {
-    if (!canUseOmniboxAPI) return;
+    if (!canUseAPI.window) return;
     return ipcRenderer.send("omnibox:hide");
   }
 };
@@ -217,20 +245,23 @@ const omniboxAPI = {
 // SETTINGS API //
 const settingsAPI = {
   open: () => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.window) return;
     return ipcRenderer.send("settings:open");
   },
   close: () => {
-    if (!canUseSettingsAPI) return;
+    if (!canUseAPI.window) return;
     return ipcRenderer.send("settings:close");
   }
 };
 
 // EXPOSE FLOW API //
 contextBridge.exposeInMainWorld("flow", {
-  // Interface APIs
-  interface: interfaceAPI,
+  // Browser APIs
+  browser: browserAPI,
   tabs: tabsAPI,
+  page: pageAPI,
+  navigation: navigationAPI,
+  interface: interfaceAPI,
 
   // Session APIs
   profiles: profilesAPI,
@@ -238,6 +269,7 @@ contextBridge.exposeInMainWorld("flow", {
 
   // App APIs
   app: appAPI,
+  icons: iconsAPI,
   newTab: newTabAPI,
 
   // Windows APIs

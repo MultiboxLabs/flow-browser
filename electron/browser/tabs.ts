@@ -1,6 +1,6 @@
 import { Browser } from "@/browser/browser";
 import { Tab } from "@/browser/tab";
-import { PageBoundsWithWindow } from "@/ipc/page";
+import { PageBoundsWithWindow } from "@/ipc/browser/page";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getLastUsedSpaceFromProfile } from "@/sessions/spaces";
 import { Session } from "electron";

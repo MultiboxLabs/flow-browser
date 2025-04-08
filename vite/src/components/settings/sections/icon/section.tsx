@@ -23,7 +23,7 @@ export function IconSettings() {
       setIsLoading(true);
       try {
         // Check if platform supports icon customization
-        const supported = await flow.app.isPlatformSupportedForIcon();
+        const supported = await flow.icons.isPlatformSupported();
         setIsSupported(supported);
 
         if (!supported) {
@@ -32,7 +32,7 @@ export function IconSettings() {
         }
 
         // Fetch both icons and current icon in parallel
-        const [icons, currentIconId] = await Promise.all([flow.app.getIcons(), flow.app.getCurrentIcon()]);
+        const [icons, currentIconId] = await Promise.all([flow.icons.getIcons(), flow.icons.getCurrentIcon()]);
 
         setSelectedIcon(currentIconId);
 
@@ -63,7 +63,7 @@ export function IconSettings() {
 
     setIsUpdating(true);
     try {
-      const success = await flow.app.setCurrentIcon(iconId);
+      const success = await flow.icons.setCurrentIcon(iconId);
       if (success) {
         setSelectedIcon(iconId);
 

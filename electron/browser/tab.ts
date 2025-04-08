@@ -1,5 +1,5 @@
 import { TabManager } from "@/browser/tabs";
-import { PageBoundsWithWindow } from "@/ipc/page";
+import { PageBoundsWithWindow } from "@/ipc/browser/page";
 import { cacheFavicon } from "@/modules/favicons";
 import { FLAGS } from "@/modules/flags";
 import { BrowserWindow, Session, WebContents, WebContentsView } from "electron";

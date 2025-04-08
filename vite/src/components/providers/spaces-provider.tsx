@@ -76,6 +76,11 @@ export const SpacesProvider = ({ children }: SpacesProviderProps) => {
     fetchSpaces();
   }, [fetchSpaces]);
 
+  useEffect(() => {
+    if (!currentSpace) return;
+    flow.browser.loadProfile(currentSpace.profileId);
+  }, [currentSpace]);
+
   const bgStart = hexToOKLCHString(currentSpace?.bgStartColor || "#000000");
   const bgEnd = hexToOKLCHString(currentSpace?.bgEndColor || "#000000");
 

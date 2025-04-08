@@ -61,7 +61,7 @@ function InternalBrowserUI() {
 
 export function BrowserUI() {
   return (
-    <div className="w-screen h-screen bg-gradient-to-br from-space-background-start/50 to-space-background-end/50">
+    <div className="w-screen h-screen bg-gradient-to-br from-space-background-start/50 to-space-background-end/50 transition-colors duration-300">
       <SidebarProvider>
         <SpacesProvider>
           <InternalBrowserUI />
