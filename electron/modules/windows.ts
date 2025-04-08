@@ -1,6 +1,6 @@
 import { type BrowserWindow } from "electron";
 import { browser } from "@/index";
-import { TabbedBrowserWindow } from "@/browser/tabbed-browser-window";
+import { TabbedBrowserWindow } from "@/browser/window";
 import { EventEmitter } from "events";
 
 export type WindowData = {
@@ -37,7 +37,7 @@ export function generateBrowserWindowData(win: TabbedBrowserWindow) {
   return {
     id: `browser-${win.id}`,
     type: WindowType.BROWSER,
-    window: win.getBrowserWindow(),
+    window: win.window,
     tabbedBrowserWindow: win
   };
 }
