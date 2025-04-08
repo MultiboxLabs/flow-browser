@@ -24,7 +24,6 @@ interface TabEvents {
   "tab-focused": [Tab];
   "tab-unfocused": [Tab];
   "tab-updated": [Tab];
-  "page-bounds-changed": [PageBoundsWithWindow];
 }
 
 interface TabActiveData {
@@ -44,12 +43,11 @@ export class TabManager extends TypedEventEmitter<TabEvents> {
   private readonly tabs: Map<number, Tab> = new Map();
   private extensions: ElectronChromeExtensions | null = null;
   private isDestroyed: boolean = false;
-  private readonly pageBounds: Map<number, PageBoundsWithWindow> = new Map();
 
   // Tab state tracking
   activeTabsMode: ActiveTabsMode = TabMode.Standard;
-  private readonly activeTabs: Map<number, TabShowMode> = new Map();
-  focusedTabId: number | null = null;
+  private activeTabsBySpace: Map<string, Map<number, TabShowMode>> = new Map();
+  private focusedTabBySpace: Map<string, number | null> = new Map();
 
   /**
    * Creates a new tab manager
@@ -60,24 +58,17 @@ export class TabManager extends TypedEventEmitter<TabEvents> {
     this.browser = browser;
     this.profileId = profileId;
     this.session = session;
-
-    // Listen for page-bounds-changed events
-    this.on("page-bounds-changed", this.handlePageBoundsChanged.bind(this));
   }
 
   /**
    * Handles changes to page bounds
    */
-  private handlePageBoundsChanged(bounds: PageBoundsWithWindow): void {
+  handlePageBoundsChanged(windowId: number): void {
     if (this.isDestroyed) return;
 
-    // Update the bounds for the specific window
-    const windowId = bounds.windowId;
-    if (windowId !== undefined) {
-      this.pageBounds.set(windowId, bounds);
-
-      // Update all active tabs in the affected window
-      for (const [tabId] of this.activeTabs.entries()) {
+    // Update all active tabs in the affected window
+    for (const activeTabsMap of this.activeTabsBySpace.values()) {
+      for (const [tabId] of activeTabsMap.entries()) {
         const tab = this.tabs.get(tabId);
         if (tab && tab.windowId === windowId) {
           tab.updateLayout();
@@ -131,14 +122,13 @@ export class TabManager extends TypedEventEmitter<TabEvents> {
 
     // Create and register tab
     try {
-      const tab = new Tab(
-        {
-          parentWindow: window.window,
-          spaceId,
-          webContentsViewOptions
-        },
-        this
-      );
+      const tab = new Tab({
+        browser: this.browser,
+        tabManager: this,
+        window,
+        spaceId,
+        webContentsViewOptions
+      });
 
       this.tabs.set(tab.id, tab);
       this.emit("tab-created", tab);
@@ -184,19 +174,35 @@ export class TabManager extends TypedEventEmitter<TabEvents> {
     this.activeTabsMode = mode;
 
     // Re-layout all active tabs according to new mode
-    for (const [tabId, showMode] of this.activeTabs.entries()) {
-      const tab = this.tabs.get(tabId);
-      if (tab) {
-        tab.updateLayout();
+    for (const activeTabsMap of this.activeTabsBySpace.values()) {
+      for (const [tabId, showMode] of activeTabsMap.entries()) {
+        const tab = this.tabs.get(tabId);
+        if (tab) {
+          tab.updateLayout();
+        }
       }
     }
+  }
+
+  /**
+   * Get active tabs map for a specific space
+   */
+  private getActiveTabsForSpace(spaceId: string): Map<number, TabShowMode> {
+    if (!this.activeTabsBySpace.has(spaceId)) {
+      this.activeTabsBySpace.set(spaceId, new Map());
+    }
+    return this.activeTabsBySpace.get(spaceId)!;
   }
 
   /**
    * Checks if a tab is currently active
    */
   isTabActive(tabId: number): boolean {
-    return this.activeTabs.has(tabId);
+    const tab = this.tabs.get(tabId);
+    if (!tab) return false;
+
+    const activeTabsForSpace = this.getActiveTabsForSpace(tab.spaceId);
+    return activeTabsForSpace.has(tabId);
   }
 
   /**
@@ -205,22 +211,23 @@ export class TabManager extends TypedEventEmitter<TabEvents> {
   focus(tabId: number): boolean {
     if (this.isDestroyed) return false;
 
-    if (this.focusedTabId === tabId) {
-      return true;
-    }
-
-    // Unfocus current tab if any
-    if (this.focusedTabId) {
-      this.unfocus(this.focusedTabId);
-    }
-
     const tab = this.tabs.get(tabId);
     if (!tab) {
       return false;
     }
 
+    const currentFocusedTab = this.focusedTabBySpace.get(tab.spaceId);
+    if (currentFocusedTab === tabId) {
+      return true;
+    }
+
+    // Unfocus current tab if any
+    if (currentFocusedTab) {
+      this.unfocus(currentFocusedTab);
+    }
+
     tab.focused = true;
-    this.focusedTabId = tabId;
+    this.focusedTabBySpace.set(tab.spaceId, tabId);
     this.emit("tab-focused", tab);
     return true;
   }
@@ -237,7 +244,10 @@ export class TabManager extends TypedEventEmitter<TabEvents> {
     }
 
     tab.focused = false;
-    this.focusedTabId = null;
+    const currentFocusedTab = this.focusedTabBySpace.get(tab.spaceId);
+    if (currentFocusedTab === tabId) {
+      this.focusedTabBySpace.set(tab.spaceId, null);
+    }
     this.emit("tab-unfocused", tab);
     return true;
   }
@@ -268,15 +278,17 @@ export class TabManager extends TypedEventEmitter<TabEvents> {
    * Handles selection in standard mode
    */
   private handleStandardModeSelection(tab: Tab): void {
-    // Hide all other tabs
-    for (const [tabId, _showMode] of this.activeTabs.entries()) {
+    const activeTabsForSpace = this.getActiveTabsForSpace(tab.spaceId);
+
+    // Hide all other tabs in the same space
+    for (const [tabId, _showMode] of activeTabsForSpace.entries()) {
       if (tabId !== tab.id) {
         this.deselect(tabId);
       }
     }
 
     // Show the selected tab
-    this.activeTabs.set(tab.id, TabMode.Standard);
+    activeTabsForSpace.set(tab.id, TabMode.Standard);
     tab.show(TabMode.Standard);
     tab.updateLayout();
 
@@ -320,19 +332,20 @@ export class TabManager extends TypedEventEmitter<TabEvents> {
       return false;
     }
 
-    const isActive = this.isTabActive(tabId);
-    if (!isActive) {
+    const activeTabsForSpace = this.getActiveTabsForSpace(tab.spaceId);
+    if (!activeTabsForSpace.has(tabId)) {
       return false;
     }
 
-    this.activeTabs.delete(tabId);
+    activeTabsForSpace.delete(tabId);
     tab.hide();
 
-    if (this.focusedTabId === tabId) {
+    const currentFocusedTab = this.focusedTabBySpace.get(tab.spaceId);
+    if (currentFocusedTab === tabId) {
       this.unfocus(tabId);
 
-      // Auto-focus another tab if available
-      const nextActiveTab = Array.from(this.activeTabs.keys())[0];
+      // Auto-focus another tab in the same space if available
+      const nextActiveTab = Array.from(activeTabsForSpace.keys())[0];
       if (nextActiveTab) {
         this.focus(nextActiveTab);
       }
@@ -346,12 +359,20 @@ export class TabManager extends TypedEventEmitter<TabEvents> {
    * Gets active tabs data
    */
   getActiveData(): TabActiveData {
+    // Combine all active tabs from all spaces
+    const allActiveTabs: Array<{ tabId: number; show: TabShowMode }> = [];
+    for (const activeTabsMap of this.activeTabsBySpace.values()) {
+      allActiveTabs.push(
+        ...Array.from(activeTabsMap.entries()).map(([tabId, show]) => ({
+          tabId,
+          show
+        }))
+      );
+    }
+
     return {
       mode: this.activeTabsMode,
-      tabs: Array.from(this.activeTabs.entries()).map(([tabId, show]) => ({
-        tabId,
-        show
-      }))
+      tabs: allActiveTabs
     };
   }
 
@@ -366,26 +387,27 @@ export class TabManager extends TypedEventEmitter<TabEvents> {
    * Gets IDs of all active tabs
    */
   getActiveTabIds(): number[] {
-    return Array.from(this.activeTabs.keys());
+    // Combine all active tab IDs from all spaces
+    const allActiveTabIds: number[] = [];
+    for (const activeTabsMap of this.activeTabsBySpace.values()) {
+      allActiveTabIds.push(...activeTabsMap.keys());
+    }
+    return allActiveTabIds;
   }
 
   /**
-   * Gets page bounds for a window
+   * Gets IDs of active tabs for a specific space
    */
-  getPageBounds(windowId: number): PageBoundsWithWindow | undefined {
-    return this.pageBounds.get(windowId);
+  getActiveTabIdsForSpace(spaceId: string): number[] {
+    const activeTabsForSpace = this.activeTabsBySpace.get(spaceId);
+    return activeTabsForSpace ? Array.from(activeTabsForSpace.keys()) : [];
   }
 
   /**
-   * Sets page bounds for a window
+   * Gets the focused tab ID for a specific space
    */
-  setPageBounds(windowId: number, bounds: PageBoundsWithWindow): void {
-    if (this.isDestroyed) return;
-
-    this.pageBounds.set(windowId, bounds);
-    // Create a new object that includes windowId
-    const boundsWithWindow: PageBoundsWithWindow = { ...bounds };
-    this.emit("page-bounds-changed", boundsWithWindow);
+  getFocusedTabForSpace(spaceId: string): number | null {
+    return this.focusedTabBySpace.get(spaceId) || null;
   }
 
   /**
@@ -407,9 +429,24 @@ export class TabManager extends TypedEventEmitter<TabEvents> {
     }
 
     this.tabs.clear();
-    this.activeTabs.clear();
-    this.focusedTabId = null;
+    this.activeTabsBySpace.clear();
+    this.focusedTabBySpace.clear();
     this.extensions = null;
-    this.pageBounds.clear();
+  }
+
+  setCurrentWindowSpace(windowId: number, spaceId: string): void {
+    // For each space, show/hide tabs based on whether they match the current space
+    for (const [currentSpaceId, activeTabsMap] of this.activeTabsBySpace.entries()) {
+      for (const [tabId, showMode] of activeTabsMap.entries()) {
+        const tab = this.tabs.get(tabId);
+        if (tab && tab.windowId === windowId) {
+          if (tab.spaceId === spaceId) {
+            tab.show(showMode);
+          } else {
+            tab.hide();
+          }
+        }
+      }
+    }
   }
 }

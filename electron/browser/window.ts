@@ -1,10 +1,9 @@
 import { Browser } from "@/browser/browser";
-import { LoadedProfile } from "@/browser/profile-manager";
-import { TabManager } from "@/browser/tabs";
+import { PageBounds } from "@/ipc/browser/page";
 import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { getSpace, getSpaceFromProfile, SpaceData } from "@/sessions/spaces";
-import { BrowserWindow, nativeTheme, WebContentsViewConstructorOptions } from "electron";
+import { getLastUsedSpace, SpaceData } from "@/sessions/spaces";
+import { BrowserWindow, nativeTheme } from "electron";
 
 type BrowserWindowType = "normal" | "popup";
 
@@ -13,15 +12,9 @@ type BrowserWindowCreationOptions = {
 };
 
 type BrowserWindowEvents = {
+  "page-bounds-changed": [PageBounds];
+  "current-space-changed": [string];
   destroy: [];
-};
-
-type LoadedSpace = {
-  spaceId: string;
-  spaceData: SpaceData;
-  tabs: TabManager;
-  loadedProfile: LoadedProfile;
-  unload: () => void;
 };
 
 export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> {
@@ -29,7 +22,8 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
   window: BrowserWindow;
   private browser: Browser;
   private readonly type: BrowserWindowType;
-  private loadedSpaces: Map<string, LoadedSpace>;
+  private pageBounds: PageBounds;
+  private currentSpaceId: string | null = null;
 
   private isDestroyed: boolean = false;
 
@@ -76,24 +70,38 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     this.id = this.window.id;
     this.type = type;
 
-    this.loadedSpaces = new Map();
     this.browser = browser;
+
+    this.pageBounds = {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0
+    };
 
     if (type === "normal") {
       // Show normal UI
     } else if (type === "popup") {
       // TODO: Show popup UI
     }
+
+    getLastUsedSpace().then((space) => {
+      this.setCurrentSpace(space.id);
+    });
+  }
+
+  setCurrentSpace(spaceId: string) {
+    this.currentSpaceId = spaceId;
+    this.emit("current-space-changed", spaceId);
+
+    for (const profile of this.browser.getLoadedProfiles()) {
+      profile.tabs.setCurrentWindowSpace(this.id, spaceId);
+    }
   }
 
   destroy() {
     if (this.isDestroyed) {
       throw new Error("Window already destroyed!");
-    }
-
-    // Destroy all spaces
-    for (const space of this.loadedSpaces.values()) {
-      space.unload();
     }
 
     // Destroy the window
@@ -103,5 +111,18 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
 
     // Destroy emitter
     this.destroyEmitter();
+  }
+
+  setPageBounds(bounds: PageBounds) {
+    this.pageBounds = bounds;
+    this.emit("page-bounds-changed", bounds);
+
+    for (const profile of this.browser.getLoadedProfiles()) {
+      profile.tabs.handlePageBoundsChanged(this.id);
+    }
+  }
+
+  getPageBounds() {
+    return this.pageBounds;
   }
 }

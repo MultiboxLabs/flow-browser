@@ -10,6 +10,7 @@ import {
   getLastUsedSpace
 } from "@/sessions/spaces";
 import { generateID } from "@/browser/utility/utils";
+import { browser } from "@/index";
 
 ipcMain.handle("spaces:get-all", async (event) => {
   return await getSpaces();
@@ -32,6 +33,11 @@ ipcMain.handle("spaces:update", async (event, profileId: string, spaceId: string
 });
 
 ipcMain.handle("spaces:set-using", async (event, profileId: string, spaceId: string) => {
+  const window = browser?.getWindowFromWebContents(event.sender);
+  if (window) {
+    window.setCurrentSpace(spaceId);
+  }
+
   return await setSpaceLastUsed(profileId, spaceId);
 });
 

@@ -6,6 +6,7 @@ import { getProfile, ProfileData } from "@/sessions/profiles";
 import { BrowserEvents } from "@/browser/events";
 import { Browser } from "@/browser/browser";
 import { Tab } from "@/browser/tab";
+import { getSpacesFromProfile } from "@/sessions/spaces";
 
 /**
  * Represents a loaded browser profile
@@ -64,6 +65,17 @@ export class ProfileManager {
 
       const profileSession = getSession(profileId);
       const tabs = new TabManager(this.browser, profileId, profileSession);
+
+      // Test Code
+      getSpacesFromProfile(profileId).then((spaces) => {
+        for (const space of spaces) {
+          tabs.create(this.browser.getWindows()[0].id, undefined, space.id).then((tab) => {
+            tab.loadURL("https://google.com");
+            const success = tabs.select(tab.id);
+            console.log("created tab in space", space.id);
+          });
+        }
+      });
 
       const newProfile: LoadedProfile = {
         profileId,

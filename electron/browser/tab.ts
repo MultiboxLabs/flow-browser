@@ -1,4 +1,6 @@
+import { Browser } from "@/browser/browser";
 import { TabManager } from "@/browser/tabs";
+import { TabbedBrowserWindow } from "@/browser/window";
 import { PageBoundsWithWindow } from "@/ipc/browser/page";
 import { cacheFavicon } from "@/modules/favicons";
 import { FLAGS } from "@/modules/flags";
@@ -31,7 +33,9 @@ interface TabEvents {
 }
 
 interface TabOptions {
-  parentWindow: BrowserWindow;
+  browser: Browser;
+  tabManager: TabManager;
+  window: TabbedBrowserWindow;
   spaceId: string;
   webContentsViewOptions?: Electron.WebContentsViewConstructorOptions;
 }
@@ -63,21 +67,25 @@ export class Tab {
 
   // Private properties
   private session: Session;
-  private window: BrowserWindow;
-  private boundsListener: (() => void) | null = null;
+  private browser: Browser;
+  private window: TabbedBrowserWindow;
   private tabManager: TabManager;
 
   /**
    * Creates a new tab instance
    */
-  constructor(options: TabOptions, tabManager: TabManager) {
-    const { parentWindow, spaceId, webContentsViewOptions = {} } = options;
-    const session = parentWindow.webContents.session;
+  constructor(options: TabOptions) {
+    const { browser, tabManager, window, spaceId, webContentsViewOptions = {} } = options;
+
+    const rawWindow = window.window;
+    const session = rawWindow.webContents.session;
 
     this.session = session;
+    this.browser = browser;
     this.tabManager = tabManager;
-    this.window = parentWindow;
-    this.windowId = parentWindow.id;
+
+    this.window = window;
+    this.windowId = window.id;
     this.spaceId = spaceId;
 
     // Create view with proper session binding
@@ -86,7 +94,7 @@ export class Tab {
     this.id = this.webContents.id;
 
     this.setupEventListeners();
-    this.addToWindow(parentWindow);
+    this.addToWindow(rawWindow);
   }
 
   /**
@@ -178,22 +186,33 @@ export class Tab {
   }
 
   /**
+   * Removes the tab from the current window
+   */
+  private removeFromCurrentWindow(): void {
+    if (this.window && this.window.window.contentView) {
+      this.window.window.contentView.removeChildView(this.view);
+    }
+  }
+
+  /**
    * Changes the parent window of this tab
    */
-  setWindow(window: BrowserWindow): void {
+  setWindow(window: TabbedBrowserWindow): void {
     if (this.isDestroyed) return;
-    if (!window || !window.contentView) {
+
+    const currentRawWindow = this.window.window;
+    const newRawWindow = window.window;
+
+    if (!newRawWindow.contentView) {
       throw new Error("Invalid window or content view");
     }
 
-    if (this.window && this.window.contentView) {
-      this.window.contentView.removeChildView(this.view);
-    }
+    this.removeFromCurrentWindow();
 
     this.window = window;
     this.windowId = window.id;
 
-    this.addToWindow(window);
+    this.addToWindow(newRawWindow);
   }
 
   /**
@@ -242,7 +261,7 @@ export class Tab {
   updateLayout(): void {
     if (this.isDestroyed) return;
 
-    const bounds = this.tabManager.getPageBounds(this.windowId);
+    const bounds = this.window.getPageBounds();
     if (bounds) {
       this.view.setBounds(bounds);
     }
@@ -260,58 +279,15 @@ export class Tab {
   }
 
   /**
-   * Starts listening for window size/position changes
-   */
-  startBoundsListener(): void {
-    if (this.isDestroyed) return;
-
-    this.stopBoundsListener();
-
-    if (!this.window) return;
-
-    // Bind updateLayout to this instance
-    const boundUpdateLayout = this.updateLayout.bind(this);
-    this.window.on("resize", boundUpdateLayout);
-
-    // Handle bounds changes
-    this.boundsListener = () => {
-      if (this.window) {
-        this.updateLayout();
-      }
-    };
-  }
-
-  /**
-   * Stops listening for window size/position changes
-   */
-  stopBoundsListener(): void {
-    if (this.isDestroyed || !this.window) return;
-
-    const boundUpdateLayout = this.updateLayout.bind(this);
-    this.window.off("resize", boundUpdateLayout);
-
-    if (this.boundsListener) {
-      this.boundsListener = null;
-    }
-  }
-
-  /**
    * Destroys the tab and cleans up resources
    */
   destroy(): void {
     if (this.isDestroyed) return;
 
     this.isDestroyed = true;
-    this.stopBoundsListener();
     this.tabManager.emit("tab-destroyed", this);
 
-    if (this.window && this.window.contentView) {
-      try {
-        this.window.contentView.removeChildView(this.view);
-      } catch (error) {
-        console.error("Error removing child view:", error);
-      }
-    }
+    this.removeFromCurrentWindow();
 
     try {
       (this.view as PatchedWebContentsView).destroy();
