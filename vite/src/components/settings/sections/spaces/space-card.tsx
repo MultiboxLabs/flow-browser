@@ -38,7 +38,7 @@ export function SpaceCard({ space, activateEdit }: SpaceCardProps) {
       key={space.id}
       whileHover={{ scale: 1.02 }}
       transition={{ type: "spring", stiffness: 400, damping: 17 }}
-      className="flex items-center border rounded-lg p-4 cursor-pointer hover:border-primary/50"
+      className="flex items-center border rounded-lg p-4 cursor-pointer hover:border-primary/50 bg-card"
       onClick={() => activateEdit()}
     >
       <div

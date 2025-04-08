@@ -7,7 +7,8 @@ import {
   updateSpace,
   SpaceData,
   setSpaceLastUsed,
-  getLastUsedSpace
+  getLastUsedSpace,
+  reorderSpaces
 } from "@/sessions/spaces";
 import { generateID } from "@/browser/utility/utils";
 import { browser } from "@/index";
@@ -43,4 +44,8 @@ ipcMain.handle("spaces:set-using", async (event, profileId: string, spaceId: str
 
 ipcMain.handle("spaces:get-last-used", async (event) => {
   return await getLastUsedSpace();
+});
+
+ipcMain.handle("spaces:reorder", async (event, orderMap: { profileId: string; spaceId: string; order: number }[]) => {
+  return await reorderSpaces(orderMap);
 });

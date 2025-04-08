@@ -19,7 +19,8 @@ const SpaceDataSchema = z.object({
   bgStartColor: z.string().optional(),
   bgEndColor: z.string().optional(),
   icon: z.string().optional(),
-  lastUsed: z.number().default(0)
+  lastUsed: z.number().default(0),
+  order: z.number().default(999)
 });
 
 export type SpaceData = z.infer<typeof SpaceDataSchema>;
@@ -36,7 +37,8 @@ function reconcileSpaceData(spaceId: string, profileId: string, data: DataStoreD
     bgStartColor: data.bgStartColor,
     bgEndColor: data.bgEndColor,
     icon: data.icon,
-    lastUsed: data.lastUsed ?? 0
+    lastUsed: data.lastUsed ?? 0,
+    order: data.order ?? 999
   };
 }
 
@@ -98,9 +100,20 @@ export async function createSpace(profileId: string, spaceId: string, spaceName:
     const spacePath = getSpacePath(profileId, spaceId);
     await fs.mkdir(spacePath, { recursive: true });
 
+    const order = await getSpaces()
+      .then((spaces) => {
+        return (
+          spaces.reduce((acc, space) => {
+            return Math.max(acc, space.order);
+          }, 0) + 1
+        );
+      })
+      .catch(() => 999);
+
     const spaceStore = getSpaceDataStore(profileId, spaceId);
     await spaceStore.set("name", spaceName);
     await spaceStore.set("profileId", profileId);
+    await spaceStore.set("order", order);
 
     return true;
   } catch (error) {
@@ -125,6 +138,8 @@ export async function updateSpace(profileId: string, spaceId: string, spaceData:
     if (spaceData.icon !== undefined) {
       await spaceStore.set("icon", spaceData.icon);
     }
+
+    // Space order must be updated with updateSpaceOrder() / reorderSpaces()
 
     return true;
   } catch (error) {
@@ -184,13 +199,19 @@ export async function getSpacesFromProfile(profileId: string, prefetchedProfile?
 export async function getSpaces() {
   try {
     const profiles = await getProfiles();
-    const spaces = await Promise.all(
+    const profileSpaces = await Promise.all(
       profiles.map(async (profile) => {
         const profileSpaces = await getSpacesFromProfile(profile.id, profile);
         return profileSpaces;
       })
     );
-    return spaces.flat();
+
+    const spaces = profileSpaces.flat();
+    return spaces.sort((a, b) => {
+      const transformedA = reconcileSpaceData(a.id, a.profileId, a);
+      const transformedB = reconcileSpaceData(b.id, b.profileId, b);
+      return transformedA.order - transformedB.order;
+    });
   } catch {
     return [];
   }
@@ -226,4 +247,30 @@ export async function getLastUsedSpace() {
     return transformedB.lastUsed - transformedA.lastUsed;
   });
   return sortedSpaces[0] || null;
+}
+
+export async function updateSpaceOrder(profileId: string, spaceId: string, order: number) {
+  try {
+    const spaceStore = getSpaceDataStore(profileId, spaceId);
+    await spaceStore.set("order", order);
+    return true;
+  } catch (error) {
+    debugError("PROFILES", `Error updating order for space ${spaceId}:`, error);
+    return false;
+  }
+}
+
+export async function reorderSpaces(orderMap: { profileId: string; spaceId: string; order: number }[]) {
+  try {
+    const updatePromises = orderMap.map(({ profileId, spaceId, order }) => {
+      const spaceStore = getSpaceDataStore(profileId, spaceId);
+      return spaceStore.set("order", order);
+    });
+
+    await Promise.all(updatePromises);
+    return true;
+  } catch (error) {
+    debugError("PROFILES", "Error reordering spaces:", error);
+    return false;
+  }
 }

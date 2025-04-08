@@ -43,4 +43,9 @@ export interface FlowSpacesAPI {
    * Gets the last used space
    */
   getLastUsedSpace: () => Promise<Space | null>;
+
+  /**
+   * Reorders the spaces
+   */
+  reorderSpaces: (orderMap: { profileId: string; spaceId: string; order: number }[]) => Promise<boolean>;
 }

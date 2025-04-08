@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, GripVertical } from "lucide-react";
 import { SpaceCard } from "./space-card";
 import { SpaceEditor } from "./space-editor";
 import { CreateSpaceDialog } from "./space-dialogs";
 import type { Space } from "@/lib/flow/interfaces/sessions/spaces";
 import type { Profile } from "@/lib/flow/interfaces/sessions/profiles";
+import { Reorder, useDragControls } from "motion/react";
 
 // ==============================
 // Main Spaces Settings Component
@@ -112,6 +113,25 @@ export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }:
     }
   };
 
+  // Handle space reordering
+  const handleReorder = async (reorderedSpaces: Space[]) => {
+    setSpaces(reorderedSpaces);
+
+    // Prepare order map for the API
+    const orderMap = reorderedSpaces.map((space, index) => ({
+      profileId: space.profileId,
+      spaceId: space.id,
+      order: index
+    }));
+
+    try {
+      // Call the API to persist the new order
+      await flow.spaces.reorderSpaces(orderMap);
+    } catch (error) {
+      console.error("Failed to reorder spaces:", error);
+    }
+  };
+
   // Filter spaces based on selected profile
   const filteredSpaces = selectedProfile ? spaces.filter((space) => space.profileId === selectedProfile) : spaces;
 
@@ -166,9 +186,23 @@ export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }:
                   No spaces found. Create your first space to get started.
                 </div>
               ) : (
-                filteredSpaces.map((space) => (
-                  <SpaceCard key={space.id} space={space} activateEdit={() => setActiveSpace(space)} />
-                ))
+                <Reorder.Group
+                  axis="y"
+                  values={filteredSpaces}
+                  onReorder={handleReorder}
+                  className="flex flex-col gap-4"
+                  layoutScroll
+                  layout
+                  transition={{
+                    type: "spring",
+                    bounce: 0.1,
+                    duration: 0.3
+                  }}
+                >
+                  {filteredSpaces.map((space) => (
+                    <DraggableSpaceCard key={space.id} space={space} activateEdit={() => setActiveSpace(space)} />
+                  ))}
+                </Reorder.Group>
               )}
             </div>
           )}
@@ -188,5 +222,53 @@ export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }:
         setSelectedProfile={setSelectedProfile}
       />
     </div>
+  );
+}
+
+// DraggableSpaceCard component for reordering
+interface DraggableSpaceCardProps {
+  space: Space;
+  activateEdit: () => void;
+}
+
+function DraggableSpaceCard({ space, activateEdit }: DraggableSpaceCardProps) {
+  const dragControls = useDragControls();
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragStart = (event: React.PointerEvent<HTMLDivElement>) => {
+    setIsDragging(true);
+    dragControls.start(event);
+  };
+
+  return (
+    <Reorder.Item
+      value={space}
+      dragControls={dragControls}
+      className="list-none"
+      whileDrag={{
+        scale: 1.02,
+        zIndex: 10
+      }}
+      dragListener={false}
+      onDragEnd={() => setIsDragging(false)}
+      transition={{
+        type: "spring",
+        stiffness: 700,
+        damping: 30,
+        mass: 0.8
+      }}
+    >
+      <div className={`flex items-center ${isDragging ? "opacity-95" : "opacity-100"}`}>
+        <div
+          className={`p-2 ${isDragging ? "cursor-grabbing" : "cursor-grab"} touch-none`}
+          onPointerDown={handleDragStart}
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <div className="flex-1">
+          <SpaceCard space={space} activateEdit={activateEdit} />
+        </div>
+      </div>
+    </Reorder.Item>
   );
 }

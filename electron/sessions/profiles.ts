@@ -14,9 +14,14 @@ function getProfileDataStore(profileId: string) {
 }
 
 const ProfileDataSchema = z.object({
-  name: z.string()
+  name: z.string(),
+  createdAt: z.number()
 });
 export type ProfileData = z.infer<typeof ProfileDataSchema>;
+
+function getCurrentTimestamp() {
+  return Math.floor(Date.now() / 1000);
+}
 
 function reconcileProfileData(profileId: string, data: DataStoreData): ProfileData {
   let defaultName = profileId;
@@ -25,7 +30,8 @@ function reconcileProfileData(profileId: string, data: DataStoreData): ProfileDa
   }
 
   return {
-    name: data.name ?? defaultName
+    name: data.name ?? defaultName,
+    createdAt: data.createdAt ?? getCurrentTimestamp()
   };
 }
 
@@ -71,6 +77,7 @@ export async function createProfile(profileId: string, profileName: string) {
 
     const profileStore = getProfileDataStore(profileId);
     await profileStore.set("name", profileName);
+    await profileStore.set("createdAt", getCurrentTimestamp());
 
     await createSpace(profileId, "default", profileName).then((success) => {
       if (!success) {
@@ -141,7 +148,13 @@ export async function getProfiles() {
       return Promise.all(promises);
     });
 
-    const profiles = profileDatas.filter((profile) => profile !== null);
+    const profiles = profileDatas
+      .filter((profile) => profile !== null)
+      .sort((a, b) => {
+        const transformedA = reconcileProfileData(a.id, a);
+        const transformedB = reconcileProfileData(b.id, b);
+        return transformedA.createdAt - transformedB.createdAt;
+      });
     return profiles;
   } catch (error) {
     console.error("Error reading profiles directory:", error);

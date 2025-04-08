@@ -52,14 +52,7 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
       if (Object.keys(updatedFields).length > 0) {
         console.log("Updating space:", space.id, updatedFields);
 
-        // For name updates, use updateProfile
-        if (updatedFields.name && Object.keys(updatedFields).length === 1) {
-          await flow.profiles.updateProfile(space.profileId, updatedFields);
-        } else {
-          // For other updates, use updateSpace
-          await flow.spaces.updateSpace(space.profileId, space.id, updatedFields);
-        }
-
+        await flow.spaces.updateSpace(space.profileId, space.id, updatedFields);
         onSpacesUpdate(); // Refetch spaces after successful update
       }
       onClose();

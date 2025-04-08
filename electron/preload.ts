@@ -166,6 +166,10 @@ const spacesAPI = {
   getLastUsedSpace: async () => {
     if (!canUseAPI.session) return;
     return ipcRenderer.invoke("spaces:get-last-used");
+  },
+  reorderSpaces: async (orderMap: { profileId: string; spaceId: string; order: number }[]) => {
+    if (!canUseAPI.session) return;
+    return ipcRenderer.invoke("spaces:reorder", orderMap);
   }
 };
 
