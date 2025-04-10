@@ -16,7 +16,7 @@ export const createAppMenu = (): MenuItemConstructorOptions => ({
     { type: "separator" },
     { role: "hide" },
     { role: "hideOthers" },
-    { role: "showAllTabs" }, // Note: Changed from showall -> showAllTabs based on likely Electron role
+    { role: "showAllTabs" },
     { type: "separator" },
     { role: "quit" }
   ]

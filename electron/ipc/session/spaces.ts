@@ -8,7 +8,8 @@ import {
   SpaceData,
   setSpaceLastUsed,
   getLastUsedSpace,
-  reorderSpaces
+  reorderSpaces,
+  spacesEmitter
 } from "@/sessions/spaces";
 import { generateID } from "@/browser/utility/utils";
 import { browser } from "@/index";
@@ -50,9 +51,10 @@ ipcMain.handle("spaces:reorder", async (event, orderMap: { profileId: string; sp
   return await reorderSpaces(orderMap);
 });
 
-export function fireOnSpacesChanged() {
+function fireOnSpacesChanged() {
   const contents = webContents.getAllWebContents();
   for (const content of contents) {
     content.send("spaces:on-changed");
   }
 }
+spacesEmitter.on("changed", fireOnSpacesChanged);

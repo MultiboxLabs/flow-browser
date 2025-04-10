@@ -26,6 +26,7 @@
     "electron-squirrel-startup": "^1.0.1",
     "ico-to-png": "^0.2.2",
     "knex": "^3.1.0",
+    "lucide": "^0.487.0",
     "mime-types": "^2.1.35",
     "sharp": "^0.34.1",
     "sharp-ico": "^0.1.5",

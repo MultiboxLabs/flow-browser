@@ -5,9 +5,13 @@ import { DataStoreData, getDatastore } from "@/saving/datastore";
 import z from "zod";
 import { debugError } from "@/modules/output";
 import { getProfile, getProfiles, ProfileData } from "@/sessions/profiles";
-import { fireOnSpacesChanged } from "@/ipc/session/spaces";
+import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 
 const SPACES_DIR = path.join(FLOW_DATA_DIR, "Spaces");
+
+export const spacesEmitter = new TypedEventEmitter<{
+  changed: [];
+}>();
 
 // Private
 function getSpaceDataStore(profileId: string, spaceId: string) {
@@ -44,7 +48,7 @@ function reconcileSpaceData(spaceId: string, profileId: string, data: DataStoreD
 }
 
 function onSpacesChanged() {
-  fireOnSpacesChanged();
+  spacesEmitter.emit("changed");
 }
 
 // Utilities
