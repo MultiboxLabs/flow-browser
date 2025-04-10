@@ -1,11 +1,9 @@
 import { app, Session } from "electron";
 import { getSession } from "@/browser/sessions";
-import { TabManager } from "@/browser/tabs";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getProfile, ProfileData } from "@/sessions/profiles";
 import { BrowserEvents } from "@/browser/events";
 import { Browser } from "@/browser/browser";
-import { Tab } from "@/browser/tab";
 import { getSpacesFromProfile } from "@/sessions/spaces";
 import { FLAGS } from "@/modules/flags";
 
@@ -15,7 +13,6 @@ import { FLAGS } from "@/modules/flags";
 export type LoadedProfile = {
   readonly profileId: string;
   readonly profileData: ProfileData;
-  readonly tabs: TabManager;
   readonly session: Session;
   unload: () => void;
 };
@@ -65,7 +62,6 @@ export class ProfileManager {
       }
 
       const profileSession = getSession(profileId);
-      const tabs = new TabManager(this.browser, profileId, profileSession);
 
       // Remove Electron and App details to closer emulate Chrome's UA
       if (FLAGS.SCRUBBED_USER_AGENT) {
@@ -76,21 +72,9 @@ export class ProfileManager {
         profileSession.setUserAgent(userAgent);
       }
 
-      // Test Code
-      getSpacesFromProfile(profileId).then((spaces) => {
-        for (const space of spaces) {
-          tabs.create(this.browser.getWindows()[0].id, undefined, space.id).then((tab) => {
-            tab.loadURL("https://google.com");
-            const success = tabs.select(tab.id);
-            console.log("created tab in space", space.id);
-          });
-        }
-      });
-
       const newProfile: LoadedProfile = {
         profileId,
         profileData,
-        tabs,
         session: profileSession,
         unload: () => this.handleProfileUnload(profileId)
       };
@@ -110,6 +94,11 @@ export class ProfileManager {
   private handleProfileUnload(profileId: string): void {
     if (this.profiles.delete(profileId)) {
       this.eventEmitter.emit("profile-unloaded", profileId);
+
+      // Destroy all tabs in the profile
+      this.browser.tabs.getTabsInProfile(profileId).forEach((tab) => {
+        tab.destroy();
+      });
     }
   }
 
@@ -143,18 +132,5 @@ export class ProfileManager {
         console.error(`Error unloading profile ${profileId} during cleanup:`, error);
       }
     }
-  }
-
-  /**
-   * Get tab from ID
-   */
-  public getTabFromId(tabId: number): Tab | undefined {
-    for (const profile of this.profiles.values()) {
-      const tab = profile.tabs.get(tabId);
-      if (tab) {
-        return tab;
-      }
-    }
-    return undefined;
   }
 }

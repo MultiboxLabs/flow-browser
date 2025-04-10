@@ -29,12 +29,18 @@ function createSettingsWindow() {
 
   registerWindow(WindowType.SETTINGS, "settings", window);
   settingsWindow = window;
+
+  return new Promise((resolve) => {
+    window.once("ready-to-show", () => {
+      resolve(window);
+    });
+  });
 }
 
 export const settings = {
-  show: () => {
+  show: async () => {
     if (!settingsWindow) {
-      createSettingsWindow();
+      await createSettingsWindow();
     }
 
     if (!settingsWindow) return;

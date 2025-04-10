@@ -18,10 +18,7 @@ const db = knex({
   client: "better-sqlite3",
   useNullAsDefault: true,
   connection: {
-    filename: dbPath,
-    options: {
-      //nativeBinding: PATHS.BETTER_SQLITE3_NATIVE_BINDING
-    }
+    filename: dbPath
   },
   pool: {
     min: 1,

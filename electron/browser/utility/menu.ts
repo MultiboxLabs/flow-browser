@@ -1,5 +1,5 @@
 import { clipboard, Menu, type WebContents, type MenuItem, type MenuItemConstructorOptions } from "electron";
-import { Browser } from "@/browser/_old/browser";
+import { Browser } from "@/browser/browser";
 import { hideOmnibox, isOmniboxOpen, loadOmnibox, setOmniboxBounds, showOmnibox } from "@/browser/components/omnibox";
 import { settings } from "@/settings/main";
 import { getFocusedWindow, WindowData, WindowType } from "@/modules/windows";

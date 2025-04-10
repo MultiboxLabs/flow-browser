@@ -9,7 +9,8 @@ const DEBUG_AREAS = {
   OMNIBOX: false, // @/browser/omnibox.ts
   DATASTORE: false, // @/saving/datastore.ts
   PROFILES: false, // @/modules/profiles.ts
-  SPACES: false // @/sessions/spaces.ts
+  SPACES: false, // @/sessions/spaces.ts
+  ICONS: false // @/modules/icons.ts
 } as const;
 
 export type DEBUG_AREA = keyof typeof DEBUG_AREAS;

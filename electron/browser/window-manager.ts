@@ -26,14 +26,12 @@ export class WindowManager {
   /**
    * Creates a new browser window
    */
-  public async createWindow(
+  public createWindow(
     browser: Browser,
     type: BrowserWindowType = "normal",
     options: BrowserWindowCreationOptions = {}
-  ): Promise<TabbedBrowserWindow> {
+  ): TabbedBrowserWindow {
     try {
-      await app.whenReady();
-
       const window = new TabbedBrowserWindow(browser, type, options);
       this.windows.set(window.id, window);
 

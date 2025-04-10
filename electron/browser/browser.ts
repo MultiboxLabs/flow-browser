@@ -1,10 +1,12 @@
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { TabbedBrowserWindow } from "@/browser/window";
-import { WebContents } from "electron";
+import { app, WebContents } from "electron";
 import { BrowserEvents } from "@/browser/events";
 import { ProfileManager, LoadedProfile } from "@/browser/profile-manager";
 import { WindowManager, BrowserWindowType, BrowserWindowCreationOptions } from "@/browser/window-manager";
-import { Tab } from "@/browser/tab";
+import { TabManager } from "@/browser/tabs/tab-manager";
+import { Tab } from "@/browser/tabs/tab";
+import { setupMenu } from "@/browser/utility/menu";
 
 /**
  * Main Browser controller that coordinates browser components
@@ -17,7 +19,9 @@ import { Tab } from "@/browser/tab";
 export class Browser extends TypedEventEmitter<BrowserEvents> {
   private readonly profileManager: ProfileManager;
   private readonly windowManager: WindowManager;
+  private readonly tabManager: TabManager;
   private _isDestroyed: boolean = false;
+  public tabs: TabManager;
 
   /**
    * Creates a new Browser instance
@@ -26,9 +30,16 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
     super();
     this.windowManager = new WindowManager(this);
     this.profileManager = new ProfileManager(this, this);
+    this.tabManager = new TabManager(this);
+
+    // A public reference to the tab manager
+    this.tabs = this.tabManager;
 
     // Create initial window after next tick to ensure proper initialization
     setTimeout(() => this.createWindow(), 0);
+
+    // Load menu
+    setupMenu(this);
   }
 
   // Profile Management - Delegated to ProfileManager
@@ -73,6 +84,18 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
     type: BrowserWindowType = "normal",
     options: BrowserWindowCreationOptions = {}
   ): Promise<TabbedBrowserWindow> {
+    await app.whenReady();
+    return this.createWindowInternal(type, options);
+  }
+
+  /**
+   * Creates a new browser window
+   * Does not wait for app ready
+   */
+  public createWindowInternal(
+    type: BrowserWindowType,
+    options: BrowserWindowCreationOptions = {}
+  ): TabbedBrowserWindow {
     return this.windowManager.createWindow(this, type, options);
   }
 
@@ -141,6 +164,6 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
    * Get tab from ID
    */
   public getTabFromId(tabId: number): Tab | undefined {
-    return this.profileManager.getTabFromId(tabId);
+    return this.tabManager.getTabById(tabId);
   }
 }

@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar";
 import { SpacesProvider } from "@/components/providers/spaces-provider";
+import { useEffect } from "react";
+import { useState } from "react";
 
 export type CollapseMode = "icon" | "offcanvas";
 export type SidebarVariant = "sidebar" | "floating";
@@ -60,8 +62,23 @@ function InternalBrowserUI() {
 }
 
 export function BrowserUI() {
+  const [isReady, setIsReady] = useState(false);
+
+  // No transition on first load
+  useEffect(() => {
+    setTimeout(() => {
+      setIsReady(true);
+    }, 100);
+  }, []);
+
   return (
-    <div className="w-screen h-screen bg-gradient-to-br from-space-background-start/50 to-space-background-end/50 transition-colors duration-300">
+    <div
+      className={cn(
+        "w-screen h-screen",
+        "bg-gradient-to-br from-space-background-start/50 to-space-background-end/50",
+        isReady && "transition-colors duration-300"
+      )}
+    >
       <SidebarProvider>
         <SpacesProvider>
           <InternalBrowserUI />

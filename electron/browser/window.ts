@@ -1,8 +1,9 @@
 import { Browser } from "@/browser/browser";
+import { ViewManager } from "@/browser/view-manager";
 import { PageBounds } from "@/ipc/browser/page";
 import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { getLastUsedSpace, SpaceData } from "@/sessions/spaces";
+import { getLastUsedSpace, getSpace, SpaceData } from "@/sessions/spaces";
 import { BrowserWindow, nativeTheme } from "electron";
 
 type BrowserWindowType = "normal" | "popup";
@@ -20,6 +21,8 @@ type BrowserWindowEvents = {
 export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> {
   id: number;
   window: BrowserWindow;
+  public viewManager: ViewManager;
+
   private browser: Browser;
   private readonly type: BrowserWindowType;
   private pageBounds: PageBounds;
@@ -54,7 +57,15 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       vibrancy: "fullscreen-ui", // on MacOS
       // backgroundMaterial: "mica", // on Windows (Disabled as it interferes with rounded corners)
       roundedCorners: true,
-      ...(options.window || {})
+      ...(options.window || {}),
+
+      // Show after ready
+      show: false
+    });
+
+    this.window.once("ready-to-show", () => {
+      this.window.show();
+      this.window.focus();
     });
 
     this.window.loadURL("flow-internal://page/main/");
@@ -69,6 +80,8 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
 
     this.id = this.window.id;
     this.type = type;
+
+    this.viewManager = new ViewManager(this.window.contentView);
 
     this.browser = browser;
 
@@ -94,9 +107,23 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     this.currentSpaceId = spaceId;
     this.emit("current-space-changed", spaceId);
 
-    for (const profile of this.browser.getLoadedProfiles()) {
-      profile.tabs.setCurrentWindowSpace(this.id, spaceId);
+    this.browser.tabs.setCurrentWindowSpace(this.id, spaceId);
+
+    // Test Code
+    if (this.browser.tabs.getTabsInWindowSpace(this.id, spaceId).length === 0) {
+      getSpace(spaceId).then(async (space) => {
+        if (space) {
+          const profileId = space.profileId;
+          const tab = await this.browser.tabs.createTab(profileId, this.id, spaceId);
+          tab.loadURL("https://x.com/zaidmukaddam/status/1910342330579644739");
+          this.browser.tabs.setActiveTab(tab);
+        }
+      });
     }
+  }
+
+  getCurrentSpace() {
+    return this.currentSpaceId;
   }
 
   destroy() {
@@ -117,9 +144,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     this.pageBounds = bounds;
     this.emit("page-bounds-changed", bounds);
 
-    for (const profile of this.browser.getLoadedProfiles()) {
-      profile.tabs.handlePageBoundsChanged(this.id);
-    }
+    this.browser.tabs.handlePageBoundsChanged(this.id);
   }
 
   getPageBounds() {
