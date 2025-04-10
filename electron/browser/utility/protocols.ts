@@ -17,7 +17,7 @@ protocolModule.registerSchemesAsPrivileged([
 ]);
 
 export function registerFlowInternalProtocol(protocol: Protocol) {
-  const FLOW_INTERNAL_ALLOWED_DIRECTORIES = ["main", "settings"];
+  const FLOW_INTERNAL_ALLOWED_DIRECTORIES = ["main", "settings", "glance-modal"];
 
   const handlePageRequest = async (request: Request, url: URL) => {
     const queryString = url.search;

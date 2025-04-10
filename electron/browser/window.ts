@@ -1,10 +1,11 @@
 import { Browser } from "@/browser/browser";
+import { GlanceModal } from "@/browser/components/glance-modal";
 import { ViewManager } from "@/browser/view-manager";
 import { PageBounds } from "@/ipc/browser/page";
 import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getLastUsedSpace, getSpace, SpaceData } from "@/sessions/spaces";
-import { BrowserWindow, nativeTheme } from "electron";
+import { BrowserWindow, nativeTheme, WebContents } from "electron";
 
 type BrowserWindowType = "normal" | "popup";
 
@@ -22,6 +23,9 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
   id: number;
   window: BrowserWindow;
   public viewManager: ViewManager;
+  public coreWebContents: WebContents[];
+
+  public glanceModal: GlanceModal;
 
   private browser: Browser;
   private readonly type: BrowserWindowType;
@@ -81,7 +85,13 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     this.id = this.window.id;
     this.type = type;
 
+    this.coreWebContents = [this.window.webContents];
+
     this.viewManager = new ViewManager(this.window.contentView);
+
+    this.glanceModal = new GlanceModal();
+    this.viewManager.addOrUpdateView(this.glanceModal.view, 1);
+    this.coreWebContents.push(this.glanceModal.view.webContents);
 
     this.browser = browser;
 
@@ -135,6 +145,8 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     this.isDestroyed = true;
     this.emit("destroy");
     this.browser.destroyWindowById(this.id);
+    this.viewManager.destroy();
+    this.glanceModal.destroy();
 
     // Destroy emitter
     this.destroyEmitter();

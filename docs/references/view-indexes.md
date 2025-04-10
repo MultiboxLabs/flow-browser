@@ -2,5 +2,7 @@
 
 - 999 - Omnibox
 - 2 - Sidebar
-- 2 - Glance Front Tab
-- 1 - Tabs
+- 3 - Glance Front Tab
+- 2 - Tabs
+- 1 - Glance Modal
+- 0 - Glance Back Tab

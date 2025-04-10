@@ -157,6 +157,9 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
         }
       }
     };
+    const onDestroy = () => {
+      disconnectAll();
+    };
 
     const disconnectAll = () => {
       disconnect1();
@@ -164,12 +167,14 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
       disconnect3();
       disconnect4();
       disconnect5();
+      disconnect6();
     };
     const disconnect1 = tab.connect("destroyed", onTabDestroyed);
     const disconnect2 = this.connect("tab-removed", onTabRemoved);
     const disconnect3 = tab.connect("space-changed", onTabSpaceChanged);
     const disconnect4 = tab.connect("window-changed", onTabWindowChanged);
     const disconnect5 = this.tabManager.connect("active-tab-changed", onActiveTabChanged);
+    const disconnect6 = this.connect("destroy", onDestroy);
 
     // Sync tab space and window
     this.syncTab(tab);
@@ -184,10 +189,6 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
     }
 
     this.tabIds = this.tabIds.filter((id) => id !== tabId);
-    const tab = getTabFromId(this.tabManager, tabId);
-    if (tab === null) {
-      return false;
-    }
     this.emit("tab-removed", tabId);
     return true;
   }
@@ -206,7 +207,8 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
   public destroy() {
     this.errorIfDestroyed();
 
-    this.destroyEmitter();
     this.isDestroyed = true;
+    this.emit("destroy");
+    this.destroyEmitter();
   }
 }

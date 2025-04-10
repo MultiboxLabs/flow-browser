@@ -10,17 +10,6 @@ export class ViewManager {
   }
 
   addOrUpdateView(view: View, zIndex: number): void {
-    // If view already exists (based on ID), update its data and trigger reorder
-    const existing = this.views.get(view);
-    if (existing && existing !== zIndex) {
-      // If the ID exists but the view instance is different, remove the old one first
-      try {
-        this.parentView.removeChildView(view);
-      } catch (error) {
-        console.error(`Failed to remove old view ${view} during update:`, error);
-      }
-    }
-
     this.views.set(view, zIndex);
     this.reorderViews();
   }
@@ -46,6 +35,21 @@ export class ViewManager {
 
   getViewZIndex(view: View): number | undefined {
     return this.views.get(view);
+  }
+
+  destroy(): void {
+    // Remove all managed views from the parent
+    this.views.forEach((_, view) => {
+      try {
+        this.parentView.removeChildView(view);
+      } catch (error) {
+        // Log error but continue cleanup
+        console.warn(`Failed to remove view ${view} during destroy:`, error);
+      }
+    });
+
+    // Clear the internal map
+    this.views.clear();
   }
 
   private reorderViews(): void {

@@ -1,4 +1,6 @@
 import { Browser } from "@/browser/browser";
+import { isRectangleEqual, TabBoundsController } from "@/browser/tabs/tab-bounds";
+import { TabGroupMode } from "@/browser/tabs/tab-groups";
 import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
 import { TabManager } from "@/browser/tabs/tab-manager";
 import { TabbedBrowserWindow } from "@/browser/window";
@@ -6,11 +8,12 @@ import { cacheFavicon } from "@/modules/favicons";
 import { FLAGS } from "@/modules/flags";
 import { PATHS } from "@/modules/paths";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { Session, WebContents, WebContentsView, WebPreferences } from "electron";
+import { Rectangle, Session, WebContents, WebContentsView, WebPreferences } from "electron";
 
 // Configuration
-const GLANCE_TAB_VIEW_Z_INDEX = 2;
-const TAB_VIEW_Z_INDEX = 1;
+const GLANCE_FRONT_ZINDEX = 3;
+const TAB_ZINDEX = 2;
+const GLANCE_BACK_ZINDEX = 0;
 
 // Interfaces and Types
 interface PatchedWebContentsView extends WebContentsView {
@@ -147,12 +150,14 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   // View & content objects
   public readonly view: PatchedWebContentsView;
   public readonly webContents: WebContents;
+  private lastTabGroupMode: TabGroupMode | null = null;
 
   // Private properties
   private readonly session: Session;
   private readonly browser: Browser;
   private window: TabbedBrowserWindow;
   private readonly tabManager: TabManager;
+  private readonly bounds: TabBoundsController;
 
   /**
    * Creates a new tab instance
@@ -181,6 +186,8 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.spaceId = spaceId;
 
     this.session = session;
+
+    this.bounds = new TabBoundsController(this);
 
     // Create Options
     const { window, webContentsViewOptions = {} } = options;
@@ -304,7 +311,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   private removeViewFromWindow() {
     const oldWindow = this.window;
     if (oldWindow) {
-      oldWindow.window.contentView.removeChildView(this.view);
+      oldWindow.viewManager.removeView(this.view);
       return true;
     }
     return false;
@@ -313,7 +320,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   /**
    * Sets the window for the tab
    */
-  public setWindow(window: TabbedBrowserWindow, index: number = TAB_VIEW_Z_INDEX) {
+  public setWindow(window: TabbedBrowserWindow, index: number = TAB_ZINDEX) {
     const windowChanged = this.window !== window;
     if (windowChanged) {
       // Remove view from old window
@@ -396,14 +403,15 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     // Update layout
     const tabGroup = tabManager.getTabGroupByTabId(this.id);
 
-    if (tabGroup?.mode === "glance") {
-      this.setWindow(this.window, GLANCE_TAB_VIEW_Z_INDEX);
-    } else {
-      this.setWindow(this.window, TAB_VIEW_Z_INDEX);
-    }
+    const lastTabGroupMode = this.lastTabGroupMode;
+    let newBounds: Rectangle | null = null;
+    let newTabGroupMode: TabGroupMode | null = null;
+
+    let isGlanceFront = false;
 
     if (!tabGroup) {
-      this.view.setBounds(bounds);
+      newTabGroupMode = "normal";
+      newBounds = bounds;
     } else if (tabGroup.mode === "glance") {
       const isFront = tabGroup.frontTabId === this.id;
       const widthPercentage = isFront ? 0.85 : 0.95;
@@ -422,7 +430,22 @@ export class Tab extends TypedEventEmitter<TabEvents> {
         width: newWidth,
         height: newHeight
       };
-      this.view.setBounds(glanceBounds);
+
+      if (isFront) {
+        isGlanceFront = true;
+
+        this.bounds.setBounds({
+          x: glanceBounds.x + (glanceBounds.width - 100) / 2,
+          y: glanceBounds.y + (glanceBounds.height - 100) / 2,
+          width: 100,
+          height: 100
+        });
+      } else {
+        this.window.glanceModal.setBounds(glanceBounds);
+      }
+
+      newTabGroupMode = "glance";
+      newBounds = glanceBounds;
     } else if (tabGroup.mode === "split") {
       /* TODO: Implement split tab group layout
       const tab = tabGroup.tabs.find((tab) => tab.id === this.id);
@@ -441,9 +464,49 @@ export class Tab extends TypedEventEmitter<TabEvents> {
           width: newWidth,
           height: newHeight
         };
-        this.view.setBounds(newBounds);
+
+        newTabGroupMode = "split";
+        newBounds = newBounds;
       }
       */
+    }
+
+    if (newTabGroupMode === "glance") {
+      if (isGlanceFront) {
+        this.setWindow(this.window, GLANCE_FRONT_ZINDEX);
+      } else {
+        this.setWindow(this.window, GLANCE_BACK_ZINDEX);
+      }
+    } else {
+      this.setWindow(this.window, TAB_ZINDEX);
+    }
+
+    if (isGlanceFront) {
+      this.view.setBackgroundColor("#ffffffff");
+    } else {
+      this.view.setBackgroundColor("#00000000");
+    }
+
+    if (newTabGroupMode !== lastTabGroupMode) {
+      this.lastTabGroupMode = newTabGroupMode;
+    }
+
+    if (newTabGroupMode === "glance" && newBounds) {
+      this.window.glanceModal.setVisible(true);
+    } else {
+      this.window.glanceModal.setVisible(false);
+    }
+
+    if (newBounds) {
+      if (newTabGroupMode !== lastTabGroupMode) {
+        this.bounds.setBounds(newBounds);
+      } else {
+        if (isRectangleEqual(this.bounds.bounds, this.bounds.targetBounds)) {
+          this.bounds.setBoundsImmediate(newBounds);
+        } else {
+          this.bounds.setBounds(newBounds);
+        }
+      }
     }
   }
 
@@ -473,8 +536,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public destroy() {
     if (this.isDestroyed) return;
 
+    this.bounds.destroy();
     this.removeViewFromWindow();
-    this.view.destroy();
+    this.webContents.close();
 
     this.isDestroyed = true;
     this.emit("destroyed");
