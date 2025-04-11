@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { getDatastore } from "./datastore";
-import { ipcMain } from "electron";
 
 export const SettingsDataStore = getDatastore("settings");
 
