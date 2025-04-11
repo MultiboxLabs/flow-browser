@@ -8,6 +8,7 @@ import { CreateSpaceDialog } from "./space-dialogs";
 import type { Space } from "@/lib/flow/interfaces/sessions/spaces";
 import type { Profile } from "@/lib/flow/interfaces/sessions/profiles";
 import { Reorder, useDragControls } from "motion/react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // ==============================
 // Main Spaces Settings Component
@@ -163,16 +164,36 @@ export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }:
     <div className="h-full flex flex-col">
       <Card className="flex-1">
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">
-              {selectedProfile ? `Spaces for ${selectedProfileName}` : "All Browser Spaces"}
-            </CardTitle>
-            <CardDescription className="text-sm">Manage your browsing spaces and their settings</CardDescription>
+          <div className="flex items-center gap-4">
+            <div>
+              <CardTitle className="text-lg">
+                {selectedProfile ? `Spaces for ${selectedProfileName}` : "All Browser Spaces"}
+              </CardTitle>
+              <CardDescription className="text-sm">Manage your browsing spaces and their settings</CardDescription>
+            </div>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)} size="sm" className="gap-2">
-            <Plus className="h-4 w-4" />
-            Create Space
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select
+              value={selectedProfile || "all"}
+              onValueChange={(value) => setSelectedProfile(value === "all" ? null : value)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select profile" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Profiles</SelectItem>
+                {profiles.map((profile) => (
+                  <SelectItem key={profile.id} value={profile.id}>
+                    {profile.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={() => setCreateDialogOpen(true)} size="sm" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Create Space
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -219,7 +240,6 @@ export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }:
         onCreate={handleCreateSpace}
         profiles={profiles}
         selectedProfile={selectedProfile}
-        setSelectedProfile={setSelectedProfile}
       />
     </div>
   );
