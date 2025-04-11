@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 
 function Page() {
-  const hostnames = ["about", "about", "new-tab"];
+  const hostnames = ["about", "new-tab", "games", "error"];
 
   return (
     <div className="w-screen h-screen bg-background p-8 flex flex-col items-center">
@@ -26,9 +26,14 @@ function Page() {
                 return (
                   <div key={url} className="p-3 rounded-md bg-muted flex justify-between items-center">
                     <span className="text-foreground font-medium">{url}</span>
-                    <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(url)}>
-                      Copy
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(url)}>
+                        Copy URL
+                      </Button>
+                      <Button variant="default" size="sm" onClick={() => window.open(url, "_blank")}>
+                        Open
+                      </Button>
+                    </div>
                   </div>
                 );
               })}

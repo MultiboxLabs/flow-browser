@@ -20,10 +20,29 @@ protocolModule.registerSchemesAsPrivileged([
   }
 ]);
 
-const FLOW_INTERNAL_ALLOWED_DOMAINS = ["main", "settings", "glance-modal"];
-const FLOW_PROTOCOL_ALLOWED_DOMAINS = ["about", "error", "new-tab"];
+interface AllowedDomains {
+  [key: string]: true | string;
+}
 
-async function serveStaticFile(filePath: string, baseDir: string = PATHS.VITE_WEBUI) {
+const FLOW_INTERNAL_ALLOWED_DOMAINS: AllowedDomains = {
+  main: true,
+  settings: true,
+  "glance-modal": true
+};
+
+const FLOW_PROTOCOL_ALLOWED_DOMAINS: AllowedDomains = {
+  about: true,
+  error: true,
+  "new-tab": true,
+  games: true
+};
+
+const FLOW_EXTERNAL_ALLOWED_DOMAINS: AllowedDomains = {
+  "dino.chrome.game": "chrome-dino-game",
+  "surf.edge.game": "edge-surf-game"
+};
+
+async function serveStaticFile(filePath: string, extraDir?: string, baseDir: string = PATHS.VITE_WEBUI) {
   let transformedPath = filePath;
   if (transformedPath.startsWith("/")) {
     transformedPath = transformedPath.slice(1);
@@ -33,10 +52,11 @@ async function serveStaticFile(filePath: string, baseDir: string = PATHS.VITE_WE
   }
 
   if (!transformedPath) {
-    return await serveStaticFile("index.html");
+    return await serveStaticFile("index.html", extraDir, baseDir);
   }
 
-  const fullFilePath = path.join(baseDir, transformedPath);
+  const transformedBaseDir = extraDir ? path.join(baseDir, extraDir) : baseDir;
+  const fullFilePath = path.join(transformedBaseDir, transformedPath);
 
   try {
     const stats = await fsPromises.stat(fullFilePath);
@@ -66,11 +86,13 @@ function registerFlowInternalProtocol(protocol: Protocol) {
     const hostname = url.hostname;
     const pathname = url.pathname;
 
-    if (!FLOW_INTERNAL_ALLOWED_DOMAINS.includes(hostname)) {
+    if (!(hostname in FLOW_INTERNAL_ALLOWED_DOMAINS)) {
       return new Response("Invalid request path", { status: 400 });
     }
 
-    return await serveStaticFile(pathname);
+    const allowedPath = FLOW_INTERNAL_ALLOWED_DOMAINS[hostname];
+    const extraDir = allowedPath === true ? undefined : allowedPath;
+    return await serveStaticFile(pathname, extraDir);
   };
 
   protocol.handle("flow-internal", async (request) => {
@@ -87,11 +109,13 @@ function registerFlowProtocol(protocol: Protocol) {
     const hostname = url.hostname;
     const pathname = url.pathname;
 
-    if (!FLOW_PROTOCOL_ALLOWED_DOMAINS.includes(hostname)) {
+    if (!(hostname in FLOW_PROTOCOL_ALLOWED_DOMAINS)) {
       return new Response("Invalid request path", { status: 400 });
     }
 
-    return await serveStaticFile(pathname);
+    const allowedPath = FLOW_PROTOCOL_ALLOWED_DOMAINS[hostname];
+    const extraDir = allowedPath === true ? undefined : allowedPath;
+    return await serveStaticFile(pathname, extraDir);
   };
 
   const handleFaviconRequest = async (request: Request, url: URL) => {
@@ -163,9 +187,33 @@ function registerFlowProtocol(protocol: Protocol) {
   });
 }
 
+function registerFlowExternalProtocol(protocol: Protocol) {
+  const handleDomainRequest = async (_request: Request, url: URL) => {
+    const hostname = url.hostname;
+    const pathname = url.pathname;
+
+    if (!(hostname in FLOW_EXTERNAL_ALLOWED_DOMAINS)) {
+      return new Response("Invalid request path", { status: 400 });
+    }
+
+    const allowedPath = FLOW_EXTERNAL_ALLOWED_DOMAINS[hostname];
+    const extraDir = allowedPath === true ? undefined : allowedPath;
+    return await serveStaticFile(pathname, extraDir);
+  };
+
+  protocol.handle("flow-external", async (request) => {
+    const urlString = request.url;
+    const url = new URL(urlString);
+
+    // flow://:path
+    return await handleDomainRequest(request, url);
+  });
+}
+
 export function registerProtocolsWithSession(session: Session) {
   const protocol = session.protocol;
   registerFlowProtocol(protocol);
+  registerFlowExternalProtocol(protocol);
 }
 
 app.whenReady().then(() => {
