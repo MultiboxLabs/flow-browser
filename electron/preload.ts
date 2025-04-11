@@ -248,6 +248,18 @@ const newTabAPI = {
   }
 };
 
+// OPEN EXTERNAL API //
+const openExternalAPI = {
+  getAlwaysOpenExternal: async () => {
+    if (!canUseAPI.app) return;
+    return ipcRenderer.invoke("open-external:get");
+  },
+  unsetAlwaysOpenExternal: async (requestingURL: string, openingURL: string) => {
+    if (!canUseAPI.app) return;
+    return ipcRenderer.invoke("open-external:unset", requestingURL, openingURL);
+  }
+};
+
 // OMNIBOX API //
 const omniboxAPI = {
   show: (bounds: Electron.Rectangle | null, params: { [key: string]: string } | null) => {
@@ -289,6 +301,7 @@ contextBridge.exposeInMainWorld("flow", {
   app: appAPI,
   icons: iconsAPI,
   newTab: newTabAPI,
+  openExternal: openExternalAPI,
 
   // Windows APIs
   omnibox: omniboxAPI,

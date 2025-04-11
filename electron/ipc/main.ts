@@ -13,6 +13,7 @@ import "@/ipc/session/spaces";
 import "@/ipc/app/app";
 import "@/ipc/app/icons";
 import "@/ipc/app/new-tab";
+import "@/ipc/app/open-external";
 
 // Windows APIs
 import "@/ipc/window/omnibox";

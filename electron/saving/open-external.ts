@@ -28,7 +28,7 @@ export async function setAlwaysOpenExternal(requestingURL: string, openingURL: s
 
 export async function unsetAlwaysOpenExternal(requestingURL: string, openingURL: string) {
   const key = getKey(requestingURL, openingURL);
-  await AlwaysOpenExternalDataStore.remove(key);
+  return await AlwaysOpenExternalDataStore.remove(key);
 }
 
 export async function getAlwaysOpenExternal() {
