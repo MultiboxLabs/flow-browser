@@ -9,6 +9,7 @@ type Flags = {
   DEBUG_DISABLE_TAB_VIEW: boolean;
   SHOW_DEBUG_DEVTOOLS: boolean;
   GLANCE_ENABLED: boolean;
+  FAVICONS_REMOVE_PATH: boolean;
 };
 
 export const FLAGS: Flags = {
@@ -28,5 +29,8 @@ export const FLAGS: Flags = {
   DEBUG_DISABLE_TAB_VIEW: false,
 
   // Glance: Enable the glance feature
-  GLANCE_ENABLED: false
+  GLANCE_ENABLED: false,
+
+  // Favicons: Remove the path from the favicon URL
+  FAVICONS_REMOVE_PATH: true
 };
