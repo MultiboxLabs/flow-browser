@@ -13,6 +13,7 @@ import {
 } from "@/sessions/spaces";
 import { generateID } from "@/browser/utility/utils";
 import { browser } from "@/index";
+import { TabbedBrowserWindow } from "@/browser/window";
 
 ipcMain.handle("spaces:get-all", async (event) => {
   return await getSpaces();
@@ -51,10 +52,11 @@ ipcMain.handle("spaces:reorder", async (event, orderMap: { profileId: string; sp
   return await reorderSpaces(orderMap);
 });
 
+export function setWindowSpace(window: TabbedBrowserWindow, spaceId: string) {
+  window.sendMessageToCoreWebContents("spaces:on-set-window-space", spaceId);
+}
+
 function fireOnSpacesChanged() {
-  const contents = webContents.getAllWebContents();
-  for (const content of contents) {
-    content.send("spaces:on-changed");
-  }
+  browser?.sendMessageToCoreWebContents("spaces:on-changed");
 }
 spacesEmitter.on("changed", fireOnSpacesChanged);

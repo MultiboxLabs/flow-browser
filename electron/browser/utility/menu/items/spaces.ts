@@ -10,6 +10,7 @@ import { getFocusedBrowserWindowData } from "../helpers";
 import { settings } from "@/settings/main";
 import { icons } from "lucide";
 import sharp from "sharp";
+import { setWindowSpace } from "@/ipc/session/spaces";
 
 // String utilities
 const toCamelCase = (str: string): string => {
@@ -102,10 +103,7 @@ const createSpaceMenuItem = async (
 
       const win = winData.tabbedBrowserWindow;
       if (win) {
-        win.setCurrentSpace(space.id);
-        setSpaceLastUsed(space.profileId, space.id).then(() => {
-          spacesEmitter.emit("changed");
-        });
+        setWindowSpace(win, space.id);
       }
     },
     ...(iconImage ? { icon: iconImage } : {})

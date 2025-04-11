@@ -83,6 +83,13 @@ export const SpacesProvider = ({ children }: SpacesProviderProps) => {
     flow.browser.loadProfile(currentSpace.profileId);
   }, [currentSpace]);
 
+  useEffect(() => {
+    const unsub = flow.spaces.onSetWindowSpace((spaceId) => {
+      handleSetCurrentSpace(spaceId);
+    });
+    return () => unsub();
+  }, [handleSetCurrentSpace]);
+
   const bgStart = hexToOKLCHString(currentSpace?.bgStartColor || "#000000");
   const bgEnd = hexToOKLCHString(currentSpace?.bgEndColor || "#000000");
 

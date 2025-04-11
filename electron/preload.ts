@@ -43,9 +43,9 @@ function getOSFromPlatform(platform: NodeJS.Platform) {
   }
 }
 
-function listenOnIPCChannel(channel: string, callback: () => void) {
-  const wrappedCallback = (_event: any) => {
-    callback();
+function listenOnIPCChannel(channel: string, callback: (...args: any[]) => void) {
+  const wrappedCallback = (_event: any, ...args: any[]) => {
+    callback(...args);
   };
 
   ipcRenderer.on(channel, wrappedCallback);
@@ -180,6 +180,10 @@ const spacesAPI = {
   onSpacesChanged: (callback: () => void) => {
     if (!canUseAPI.session) return;
     return listenOnIPCChannel("spaces:on-changed", callback);
+  },
+  onSetWindowSpace: (callback: (spaceId: string) => void) => {
+    if (!canUseAPI.session) return;
+    return listenOnIPCChannel("spaces:on-set-window-space", callback);
   }
 };
 

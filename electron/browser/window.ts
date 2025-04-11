@@ -136,6 +136,12 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     return this.currentSpaceId;
   }
 
+  public sendMessageToCoreWebContents(channel: string, ...args: any[]) {
+    for (const content of this.coreWebContents) {
+      content.send(channel, ...args);
+    }
+  }
+
   destroy() {
     if (this.isDestroyed) {
       throw new Error("Window already destroyed!");

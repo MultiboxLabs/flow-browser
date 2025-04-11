@@ -53,4 +53,9 @@ export interface FlowSpacesAPI {
    * Listens for changes to the spaces
    */
   onSpacesChanged: (callback: () => void) => () => void;
+
+  /**
+   * Listens for changes to the space that the current window is using
+   */
+  onSetWindowSpace: (callback: (spaceId: string) => void) => () => void;
 }

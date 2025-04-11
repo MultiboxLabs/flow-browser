@@ -166,4 +166,13 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
   public getTabFromId(tabId: number): Tab | undefined {
     return this.tabManager.getTabById(tabId);
   }
+
+  /**
+   * Sends a message to all core WebContents
+   */
+  public sendMessageToCoreWebContents(channel: string, ...args: any[]) {
+    for (const window of this.getWindows()) {
+      window.sendMessageToCoreWebContents(channel, ...args);
+    }
+  }
 }
