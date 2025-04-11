@@ -125,7 +125,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
         if (space) {
           const profileId = space.profileId;
           const tab = await this.browser.tabs.createTab(profileId, this.id, spaceId);
-          tab.loadURL("https://x.com/zaidmukaddam/status/1910342330579644739");
+          tab.loadURL("flow-utility://page/new-tab");
           this.browser.tabs.setActiveTab(tab);
         }
       });

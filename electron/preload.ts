@@ -44,11 +44,13 @@ function getOSFromPlatform(platform: NodeJS.Platform) {
 }
 
 function listenOnIPCChannel(channel: string, callback: () => void) {
-  const listener = ipcRenderer.on(channel, (_event) => {
+  const wrappedCallback = (_event: any) => {
     callback();
-  });
+  };
+
+  ipcRenderer.on(channel, wrappedCallback);
   return () => {
-    listener.removeListener(channel, callback);
+    ipcRenderer.removeListener(channel, wrappedCallback);
   };
 }
 

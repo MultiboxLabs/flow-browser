@@ -96,7 +96,7 @@ export function registerFlowInternalProtocol(protocol: Protocol) {
 }
 
 function registerFlowUtilityProtocol(protocol: Protocol) {
-  const FLOW_UTILITY_ALLOWED_DIRECTORIES = ["error"];
+  const FLOW_UTILITY_ALLOWED_DIRECTORIES = ["error", "new-tab"];
 
   const handlePageRequest = async (request: Request, url: URL) => {
     const queryString = url.search;

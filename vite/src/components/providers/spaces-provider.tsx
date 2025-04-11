@@ -35,21 +35,23 @@ export const SpacesProvider = ({ children }: SpacesProviderProps) => {
       const spaces = await flow.spaces.getSpaces();
       setSpaces(spaces);
 
-      // Get and set last used space
-      const lastUsedSpace = await flow.spaces.getLastUsedSpace();
-      if (lastUsedSpace) {
-        setCurrentSpace(lastUsedSpace);
-      } else if (spaces.length > 0) {
-        // If no last used space, default to first space
-        setCurrentSpace(spaces[0]);
-        await flow.spaces.setUsingSpace(spaces[0].profileId, spaces[0].id);
+      // Get and set last used space if no current space
+      if (!currentSpace) {
+        const lastUsedSpace = await flow.spaces.getLastUsedSpace();
+        if (lastUsedSpace) {
+          setCurrentSpace(lastUsedSpace);
+        } else if (spaces.length > 0) {
+          // If no last used space, default to first space
+          setCurrentSpace(spaces[0]);
+          await flow.spaces.setUsingSpace(spaces[0].profileId, spaces[0].id);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch spaces:", error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentSpace]);
 
   const revalidate = useCallback(async () => {
     setIsLoading(true);
@@ -88,7 +90,7 @@ export const SpacesProvider = ({ children }: SpacesProviderProps) => {
     const unsub = flow.spaces.onSpacesChanged(() => {
       revalidate();
     });
-    return unsub;
+    return () => unsub();
   }, [revalidate]);
 
   return (

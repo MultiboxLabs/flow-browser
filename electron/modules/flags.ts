@@ -8,6 +8,7 @@ type Flags = {
   SHOW_DEBUG_ERRORS: boolean | DEBUG_AREA[];
   DEBUG_DISABLE_TAB_VIEW: boolean;
   SHOW_DEBUG_DEVTOOLS: boolean;
+  GLANCE_ENABLED: boolean;
 };
 
 export const FLAGS: Flags = {
@@ -24,5 +25,8 @@ export const FLAGS: Flags = {
   SHOW_DEBUG_DEVTOOLS: true,
 
   // Debug: Disable the tab view
-  DEBUG_DISABLE_TAB_VIEW: false
+  DEBUG_DISABLE_TAB_VIEW: false,
+
+  // Glance: Enable the glance feature
+  GLANCE_ENABLED: false
 };

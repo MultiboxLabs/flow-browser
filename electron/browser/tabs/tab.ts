@@ -9,6 +9,7 @@ import { FLAGS } from "@/modules/flags";
 import { PATHS } from "@/modules/paths";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { Rectangle, Session, WebContents, WebContentsView, WebPreferences } from "electron";
+import buildChromeContextMenu from "electron-chrome-context-menu";
 
 // Configuration
 const GLANCE_FRONT_ZINDEX = 3;
@@ -52,17 +53,19 @@ function createWebContentsView(
 ): PatchedWebContentsView {
   const webContents = options.webContents;
   const webPreferences: WebPreferences = {
+    // Merge with any additional preferences
+    ...(options.webPreferences || {}),
+
+    // Basic preferences
     sandbox: true,
     session: session,
     scrollBounce: true,
     safeDialogs: true,
     navigateOnDragDrop: true,
+    transparent: true,
 
     // Provide access to 'flow' globals
-    preload: PATHS.PRELOAD,
-
-    // Merge with any additional preferences
-    ...(options.webPreferences || {})
+    preload: PATHS.PRELOAD
   };
 
   const webContentsView = new WebContentsView({
@@ -72,7 +75,6 @@ function createWebContentsView(
   });
 
   webContentsView.setVisible(false);
-
   return webContentsView as PatchedWebContentsView;
 }
 
@@ -126,6 +128,37 @@ function setupEventListeners(tab: Tab) {
       tab.updateTabState();
     });
   }
+
+  // Enable transparent background for whitelisted protocols
+  const WHITELISTED_PROTOCOLS = ["flow-internal:", "flow-utility:"];
+  tab.on("updated", () => {
+    if (tab.url) {
+      try {
+        const url = new URL(tab.url);
+        if (WHITELISTED_PROTOCOLS.includes(url.protocol)) {
+          tab.view.setBackgroundColor("#00000000");
+        } else {
+          tab.view.setBackgroundColor("#ffffffff");
+        }
+      } catch {
+        // Bad URL
+        tab.view.setBackgroundColor("#ffffffff");
+      }
+    }
+  });
+
+  // Handle context menu
+  webContents.on("context-menu", (_event, params) => {
+    const menu = buildChromeContextMenu({
+      params,
+      webContents,
+      openLink: (url, disposition) => {
+        return tab.createNewTab(url, disposition);
+      }
+    });
+
+    menu.popup();
+  });
 }
 
 // Tab Class
@@ -213,46 +246,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
             action: "allow",
             outlivesOpener: true,
             createWindow: (constructorOptions) => {
-              let windowId = this.window.id;
-
-              const isNewWindow = details.disposition === "new-window";
-              const isForegroundTab = details.disposition === "foreground-tab";
-              const isBackgroundTab = details.disposition === "background-tab";
-
-              if (isNewWindow) {
-                // TODO: popup window instead of standard window
-                const newWindow = this.browser.createWindowInternal("normal");
-                windowId = newWindow.id;
-              }
-
-              const newTab = this.tabManager.internalCreateTab(
-                this.profileId,
-                windowId,
-                this.spaceId,
-                constructorOptions
-              );
-              newTab.loadURL(details.url);
-
-              let glanced = false;
-
-              // Glance if possible
-              if (isForegroundTab) {
-                const currentTabGroup = this.tabManager.getTabGroupByTabId(this.id);
-                if (!currentTabGroup) {
-                  glanced = true;
-
-                  const group = this.tabManager.createTabGroup("glance", [newTab.id, this.id]) as GlanceTabGroup;
-                  group.setFrontTab(newTab.id);
-
-                  this.tabManager.setActiveTab(group);
-                }
-              }
-
-              if ((isForegroundTab && !glanced) || isBackgroundTab) {
-                this.tabManager.setActiveTab(newTab);
-              }
-
-              return newTab.webContents;
+              return this.createNewTab(details.url, details.disposition, constructorOptions);
             }
           };
         }
@@ -263,6 +257,48 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     // Setup event listeners
     setupEventListeners(this);
+  }
+
+  public createNewTab(
+    url: string,
+    disposition: "new-window" | "foreground-tab" | "background-tab" | "default" | "other",
+    constructorOptions?: Electron.WebContentsViewConstructorOptions
+  ) {
+    let windowId = this.window.id;
+
+    const isNewWindow = disposition === "new-window";
+    const isForegroundTab = disposition === "foreground-tab";
+    const isBackgroundTab = disposition === "background-tab";
+
+    if (isNewWindow) {
+      // TODO: popup window instead of standard window
+      const newWindow = this.browser.createWindowInternal("normal");
+      windowId = newWindow.id;
+    }
+
+    const newTab = this.tabManager.internalCreateTab(this.profileId, windowId, this.spaceId, constructorOptions);
+    newTab.loadURL(url);
+
+    let glanced = false;
+
+    // Glance if possible
+    if (isForegroundTab && FLAGS.GLANCE_ENABLED) {
+      const currentTabGroup = this.tabManager.getTabGroupByTabId(this.id);
+      if (!currentTabGroup) {
+        glanced = true;
+
+        const group = this.tabManager.createTabGroup("glance", [newTab.id, this.id]) as GlanceTabGroup;
+        group.setFrontTab(newTab.id);
+
+        this.tabManager.setActiveTab(group);
+      }
+    }
+
+    if ((isForegroundTab && !glanced) || isBackgroundTab) {
+      this.tabManager.setActiveTab(newTab);
+    }
+
+    return newTab.webContents;
   }
 
   public updateTabState() {
@@ -479,12 +515,6 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       }
     } else {
       this.setWindow(this.window, TAB_ZINDEX);
-    }
-
-    if (isGlanceFront) {
-      this.view.setBackgroundColor("#ffffffff");
-    } else {
-      this.view.setBackgroundColor("#00000000");
     }
 
     if (newTabGroupMode !== lastTabGroupMode) {

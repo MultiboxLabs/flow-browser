@@ -284,6 +284,10 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
   public removeTab(tab: Tab) {
     this.tabs = this.tabs.filter((t) => t !== tab);
     this.emit("tab-removed", tab);
+
+    if (this.getActiveTab(tab.getWindow().id, tab.spaceId) === tab) {
+      this.removeActiveTab(tab.getWindow().id, tab.spaceId);
+    }
   }
 
   /**
