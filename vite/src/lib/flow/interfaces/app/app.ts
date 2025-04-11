@@ -1,0 +1,20 @@
+// API //
+export interface FlowAppAPI {
+  /**
+   * Gets the app info
+   */
+  getAppInfo: () => Promise<{
+    app_version: string;
+    build_number: string;
+    node_version: string;
+    chrome_version: string;
+    electron_version: string;
+    os: string;
+    update_channel: "Stable" | "Beta" | "Alpha" | "Development";
+  }>;
+
+  /**
+   * Gets the platform of the current device
+   */
+  getPlatform: () => string;
+}

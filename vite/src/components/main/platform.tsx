@@ -1,4 +1,3 @@
-import { getPlatform } from "@/lib/flow";
 import { useEffect, useState } from "react";
 
 export type Platform = "platform-win32" | "platform-darwin" | "platform-linux" | "platform-unknown";
@@ -6,7 +5,7 @@ export type Platform = "platform-win32" | "platform-darwin" | "platform-linux" |
 export function PlatformProvider({ children }: { children: React.ReactNode }) {
   const [platform, setPlatform] = useState<Platform>("platform-unknown");
   useEffect(() => {
-    const foundPlatform = getPlatform();
+    const foundPlatform = flow.app.getPlatform();
 
     if (foundPlatform === "win32") {
       setPlatform("platform-win32");

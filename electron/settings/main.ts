@@ -1,19 +1,7 @@
-import { app, BrowserWindow, ipcMain, nativeTheme, session } from "electron";
-import buildChromeContextMenu from "electron-chrome-context-menu";
-import { browser } from "@/index";
+import { BrowserWindow, nativeTheme } from "electron";
 import { registerWindow, WindowType } from "@/modules/windows";
-import { PATHS } from "@/modules/paths";
 
 let settingsWindow: BrowserWindow | null = null;
-
-app.whenReady().then(() => {
-  const defaultSession = session.defaultSession;
-  defaultSession.registerPreloadScript({
-    id: "flow-preload",
-    type: "frame",
-    filePath: PATHS.PRELOAD
-  });
-});
 
 function createSettingsWindow() {
   const window = new BrowserWindow({
@@ -33,7 +21,7 @@ function createSettingsWindow() {
     roundedCorners: true
   });
 
-  window.loadURL("flow-utility://page/settings/");
+  window.loadURL("flow-internal://page/settings/");
 
   window.on("closed", () => {
     settingsWindow = null;
@@ -41,12 +29,18 @@ function createSettingsWindow() {
 
   registerWindow(WindowType.SETTINGS, "settings", window);
   settingsWindow = window;
+
+  return new Promise((resolve) => {
+    window.once("ready-to-show", () => {
+      resolve(window);
+    });
+  });
 }
 
 export const settings = {
-  show: () => {
+  show: async () => {
     if (!settingsWindow) {
-      createSettingsWindow();
+      await createSettingsWindow();
     }
 
     if (!settingsWindow) return;
@@ -75,12 +69,3 @@ export const settings = {
     }
   }
 };
-
-// IPC Handlers //
-ipcMain.on("settings:open", () => {
-  settings.show();
-});
-
-ipcMain.on("settings:close", () => {
-  settings.hide();
-});

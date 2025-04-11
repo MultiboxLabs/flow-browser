@@ -213,6 +213,29 @@ class DataStore {
   }
 
   /**
+   * Removes a value from the datastore
+   * @param key - The key to remove
+   * @returns Promise that resolves to a boolean indicating success
+   * @throws {DataStoreError} If invalid key is provided
+   */
+  async remove(key: string): Promise<boolean> {
+    if (!key || typeof key !== "string") {
+      throw new DataStoreError("Invalid key provided to remove method");
+    }
+
+    let removed = false;
+    await this.accessDataStore((data) => {
+      if (key in data) {
+        delete data[key];
+        removed = true;
+      }
+      return data;
+    });
+
+    return removed;
+  }
+
+  /**
    * Deletes the datastore file
    * @returns Promise resolving to a boolean indicating success
    */

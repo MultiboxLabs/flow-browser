@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import { useEffect, useState, createContext, useContext } from "react";
 
 type Theme = "light" | "dark" | "system";
@@ -19,8 +18,21 @@ export function useTheme() {
   return context;
 }
 
-export function ThemeProvider({ persist = false, children }: { persist?: boolean; children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
+export function ThemeProvider({
+  forceTheme,
+  persist = false,
+  children
+}: {
+  forceTheme?: Theme;
+  persist?: boolean;
+  children: React.ReactNode;
+}) {
+  const [_theme, setTheme] = useState<Theme>(() => {
+    // If forceTheme is provided, use it
+    if (forceTheme) {
+      return forceTheme;
+    }
+
     if (persist) {
       // Check if there's a saved theme in localStorage
       const savedTheme = localStorage.getItem("theme");
@@ -32,6 +44,9 @@ export function ThemeProvider({ persist = false, children }: { persist?: boolean
     // Default to system
     return "system";
   });
+
+  // If forceTheme is provided, use it
+  const theme = forceTheme ? forceTheme : _theme;
 
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() =>
     window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"

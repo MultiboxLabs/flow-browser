@@ -10,6 +10,7 @@ import { FLOW_DATA_DIR } from "./paths";
 import * as sharpIco from "sharp-ico";
 import sharp from "sharp";
 import { debugError, debugPrint } from "./output";
+import { FLAGS } from "@/modules/flags";
 
 const dbPath = path.join(FLOW_DATA_DIR, "favicons.db");
 
@@ -18,10 +19,7 @@ const db = knex({
   client: "better-sqlite3",
   useNullAsDefault: true,
   connection: {
-    filename: dbPath,
-    options: {
-      //nativeBinding: PATHS.BETTER_SQLITE3_NATIVE_BINDING
-    }
+    filename: dbPath
   },
   pool: {
     min: 1,
@@ -396,6 +394,17 @@ export function normalizeURL(url: string): string {
     // Add trailing slash to pathname if it doesn't have one and isn't empty
     if (parsedURL.pathname && parsedURL.pathname !== "/" && !parsedURL.pathname.endsWith("/")) {
       parsedURL.pathname = `${parsedURL.pathname}/`;
+    }
+
+    // Remove query params from the URL
+    parsedURL.search = "";
+
+    // Remove hash from the URL
+    parsedURL.hash = "";
+
+    // Remove the path from the URL if the flag is enabled
+    if (FLAGS.FAVICONS_REMOVE_PATH) {
+      parsedURL.pathname = "";
     }
 
     return parsedURL.toString();

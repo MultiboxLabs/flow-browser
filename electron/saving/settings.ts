@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { getDatastore } from "./datastore";
-import { ipcMain } from "electron";
 
 export const SettingsDataStore = getDatastore("settings");
 
@@ -41,11 +40,3 @@ export async function setCurrentNewTabMode(newTabMode: NewTabMode) {
   }
   return false;
 }
-
-ipcMain.handle("get-current-new-tab-mode", () => {
-  return getCurrentNewTabMode();
-});
-
-ipcMain.handle("set-current-new-tab-mode", (_, newTabMode: NewTabMode) => {
-  return setCurrentNewTabMode(newTabMode);
-});

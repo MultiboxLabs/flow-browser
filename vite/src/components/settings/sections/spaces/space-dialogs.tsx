@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Profile } from "@/lib/flow";
+import type { Profile } from "@/lib/flow/interfaces/sessions/profiles";
 import {
   Dialog,
   DialogContent,
@@ -62,7 +62,6 @@ interface CreateSpaceDialogProps {
   onCreate: () => Promise<void>;
   profiles: Profile[];
   selectedProfile: string | null;
-  setSelectedProfile: (id: string | null) => void;
 }
 
 export function CreateSpaceDialog({
@@ -73,8 +72,7 @@ export function CreateSpaceDialog({
   isCreating,
   onCreate,
   profiles,
-  selectedProfile,
-  setSelectedProfile
+  selectedProfile
 }: CreateSpaceDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -88,7 +86,7 @@ export function CreateSpaceDialog({
             <Label htmlFor="profile-select" className="text-right">
               Profile
             </Label>
-            <Select value={selectedProfile ?? ""} onValueChange={(value) => setSelectedProfile(value)}>
+            <Select value={selectedProfile ?? ""}>
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select a profile" />
               </SelectTrigger>

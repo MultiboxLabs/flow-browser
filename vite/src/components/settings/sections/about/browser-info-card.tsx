@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
-import { getAppInfo } from "@/lib/flow";
+
+const getAppInfo = flow.app.getAppInfo;
 
 export function BrowserInfoCard() {
   const [appInfo, setAppInfo] = useState<Awaited<ReturnType<typeof getAppInfo>> | null>(null);

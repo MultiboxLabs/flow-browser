@@ -5,6 +5,7 @@ import { IconSettings } from "@/components/settings/sections/icon/section";
 import { AboutSettings } from "@/components/settings/sections/about/section";
 import { ProfilesSettings } from "@/components/settings/sections/profiles/section";
 import { SpacesSettings } from "@/components/settings/sections/spaces/section";
+import { ExternalAppsSettings } from "@/components/settings/sections/external-apps/section";
 
 export function SettingsLayout() {
   const [activeSection, setActiveSection] = useState("general");
@@ -35,6 +36,8 @@ export function SettingsLayout() {
         return <ProfilesSettings navigateToSpaces={navigateToSpaces} navigateToSpace={navigateToSpace} />;
       case "spaces":
         return <SpacesSettings initialSelectedProfile={selectedProfileId} initialSelectedSpace={selectedSpaceId} />;
+      case "external-apps":
+        return <ExternalAppsSettings />;
       default:
         return <GeneralSettings />;
     }
