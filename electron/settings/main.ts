@@ -21,7 +21,7 @@ function createSettingsWindow() {
     roundedCorners: true
   });
 
-  window.loadURL("flow-internal://page/settings/");
+  window.loadURL("flow-internal://settings/");
 
   window.on("closed", () => {
     settingsWindow = null;

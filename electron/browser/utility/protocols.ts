@@ -11,153 +11,87 @@ protocolModule.registerSchemesAsPrivileged([
     privileges: { standard: true, secure: true, bypassCSP: true, codeCache: true, supportFetchAPI: true }
   },
   {
-    scheme: "flow-utility",
+    scheme: "flow",
     privileges: { standard: true, secure: true, bypassCSP: true, codeCache: true, supportFetchAPI: true }
+  },
+  {
+    scheme: "flow-external",
+    privileges: { standard: true, secure: true }
   }
 ]);
 
-export function registerFlowInternalProtocol(protocol: Protocol) {
-  const FLOW_INTERNAL_ALLOWED_DIRECTORIES = ["main", "settings", "glance-modal"];
+const FLOW_INTERNAL_ALLOWED_DOMAINS = ["main", "settings", "glance-modal"];
+const FLOW_PROTOCOL_ALLOWED_DOMAINS = ["about", "error", "new-tab"];
 
-  const handlePageRequest = async (request: Request, url: URL) => {
-    const queryString = url.search;
+async function serveStaticFile(filePath: string, baseDir: string = PATHS.VITE_WEBUI) {
+  let transformedPath = filePath;
+  if (transformedPath.startsWith("/")) {
+    transformedPath = transformedPath.slice(1);
+  }
+  if (transformedPath.endsWith("/")) {
+    transformedPath = transformedPath.slice(0, -1);
+  }
 
-    // Remove the /page prefix to get the actual path
-    const pathName = url.pathname;
-    let pagePath = pathName;
-    if (pagePath.startsWith("/")) {
-      pagePath = pagePath.slice(1);
-    }
-    if (pagePath.endsWith("/")) {
-      pagePath = pagePath.slice(0, -1);
-    }
+  if (!transformedPath) {
+    return await serveStaticFile("index.html");
+  }
 
-    // Redirect index.html to directory path
-    if (pagePath.endsWith("/index.html")) {
-      const redirectPath = `flow-internal://page/${pagePath.replace("/index.html", "/")}${queryString}`;
-      return Response.redirect(redirectPath, 301);
-    }
+  const fullFilePath = path.join(baseDir, transformedPath);
 
-    // Build file path and check if it exists
-    let filePath = path.join(PATHS.VITE_WEBUI, pagePath);
-
-    try {
-      // Check if path exists
-      const stats = await fsPromises.stat(filePath);
-
-      // Ensure the requested path is within the allowed directory structure
-      const normalizedPath = path.normalize(filePath);
-      const distDir = path.normalize(path.join(PATHS.VITE_WEBUI));
-      if (!normalizedPath.startsWith(distDir)) {
-        return new Response("Access denied", { status: 403 });
-      }
-
-      // If direct file is a directory, try serving index.html from that directory
-      if (stats.isDirectory() && FLOW_INTERNAL_ALLOWED_DIRECTORIES.includes(pagePath)) {
-        const indexPath = path.join(filePath, "index.html");
-        try {
-          await fsPromises.access(indexPath);
-          filePath = indexPath;
-        } catch (error) {
-          // Index.html doesn't exist in directory
-          return new Response("Directory index not found", { status: 404 });
-        }
-      }
-
-      // Read file contents
-      const buffer = await fsPromises.readFile(filePath);
-
-      // Determine content type based on file extension
-      const contentType = getContentType(filePath);
-
-      return new Response(buffer, {
-        headers: {
-          "Content-Type": contentType
-        }
-      });
-    } catch (error) {
-      console.error("Error serving file:", error);
+  try {
+    const stats = await fsPromises.stat(fullFilePath);
+    if (stats.isDirectory()) {
       return new Response("File not found", { status: 404 });
     }
+
+    // Read file contents
+    const buffer = await fsPromises.readFile(fullFilePath);
+
+    // Determine content type based on file extension
+    const contentType = getContentType(fullFilePath);
+
+    return new Response(buffer, {
+      headers: {
+        "Content-Type": contentType
+      }
+    });
+  } catch (error) {
+    console.error("Error serving file:", error);
+    return new Response("File not found", { status: 404 });
+  }
+}
+
+function registerFlowInternalProtocol(protocol: Protocol) {
+  const handleDomainRequest = async (_request: Request, url: URL) => {
+    const hostname = url.hostname;
+    const pathname = url.pathname;
+
+    if (!FLOW_INTERNAL_ALLOWED_DOMAINS.includes(hostname)) {
+      return new Response("Invalid request path", { status: 400 });
+    }
+
+    return await serveStaticFile(pathname);
   };
 
   protocol.handle("flow-internal", async (request) => {
     const urlString = request.url;
-
     const url = new URL(urlString);
 
-    // flow-internal://page/:path
-    if (url.host === "page") {
-      return await handlePageRequest(request, url);
-    }
-
-    return new Response("Invalid request path", { status: 400 });
+    // flow-internal://:path
+    return await handleDomainRequest(request, url);
   });
 }
 
-function registerFlowUtilityProtocol(protocol: Protocol) {
-  const FLOW_UTILITY_ALLOWED_DIRECTORIES = ["error", "new-tab"];
+function registerFlowProtocol(protocol: Protocol) {
+  const handleDomainRequest = async (_request: Request, url: URL) => {
+    const hostname = url.hostname;
+    const pathname = url.pathname;
 
-  const handlePageRequest = async (request: Request, url: URL) => {
-    const queryString = url.search;
-
-    // Remove the /page prefix to get the actual path
-    const pathName = url.pathname;
-    let pagePath = pathName;
-    if (pagePath.startsWith("/")) {
-      pagePath = pagePath.slice(1);
-    }
-    if (pagePath.endsWith("/")) {
-      pagePath = pagePath.slice(0, -1);
+    if (!FLOW_PROTOCOL_ALLOWED_DOMAINS.includes(hostname)) {
+      return new Response("Invalid request path", { status: 400 });
     }
 
-    // Redirect index.html to directory path
-    if (pagePath.endsWith("/index.html")) {
-      const redirectPath = `flow-utility://page/${pagePath.replace("/index.html", "/")}${queryString}`;
-      return Response.redirect(redirectPath, 301);
-    }
-
-    // Build file path and check if it exists
-    let filePath = path.join(PATHS.VITE_WEBUI, pagePath);
-
-    try {
-      // Check if path exists
-      const stats = await fsPromises.stat(filePath);
-
-      // Ensure the requested path is within the allowed directory structure
-      const normalizedPath = path.normalize(filePath);
-      const distDir = path.normalize(path.join(PATHS.VITE_WEBUI));
-      if (!normalizedPath.startsWith(distDir)) {
-        return new Response("Access denied", { status: 403 });
-      }
-
-      // If direct file is a directory, try serving index.html from that directory
-      if (stats.isDirectory() && FLOW_UTILITY_ALLOWED_DIRECTORIES.includes(pagePath)) {
-        const indexPath = path.join(filePath, "index.html");
-        try {
-          await fsPromises.access(indexPath);
-          filePath = indexPath;
-        } catch (error) {
-          // Index.html doesn't exist in directory
-          return new Response("Directory index not found", { status: 404 });
-        }
-      }
-
-      // Read file contents
-      const buffer = await fsPromises.readFile(filePath);
-
-      // Determine content type based on file extension
-      const contentType = getContentType(filePath);
-
-      return new Response(buffer, {
-        headers: {
-          "Content-Type": contentType
-        }
-      });
-    } catch (error) {
-      console.error("Error serving file:", error);
-      return new Response("File not found", { status: 404 });
-    }
+    return await serveStaticFile(pathname);
   };
 
   const handleFaviconRequest = async (request: Request, url: URL) => {
@@ -210,33 +144,28 @@ function registerFlowUtilityProtocol(protocol: Protocol) {
     }
   };
 
-  protocol.handle("flow-utility", async (request) => {
+  protocol.handle("flow", async (request) => {
     const urlString = request.url;
-
     const url = new URL(urlString);
 
-    // flow-utility://page/:path
-    if (url.host === "page") {
-      return await handlePageRequest(request, url);
-    }
-
-    // flow-utility://favicon/:path
+    // flow://favicon/:path
     if (url.host === "favicon") {
       return await handleFaviconRequest(request, url);
     }
 
-    // flow-utility://asset/:path
+    // flow://asset/:path
     if (url.host === "asset") {
       return await handleAssetRequest(request, url);
     }
 
-    return new Response("Invalid request path", { status: 400 });
+    // flow://:path
+    return await handleDomainRequest(request, url);
   });
 }
 
 export function registerProtocolsWithSession(session: Session) {
   const protocol = session.protocol;
-  registerFlowUtilityProtocol(protocol);
+  registerFlowProtocol(protocol);
 }
 
 app.whenReady().then(() => {

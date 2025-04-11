@@ -138,4 +138,5 @@ dist
 # Others
 extensions/*
 vite-old
+vite-old-2
 electron/browser/_old

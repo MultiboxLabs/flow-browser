@@ -130,7 +130,7 @@ function setupEventListeners(tab: Tab) {
   }
 
   // Enable transparent background for whitelisted protocols
-  const WHITELISTED_PROTOCOLS = ["flow-internal:", "flow-utility:"];
+  const WHITELISTED_PROTOCOLS = ["flow-internal:", "flow:"];
   tab.on("updated", () => {
     if (tab.url) {
       try {
@@ -410,7 +410,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    * Loads an error page in the tab
    */
   public loadErrorPage(errorCode: number, url: string) {
-    const errorPageURL = new URL("flow-utility://page/error");
+    const errorPageURL = new URL("flow://error");
     errorPageURL.searchParams.set("errorCode", errorCode.toString());
     errorPageURL.searchParams.set("url", url);
     errorPageURL.searchParams.set("initial", "1");

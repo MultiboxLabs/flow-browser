@@ -6,7 +6,7 @@ export function WebsiteFavicon({ url, favicon, className }: { url: string; favic
   const [useCustomFavicon, setUseCustomFavicon] = useState(false);
 
   if (useFlowUtility) {
-    const srcUrl = new URL("flow-utility://favicon");
+    const srcUrl = new URL("flow://favicon");
     srcUrl.searchParams.set("url", url);
     return (
       <img

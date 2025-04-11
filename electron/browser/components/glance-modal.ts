@@ -12,7 +12,7 @@ export class GlanceModal {
     view.setBorderRadius(8);
 
     const webContents = view.webContents;
-    webContents.loadURL("flow-internal://page/glance-modal/");
+    webContents.loadURL("flow-internal://glance-modal/");
 
     view.setVisible(false);
     this.view = view;

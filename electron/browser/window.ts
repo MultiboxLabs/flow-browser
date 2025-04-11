@@ -72,7 +72,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       this.window.focus();
     });
 
-    this.window.loadURL("flow-internal://page/main/");
+    this.window.loadURL("flow-internal://main/");
 
     if (FLAGS.SHOW_DEBUG_DEVTOOLS) {
       setTimeout(() => {
@@ -125,7 +125,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
         if (space) {
           const profileId = space.profileId;
           const tab = await this.browser.tabs.createTab(profileId, this.id, spaceId);
-          tab.loadURL("flow-utility://page/new-tab");
+          tab.loadURL("flow://new-tab");
           this.browser.tabs.setActiveTab(tab);
         }
       });

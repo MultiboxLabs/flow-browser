@@ -84,7 +84,7 @@ export function transformUrl(url: string): string | null {
   // Error Page
   try {
     const urlObject = new URL(url);
-    if (urlObject.protocol === "flow-utility:" && urlObject.host === "page" && urlObject.pathname === "/error") {
+    if (urlObject.protocol === "flow:" && urlObject.hostname === "error") {
       const erroredURL = urlObject.searchParams.get("url");
       if (erroredURL) {
         return erroredURL;

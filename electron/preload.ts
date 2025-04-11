@@ -11,11 +11,11 @@ import { SpaceData } from "@/sessions/spaces";
 // API CHECKS //
 function checkCanUseAPI() {
   const isInternalUI = location.protocol === "flow-internal:";
-  const isUtilityUI = location.protocol === "flow-utility:";
+  const isProtocolUI = location.protocol === "flow:";
 
-  const isBrowserUI = isInternalUI && location.pathname === "/main/";
-  const isOmniboxUI = isInternalUI && location.pathname === "/omnibox/";
-  const isSettingsUI = isInternalUI && location.pathname === "/settings/";
+  const isBrowserUI = isInternalUI && location.hostname === "main";
+  const isOmniboxUI = isInternalUI && location.hostname === "omnibox";
+  const isSettingsUI = isInternalUI && location.hostname === "settings";
 
   const canUseAPI = {
     browser: isBrowserUI,

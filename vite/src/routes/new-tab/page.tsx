@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useTheme } from "@/components/main/theme";
+import { ThemeProvider, useTheme } from "@/components/main/theme";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 
 // This interface will help with type safety for the quick links
@@ -19,7 +19,7 @@ interface QuickLink {
   extraClass?: string;
 }
 
-export default function NewTabPage() {
+function Page() {
   const [searchQuery, setSearchQuery] = useState("");
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme, resolvedTheme } = useTheme();
@@ -337,3 +337,13 @@ export default function NewTabPage() {
     </div>
   );
 }
+
+function App() {
+  return (
+    <ThemeProvider persist>
+      <Page />
+    </ThemeProvider>
+  );
+}
+
+export default App;
