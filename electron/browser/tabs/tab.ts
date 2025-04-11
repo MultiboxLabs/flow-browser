@@ -78,89 +78,6 @@ function createWebContentsView(
   return webContentsView as PatchedWebContentsView;
 }
 
-function setupEventListeners(tab: Tab) {
-  const { webContents } = tab;
-
-  // Used by the tab manager to determine which tab is focused
-  webContents.on("focus", () => {
-    tab.emit("focused");
-  });
-
-  // Handle favicon updates
-  webContents.on("page-favicon-updated", (_event, favicons) => {
-    const faviconURL = favicons[0];
-    const url = tab.webContents.getURL();
-    if (faviconURL && url) {
-      cacheFavicon(url, faviconURL);
-    }
-    if (faviconURL && faviconURL !== tab.faviconURL) {
-      tab.faviconURL = faviconURL;
-      tab.emit("updated");
-    }
-  });
-
-  // Handle page load errors
-  webContents.on("did-fail-load", (event, errorCode, _errorDescription, validatedURL, isMainFrame) => {
-    event.preventDefault();
-
-    // Skip aborted operations (user navigation cancellations)
-    if (isMainFrame && errorCode !== -3) {
-      tab.loadErrorPage(errorCode, validatedURL);
-    }
-  });
-
-  // Handle content state changes
-  const updateEvents = [
-    "audio-state-changed", // audible
-    "page-title-updated", // title
-    "did-finish-load", // url & isLoading
-    "did-start-loading", // isLoading
-    "did-stop-loading", // isLoading
-    "media-started-playing", // audible
-    "media-paused", // audible
-    "did-start-navigation", // url
-    "did-redirect-navigation", // url
-    "did-navigate-in-page" // url
-  ] as const;
-
-  for (const eventName of updateEvents) {
-    webContents.on(eventName as any, () => {
-      tab.updateTabState();
-    });
-  }
-
-  // Enable transparent background for whitelisted protocols
-  const WHITELISTED_PROTOCOLS = ["flow-internal:", "flow:"];
-  tab.on("updated", () => {
-    if (tab.url) {
-      try {
-        const url = new URL(tab.url);
-        if (WHITELISTED_PROTOCOLS.includes(url.protocol)) {
-          tab.view.setBackgroundColor("#00000000");
-        } else {
-          tab.view.setBackgroundColor("#ffffffff");
-        }
-      } catch {
-        // Bad URL
-        tab.view.setBackgroundColor("#ffffffff");
-      }
-    }
-  });
-
-  // Handle context menu
-  webContents.on("context-menu", (_event, params) => {
-    const menu = buildChromeContextMenu({
-      params,
-      webContents,
-      openLink: (url, disposition) => {
-        return tab.createNewTab(url, disposition);
-      }
-    });
-
-    menu.popup();
-  });
-}
-
 // Tab Class
 export class Tab extends TypedEventEmitter<TabEvents> {
   // Public properties
@@ -256,7 +173,90 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     });
 
     // Setup event listeners
-    setupEventListeners(this);
+    this.setupEventListeners();
+  }
+
+  private setupEventListeners() {
+    const { webContents } = this;
+
+    // Used by the tab manager to determine which tab is focused
+    webContents.on("focus", () => {
+      this.emit("focused");
+    });
+
+    // Handle favicon updates
+    webContents.on("page-favicon-updated", (_event, favicons) => {
+      const faviconURL = favicons[0];
+      const url = this.webContents.getURL();
+      if (faviconURL && url) {
+        cacheFavicon(url, faviconURL);
+      }
+      if (faviconURL && faviconURL !== this.faviconURL) {
+        this.faviconURL = faviconURL;
+        this.emit("updated");
+      }
+    });
+
+    // Handle page load errors
+    webContents.on("did-fail-load", (event, errorCode, _errorDescription, validatedURL, isMainFrame) => {
+      event.preventDefault();
+
+      // Skip aborted operations (user navigation cancellations)
+      if (isMainFrame && errorCode !== -3) {
+        this.loadErrorPage(errorCode, validatedURL);
+      }
+    });
+
+    // Handle content state changes
+    const updateEvents = [
+      "audio-state-changed", // audible
+      "page-title-updated", // title
+      "did-finish-load", // url & isLoading
+      "did-start-loading", // isLoading
+      "did-stop-loading", // isLoading
+      "media-started-playing", // audible
+      "media-paused", // audible
+      "did-start-navigation", // url
+      "did-redirect-navigation", // url
+      "did-navigate-in-page" // url
+    ] as const;
+
+    for (const eventName of updateEvents) {
+      webContents.on(eventName as any, () => {
+        this.updateTabState();
+      });
+    }
+
+    // Enable transparent background for whitelisted protocols
+    const WHITELISTED_PROTOCOLS = ["flow-internal:", "flow:"];
+    this.on("updated", () => {
+      if (this.url) {
+        try {
+          const url = new URL(this.url);
+          if (WHITELISTED_PROTOCOLS.includes(url.protocol)) {
+            this.view.setBackgroundColor("#00000000");
+          } else {
+            this.view.setBackgroundColor("#ffffffff");
+          }
+        } catch {
+          // Bad URL
+          this.view.setBackgroundColor("#ffffffff");
+        }
+      }
+    });
+
+    // Handle context menu
+    webContents.on("context-menu", (_event, params) => {
+      const menu = buildChromeContextMenu({
+        params,
+        webContents,
+        openLink: (url, disposition) => {
+          return this.createNewTab(url, disposition);
+        }
+      });
+
+      menu.popup();
+    });
   }
 
   public createNewTab(
