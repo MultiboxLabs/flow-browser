@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "motion/react";
+import { toast } from "sonner";
 
 interface IconOption {
   id: string;
@@ -65,6 +66,7 @@ export function IconSettings() {
     try {
       const success = await flow.icons.setCurrentIcon(iconId);
       if (success) {
+        toast.success("Icon updated!");
         setSelectedIcon(iconId);
 
         // Update current status for icons
@@ -77,6 +79,7 @@ export function IconSettings() {
       }
     } catch (error) {
       console.error("Failed to update icon:", error);
+      toast.error("Failed to update icon!");
     } finally {
       setIsUpdating(false);
     }

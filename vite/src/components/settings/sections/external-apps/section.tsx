@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { ExternalAppPermission } from "@/lib/flow/interfaces/app/openExternal";
+import { toast } from "sonner";
 
 function PermissionItem({
   websiteUrl,
@@ -122,7 +123,10 @@ export function ExternalAppsSettings() {
     (url: string, protocol: string) => {
       flow.openExternal.unsetAlwaysOpenExternal(url, protocol).then((success) => {
         if (success) {
+          toast.success("Permission revoked!");
           revalidatePermissions();
+        } else {
+          toast.error("Failed to revoke permission!");
         }
       });
     },
@@ -154,13 +158,15 @@ export function ExternalAppsSettings() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">External Applications</h2>
-        <p className="text-muted-foreground">Manage websites and the protocols they're always allowed to open</p>
+        <p className="text-muted-foreground">Manage websites and the protocols they're allowed to open automatically</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Protocol Permissions</CardTitle>
-          <CardDescription>Websites that you've allowed to open external applications via protocols</CardDescription>
+          <CardDescription>
+            Websites that you've allowed to open external applications via protocols automatically
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="relative">
