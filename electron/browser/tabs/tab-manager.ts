@@ -27,6 +27,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
   public windowActiveSpaceMap: Map<number, string> = new Map();
   public spaceActiveTabMap: Map<WindowSpaceReference, Tab | TabGroup> = new Map();
   public spaceFocusedTabMap: Map<WindowSpaceReference, Tab> = new Map();
+  public spaceActivationHistory: Map<WindowSpaceReference, number[]> = new Map();
 
   // Tab Groups
   public tabGroups: Map<number, TabGroup>;
@@ -206,19 +207,31 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     let windowId: number;
     let spaceId: string;
     let tabToFocus: Tab | undefined;
+    let idToStore: number;
 
     if (tabOrGroup instanceof Tab) {
       windowId = tabOrGroup.getWindow().id;
       spaceId = tabOrGroup.spaceId;
       tabToFocus = tabOrGroup;
+      idToStore = tabOrGroup.id;
     } else {
       windowId = tabOrGroup.windowId;
       spaceId = tabOrGroup.spaceId;
-      tabToFocus = tabOrGroup.tabs[0]; // Focus the first tab in the group
+      tabToFocus = tabOrGroup.tabs.length > 0 ? tabOrGroup.tabs[0] : undefined;
+      idToStore = tabOrGroup.id;
     }
 
     const windowSpaceReference = `${windowId}-${spaceId}` as WindowSpaceReference;
     this.spaceActiveTabMap.set(windowSpaceReference, tabOrGroup);
+
+    // Update activation history
+    const history = this.spaceActivationHistory.get(windowSpaceReference) ?? [];
+    const existingIndex = history.indexOf(idToStore);
+    if (existingIndex > -1) {
+      history.splice(existingIndex, 1);
+    }
+    history.push(idToStore);
+    this.spaceActivationHistory.set(windowSpaceReference, history);
 
     if (tabToFocus) {
       this.setFocusedTab(tabToFocus);
@@ -246,27 +259,53 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     this.spaceActiveTabMap.delete(windowSpaceReference);
     this.removeFocusedTab(windowId, spaceId);
 
+    // Try finding next active from history
+    const history = this.spaceActivationHistory.get(windowSpaceReference);
+    if (history) {
+      // Iterate backwards through history (most recent first)
+      for (let i = history.length - 1; i >= 0; i--) {
+        const itemId = history[i];
+        // Check if it's an existing Tab
+        const tab = this.getTabById(itemId);
+        if (tab && !tab.isDestroyed && tab.getWindow().id === windowId && tab.spaceId === spaceId) {
+          // Ensure tab hasn't been moved out of the space since last activation check
+          this.setActiveTab(tab);
+          return; // Found replacement
+        }
+        // Check if it's an existing TabGroup
+        const group = this.getTabGroupById(itemId);
+        // Ensure group is not empty and belongs to the correct window/space
+        if (
+          group &&
+          !group.isDestroyed &&
+          group.tabs.length > 0 &&
+          group.windowId === windowId &&
+          group.spaceId === spaceId
+        ) {
+          this.setActiveTab(group);
+          return; // Found replacement
+        }
+        // If item not found or invalid, it will be removed from history eventually
+        // by removeTab/internalDestroyTabGroup, or we can clean it here (optional)
+      }
+    }
+
     // Find the next available tab or group in the same window/space to activate
     const tabsInSpace = this.getTabsInWindowSpace(windowId, spaceId);
-    const groupsInSpace = this.getTabGroupsInWindow(windowId).filter((group) => group.spaceId === spaceId);
+    const groupsInSpace = this.getTabGroupsInWindow(windowId).filter(
+      (group) => group.spaceId === spaceId && !group.isDestroyed && group.tabs.length > 0 // Ensure group valid
+    );
 
-    // Prioritize setting a tab as active if available
-    if (tabsInSpace.length > 0) {
-      // Check if any remaining tab belongs to an active group
-      let nextActive: Tab | TabGroup | undefined;
-      for (const group of groupsInSpace) {
-        if (group.tabs.length > 0) {
-          nextActive = group; // Activate the group
-          break;
-        }
-      }
+    // Prioritize setting a non-empty group as active if available
+    if (groupsInSpace.length > 0) {
+      // Activate the first valid group found
+      this.setActiveTab(groupsInSpace[0]);
+    } else if (tabsInSpace.length > 0) {
       // If no group found or no groups exist, activate the first individual tab
-      if (!nextActive) {
-        nextActive = tabsInSpace[0];
-      }
-      this.setActiveTab(nextActive);
+      // Note: tabsInSpace already filters by window/space and existence in this.tabs
+      this.setActiveTab(tabsInSpace[0]);
     } else {
-      // No tabs left, emit change without setting a new active tab
+      // No valid tabs or groups left, emit change without setting a new active tab
       this.emit("active-tab-changed", windowId, spaceId);
     }
   }
@@ -302,8 +341,12 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     const wasActive = this.isTabActive(tab);
     const windowId = tab.getWindow().id;
     const spaceId = tab.spaceId;
+    const tabId = tab.id;
 
-    this.tabs.delete(tab.id);
+    if (!this.tabs.has(tabId)) return;
+
+    this.tabs.delete(tabId);
+    this.removeFromActivationHistory(tabId);
     this.emit("tab-removed", tab);
 
     if (wasActive) {
@@ -505,7 +548,12 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
    */
   private internalDestroyTabGroup(tabGroup: TabGroup) {
     const wasActive = this.getActiveTab(tabGroup.windowId, tabGroup.spaceId) === tabGroup;
-    this.tabGroups.delete(tabGroup.id);
+    const groupId = tabGroup.id;
+
+    if (!this.tabGroups.has(groupId)) return;
+
+    this.tabGroups.delete(groupId);
+    this.removeFromActivationHistory(groupId);
 
     if (wasActive) {
       this.removeActiveTab(tabGroup.windowId, tabGroup.spaceId);
@@ -576,5 +624,27 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     this.windowActiveSpaceMap.clear();
     this.spaceActiveTabMap.clear();
     this.spaceFocusedTabMap.clear();
+    this.spaceActivationHistory.clear();
+  }
+
+  /**
+   * Helper method to remove an item ID from all activation history lists
+   */
+  private removeFromActivationHistory(itemId: number) {
+    let changed = false;
+    for (const [key, history] of this.spaceActivationHistory.entries()) {
+      const initialLength = history.length;
+      // Filter out the itemId
+      const newHistory = history.filter((id) => id !== itemId);
+      if (newHistory.length < initialLength) {
+        if (newHistory.length === 0) {
+          this.spaceActivationHistory.delete(key); // Remove entry if history is empty
+        } else {
+          this.spaceActivationHistory.set(key, newHistory); // Update with filtered history
+        }
+        changed = true; // Mark that a change occurred (optional)
+      }
+    }
+    // Method doesn't need to return anything, just modifies the map
   }
 }
