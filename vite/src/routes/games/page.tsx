@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 import { useState } from "react";
+import { copyTextToClipboard } from "@/lib/utils";
 
 // Define the Game type (can be inferred, but explicit is clearer)
 interface Game {
@@ -43,12 +44,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, isHovered, onMouseEnter, onMo
           <p className="text-muted-foreground text-sm">{game.description}</p>
         </div>
         <div className="flex space-x-2 pt-1">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigator.clipboard.writeText(game.url)}
-            className="text-xs"
-          >
+          <Button variant="outline" size="sm" onClick={() => copyTextToClipboard(game.url)} className="text-xs">
             Copy URL
           </Button>
           <Button

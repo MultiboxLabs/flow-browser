@@ -1,5 +1,6 @@
 import { RouterProvider } from "./router/provider";
 import { Route } from "./router/route";
+import { Toaster } from "sonner";
 
 // Pages //
 import MainPage from "./routes/main/page";
@@ -11,7 +12,7 @@ import AboutPage from "./routes/about/page";
 import GamesPage from "./routes/games/page";
 
 // Routes //
-function App() {
+function Routes() {
   return (
     <RouterProvider>
       <Route hostname="main">
@@ -36,6 +37,15 @@ function App() {
         <GamesPage />
       </Route>
     </RouterProvider>
+  );
+}
+
+function App() {
+  return (
+    <>
+      <Routes />
+      <Toaster richColors />
+    </>
   );
 }
 
