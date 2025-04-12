@@ -13,7 +13,7 @@ export function NewTabButton() {
   };
 
   const handleNewTab = () => {
-    // TODO: Implement new tab
+    flow.newTab.open();
   };
 
   return (

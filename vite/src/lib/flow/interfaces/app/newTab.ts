@@ -11,4 +11,9 @@ export interface FlowNewTabAPI {
    * Sets the current new tab mode
    */
   setCurrentNewTabMode: (newTabMode: NewTabMode) => Promise<boolean>;
+
+  /**
+   * Opens a new tab
+   */
+  open: () => Promise<void>;
 }

@@ -8,6 +8,8 @@ import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getLastUsedSpaceFromProfile } from "@/sessions/spaces";
 import { TabGroupMode } from "~/types/tabs";
 
+export const NEW_TAB_URL = "flow://new-tab";
+
 type TabManagerEvents = {
   "tab-created": [Tab];
   "tab-changed": [Tab];

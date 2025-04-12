@@ -1,9 +1,7 @@
 import { MenuItemConstructorOptions } from "electron";
 import { Browser } from "@/browser/browser";
-import { hideOmnibox, isOmniboxOpen, loadOmnibox, setOmniboxBounds, showOmnibox } from "@/browser/components/omnibox";
-import { getCurrentNewTabMode } from "@/saving/settings";
-import { getSpace } from "@/sessions/spaces";
 import { getFocusedBrowserWindowData } from "../helpers";
+import { openNewTab } from "@/ipc/app/new-tab";
 
 export const createFileMenu = (browser: Browser): MenuItemConstructorOptions => ({
   label: "File",
@@ -15,28 +13,10 @@ export const createFileMenu = (browser: Browser): MenuItemConstructorOptions => 
         const winData = getFocusedBrowserWindowData();
         if (!winData) return;
 
-        const browserWindow = winData.window;
-        const win = winData.tabbedBrowserWindow;
+        const tabbedBrowserWindow = winData.tabbedBrowserWindow;
+        if (!tabbedBrowserWindow) return;
 
-        if (getCurrentNewTabMode() === "omnibox") {
-          if (isOmniboxOpen(browserWindow)) {
-            hideOmnibox(browserWindow);
-          } else {
-            loadOmnibox(browserWindow, null);
-            setOmniboxBounds(browserWindow, null);
-            showOmnibox(browserWindow);
-          }
-        } else {
-          if (win) {
-            const spaceId = win.getCurrentSpace();
-            if (!spaceId) return;
-
-            getSpace(spaceId).then((space) => {
-              if (!space) return;
-              browser.tabs.createTab(space.profileId, win.id, spaceId);
-            });
-          }
-        }
+        return openNewTab(tabbedBrowserWindow);
       }
     },
     {

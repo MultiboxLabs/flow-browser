@@ -62,7 +62,6 @@ export function Omnibox() {
     if (!inputBox) return;
 
     const handleEscape = (event: KeyboardEvent) => {
-      console.log("handleEscape", event.key);
       if (event.key === "Escape") {
         flow.omnibox.hide();
         event.preventDefault();

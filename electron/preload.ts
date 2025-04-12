@@ -243,6 +243,10 @@ const newTabAPI = {
   setCurrentNewTabMode: async (newTabMode: NewTabMode) => {
     if (!checkCanUseAPI().app) return;
     return ipcRenderer.invoke("new-tab-mode:set", newTabMode);
+  },
+  open: () => {
+    if (!checkCanUseAPI().app) return;
+    return ipcRenderer.send("new-tab:open");
   }
 };
 

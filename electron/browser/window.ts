@@ -1,6 +1,7 @@
 import { Browser } from "@/browser/browser";
 import { GlanceModal } from "@/browser/components/glance-modal";
 import { Omnibox } from "@/browser/components/omnibox";
+import { NEW_TAB_URL } from "@/browser/tabs/tab-manager";
 import { ViewManager } from "@/browser/view-manager";
 import { PageBounds } from "@/ipc/browser/page";
 import { FLAGS } from "@/modules/flags";
@@ -131,7 +132,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
         if (space) {
           const profileId = space.profileId;
           const tab = await this.browser.tabs.createTab(profileId, this.id, spaceId);
-          tab.loadURL("flow://new-tab");
+          tab.loadURL(NEW_TAB_URL);
           this.browser.tabs.setActiveTab(tab);
         }
       });

@@ -49,10 +49,6 @@ export class Omnibox {
     this.view = onmiboxView;
     this.webContents = onmiboxWC;
     this.window = parentWindow;
-
-    this.webContents.openDevTools({
-      mode: "detach"
-    });
   }
 
   private assertNotDestroyed() {
