@@ -3,7 +3,7 @@ import { TabGroup } from "@/browser/tabs/tab-groups";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { browser } from "@/index";
 import { ipcMain } from "electron";
-import { TabData, TabGroupData } from "~/types/tabs";
+import { TabData, TabGroupData, WindowActiveTabIds } from "~/types/tabs";
 
 function getTabData(tab: Tab): TabData {
   return {
@@ -35,15 +35,46 @@ function getWindowTabsData(window: TabbedBrowserWindow) {
   const tabManager = browser?.tabs;
   if (!tabManager) return null;
 
-  const tabs = tabManager.getTabsInWindow(window.id);
-  const tabGroups = tabManager.getTabGroupsInWindow(window.id);
+  const windowId = window.id;
+
+  const tabs = tabManager.getTabsInWindow(windowId);
+  const tabGroups = tabManager.getTabGroupsInWindow(windowId);
 
   const tabDatas = tabs.map((tab) => getTabData(tab));
   const tabGroupDatas = tabGroups.map((tabGroup) => getTabGroupData(tabGroup));
 
+  const windowProfiles: string[] = [];
+  const windowSpaces: string[] = [];
+
+  for (const tab of tabs) {
+    if (!windowProfiles.includes(tab.profileId)) {
+      windowProfiles.push(tab.profileId);
+    }
+    if (!windowSpaces.includes(tab.spaceId)) {
+      windowSpaces.push(tab.spaceId);
+    }
+  }
+
+  const focusedTabs: WindowActiveTabIds = {};
+  const activeTabs: WindowActiveTabIds = {};
+
+  for (const spaceId of windowSpaces) {
+    const focusedTab = tabManager.getFocusedTab(windowId, spaceId);
+    if (focusedTab) {
+      focusedTabs[spaceId] = focusedTab.id;
+    }
+
+    const activeTab = tabManager.getActiveTab(windowId, spaceId);
+    if (activeTab) {
+      activeTabs[spaceId] = activeTab.id;
+    }
+  }
+
   return {
     tabs: tabDatas,
-    tabGroups: tabGroupDatas
+    tabGroups: tabGroupDatas,
+    focusedTabIds: focusedTabs,
+    activeTabIds: activeTabs
   };
 }
 

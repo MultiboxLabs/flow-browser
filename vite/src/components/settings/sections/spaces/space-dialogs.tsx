@@ -62,6 +62,7 @@ interface CreateSpaceDialogProps {
   onCreate: () => Promise<void>;
   profiles: Profile[];
   selectedProfile: string | null;
+  setSelectedProfile: (profile: string) => void;
 }
 
 export function CreateSpaceDialog({
@@ -72,7 +73,8 @@ export function CreateSpaceDialog({
   isCreating,
   onCreate,
   profiles,
-  selectedProfile
+  selectedProfile,
+  setSelectedProfile
 }: CreateSpaceDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -86,7 +88,7 @@ export function CreateSpaceDialog({
             <Label htmlFor="profile-select" className="text-right">
               Profile
             </Label>
-            <Select value={selectedProfile ?? ""}>
+            <Select value={selectedProfile ?? ""} onValueChange={setSelectedProfile}>
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select a profile" />
               </SelectTrigger>

@@ -27,7 +27,7 @@ export function NewTabButton() {
       transition={{
         scale: { type: "spring", stiffness: 600, damping: 20 }
       }}
-      className="hover:bg-white/5 active:bg-white/10"
+      className="hover:bg-white/10 active:bg-white/15"
     >
       <PlusIcon className="size-4 text-muted-foreground" />
       <span className="text-muted-foreground">New Tab</span>

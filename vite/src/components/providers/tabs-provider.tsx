@@ -5,6 +5,8 @@ interface TabsContextValue {
   tabsData: WindowTabsData | null;
   isLoading: boolean;
   revalidate: () => Promise<void>;
+  getActiveTabId: (spaceId: string) => number | null;
+  getFocusedTabId: (spaceId: string) => number | null;
 }
 
 const TabsContext = createContext<TabsContextValue | null>(null);
@@ -57,12 +59,28 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
     return () => unsub();
   }, []); // Re-running this effect is not necessary as the callback handles updates
 
+  const getActiveTabId = useCallback(
+    (spaceId: string) => {
+      return tabsData?.activeTabIds[spaceId] || null;
+    },
+    [tabsData]
+  );
+
+  const getFocusedTabId = useCallback(
+    (spaceId: string) => {
+      return tabsData?.focusedTabIds[spaceId] || null;
+    },
+    [tabsData]
+  );
+
   return (
     <TabsContext.Provider
       value={{
         tabsData,
         isLoading,
-        revalidate
+        revalidate,
+        getActiveTabId,
+        getFocusedTabId
       }}
     >
       {children}

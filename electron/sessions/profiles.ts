@@ -5,6 +5,7 @@ import { DataStoreData, getDatastore } from "@/saving/datastore";
 import z from "zod";
 import { debugError } from "@/modules/output";
 import { getSpacesFromProfile, deleteSpace, createSpace } from "./spaces";
+import { generateID } from "@/browser/utility/utils";
 
 const PROFILES_DIR = path.join(FLOW_DATA_DIR, "Profiles");
 
@@ -79,7 +80,7 @@ export async function createProfile(profileId: string, profileName: string) {
     await profileStore.set("name", profileName);
     await profileStore.set("createdAt", getCurrentTimestamp());
 
-    await createSpace(profileId, "default", profileName).then((success) => {
+    await createSpace(profileId, generateID(), profileName).then((success) => {
       if (!success) {
         debugError("PROFILES", `Error creating default space for profile ${profileId}`);
       }

@@ -73,7 +73,7 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
           <SidebarMenu className="flex flex-row justify-between">
             {/* Left Side Buttons */}
             <SidebarMenuItem>
-              <SidebarMenuButton className="hover:bg-white/5 active:bg-white/10" onClick={() => flow.settings.open()}>
+              <SidebarMenuButton className="hover:bg-white/10 active:bg-white/15" onClick={() => flow.settings.open()}>
                 <SettingsIcon />
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -81,7 +81,7 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
             <SidebarSpacesSwitcher />
             {/* Right Side Buttons */}
             <SidebarMenuItem>
-              <SidebarMenuButton disabled className="hover:bg-white/5 active:bg-white/10">
+              <SidebarMenuButton disabled className="hover:bg-white/10 active:bg-white/15">
                 <PlusIcon />
               </SidebarMenuButton>
             </SidebarMenuItem>

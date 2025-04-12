@@ -1,5 +1,5 @@
 import BrowserContent from "@/components/browser-ui/browser-content";
-import { SidebarInset, SidebarProvider } from "@/components/ui/resizable-sidebar";
+import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/resizable-sidebar";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar";
@@ -16,6 +16,8 @@ function InternalBrowserUI() {
   const dynamicTitle: string | null = null;
   const isActiveTabLoading = true;
 
+  const { open } = useSidebar();
+
   return (
     <>
       {dynamicTitle && <title>{`${dynamicTitle} | Flow`}</title>}
@@ -23,7 +25,8 @@ function InternalBrowserUI() {
       <SidebarInset className="bg-transparent">
         <div
           className={cn(
-            "flex-1 flex p-3 platform-win32:pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))] app-drag"
+            "flex-1 flex p-3 platform-win32:pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))] app-drag",
+            open && "pl-1"
           )}
         >
           {/* Topbar */}

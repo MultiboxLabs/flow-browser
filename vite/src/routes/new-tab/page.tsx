@@ -341,6 +341,7 @@ function Page() {
 function App() {
   return (
     <ThemeProvider persist>
+      <title>New Tab</title>
       <Page />
     </ThemeProvider>
   );

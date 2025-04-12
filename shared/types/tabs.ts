@@ -21,7 +21,13 @@ export type TabGroupData = {
   glanceFrontTabId?: number;
 };
 
+export type WindowActiveTabIds = {
+  [spaceId: string]: number;
+};
+
 export type WindowTabsData = {
   tabs: TabData[];
   tabGroups: TabGroupData[];
+  focusedTabIds: WindowActiveTabIds;
+  activeTabIds: WindowActiveTabIds;
 };

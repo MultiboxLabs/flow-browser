@@ -240,6 +240,7 @@ export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }:
         onCreate={handleCreateSpace}
         profiles={profiles}
         selectedProfile={selectedProfile}
+        setSelectedProfile={setSelectedProfile}
       />
     </div>
   );
