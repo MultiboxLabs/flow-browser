@@ -9,7 +9,8 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "~/*": ["../shared/*"]
     },
     "skipLibCheck": true,
     "resolveJsonModule": true,

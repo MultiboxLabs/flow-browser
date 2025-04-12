@@ -1,6 +1,5 @@
 import {
   Sidebar,
-  SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
@@ -14,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { CollapseMode, SidebarVariant, SidebarSide } from "@/components/browser-ui/main";
 import { PlusIcon, SettingsIcon } from "lucide-react";
 import { SidebarSpacesSwitcher } from "@/components/browser-ui/sidebar/spaces-switcher";
+import { ScrollableSidebarContent } from "@/components/browser-ui/sidebar/content/sidebar-content";
 
 type BrowserSidebarProps = {
   collapseMode: CollapseMode;
@@ -30,7 +30,6 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
     flow.interface.setWindowButtonVisibility(open);
   }, [open]);
 
-  // This is to ensure a stable value for the effect.
   const toggleSidebarRef = useRef(toggleSidebar);
   toggleSidebarRef.current = toggleSidebar;
   useEffect(() => {
@@ -64,17 +63,17 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
         {open && (
           <div
             ref={titlebarRef}
-            className="platform-darwin:h-[calc(env(titlebar-area-y)+env(titlebar-area-height)+1px-1.5rem)] w-full app-drag"
+            className="platform-darwin:h-[calc(env(titlebar-area-y)+env(titlebar-area-height)+1px-1.5rem)] w-full app-drag py-2"
           />
         )}
       </SidebarHeader>
-      <SidebarContent></SidebarContent>
+      <ScrollableSidebarContent />
       <SidebarFooter>
         {open && (
           <SidebarMenu className="flex flex-row justify-between">
             {/* Left Side Buttons */}
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => flow.settings.open()}>
+              <SidebarMenuButton className="hover:bg-white/5 active:bg-white/10" onClick={() => flow.settings.open()}>
                 <SettingsIcon />
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -82,7 +81,7 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
             <SidebarSpacesSwitcher />
             {/* Right Side Buttons */}
             <SidebarMenuItem>
-              <SidebarMenuButton disabled>
+              <SidebarMenuButton disabled className="hover:bg-white/5 active:bg-white/10">
                 <PlusIcon />
               </SidebarMenuButton>
             </SidebarMenuItem>

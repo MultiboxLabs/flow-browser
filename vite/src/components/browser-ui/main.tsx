@@ -6,6 +6,7 @@ import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar";
 import { SpacesProvider } from "@/components/providers/spaces-provider";
 import { useEffect } from "react";
 import { useState } from "react";
+import { TabsProvider } from "@/components/providers/tabs-provider";
 
 export type CollapseMode = "icon" | "offcanvas";
 export type SidebarVariant = "sidebar" | "floating";
@@ -81,7 +82,9 @@ export function BrowserUI() {
     >
       <SidebarProvider>
         <SpacesProvider>
-          <InternalBrowserUI />
+          <TabsProvider>
+            <InternalBrowserUI />
+          </TabsProvider>
         </SpacesProvider>
       </SidebarProvider>
     </div>

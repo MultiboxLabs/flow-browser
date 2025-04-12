@@ -1,10 +1,12 @@
 import { Browser } from "@/browser/browser";
 import { Tab } from "@/browser/tabs/tab";
-import { BaseTabGroup, TabGroup, TabGroupMode } from "@/browser/tabs/tab-groups";
+import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
 import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
 import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
+import { windowTabsChanged } from "@/ipc/browser/tabs";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getLastUsedSpaceFromProfile } from "@/sessions/spaces";
+import { TabGroupMode } from "~/types/tabs";
 
 type TabManagerEvents = {
   "tab-created": [Tab];
@@ -49,10 +51,24 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     // Setup event listeners
     this.on("active-tab-changed", (windowId, spaceId) => {
       this.processActiveTabChange(windowId, spaceId);
+      windowTabsChanged(windowId);
     });
 
     this.on("current-space-changed", (windowId, spaceId) => {
       this.processActiveTabChange(windowId, spaceId);
+      windowTabsChanged(windowId);
+    });
+
+    this.on("tab-created", (tab) => {
+      windowTabsChanged(tab.getWindow().id);
+    });
+
+    this.on("tab-changed", (tab) => {
+      windowTabsChanged(tab.getWindow().id);
+    });
+
+    this.on("tab-removed", (tab) => {
+      windowTabsChanged(tab.getWindow().id);
     });
   }
 

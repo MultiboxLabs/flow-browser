@@ -1,6 +1,6 @@
 import { Browser } from "@/browser/browser";
 import { isRectangleEqual, TabBoundsController } from "@/browser/tabs/tab-bounds";
-import { TabGroupMode } from "@/browser/tabs/tab-groups";
+import { TabGroupMode } from "~/types/tabs";
 import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
 import { TabManager } from "@/browser/tabs/tab-manager";
 import { TabbedBrowserWindow } from "@/browser/window";

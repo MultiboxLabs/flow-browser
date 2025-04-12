@@ -1,26 +1,4 @@
-export type TabData = {
-  id: number;
-  profileId: string;
-  spaceId: string;
-  active: boolean;
-};
-
-export type ActiveTabData = {
-  profileId: string;
-  mode: "standard" | "glance" | "split";
-  tabs: TabData[];
-};
-
-export type FocusedTabData = {
-  profileId: string;
-  tabId: number;
-};
-
-type WindowTabsData = {
-  tabs: TabData[];
-  active: ActiveTabData[];
-  focusedTabId: FocusedTabData;
-};
+import { WindowTabsData } from "~/types/tabs";
 
 // API //
 export interface FlowTabsAPI {
@@ -34,5 +12,5 @@ export interface FlowTabsAPI {
    * Add a callback to be called when the tabs data is updated
    * @param callback The callback to be called when the tabs data is updated
    */
-  onDataUpdated: (callback: (data: WindowTabsData) => void) => void;
+  onDataUpdated: (callback: (data: WindowTabsData) => void) => () => void;
 }

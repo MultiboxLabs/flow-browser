@@ -10,6 +10,7 @@ import ErrorPage from "./routes/error/page";
 import GlanceModalPage from "./routes/glance-modal/page";
 import AboutPage from "./routes/about/page";
 import GamesPage from "./routes/games/page";
+import { PlatformProvider } from "@/components/main/platform";
 
 // Routes //
 function Routes() {
@@ -42,10 +43,10 @@ function Routes() {
 
 function App() {
   return (
-    <>
+    <PlatformProvider>
       <Routes />
       <Toaster richColors />
-    </>
+    </PlatformProvider>
   );
 }
 

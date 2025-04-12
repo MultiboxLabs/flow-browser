@@ -77,12 +77,7 @@ const tabsAPI = {
   },
   onDataUpdated: (callback: (data: any) => void) => {
     if (!checkCanUseAPI().browser) return;
-    const listener = ipcRenderer.on("tabs:on-data-updated", (_event, data) => {
-      callback(data);
-    });
-    return () => {
-      listener.removeListener("tabs:on-data-updated", callback);
-    };
+    return listenOnIPCChannel("tabs:on-data-changed", callback);
   }
 };
 

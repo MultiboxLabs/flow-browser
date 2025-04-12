@@ -6,8 +6,6 @@ import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { Browser } from "@/browser/browser";
 
 // Interfaces and Types
-export type TabGroupMode = "normal" | "glance" | "split";
-
 export type TabGroupEvents = {
   "tab-added": [number];
   "tab-removed": [number];
