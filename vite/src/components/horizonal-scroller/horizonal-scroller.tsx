@@ -102,7 +102,7 @@ export function HorizontalScroller({
       {childArray.map((child, index) => (
         <div
           key={index} // Use index as key, assuming children order is stable
-          className="h-full flex-shrink-0 snap-center flex items-center justify-center" // Added flex centering
+          className="h-full flex-shrink-0 snap-center snap-always flex items-center justify-center" // Added flex centering
           style={{ width: `${itemWidthPercent}%` }}
         >
           {child}

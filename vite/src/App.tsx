@@ -4,42 +4,42 @@ import { Toaster } from "sonner";
 import { PlatformProvider } from "@/components/main/platform";
 
 // Pages //
-import MainPage from "./routes/main/page";
-import NewTabPage from "./routes/new-tab/page";
-import SettingsPage from "./routes/settings/page";
-import ErrorPage from "./routes/error/page";
-import GlanceModalPage from "./routes/glance-modal/page";
-import AboutPage from "./routes/about/page";
-import GamesPage from "./routes/games/page";
-import OmniboxPage from "./routes/omnibox/page";
+import MainRoute from "./routes/main/route";
+import NewTabRoute from "./routes/new-tab/route";
+import SettingsRoute from "./routes/settings/route";
+import ErrorRoute from "./routes/error/route";
+import GlanceModalRoute from "./routes/glance-modal/route";
+import AboutRoute from "./routes/about/route";
+import GamesRoute from "./routes/games/route";
+import OmniboxRoute from "./routes/omnibox/route";
 
 // Routes //
 function Routes() {
   return (
     <RouterProvider>
       <Route hostname="main">
-        <MainPage />
+        <MainRoute />
       </Route>
       <Route hostname="new-tab">
-        <NewTabPage />
+        <NewTabRoute />
       </Route>
       <Route hostname="settings">
-        <SettingsPage />
+        <SettingsRoute />
       </Route>
       <Route hostname="error">
-        <ErrorPage />
+        <ErrorRoute />
       </Route>
       <Route hostname="glance-modal">
-        <GlanceModalPage />
+        <GlanceModalRoute />
       </Route>
       <Route hostname="about">
-        <AboutPage />
+        <AboutRoute />
       </Route>
       <Route hostname="games">
-        <GamesPage />
+        <GamesRoute />
       </Route>
       <Route hostname="omnibox">
-        <OmniboxPage />
+        <OmniboxRoute />
       </Route>
     </RouterProvider>
   );
