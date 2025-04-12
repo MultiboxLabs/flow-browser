@@ -66,8 +66,10 @@ export class WindowManager {
    */
   public getWindowFromWebContents(webContents: WebContents): TabbedBrowserWindow | null {
     for (const window of this.windows.values()) {
-      if (window.window.webContents.id === webContents.id) {
-        return window;
+      for (const windowWebContents of window.coreWebContents) {
+        if (webContents.id === windowWebContents.id) {
+          return window;
+        }
       }
     }
     return null;

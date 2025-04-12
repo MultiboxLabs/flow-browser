@@ -17,7 +17,7 @@ ipcMain.on("window-button:set-visibility", (event, visible: boolean) => {
 });
 
 export function toggleSidebar(win: TabbedBrowserWindow) {
-  const browserWindow = win.window;
-  const webContents = browserWindow.webContents;
-  webContents.send("sidebar:on-toggle");
+  for (const webContents of win.coreWebContents) {
+    webContents.send("sidebar:on-toggle");
+  }
 }

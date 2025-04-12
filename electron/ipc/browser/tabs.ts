@@ -19,23 +19,17 @@ function getTabData(profileId: string, tab: Tab): TabData {
   };
 }
 
-function getTabDatasFromWindow(window: TabbedBrowserWindow) {
-  const tabManagers = window.getTabManagers();
-  const tabs: TabData[] = [];
-  for (const [profileId, tabManager] of tabManagers) {
-    const profileTabs = tabManager.getTabs();
-    for (const tab of profileTabs) {
-      tabs.push(getTabData(profileId, tab));
-    }
-  }
-  return tabs;
-}
-
 // IPC Handlers //
 ipcMain.handle("tabs:get-data", async (event) => {
   const webContents = event.sender;
   const window = browser?.getWindowFromWebContents(webContents);
   if (!window) return null;
+
+  const tabManager = browser?.tabs;
+  if (!tabManager) return null;
+
+  const tabs = tabManager.getTabsInWindow(window.id);
+  const tabGroups = tabManager.getTabGroupsInWindow(window.id);
 
   return {
     tabs: getTabDatasFromWindow(window),
