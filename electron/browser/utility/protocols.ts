@@ -27,6 +27,7 @@ interface AllowedDomains {
 const FLOW_INTERNAL_ALLOWED_DOMAINS: AllowedDomains = {
   main: true,
   settings: true,
+  omnibox: true,
   "glance-modal": true
 };
 

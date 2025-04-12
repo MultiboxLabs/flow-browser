@@ -1,6 +1,7 @@
 import { RouterProvider } from "./router/provider";
 import { Route } from "./router/route";
 import { Toaster } from "sonner";
+import { PlatformProvider } from "@/components/main/platform";
 
 // Pages //
 import MainPage from "./routes/main/page";
@@ -10,7 +11,7 @@ import ErrorPage from "./routes/error/page";
 import GlanceModalPage from "./routes/glance-modal/page";
 import AboutPage from "./routes/about/page";
 import GamesPage from "./routes/games/page";
-import { PlatformProvider } from "@/components/main/platform";
+import OmniboxPage from "./routes/omnibox/page";
 
 // Routes //
 function Routes() {
@@ -36,6 +37,9 @@ function Routes() {
       </Route>
       <Route hostname="games">
         <GamesPage />
+      </Route>
+      <Route hostname="omnibox">
+        <OmniboxPage />
       </Route>
     </RouterProvider>
   );

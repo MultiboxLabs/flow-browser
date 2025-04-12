@@ -21,7 +21,7 @@ function checkCanUseAPI() {
     browser: isBrowserUI,
     session: isBrowserUI || isSettingsUI,
     app: isBrowserUI || isSettingsUI,
-    window: isBrowserUI || isSettingsUI
+    window: isBrowserUI || isSettingsUI || isOmniboxUI
   };
   return canUseAPI;
 }

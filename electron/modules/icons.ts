@@ -195,6 +195,13 @@ async function cacheCurrentIcon() {
     const iconId = await SettingsDataStore.get<IconId>("currentIcon");
     debugPrint("ICONS", "Retrieved icon ID from settings:", iconId);
 
+    if (!iconId) {
+      currentIconId = "default";
+      await setAppIcon(currentIconId);
+      debugPrint("ICONS", "Set icon to default due to no icon ID found.");
+      return;
+    }
+
     const parseResult = IconIdSchema.safeParse(iconId);
     if (parseResult.success) {
       currentIconId = parseResult.data;

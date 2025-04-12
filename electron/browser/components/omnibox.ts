@@ -7,20 +7,17 @@ const omniboxes = new Map<BrowserWindow, Omnibox>();
 type QueryParams = { [key: string]: string };
 
 export class Omnibox {
-  private view: WebContentsView;
-  private webContents: WebContents;
+  public view: WebContentsView;
+  public webContents: WebContents;
+
   private window: BrowserWindow;
-  private extensionId: string;
-  private keepOnTopInterval: NodeJS.Timeout | null = null;
   private bounds: Electron.Rectangle | null = null;
 
-  constructor(parentWindow: BrowserWindow, extensionId: string) {
+  private isDestroyed: boolean = false;
+
+  constructor(parentWindow: BrowserWindow) {
     debugPrint("OMNIBOX", `Creating new omnibox for window ${parentWindow.id}`);
-    const onmiboxView = new WebContentsView({
-      webPreferences: {
-        session: parentWindow.webContents.session
-      }
-    });
+    const onmiboxView = new WebContentsView();
     const onmiboxWC = onmiboxView.webContents;
 
     onmiboxView.setBorderRadius(13);
@@ -41,16 +38,6 @@ export class Omnibox {
       this.refocus();
     });
 
-    // on window close, clear keep on top interval
-    parentWindow.on("closed", () => {
-      debugPrint("OMNIBOX", "Parent window close event received");
-      this.clearKeepOnTopInterval();
-    });
-    onmiboxWC.on("destroyed", () => {
-      debugPrint("OMNIBOX", "WebContents destroyed event received");
-      this.clearKeepOnTopInterval();
-    });
-
     setTimeout(() => {
       this.loadInterface(null);
       this.updateBounds();
@@ -62,15 +49,25 @@ export class Omnibox {
     this.view = onmiboxView;
     this.webContents = onmiboxWC;
     this.window = parentWindow;
-    this.extensionId = extensionId;
+
+    this.webContents.openDevTools({
+      mode: "detach"
+    });
+  }
+
+  private assertNotDestroyed() {
+    if (this.isDestroyed) {
+      throw new Error("Omnibox has been destroyed");
+    }
   }
 
   loadInterface(params: QueryParams | null) {
+    this.assertNotDestroyed();
+
     debugPrint("OMNIBOX", `Loading interface with params: ${JSON.stringify(params)}`);
     const onmiboxWC = this.webContents;
-    const extensionId = this.extensionId;
 
-    const url = new URL(`chrome-extension://${extensionId}/omnibox/index.html`);
+    const url = new URL("flow-internal://omnibox/");
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         url.searchParams.set(key, value);
@@ -87,15 +84,9 @@ export class Omnibox {
     }
   }
 
-  clearKeepOnTopInterval() {
-    if (this.keepOnTopInterval) {
-      debugPrint("OMNIBOX", "Clearing keep on top interval");
-      clearInterval(this.keepOnTopInterval);
-      this.keepOnTopInterval = null;
-    }
-  }
-
   updateBounds() {
+    this.assertNotDestroyed();
+
     if (this.bounds) {
       debugPrint("OMNIBOX", `Updating bounds to: ${JSON.stringify(this.bounds)}`);
       this.view.setBounds(this.bounds);
@@ -119,20 +110,19 @@ export class Omnibox {
   }
 
   isVisible() {
+    this.assertNotDestroyed();
+
     const visible = this.view.getVisible();
     debugPrint("OMNIBOX", `Checking visibility: ${visible}`);
     return visible;
   }
 
   show() {
+    this.assertNotDestroyed();
+
     debugPrint("OMNIBOX", "Showing omnibox");
     // Hide omnibox if it is already visible
     this.hide();
-
-    // Keep on top
-    this.keepOnTopInterval = setInterval(() => {
-      this.window.contentView.addChildView(this.view);
-    }, 100);
 
     // Show UI
     this.view.setVisible(true);
@@ -148,6 +138,8 @@ export class Omnibox {
   }
 
   refocus() {
+    this.assertNotDestroyed();
+
     if (this.isVisible()) {
       debugPrint("OMNIBOX", "Refocusing omnibox");
       this.webContents.focus();
@@ -155,10 +147,11 @@ export class Omnibox {
   }
 
   hide() {
+    this.assertNotDestroyed();
+
     const omniboxWasFocused = this.webContents.isFocused();
 
     debugPrint("OMNIBOX", "Hiding omnibox");
-    this.clearKeepOnTopInterval();
     this.view.setVisible(false);
 
     if (omniboxWasFocused) {
@@ -168,6 +161,8 @@ export class Omnibox {
   }
 
   maybeHide() {
+    this.assertNotDestroyed();
+
     // Keep open if webContents is being inspected
     if (!this.window.isDestroyed() && this.webContents.isDevToolsOpened()) {
       debugPrint("OMNIBOX", "preventing close due to DevTools being open");
@@ -178,7 +173,12 @@ export class Omnibox {
     // program outside of the app. Closing the popup would then add
     // inconvenience.
     if (browser) {
-      const hasFocus = browser.getWindows().some((win) => win.window.isFocused());
+      const hasFocus = browser.getWindows().some((win) => {
+        if (win.window.isDestroyed()) {
+          return false;
+        }
+        return win.window.isFocused();
+      });
       if (!hasFocus) {
         debugPrint("OMNIBOX", "preventing close due to focus residing outside of the app");
         return;
@@ -194,6 +194,13 @@ export class Omnibox {
     debugPrint("OMNIBOX", `Setting bounds to: ${JSON.stringify(bounds)}`);
     this.bounds = bounds;
     this.updateBounds();
+  }
+
+  destroy() {
+    this.assertNotDestroyed();
+
+    this.isDestroyed = true;
+    this.webContents.close();
   }
 }
 
