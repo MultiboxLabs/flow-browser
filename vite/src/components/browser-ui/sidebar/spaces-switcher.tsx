@@ -20,7 +20,10 @@ function SpaceButton({ space, isActive, onClick }: SpaceButtonProps) {
 
   return (
     <SidebarMenuButton key={space.id} onClick={onClick} className="hover:bg-white/5 active:bg-white/10">
-      <Icon className={cn("text-muted-foreground", isActive && "text-primary")} />
+      <Icon
+        strokeWidth={3}
+        className={cn("transition-colors duration-300", "text-muted-foreground", isActive && "text-white")}
+      />
     </SidebarMenuButton>
   );
 }
