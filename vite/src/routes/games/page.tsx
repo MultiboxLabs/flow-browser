@@ -6,14 +6,19 @@ import { motion } from "motion/react";
 function Page() {
   const games = [
     {
-      name: "Surf Game",
-      description: "The classic surf game from Microsoft Edge",
-      url: "flow-external://surf.edge.game"
-    },
-    {
       name: "Dino Game",
       description: "The famous Chrome offline dinosaur game",
       url: "flow-external://dino.chrome.game"
+    },
+    {
+      name: "Surf Game (v1)",
+      description: "The classic surf game from Microsoft Edge",
+      url: "flow-external://v1.surf.edge.game"
+    },
+    {
+      name: "Surf Game (v2)",
+      description: "The surf game from Microsoft Edge",
+      url: "flow-external://v2.surf.edge.game"
     }
   ];
 

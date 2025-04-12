@@ -38,8 +38,14 @@ const FLOW_PROTOCOL_ALLOWED_DOMAINS: AllowedDomains = {
 };
 
 const FLOW_EXTERNAL_ALLOWED_DOMAINS: AllowedDomains = {
+  // Dino Game - Taken from https://github.com/yell0wsuit/chrome-dino-enhanced
   "dino.chrome.game": "chrome-dino-game",
-  "surf.edge.game": "edge-surf-game"
+
+  // Surf Game (v1) - Taken From https://github.com/yell0wsuit/ms-edge-letssurf
+  "v1.surf.edge.game": "edge-surf-game-v1",
+
+  // Surf Game (v2) - Taken from https://github.com/yell0wsuit/ms-edge-surf-2
+  "v2.surf.edge.game": "edge-surf-game-v2"
 };
 
 async function serveStaticFile(filePath: string, extraDir?: string, baseDir: string = PATHS.VITE_WEBUI) {
