@@ -81,6 +81,7 @@ function createWebContentsView(
 // Tab Class
 export class Tab extends TypedEventEmitter<TabEvents> {
   // Public properties
+  public groupId: number | null = null;
   public readonly id: number;
   public readonly profileId: string;
   public spaceId: string;
@@ -91,7 +92,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public faviconURL: string | null = null;
 
   // Content properties
-  public title: string = "";
+  public title: string = "New Tab";
   public url: string = "";
   public isLoading: boolean = false;
   public audible: boolean = false;
@@ -229,18 +230,20 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     // Enable transparent background for whitelisted protocols
     const WHITELISTED_PROTOCOLS = ["flow-internal:", "flow:"];
+    const COLOR_TRANSPARENT = "#00000000";
+    const COLOR_BACKGROUND = "#ff000000";
     this.on("updated", () => {
       if (this.url) {
         try {
           const url = new URL(this.url);
           if (WHITELISTED_PROTOCOLS.includes(url.protocol)) {
-            this.view.setBackgroundColor("#00000000");
+            this.view.setBackgroundColor(COLOR_TRANSPARENT);
           } else {
-            this.view.setBackgroundColor("#ffffffff");
+            this.view.setBackgroundColor(COLOR_BACKGROUND);
           }
         } catch {
           // Bad URL
-          this.view.setBackgroundColor("#ffffffff");
+          this.view.setBackgroundColor(COLOR_BACKGROUND);
         }
       }
     });
@@ -304,34 +307,37 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public updateTabState() {
     const { webContents } = this;
 
-    // Generate state objects
-    const oldState = {
-      title: this.title,
-      url: this.url,
-      isLoading: this.isLoading,
-      audible: this.audible,
-      muted: this.muted
-    };
-    const newState = {
-      title: webContents.getTitle(),
-      url: webContents.getURL(),
-      isLoading: webContents.isLoading(),
-      audible: webContents.isAudioMuted(),
-      muted: webContents.isAudioMuted()
-    };
-
-    // Compare states
-    const keys = [...Object.keys(oldState), ...Object.keys(newState)];
-
     let changed = false;
-    for (const key of keys) {
-      // @ts-expect-error: whatever
-      if (oldState[key] !== newState[key]) {
-        changed = true;
-        // @ts-expect-error: whatever again
-        this[key] = newState[key];
-        break;
-      }
+
+    const newTitle = webContents.getTitle();
+    if (newTitle !== this.title) {
+      this.title = newTitle;
+      changed = true;
+    }
+
+    const newUrl = webContents.getURL();
+    if (newUrl !== this.url) {
+      this.url = newUrl;
+      changed = true;
+    }
+
+    const newIsLoading = webContents.isLoading();
+    if (newIsLoading !== this.isLoading) {
+      this.isLoading = newIsLoading;
+      changed = true;
+    }
+
+    // Note: webContents.isCurrentlyAudible() might be more accurate than isAudioMuted() sometimes
+    const newAudible = webContents.isCurrentlyAudible();
+    if (newAudible !== this.audible) {
+      this.audible = newAudible;
+      changed = true;
+    }
+
+    const newMuted = webContents.isAudioMuted();
+    if (newMuted !== this.muted) {
+      this.muted = newMuted;
+      changed = true;
     }
 
     if (changed) {
@@ -420,23 +426,44 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   }
 
   /**
+   * Calculates the bounds for a tab in glance mode.
+   */
+  private _calculateGlanceBounds(pageBounds: Rectangle, isFront: boolean): Rectangle {
+    const widthPercentage = isFront ? 0.85 : 0.95;
+    const heightPercentage = isFront ? 1 : 0.975;
+
+    const newWidth = Math.floor(pageBounds.width * widthPercentage);
+    const newHeight = Math.floor(pageBounds.height * heightPercentage);
+
+    // Calculate new x and y to maintain center position
+    const xOffset = Math.floor((pageBounds.width - newWidth) / 2);
+    const yOffset = Math.floor((pageBounds.height - newHeight) / 2);
+
+    return {
+      x: pageBounds.x + xOffset,
+      y: pageBounds.y + yOffset,
+      width: newWidth,
+      height: newHeight
+    };
+  }
+
+  /**
    * Updates the layout of the tab
    */
   public updateLayout() {
     const { visible, window, tabManager } = this;
 
-    // Update visibility
+    // Ensure visibility is updated first
     if (this.view.getVisible() !== visible) {
       this.view.setVisible(visible);
     }
 
     if (!visible) return;
 
-    // Update bounds
-    const bounds = window.getPageBounds();
+    // Get base bounds and current group state
+    const pageBounds = window.getPageBounds();
     this.view.setBorderRadius(8);
 
-    // Update layout
     const tabGroup = tabManager.getTabGroupByTabId(this.id);
 
     const lastTabGroupMode = this.lastTabGroupMode;
@@ -444,98 +471,74 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     let newTabGroupMode: TabGroupMode | null = null;
 
     let isGlanceFront = false;
+    let zIndex = TAB_ZINDEX;
 
     if (!tabGroup) {
       newTabGroupMode = "normal";
-      newBounds = bounds;
+      newBounds = pageBounds;
     } else if (tabGroup.mode === "glance") {
+      newTabGroupMode = "glance";
       const isFront = tabGroup.frontTabId === this.id;
-      const widthPercentage = isFront ? 0.85 : 0.95;
-      const heightPercentage = isFront ? 1 : 0.975;
 
-      const newWidth = Math.floor(bounds.width * widthPercentage);
-      const newHeight = Math.floor(bounds.height * heightPercentage);
-
-      // Calculate new x and y to maintain center position
-      const xOffset = Math.floor((bounds.width - newWidth) / 2);
-      const yOffset = Math.floor((bounds.height - newHeight) / 2);
-
-      const glanceBounds = {
-        x: bounds.x + xOffset,
-        y: bounds.y + yOffset,
-        width: newWidth,
-        height: newHeight
-      };
+      const glanceBounds = this._calculateGlanceBounds(pageBounds, isFront);
+      newBounds = glanceBounds;
 
       if (isFront) {
         isGlanceFront = true;
-
-        this.bounds.setBounds({
-          x: glanceBounds.x + (glanceBounds.width - 100) / 2,
-          y: glanceBounds.y + (glanceBounds.height - 100) / 2,
-          width: 100,
-          height: 100
-        });
+        zIndex = GLANCE_FRONT_ZINDEX;
       } else {
+        zIndex = GLANCE_BACK_ZINDEX;
+        // Update glance modal bounds only if this tab is the back tab
+        // Avoids unnecessary updates if multiple back tabs exist (though unlikely)
         this.window.glanceModal.setBounds(glanceBounds);
       }
-
-      newTabGroupMode = "glance";
-      newBounds = glanceBounds;
     } else if (tabGroup.mode === "split") {
+      newTabGroupMode = "split";
       /* TODO: Implement split tab group layout
-      const tab = tabGroup.tabs.find((tab) => tab.id === this.id);
+      const splitConfig = tabGroup.getTabSplitConfig(this.id); // Hypothetical method
 
-      if (tab) {
-        const { x: xPercentage, y: yPercentage, width: widthPercentage, height: heightPercentage } = tab;
+      if (splitConfig) {
+        const { x: xPercentage, y: yPercentage, width: widthPercentage, height: heightPercentage } = splitConfig;
 
-        const xOffset = Math.floor(bounds.width * xPercentage);
-        const yOffset = Math.floor(bounds.height * yPercentage);
-        const newWidth = Math.floor(bounds.width * widthPercentage);
-        const newHeight = Math.floor(bounds.height * heightPercentage);
+        const xOffset = Math.floor(pageBounds.width * xPercentage);
+        const yOffset = Math.floor(pageBounds.height * yPercentage);
+        const newWidth = Math.floor(pageBounds.width * widthPercentage);
+        const newHeight = Math.floor(pageBounds.height * heightPercentage);
 
-        const newBounds = {
-          x: bounds.x + xOffset,
-          y: bounds.y + yOffset,
+        const splitBounds = {
+          x: pageBounds.x + xOffset,
+          y: pageBounds.y + yOffset,
           width: newWidth,
           height: newHeight
         };
 
-        newTabGroupMode = "split";
-        newBounds = newBounds;
+        newBounds = splitBounds;
       }
       */
     }
 
-    if (newTabGroupMode === "glance") {
-      if (isGlanceFront) {
-        this.setWindow(this.window, GLANCE_FRONT_ZINDEX);
-      } else {
-        this.setWindow(this.window, GLANCE_BACK_ZINDEX);
-      }
-    } else {
-      this.setWindow(this.window, TAB_ZINDEX);
-    }
+    // Update Z-index (via setWindow)
+    this.setWindow(this.window, zIndex);
 
+    // Update last known mode if changed
     if (newTabGroupMode !== lastTabGroupMode) {
       this.lastTabGroupMode = newTabGroupMode;
     }
 
-    if (newTabGroupMode === "glance" && newBounds) {
-      this.window.glanceModal.setVisible(true);
-    } else {
-      this.window.glanceModal.setVisible(false);
-    }
+    // Manage glance modal visibility
+    const showGlanceModal = newTabGroupMode === "glance";
+    this.window.glanceModal.setVisible(showGlanceModal);
 
+    // Apply the calculated bounds
     if (newBounds) {
-      if (newTabGroupMode !== lastTabGroupMode) {
-        this.bounds.setBounds(newBounds);
+      // Use immediate update if mode hasn't changed AND bounds controller is idle
+      const useImmediateUpdate =
+        newTabGroupMode === lastTabGroupMode && isRectangleEqual(this.bounds.bounds, this.bounds.targetBounds);
+
+      if (useImmediateUpdate) {
+        this.bounds.setBoundsImmediate(newBounds);
       } else {
-        if (isRectangleEqual(this.bounds.bounds, this.bounds.targetBounds)) {
-          this.bounds.setBoundsImmediate(newBounds);
-        } else {
-          this.bounds.setBounds(newBounds);
-        }
+        this.bounds.setBounds(newBounds);
       }
     }
   }

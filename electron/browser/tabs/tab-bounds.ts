@@ -3,12 +3,17 @@ import { Rectangle } from "electron";
 import { performance } from "perf_hooks";
 
 const USE_IMMEDIATE = false;
-const FRAME_RATE = 30;
+const FRAME_RATE = 60;
 const MS_PER_FRAME = 1000 / FRAME_RATE;
 const SPRING_STIFFNESS = 300;
 const SPRING_DAMPING = 30;
-const MIN_DISTANCE_THRESHOLD = 0.1;
-const MIN_VELOCITY_THRESHOLD = 0.1;
+const MIN_DISTANCE_THRESHOLD = 0.01;
+const MIN_VELOCITY_THRESHOLD = 0.01;
+
+// Type definitions for clarity
+type Dimension = "x" | "y" | "width" | "height";
+const DIMENSIONS: Dimension[] = ["x", "y", "width", "height"];
+type Velocity = Record<Dimension, number>;
 
 /**
  * Helper function to compare two Rectangle objects for equality.
@@ -50,9 +55,9 @@ export class TabBoundsController {
   public bounds: Rectangle | null = null;
   // The last integer bounds actually applied to the view
   private lastAppliedBounds: Rectangle | null = null;
-  private velocity = { x: 0, y: 0, width: 0, height: 0 };
+  private velocity: Velocity = { x: 0, y: 0, width: 0, height: 0 };
   private lastUpdateTime: number | null = null;
-  private animationFrameId: NodeJS.Timeout | NodeJS.Immediate | null = null;
+  private animationFrameId: NodeJS.Timeout | null = null;
 
   constructor(tab: Tab) {
     this.tab = tab;
@@ -72,8 +77,8 @@ export class TabBoundsController {
 
     const loop = () => {
       const now = performance.now();
-      // Ensure deltaTime is reasonable, even if loop timing is off
-      const deltaTime = this.lastUpdateTime ? Math.min((now - this.lastUpdateTime) / 1000, 1 / 30) : 1 / FRAME_RATE; // Cap delta time to avoid large jumps
+      // Ensure deltaTime is reasonable, capping to avoid large jumps
+      const deltaTime = this.lastUpdateTime ? Math.min((now - this.lastUpdateTime) / 1000, 1 / 30) : 1 / FRAME_RATE; // Use FRAME_RATE constant
       this.lastUpdateTime = now;
 
       const settled = this.updateBounds(deltaTime);
@@ -82,20 +87,12 @@ export class TabBoundsController {
       if (settled) {
         this.stopAnimationLoop();
       } else {
-        // Schedule next frame
-        if (USE_IMMEDIATE) {
-          this.animationFrameId = setTimeout(loop, MS_PER_FRAME);
-        } else {
-          this.animationFrameId = setImmediate(loop);
-        }
+        // Schedule next frame using standard setTimeout
+        this.animationFrameId = setTimeout(loop, MS_PER_FRAME);
       }
     };
-    // Start the loop
-    if (USE_IMMEDIATE) {
-      this.animationFrameId = setTimeout(loop, MS_PER_FRAME);
-    } else {
-      this.animationFrameId = setImmediate(loop);
-    }
+    // Start the loop using standard setTimeout
+    this.animationFrameId = setTimeout(loop, MS_PER_FRAME);
   }
 
   /**
@@ -103,11 +100,7 @@ export class TabBoundsController {
    */
   private stopAnimationLoop(): void {
     if (this.animationFrameId !== null) {
-      if (USE_IMMEDIATE) {
-        clearImmediate(this.animationFrameId as NodeJS.Immediate);
-      } else {
-        clearTimeout(this.animationFrameId as NodeJS.Timeout);
-      }
+      clearTimeout(this.animationFrameId); // Only need clearTimeout
       this.animationFrameId = null;
       this.lastUpdateTime = null; // Reset time tracking when stopped
     }
@@ -159,9 +152,19 @@ export class TabBoundsController {
    */
   private updateViewBounds(): void {
     // Don't attempt to set bounds if the tab isn't visible or doesn't have bounds yet
-    if (!this.tab.visible || !this.bounds) {
-      // No need to update lastAppliedBounds if not visible, as they aren't being applied.
-      // If bounds are null, there's nothing to apply anyway.
+    // Also check targetBounds to ensure we have a valid state to eventually reach.
+    if (!this.tab.visible || !this.bounds || !this.targetBounds) {
+      // If not visible, we might still want to ensure the final state is applied
+      // if the animation finished while hidden.
+      if (!this.tab.visible && this.bounds && this.targetBounds && !isRectangleEqual(this.bounds, this.targetBounds)) {
+        // If hidden but not at target, snap to target and update lastApplied if needed
+        this.bounds = { ...this.targetBounds };
+        const integerBounds = roundRectangle(this.bounds);
+        if (!isRectangleEqual(integerBounds, this.lastAppliedBounds)) {
+          // Even though not visible, update lastAppliedBounds to reflect the snapped state
+          this.lastAppliedBounds = integerBounds;
+        }
+      }
       return;
     }
 
@@ -201,62 +204,51 @@ export class TabBoundsController {
       return true;
     }
 
-    // Calculate distance from target
-    const dx = this.targetBounds.x - this.bounds.x;
-    const dy = this.targetBounds.y - this.bounds.y;
-    const dWidth = this.targetBounds.width - this.bounds.width;
-    const dHeight = this.targetBounds.height - this.bounds.height;
+    let allSettled = true;
 
-    // Check if the animation has effectively stopped (close to target and low velocity)
-    const isPositionSettled = Math.abs(dx) < MIN_DISTANCE_THRESHOLD && Math.abs(dy) < MIN_DISTANCE_THRESHOLD;
-    const isSizeSettled = Math.abs(dWidth) < MIN_DISTANCE_THRESHOLD && Math.abs(dHeight) < MIN_DISTANCE_THRESHOLD;
-    const isVelocitySettled =
-      Math.abs(this.velocity.x) < MIN_VELOCITY_THRESHOLD &&
-      Math.abs(this.velocity.y) < MIN_VELOCITY_THRESHOLD &&
-      Math.abs(this.velocity.width) < MIN_VELOCITY_THRESHOLD &&
-      Math.abs(this.velocity.height) < MIN_VELOCITY_THRESHOLD;
+    // Iterate over each dimension (x, y, width, height) for physics calculation
+    for (const dim of DIMENSIONS) {
+      const targetValue = this.targetBounds[dim];
+      const currentValue = this.bounds[dim];
+      const currentVelocity = this.velocity[dim];
 
-    if (isPositionSettled && isSizeSettled && isVelocitySettled) {
-      // Snap to the target bounds precisely when settled
-      // Optimization: Modify existing bounds object directly instead of creating a new one
+      const delta = targetValue - currentValue;
+
+      // Check if this specific dimension is settled
+      const isDistanceSettled = Math.abs(delta) < MIN_DISTANCE_THRESHOLD;
+      const isVelocitySettled = Math.abs(currentVelocity) < MIN_VELOCITY_THRESHOLD;
+
+      if (isDistanceSettled && isVelocitySettled) {
+        // Snap this dimension to the target and zero its velocity
+        this.bounds[dim] = targetValue;
+        this.velocity[dim] = 0;
+        // This dimension is settled, continue checking others
+      } else {
+        // If any dimension is not settled, the whole animation is not settled
+        allSettled = false;
+
+        // Calculate spring forces and update velocity for this dimension
+        const force = delta * SPRING_STIFFNESS;
+        const dampingForce = currentVelocity * SPRING_DAMPING;
+        const acceleration = force - dampingForce; // Mass assumed to be 1
+        this.velocity[dim] += acceleration * deltaTime;
+
+        // Update position based on velocity for this dimension
+        this.bounds[dim] += this.velocity[dim] * deltaTime;
+      }
+    }
+
+    // If all dimensions have settled in this frame, ensure exact final state
+    if (allSettled) {
+      // This might be slightly redundant if snapping works perfectly, but ensures precision
       this.bounds.x = this.targetBounds.x;
       this.bounds.y = this.targetBounds.y;
       this.bounds.width = this.targetBounds.width;
       this.bounds.height = this.targetBounds.height;
-
-      this.velocity = { x: 0, y: 0, width: 0, height: 0 }; // Reset velocity
-      return true; // Animation is settled
+      this.velocity = { x: 0, y: 0, width: 0, height: 0 };
     }
 
-    // Calculate spring forces and update velocity (F = -kx - bv) -> a = (-kx - bv) / m (mass assumed to be 1)
-    const forceX = dx * SPRING_STIFFNESS;
-    const dampingForceX = this.velocity.x * SPRING_DAMPING;
-    const accelerationX = forceX - dampingForceX; // No mass division (m=1)
-    this.velocity.x += accelerationX * deltaTime;
-
-    const forceY = dy * SPRING_STIFFNESS;
-    const dampingForceY = this.velocity.y * SPRING_DAMPING;
-    const accelerationY = forceY - dampingForceY;
-    this.velocity.y += accelerationY * deltaTime;
-
-    const forceWidth = dWidth * SPRING_STIFFNESS;
-    const dampingForceWidth = this.velocity.width * SPRING_DAMPING;
-    const accelerationWidth = forceWidth - dampingForceWidth;
-    this.velocity.width += accelerationWidth * deltaTime;
-
-    const forceHeight = dHeight * SPRING_STIFFNESS;
-    const dampingForceHeight = this.velocity.height * SPRING_DAMPING;
-    const accelerationHeight = forceHeight - dampingForceHeight;
-    this.velocity.height += accelerationHeight * deltaTime;
-
-    // Update position based on velocity
-    // Optimization: Modify existing bounds object directly
-    this.bounds.x += this.velocity.x * deltaTime;
-    this.bounds.y += this.velocity.y * deltaTime;
-    this.bounds.width += this.velocity.width * deltaTime;
-    this.bounds.height += this.velocity.height * deltaTime;
-
-    return false; // Animation is still active
+    return allSettled; // Return true if all dimensions are settled
   }
 
   /**

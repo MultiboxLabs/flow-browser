@@ -60,7 +60,8 @@ function BrowserContent() {
       ref={containerRef}
       className={cn(
         "flex-1 -foreground border-t border-border relative rounded-lg shadow-md shadow-black/10 ring-1 ring-black/5 remove-app-drag",
-        "bg-white/5"
+        "bg-white/5",
+        activeTabId > 0 && "bg-transparent border-0 ring-0 shadow-none"
       )}
     >
       {DEBUG_SHOW_BOUNDS && (

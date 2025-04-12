@@ -123,6 +123,8 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
       return false;
     }
 
+    tab.groupId = this.id;
+
     this.tabIds.push(tabId);
     this.emit("tab-added", tabId);
 
@@ -188,6 +190,12 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
       return false;
     }
 
+    // Clear the groupId on the tab being removed
+    const tab = getTabFromId(this.tabManager, tabId);
+    if (tab && tab.groupId === this.id) {
+      tab.groupId = null;
+    }
+
     this.tabIds = this.tabIds.filter((id) => id !== tabId);
     this.emit("tab-removed", tabId);
     return true;
@@ -206,6 +214,13 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
 
   public destroy() {
     this.errorIfDestroyed();
+
+    // Clear groupId for all tabs in the group before destroying
+    for (const tab of this.tabs) {
+      if (tab.groupId === this.id) {
+        tab.groupId = null;
+      }
+    }
 
     this.isDestroyed = true;
     this.emit("destroy");

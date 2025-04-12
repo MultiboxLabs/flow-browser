@@ -20,7 +20,7 @@ type WindowSpaceReference = `${number}-${string}`;
 // Tab Class
 export class TabManager extends TypedEventEmitter<TabManagerEvents> {
   // Public properties
-  public tabs: Tab[];
+  public tabs: Map<number, Tab>;
   public isDestroyed: boolean = false;
 
   // Window Space Maps
@@ -29,7 +29,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
   public spaceFocusedTabMap: Map<WindowSpaceReference, Tab> = new Map();
 
   // Tab Groups
-  public tabGroups: TabGroup[] = [];
+  public tabGroups: Map<number, TabGroup>;
   private tabGroupCounter: number = 0;
 
   // Private properties
@@ -41,7 +41,8 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
   constructor(browser: Browser) {
     super();
 
-    this.tabs = [];
+    this.tabs = new Map();
+    this.tabGroups = new Map();
     this.browser = browser;
 
     // Setup event listeners
@@ -131,7 +132,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
       }
     );
 
-    this.tabs.push(tab);
+    this.tabs.set(tab.id, tab);
 
     // Setup event listeners
     tab.on("updated", () => {
@@ -162,8 +163,8 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
    * Process an active tab change
    */
   private processActiveTabChange(windowId: number, spaceId: string) {
-    const tabs = this.getTabsInWindow(windowId);
-    for (const tab of tabs) {
+    const tabsInWindow = this.getTabsInWindow(windowId);
+    for (const tab of tabsInWindow) {
       if (tab.spaceId === spaceId) {
         const isActive = this.isTabActive(tab);
         if (isActive && !tab.visible) {
@@ -171,10 +172,11 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
         } else if (!isActive && tab.visible) {
           tab.hide();
         } else {
+          // Update layout even if visibility hasn't changed, e.g., for split view resizing
           tab.updateLayout();
         }
       } else {
-        // Not in space
+        // Not in active space
         tab.hide();
       }
     }
@@ -182,75 +184,90 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
 
   public isTabActive(tab: Tab) {
     const windowSpaceReference = `${tab.getWindow().id}-${tab.spaceId}` as WindowSpaceReference;
-    const activeTab = this.spaceActiveTabMap.get(windowSpaceReference);
+    const activeTabOrGroup = this.spaceActiveTabMap.get(windowSpaceReference);
 
-    if (activeTab instanceof Tab) {
-      // Active Tab is a Tab
-      if (tab.id === activeTab.id) {
-        return true;
-      }
-    } else if (activeTab instanceof BaseTabGroup) {
-      // Active Tab is a Tab Group
-      if (activeTab.hasTab(tab.id)) {
-        return true;
-      }
+    if (!activeTabOrGroup) {
+      return false;
     }
-    return false;
+
+    if (activeTabOrGroup instanceof Tab) {
+      // Active item is a Tab
+      return tab.id === activeTabOrGroup.id;
+    } else {
+      // Active item is a Tab Group
+      return activeTabOrGroup.hasTab(tab.id);
+    }
   }
 
   /**
    * Set the active tab for a space
    */
-  public setActiveTab(tab: Tab | TabGroup) {
+  public setActiveTab(tabOrGroup: Tab | TabGroup) {
     let windowId: number;
     let spaceId: string;
+    let tabToFocus: Tab | undefined;
 
-    if (tab instanceof Tab) {
-      windowId = tab.getWindow().id;
-      spaceId = tab.spaceId;
+    if (tabOrGroup instanceof Tab) {
+      windowId = tabOrGroup.getWindow().id;
+      spaceId = tabOrGroup.spaceId;
+      tabToFocus = tabOrGroup;
     } else {
-      windowId = tab.windowId;
-      spaceId = tab.spaceId;
+      windowId = tabOrGroup.windowId;
+      spaceId = tabOrGroup.spaceId;
+      tabToFocus = tabOrGroup.tabs[0]; // Focus the first tab in the group
     }
 
     const windowSpaceReference = `${windowId}-${spaceId}` as WindowSpaceReference;
-    this.spaceActiveTabMap.set(windowSpaceReference, tab);
+    this.spaceActiveTabMap.set(windowSpaceReference, tabOrGroup);
 
-    if (tab instanceof Tab) {
-      this.setFocusedTab(tab);
+    if (tabToFocus) {
+      this.setFocusedTab(tabToFocus);
     } else {
-      // Tab Group
-      const frontTab = tab.tabs[0];
-      if (frontTab) {
-        this.setFocusedTab(frontTab);
-      }
+      // If group has no tabs, remove focus
+      this.removeFocusedTab(windowId, spaceId);
     }
 
     this.emit("active-tab-changed", windowId, spaceId);
   }
 
   /**
-   * Get the active tab for a space
+   * Get the active tab or group for a space
    */
-  public getActiveTab(windowId: number, spaceId: string) {
+  public getActiveTab(windowId: number, spaceId: string): Tab | TabGroup | undefined {
     const windowSpaceReference = `${windowId}-${spaceId}` as WindowSpaceReference;
     return this.spaceActiveTabMap.get(windowSpaceReference);
   }
 
   /**
-   * Remove the active tab for a space
+   * Remove the active tab for a space and set a new one if possible
    */
   public removeActiveTab(windowId: number, spaceId: string) {
     const windowSpaceReference = `${windowId}-${spaceId}` as WindowSpaceReference;
     this.spaceActiveTabMap.delete(windowSpaceReference);
     this.removeFocusedTab(windowId, spaceId);
-    this.emit("active-tab-changed", windowId, spaceId);
 
-    // Since there are no active tab, we use the first tab in the space
-    const tabs = this.getTabsInWindowSpace(windowId, spaceId);
-    if (tabs.length > 0) {
-      const tab = tabs[0];
-      this.setActiveTab(tab);
+    // Find the next available tab or group in the same window/space to activate
+    const tabsInSpace = this.getTabsInWindowSpace(windowId, spaceId);
+    const groupsInSpace = this.getTabGroupsInWindow(windowId).filter((group) => group.spaceId === spaceId);
+
+    // Prioritize setting a tab as active if available
+    if (tabsInSpace.length > 0) {
+      // Check if any remaining tab belongs to an active group
+      let nextActive: Tab | TabGroup | undefined;
+      for (const group of groupsInSpace) {
+        if (group.tabs.length > 0) {
+          nextActive = group; // Activate the group
+          break;
+        }
+      }
+      // If no group found or no groups exist, activate the first individual tab
+      if (!nextActive) {
+        nextActive = tabsInSpace[0];
+      }
+      this.setActiveTab(nextActive);
+    } else {
+      // No tabs left, emit change without setting a new active tab
+      this.emit("active-tab-changed", windowId, spaceId);
     }
   }
 
@@ -273,7 +290,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
   /**
    * Get the focused tab for a space
    */
-  public getFocusedTab(windowId: number, spaceId: string) {
+  public getFocusedTab(windowId: number, spaceId: string): Tab | undefined {
     const windowSpaceReference = `${windowId}-${spaceId}` as WindowSpaceReference;
     return this.spaceFocusedTabMap.get(windowSpaceReference);
   }
@@ -282,47 +299,119 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
    * Remove a tab from the tab manager
    */
   public removeTab(tab: Tab) {
-    this.tabs = this.tabs.filter((t) => t !== tab);
+    const wasActive = this.isTabActive(tab);
+    const windowId = tab.getWindow().id;
+    const spaceId = tab.spaceId;
+
+    this.tabs.delete(tab.id);
     this.emit("tab-removed", tab);
 
-    if (this.getActiveTab(tab.getWindow().id, tab.spaceId) === tab) {
-      this.removeActiveTab(tab.getWindow().id, tab.spaceId);
+    if (wasActive) {
+      // If the removed tab was part of the active element (tab or group)
+      const activeElement = this.getActiveTab(windowId, spaceId);
+      if (activeElement instanceof BaseTabGroup) {
+        // If it was in an active group, the group handles its internal state.
+        // We might still need to update focus if the removed tab was focused.
+        if (this.getFocusedTab(windowId, spaceId)?.id === tab.id) {
+          // If the removed tab was focused, focus the next tab in the group or remove focus
+          const nextFocus = activeElement.tabs.find((t: Tab) => t.id !== tab.id);
+          if (nextFocus) {
+            this.setFocusedTab(nextFocus);
+          } else {
+            this.removeFocusedTab(windowId, spaceId);
+            // If group becomes empty, remove it? Or handled by group itself? Assuming handled by group.
+          }
+        }
+        // Check if group is now empty - group should emit destroy if so
+        if (activeElement && activeElement.tabs.length === 0) {
+          this.destroyTabGroup(activeElement.id); // Explicitly destroy if empty
+        }
+      } else {
+        // If the active element was the tab itself, remove it and find the next active.
+        this.removeActiveTab(windowId, spaceId);
+      }
+    } else {
+      // Tab was not active, just ensure it's removed from any group it might be in
+      const group = this.getTabGroupByTabId(tab.id);
+      if (group) {
+        group.removeTab(tab.id);
+        if (group.tabs.length === 0) {
+          this.destroyTabGroup(group.id); // Explicitly destroy if empty
+        }
+      }
     }
   }
 
   /**
    * Get a tab by id
    */
-  public getTabById(tabId: number) {
-    return this.tabs.find((tab) => tab.id === tabId);
+  public getTabById(tabId: number): Tab | undefined {
+    return this.tabs.get(tabId);
   }
 
   /**
    * Get all tabs in a profile
    */
-  public getTabsInProfile(profileId: string) {
-    return this.tabs.filter((tab) => tab.profileId === profileId);
+  public getTabsInProfile(profileId: string): Tab[] {
+    const result: Tab[] = [];
+    for (const tab of this.tabs.values()) {
+      if (tab.profileId === profileId) {
+        result.push(tab);
+      }
+    }
+    return result;
   }
 
   /**
    * Get all tabs in a space
    */
-  public getTabsInSpace(spaceId: string) {
-    return this.tabs.filter((tab) => tab.spaceId === spaceId);
+  public getTabsInSpace(spaceId: string): Tab[] {
+    const result: Tab[] = [];
+    for (const tab of this.tabs.values()) {
+      if (tab.spaceId === spaceId) {
+        result.push(tab);
+      }
+    }
+    return result;
   }
 
   /**
    * Get all tabs in a window space
    */
-  public getTabsInWindowSpace(windowId: number, spaceId: string) {
-    return this.tabs.filter((tab) => tab.getWindow().id === windowId && tab.spaceId === spaceId);
+  public getTabsInWindowSpace(windowId: number, spaceId: string): Tab[] {
+    const result: Tab[] = [];
+    for (const tab of this.tabs.values()) {
+      if (tab.getWindow().id === windowId && tab.spaceId === spaceId) {
+        result.push(tab);
+      }
+    }
+    return result;
   }
 
   /**
    * Get all tabs in a window
    */
-  public getTabsInWindow(windowId: number) {
-    return this.tabs.filter((tab) => tab.getWindow().id === windowId);
+  public getTabsInWindow(windowId: number): Tab[] {
+    const result: Tab[] = [];
+    for (const tab of this.tabs.values()) {
+      if (tab.getWindow().id === windowId) {
+        result.push(tab);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Get all tab groups in a window
+   */
+  public getTabGroupsInWindow(windowId: number): TabGroup[] {
+    const result: TabGroup[] = [];
+    for (const group of this.tabGroups.values()) {
+      if (group.windowId === windowId) {
+        result.push(group);
+      }
+    }
+    return result;
   }
 
   /**
@@ -337,24 +426,21 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
    * Handle page bounds changed
    */
   public handlePageBoundsChanged(windowId: number) {
-    for (const tab of this.tabs) {
-      const window = tab.getWindow();
-      if (window && window.id === windowId) {
-        tab.updateLayout();
-      }
+    const tabsInWindow = this.getTabsInWindow(windowId);
+    for (const tab of tabsInWindow) {
+      tab.updateLayout();
     }
   }
 
   /**
    * Get a tab group by tab id
    */
-  public getTabGroupByTabId(tabId: number) {
-    for (const tabGroup of this.tabGroups) {
-      if (tabGroup.hasTab(tabId)) {
-        return tabGroup;
-      }
+  public getTabGroupByTabId(tabId: number): TabGroup | undefined {
+    const tab = this.getTabById(tabId);
+    if (tab && tab.groupId !== null) {
+      return this.tabGroups.get(tab.groupId);
     }
-    return null;
+    return undefined;
   }
 
   /**
@@ -363,58 +449,94 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
   public createTabGroup(mode: TabGroupMode, initialTabIds: [number, ...number[]]): TabGroup {
     const id = this.tabGroupCounter++;
 
-    const initialTabs = initialTabIds
-      .map((tabId) => {
-        return this.getTabById(tabId);
-      })
-      .filter((tab) => tab !== undefined) as [Tab, ...Tab[]];
-
-    const tabGroup = (() => {
-      switch (mode) {
-        case "glance":
-          return new GlanceTabGroup(this.browser, this, id, initialTabs);
-        case "split":
-          return new SplitTabGroup(this.browser, this, id, initialTabs);
+    const initialTabs: Tab[] = [];
+    for (const tabId of initialTabIds) {
+      const tab = this.getTabById(tabId);
+      if (tab) {
+        // Remove tab from any existing group it might be in
+        const existingGroup = this.getTabGroupByTabId(tabId);
+        existingGroup?.removeTab(tabId);
+        initialTabs.push(tab);
       }
-    })();
+    }
 
-    if (!tabGroup) {
-      throw new Error("Invalid tab group mode");
+    if (initialTabs.length === 0) {
+      throw new Error("Cannot create a tab group with no valid initial tabs.");
+    }
+
+    let tabGroup: TabGroup;
+    switch (mode) {
+      case "glance":
+        tabGroup = new GlanceTabGroup(this.browser, this, id, initialTabs as [Tab, ...Tab[]]);
+        break;
+      case "split":
+        tabGroup = new SplitTabGroup(this.browser, this, id, initialTabs as [Tab, ...Tab[]]);
+        break;
+      default:
+        throw new Error(`Invalid tab group mode: ${mode}`);
     }
 
     tabGroup.on("destroy", () => {
-      this.destroyTabGroup(id);
+      // Ensure cleanup happens even if destroyTabGroup isn't called externally
+      if (this.tabGroups.has(id)) {
+        this.internalDestroyTabGroup(tabGroup);
+      }
     });
 
-    this.tabGroups.push(tabGroup);
+    this.tabGroups.set(id, tabGroup);
+
+    // If any of the initial tabs were active, make the new group active.
+    // Use the space/window of the first tab for the group.
+    const firstTab = initialTabs[0];
+    if (this.getActiveTab(firstTab.getWindow().id, firstTab.spaceId)?.id === firstTab.id) {
+      this.setActiveTab(tabGroup);
+    } else {
+      // Ensure layout is updated for grouped tabs
+      for (const t of tabGroup.tabs) {
+        t.updateLayout();
+      }
+    }
+
     return tabGroup;
+  }
+
+  /**
+   * Internal method to cleanup destroyed tab group state
+   */
+  private internalDestroyTabGroup(tabGroup: TabGroup) {
+    const wasActive = this.getActiveTab(tabGroup.windowId, tabGroup.spaceId) === tabGroup;
+    this.tabGroups.delete(tabGroup.id);
+
+    if (wasActive) {
+      this.removeActiveTab(tabGroup.windowId, tabGroup.spaceId);
+    }
+    // Group should handle destroying its own tabs or returning them to normal state.
   }
 
   /**
    * Destroy a tab group
    */
   public destroyTabGroup(tabGroupId: number) {
-    const tabGroup = this.tabGroups.find((tabGroup) => tabGroup.id === tabGroupId);
+    const tabGroup = this.getTabGroupById(tabGroupId);
     if (!tabGroup) {
-      throw new Error("Tab group not found");
+      console.warn(`Attempted to destroy non-existent tab group ID: ${tabGroupId}`);
+      return; // Don't throw, just warn and exit
     }
 
+    // Ensure group's destroy logic runs first
     if (!tabGroup.isDestroyed) {
-      tabGroup.destroy();
+      tabGroup.destroy(); // This should trigger the "destroy" event handled in createTabGroup
     }
 
-    this.tabGroups = this.tabGroups.filter((tabGroup) => tabGroup.id !== tabGroupId);
-
-    if (this.getActiveTab(tabGroup.windowId, tabGroup.spaceId) === tabGroup) {
-      this.removeActiveTab(tabGroup.windowId, tabGroup.spaceId);
-    }
+    // Cleanup TabManager state (might be redundant if event handler runs, but safe)
+    this.internalDestroyTabGroup(tabGroup);
   }
 
   /**
    * Get a tab group by id
    */
-  public getTabGroupById(tabGroupId: number) {
-    return this.tabGroups.find((tabGroup) => tabGroup.id === tabGroupId);
+  public getTabGroupById(tabGroupId: number): TabGroup | undefined {
+    return this.tabGroups.get(tabGroupId);
   }
 
   /**
@@ -422,15 +544,37 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
    */
   public destroy() {
     if (this.isDestroyed) {
-      throw new Error("TabManager has already been destroyed");
+      // Avoid throwing error if already destroyed, just return.
+      console.warn("TabManager destroy called multiple times.");
+      return;
     }
 
     this.isDestroyed = true;
     this.emit("destroyed");
-    this.destroyEmitter();
+    this.destroyEmitter(); // Destroys internal event emitter listeners
 
-    for (const tab of this.tabs) {
-      tab.destroy();
+    // Destroy groups first to handle tab transitions cleanly
+    // Create a copy of IDs as destroying modifies the map
+    const groupIds = Array.from(this.tabGroups.keys());
+    for (const groupId of groupIds) {
+      this.destroyTabGroup(groupId);
     }
+
+    // Destroy remaining individual tabs
+    // Create a copy of values as destroying modifies the map
+    const tabsToDestroy = Array.from(this.tabs.values());
+    for (const tab of tabsToDestroy) {
+      // Check if tab still exists (might have been destroyed by group)
+      if (this.tabs.has(tab.id) && !tab.isDestroyed) {
+        tab.destroy(); // Tab destroy should trigger removeTab via 'destroyed' event
+      }
+    }
+
+    // Clear maps
+    this.tabs.clear();
+    this.tabGroups.clear();
+    this.windowActiveSpaceMap.clear();
+    this.spaceActiveTabMap.clear();
+    this.spaceFocusedTabMap.clear();
   }
 }
