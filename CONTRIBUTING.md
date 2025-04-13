@@ -30,6 +30,8 @@ bun install
 bun start
 ```
 
+For development with hot reloading, see the [Hot Reloading Guide](./docs/contributing/hot-reloading.md).
+
 ## Using Extensions
 
 ### From Chrome Web Store
