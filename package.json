@@ -12,6 +12,7 @@
     "start:debug": "cross-env FLOW_DEBUG=true && bun --cwd ./vite build && bun --cwd ./electron start",
     "build": "bun --cwd ./vite build && bun --cwd ./electron make",
     "release": "bun --cwd ./vite build && bun --cwd ./electron release",
+    "dev:server": "bun --cwd ./vite dev --strictPort",
     "format": "prettier --write ."
   },
   "devDependencies": {

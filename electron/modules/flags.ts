@@ -7,6 +7,7 @@ type Flags = {
   SHOW_DEBUG_PRINTS: boolean;
   SHOW_DEBUG_ERRORS: boolean | DEBUG_AREA[];
   DEBUG_DISABLE_TAB_VIEW: boolean;
+  DEBUG_HOT_RELOAD_FRONTEND: boolean;
   SHOW_DEBUG_DEVTOOLS: boolean;
   GLANCE_ENABLED: boolean;
   FAVICONS_REMOVE_PATH: boolean;
@@ -27,6 +28,9 @@ export const FLAGS: Flags = {
 
   // Debug: Disable the tab view
   DEBUG_DISABLE_TAB_VIEW: false,
+
+  // Debug: Enable the hot reload feature for frontend (Experimental / Unstable)
+  DEBUG_HOT_RELOAD_FRONTEND: true,
 
   // Glance: Enable the glance feature
   GLANCE_ENABLED: false,

@@ -416,11 +416,19 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    * Loads an error page in the tab
    */
   public loadErrorPage(errorCode: number, url: string) {
+    // Errored on error page? Don't show another error page to prevent infinite loop
+    const parsedURL = URL.parse(url);
+    if (parsedURL && parsedURL.protocol === "flow:" && parsedURL.hostname === "error") {
+      return;
+    }
+
+    // Craft error page URL
     const errorPageURL = new URL("flow://error");
     errorPageURL.searchParams.set("errorCode", errorCode.toString());
     errorPageURL.searchParams.set("url", url);
     errorPageURL.searchParams.set("initial", "1");
 
+    // Load error page
     const replace = FLAGS.ERROR_PAGE_LOAD_MODE === "replace";
     this.loadURL(errorPageURL.toString(), replace);
   }

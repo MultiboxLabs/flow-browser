@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 import { resolve } from "path";
@@ -12,4 +12,7 @@ export default defineConfig({
       "@": resolve(__dirname, "src")
     }
   },
-})
+  server: {
+    allowedHosts: true
+  }
+});

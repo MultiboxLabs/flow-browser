@@ -1,9 +1,11 @@
 import path from "path";
-import { app, protocol as protocolModule, Protocol, session, Session } from "electron";
+import { app, protocol as protocolModule, Protocol, session, Session, net, protocol } from "electron";
 import { PATHS } from "@/modules/paths";
 import fsPromises from "fs/promises";
 import { getContentType } from "@/modules/utils";
 import { getFavicon, normalizeURL } from "@/modules/favicons";
+import { FLAGS } from "@/modules/flags";
+import { isDevelopmentServerRunning, setupHotReloadFileDescriptors, fetchFromDevServer } from "./hot-reload";
 
 protocolModule.registerSchemesAsPrivileged([
   {
@@ -50,7 +52,12 @@ const FLOW_EXTERNAL_ALLOWED_DOMAINS: AllowedDomains = {
   "v2.surf.edge.game": "edge-surf-game-v2"
 };
 
-async function serveStaticFile(filePath: string, extraDir?: string, baseDir: string = PATHS.VITE_WEBUI) {
+async function serveStaticFile(
+  filePath: string,
+  extraDir?: string,
+  baseDir: string = PATHS.VITE_WEBUI,
+  request?: Request
+) {
   let transformedPath = filePath;
   if (transformedPath.startsWith("/")) {
     transformedPath = transformedPath.slice(1);
@@ -60,11 +67,26 @@ async function serveStaticFile(filePath: string, extraDir?: string, baseDir: str
   }
 
   if (!transformedPath) {
-    return await serveStaticFile("index.html", extraDir, baseDir);
+    return await serveStaticFile("index.html", extraDir, baseDir, request);
   }
 
-  const transformedBaseDir = extraDir ? path.join(baseDir, extraDir) : baseDir;
-  const fullFilePath = path.join(transformedBaseDir, transformedPath);
+  if (extraDir) {
+    transformedPath = path.join(extraDir, transformedPath);
+  }
+
+  const fullFilePath = path.join(baseDir, transformedPath);
+
+  // Attempt to serve the file from development server if we're not packaged
+  if (FLAGS.DEBUG_HOT_RELOAD_FRONTEND && baseDir === PATHS.VITE_WEBUI && !app.isPackaged) {
+    setupHotReloadFileDescriptors();
+
+    // Make sure the development server is running
+    const ping = await isDevelopmentServerRunning();
+
+    if (ping) {
+      return await fetchFromDevServer(transformedPath, request);
+    }
+  }
 
   try {
     const stats = await fsPromises.stat(fullFilePath);
@@ -90,7 +112,7 @@ async function serveStaticFile(filePath: string, extraDir?: string, baseDir: str
 }
 
 function registerFlowInternalProtocol(protocol: Protocol) {
-  const handleDomainRequest = async (_request: Request, url: URL) => {
+  const handleDomainRequest = async (request: Request, url: URL) => {
     const hostname = url.hostname;
     const pathname = url.pathname;
 
@@ -100,7 +122,7 @@ function registerFlowInternalProtocol(protocol: Protocol) {
 
     const allowedPath = FLOW_INTERNAL_ALLOWED_DOMAINS[hostname];
     const extraDir = allowedPath === true ? undefined : allowedPath;
-    return await serveStaticFile(pathname, extraDir);
+    return await serveStaticFile(pathname, extraDir, undefined, request);
   };
 
   protocol.handle("flow-internal", async (request) => {
@@ -113,7 +135,7 @@ function registerFlowInternalProtocol(protocol: Protocol) {
 }
 
 function registerFlowProtocol(protocol: Protocol) {
-  const handleDomainRequest = async (_request: Request, url: URL) => {
+  const handleDomainRequest = async (request: Request, url: URL) => {
     const hostname = url.hostname;
     const pathname = url.pathname;
 
@@ -123,7 +145,7 @@ function registerFlowProtocol(protocol: Protocol) {
 
     const allowedPath = FLOW_PROTOCOL_ALLOWED_DOMAINS[hostname];
     const extraDir = allowedPath === true ? undefined : allowedPath;
-    return await serveStaticFile(pathname, extraDir);
+    return await serveStaticFile(pathname, extraDir, undefined, request);
   };
 
   const handleFaviconRequest = async (request: Request, url: URL) => {
@@ -196,7 +218,7 @@ function registerFlowProtocol(protocol: Protocol) {
 }
 
 function registerFlowExternalProtocol(protocol: Protocol) {
-  const handleDomainRequest = async (_request: Request, url: URL) => {
+  const handleDomainRequest = async (request: Request, url: URL) => {
     const hostname = url.hostname;
     const pathname = url.pathname;
 
@@ -206,7 +228,7 @@ function registerFlowExternalProtocol(protocol: Protocol) {
 
     const allowedPath = FLOW_EXTERNAL_ALLOWED_DOMAINS[hostname];
     const extraDir = allowedPath === true ? undefined : allowedPath;
-    return await serveStaticFile(pathname, extraDir);
+    return await serveStaticFile(pathname, extraDir, undefined, request);
   };
 
   protocol.handle("flow-external", async (request) => {
