@@ -1,3 +1,4 @@
+import { ResetOnboardingCard } from "@/components/settings/sections/general/reset-onboarding-card";
 import { NewTabModeCard } from "./new-tab-mode-card";
 
 export function GeneralSettings() {
@@ -9,6 +10,7 @@ export function GeneralSettings() {
       </div>
 
       <NewTabModeCard />
+      <ResetOnboardingCard />
     </div>
   );
 }

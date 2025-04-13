@@ -11,6 +11,7 @@ import { FlowNewTabAPI } from "@/lib/flow/interfaces/app/newTab";
 import { FlowOmniboxAPI } from "@/lib/flow/interfaces/windows/omnibox";
 import { FlowSettingsAPI } from "@/lib/flow/interfaces/windows/settings";
 import { FlowOpenExternalAPI } from "@/lib/flow/interfaces/app/openExternal";
+import { FlowOnboardingAPI } from "@/lib/flow/interfaces/app/onboarding";
 
 declare global {
   /**
@@ -34,6 +35,7 @@ declare global {
     icons: FlowIconsAPI;
     newTab: FlowNewTabAPI;
     openExternal: FlowOpenExternalAPI;
+    onboarding: FlowOnboardingAPI;
 
     // Windows APIs
     omnibox: FlowOmniboxAPI;

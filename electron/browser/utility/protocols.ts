@@ -28,7 +28,8 @@ const FLOW_INTERNAL_ALLOWED_DOMAINS: AllowedDomains = {
   main: true,
   settings: true,
   omnibox: true,
-  "glance-modal": true
+  "glance-modal": true,
+  onboarding: true
 };
 
 const FLOW_PROTOCOL_ALLOWED_DOMAINS: AllowedDomains = {

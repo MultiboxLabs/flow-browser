@@ -35,9 +35,6 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
     // A public reference to the tab manager
     this.tabs = this.tabManager;
 
-    // Create initial window after next tick to ensure proper initialization
-    setTimeout(() => this.createWindow(), 0);
-
     // Load menu
     setupMenu(this);
   }

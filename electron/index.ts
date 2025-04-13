@@ -3,6 +3,8 @@ import { Browser } from "@/browser/browser";
 import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 import "@/ipc/main";
 import "@/settings/main";
+import { hasCompletedOnboarding } from "@/saving/onboarding";
+import { onboarding } from "@/onboarding/main";
 
 export let browser: Browser | null = null;
 
@@ -118,6 +120,15 @@ function initializeApp() {
   } else if (process.platform === "darwin") {
     setupMacOSDock(browser);
   }
+
+  // Open onboarding / create initial window
+  hasCompletedOnboarding().then((completed) => {
+    if (!completed) {
+      onboarding.show();
+    } else {
+      browser?.createWindow();
+    }
+  });
 }
 
 // Start the application

@@ -14,6 +14,7 @@ import "@/ipc/app/app";
 import "@/ipc/app/icons";
 import "@/ipc/app/new-tab";
 import "@/ipc/app/open-external";
+import "@/ipc/app/onboarding";
 
 // Windows APIs
 import "@/ipc/window/omnibox";

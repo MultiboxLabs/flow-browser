@@ -16,11 +16,12 @@ function checkCanUseAPI() {
   const isBrowserUI = isInternalUI && location.hostname === "main";
   const isOmniboxUI = isInternalUI && location.hostname === "omnibox";
   const isSettingsUI = isInternalUI && location.hostname === "settings";
+  const isOnboardingUI = isInternalUI && location.hostname === "onboarding";
 
   const canUseAPI = {
     browser: isBrowserUI,
     session: isBrowserUI || isSettingsUI,
-    app: isBrowserUI || isSettingsUI,
+    app: isBrowserUI || isSettingsUI || isOnboardingUI,
     window: isBrowserUI || isSettingsUI || isOmniboxUI
   };
   return canUseAPI;
@@ -262,6 +263,18 @@ const openExternalAPI = {
   }
 };
 
+// ONBOARDING API //
+const onboardingAPI = {
+  finish: () => {
+    if (!checkCanUseAPI().app) return;
+    return ipcRenderer.send("onboarding:finish");
+  },
+  reset: () => {
+    if (!checkCanUseAPI().app) return;
+    return ipcRenderer.send("onboarding:reset");
+  }
+};
+
 // OMNIBOX API //
 const omniboxAPI = {
   show: (bounds: Electron.Rectangle | null, params: { [key: string]: string } | null) => {
@@ -304,6 +317,7 @@ contextBridge.exposeInMainWorld("flow", {
   icons: iconsAPI,
   newTab: newTabAPI,
   openExternal: openExternalAPI,
+  onboarding: onboardingAPI,
 
   // Windows APIs
   omnibox: omniboxAPI,

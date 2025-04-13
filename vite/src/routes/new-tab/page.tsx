@@ -190,7 +190,13 @@ function Page() {
         </button>
         <div className="flex items-center justify-center gap-3">
           <div className="relative w-10 h-10">
-            <img src="/assets/icon.png" alt="Flow Browser Logo" width={40} height={40} className="object-contain" />
+            <img
+              src="/assets/icon.png"
+              alt="Flow Browser Logo"
+              width={40}
+              height={40}
+              className="object-contain rounded-full"
+            />
           </div>
           <h1 className="text-4xl font-bold m-0 bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-300">
             Flow Browser

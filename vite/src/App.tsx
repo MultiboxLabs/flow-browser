@@ -12,7 +12,7 @@ import GlanceModalRoute from "./routes/glance-modal/route";
 import AboutRoute from "./routes/about/route";
 import GamesRoute from "./routes/games/route";
 import OmniboxRoute from "./routes/omnibox/route";
-
+import OnboardingRoute from "./routes/onboarding/route";
 // Routes //
 function Routes() {
   return (
@@ -40,6 +40,9 @@ function Routes() {
       </Route>
       <Route hostname="omnibox">
         <OmniboxRoute />
+      </Route>
+      <Route hostname="onboarding">
+        <OnboardingRoute />
       </Route>
     </RouterProvider>
   );
