@@ -34,7 +34,7 @@ export async function isDevelopmentServerRunning(port: number = 5173): Promise<b
 
 // This is needed or electron will give out INSUFFICIENT_RESOURCES errors
 let amountOfRequests = 0;
-const MAX_REQUESTS = 1024;
+const MAX_REQUESTS = 4096;
 
 function getRandomTimeout() {
   const MIN_TIMEOUT = 100;
