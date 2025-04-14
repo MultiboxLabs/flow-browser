@@ -41,7 +41,9 @@ export function HorizontalScroller({
       isUserScrollingRef.current = true;
     };
 
-    container.addEventListener("wheel", handleWheel);
+    container.addEventListener("wheel", handleWheel, {
+      passive: true
+    });
     return () => {
       container.removeEventListener("wheel", handleWheel);
     };

@@ -3,7 +3,7 @@
 
 // IMPORTS //
 import { ProfileData } from "@/sessions/profiles";
-import { NewTabMode } from "@/saving/settings";
+import { NewTabMode, SidebarCollapseMode } from "@/saving/settings";
 import { contextBridge, ipcRenderer } from "electron";
 import { injectBrowserAction } from "electron-chrome-extensions/browser-action";
 import { SpaceData } from "@/sessions/spaces";
@@ -317,6 +317,14 @@ const settingsAPI = {
   close: () => {
     if (!checkCanUseAPI().window) return;
     return ipcRenderer.send("settings:close");
+  },
+  getSidebarCollapseMode: async () => {
+    if (!checkCanUseAPI().window) return;
+    return ipcRenderer.invoke("settings:get-sidebar-collapse-mode");
+  },
+  setSidebarCollapseMode: async (mode: SidebarCollapseMode) => {
+    if (!checkCanUseAPI().window) return;
+    return ipcRenderer.invoke("settings:set-sidebar-collapse-mode", mode);
   }
 };
 
