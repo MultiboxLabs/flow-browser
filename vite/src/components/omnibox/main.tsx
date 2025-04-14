@@ -149,7 +149,7 @@ export function OmniboxMain() {
     <div className="flex justify-center items-start min-h-screen">
       <div className="w-full h-full">
         <Command
-          className="rounded-xl border-[1px] box-border border-black/20 dark:border-white/20 bg-white/70 dark:bg-black/70 backdrop-blur-xl shadow-lg overflow-hidden px-2 h-screen"
+          className="rounded-xl border-[1px] box-border border-[#e0e0e0] dark:border-[#504F4F] bg-white/80 dark:bg-black/80 backdrop-blur-xl shadow-lg overflow-hidden px-2 h-screen"
           loop
           value={selectedValue}
           onValueChange={setSelectedValue}
@@ -160,19 +160,20 @@ export function OmniboxMain() {
           }}
           disablePointerSelection
         >
-          <div className="flex items-center py-1.5 border-b border-black/15 dark:border-white/15 *:size-full *:border-0">
+          <div className="flex items-center py-2 border-b border-black/15 dark:border-white/15 *:size-full *:border-0">
             <CommandInput
-              placeholder="Search or Enter URL"
+              placeholder="Search or Enter URL..."
               value={input}
               onValueChange={handleInputChange}
               onFocus={handleFocus}
               onBlur={handleBlur}
               ref={inputRef}
-              className="text-sm text-black/90 dark:text-white/90 placeholder:text-black/40 dark:placeholder:text-white/40"
+              className="text-lg font-medium placeholder:font-bold text-black/90 dark:text-white/90 placeholder:text-black/40 dark:placeholder:text-white/40"
+              searchIconClassName="text-black dark:text-white opacity-100 size-4 mr-1"
             />
           </div>
           <CommandList
-            className="py-2"
+            className="pb-2 flex flex-col"
             style={{
               msOverflowStyle: "none",
               scrollbarWidth: "none"
@@ -180,7 +181,7 @@ export function OmniboxMain() {
           >
             {matches.map((match) => (
               <CommandItem
-                className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-lg hover:bg-black/10 dark:hover:bg-white/10 aria-selected:bg-black/15 dark:aria-selected:bg-white/15"
+                className="flex items-center justify-between my-1 px-4 py-3 cursor-pointer rounded-lg hover:bg-black/10 dark:hover:bg-white/10 aria-selected:bg-black/15 dark:aria-selected:bg-white/15"
                 key={match.destinationUrl}
                 value={match.destinationUrl}
                 onSelect={() => handleSelect(match)}
@@ -197,12 +198,6 @@ export function OmniboxMain() {
                 </div>
               </CommandItem>
             ))}
-            {input && matches.length === 0 && (
-              <div className="p-4 text-center text-sm text-black/60 dark:text-white/60">No suggestions found.</div>
-            )}
-            {!input && matches.length === 0 && (
-              <div className="p-4 text-center text-sm text-black/60 dark:text-white/60">Start typing to search...</div>
-            )}
           </CommandList>
         </Command>
       </div>
