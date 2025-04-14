@@ -1,9 +1,5 @@
 import { createSearchUrl } from "@/lib/search";
 
-const extensionId = "flow-extension"; // chrome.runtime.id;
-const fakeBrowserProtocol = "flow";
-const whitelistedPages = ["new", "omnibox"];
-
 // Real Target Protocol -> Fake Browser Protocol
 const protocolReplacements = {
   "chrome-extension://": "extension://"
@@ -15,15 +11,6 @@ export function getURLFromInput(input: string): string | null {
 
   // Check if input is empty
   if (!trimmedInput) return null;
-
-  // Check if it looks like a main UI URL (flow://main or flow://new)
-  if (trimmedInput.startsWith(`${fakeBrowserProtocol}://`)) {
-    // return `chrome-extension://<extensionId>/[page]/index.html`
-    const page = trimmedInput.replace(`${fakeBrowserProtocol}://`, "");
-    if (whitelistedPages.includes(page)) {
-      return `chrome-extension://${extensionId}/${page}/index.html`;
-    }
-  }
 
   // Check if its other protocols
   for (const [key, value] of Object.entries(protocolReplacements)) {
@@ -71,16 +58,6 @@ export function parseAddressBarInput(input: string): string {
 }
 
 export function transformUrl(url: string): string | null {
-  // Flow Protocol
-  if (url.startsWith(`chrome-extension://${extensionId}/`)) {
-    const path = url.split("/").slice(3).join("/");
-    // Extract the first part of the path
-    const firstPathSegment = path.split("/")[0];
-    if (firstPathSegment && whitelistedPages.includes(firstPathSegment)) {
-      return `${fakeBrowserProtocol}://${firstPathSegment}`;
-    }
-  }
-
   // Error Page
   try {
     const urlObject = new URL(url);

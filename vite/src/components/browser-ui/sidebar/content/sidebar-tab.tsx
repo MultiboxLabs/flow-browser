@@ -29,13 +29,13 @@ export function SidebarTab({ tab, isActive }: { tab: TabData; isActive: boolean;
 
   const handleClick = () => {
     if (!tab.id) return;
-    // TODO: Handle tab click
+    flow.tabs.switchToTab(tab.id);
   };
 
   const handleCloseTab = (e: React.MouseEvent) => {
     if (!tab.id) return;
     e.preventDefault();
-    // TODO: Handle tab close
+    flow.tabs.closeTab(tab.id);
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {

@@ -72,6 +72,9 @@ export function BrowserUI() {
   useEffect(() => {
     setTimeout(() => {
       setIsReady(true);
+
+      // Open new tab on first load
+      flow.newTab.open();
     }, 100);
   }, []);
 

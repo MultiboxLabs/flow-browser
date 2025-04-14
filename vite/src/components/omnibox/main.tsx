@@ -1,165 +1,138 @@
-"use client";
-
-import { ArrowRight, GlobeIcon, SearchIcon } from "lucide-react";
 import { Command, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { AutocompleteMatch } from "@/lib/omnibox/types";
+import { Omnibox } from "@/lib/omnibox/omnibox";
 import { useEffect, useRef, useState } from "react";
-import { OmniboxMatch, handleOmniboxInput } from "@/lib/omnibox";
+import { Search, History, Zap, Terminal, Settings, PlusSquare, ArrowRight, Link } from "lucide-react";
+import { WebsiteFavicon } from "@/components/main/website-favicon";
 
-type OmniboxItemProps = {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  action?: string;
-  showArrow?: boolean;
-} & React.ComponentProps<typeof CommandItem>;
-
-function OmniboxItem({ icon, label, value, action = "Switch to Tab", showArrow = true, ...props }: OmniboxItemProps) {
-  return (
-    <CommandItem className="flex items-center justify-between px-4 py-3 cursor-pointer" value={value} {...props}>
-      <div className="flex items-center">
-        <div className="w-7 h-7 mr-1 flex items-center justify-center">{icon}</div>
-        <span className="text-black/80 dark:text-white/80">{label}</span>
-      </div>
-      {showArrow && (
-        <div className="flex items-center text-black/50 dark:text-white/50">
-          <span className="mr-2">{action}</span>
-          <ArrowRight className="h-4 w-4" />
-        </div>
-      )}
-    </CommandItem>
-  );
-}
-
-function getCurrentTab(): Promise<chrome.tabs.Tab | null> {
-  return new Promise((resolve) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        resolve(tabs[0]);
-      } else {
-        resolve(null);
+function getIconForType(type: AutocompleteMatch["type"], match: AutocompleteMatch) {
+  switch (type) {
+    case "search-query":
+    case "verbatim":
+      return <Search className="h-5 w-5 text-black/80 dark:text-white/80" />;
+    case "history-url":
+      return <History className="h-5 w-5 text-black/80 dark:text-white/80" />;
+    case "url-what-you-typed":
+      return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5 text-black/80 dark:text-white/80" />;
+    case "pedal":
+      if (match.destinationUrl === "open_settings") {
+        return <Settings className="h-5 w-5 text-black/80 dark:text-white/80" />;
       }
-    });
-  });
+      if (match.destinationUrl === "open_new_window") {
+        return <PlusSquare className="h-5 w-5 text-black/80 dark:text-white/80" />;
+      }
+      return <Zap className="h-5 w-5 text-black/80 dark:text-white/80" />;
+    case "open-tab":
+      return <Terminal className="h-5 w-5 text-black/80 dark:text-white/80" />;
+    case "zero-suggest":
+    default:
+      return <Link className="h-5 w-5 text-black/80 dark:text-white/80" />;
+  }
 }
 
-export function Omnibox() {
+function getActionForType(type: AutocompleteMatch["type"]) {
+  switch (type) {
+    case "search-query":
+    case "verbatim":
+      return "Search";
+    case "open-tab":
+      return "Switch to Tab";
+    case "history-url":
+    case "url-what-you-typed":
+    case "pedal":
+    case "zero-suggest":
+    default:
+      return "Navigate";
+  }
+}
+
+export function OmniboxMain() {
   const params = new URLSearchParams(window.location.search);
   const currentInput = params.get("currentInput");
-  const openIn = params.get("openIn") || "new_tab";
+  const openIn: "current" | "new_tab" = params.get("openIn") === "current" ? "current" : "new_tab";
 
   const [input, setInput] = useState(currentInput || "");
-  const [matches, setMatches] = useState<OmniboxMatch[]>([]);
+  const [matches, setMatches] = useState<AutocompleteMatch[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const omniboxRef = useRef<Omnibox | null>(null);
 
+  const [selectedValue, setSelectedValue] = useState("");
+
+  // Initialize omnibox
   useEffect(() => {
-    inputRef.current?.focus();
+    const handleSuggestionsUpdate = (updatedMatches: AutocompleteMatch[]) => {
+      console.log("Received Updated Suggestions:", updatedMatches.length);
+      setMatches(updatedMatches);
+    };
+    omniboxRef.current = new Omnibox(handleSuggestionsUpdate);
+
+    if (omniboxRef.current) {
+      omniboxRef.current.handleInput(input, "focus");
+    }
+
+    return () => {
+      omniboxRef.current?.stopQuery();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Esc to close omnibox
+  // If the selected value is not in the matches, set it to the first match
+  useEffect(() => {
+    const match = matches.find((match) => match.destinationUrl === selectedValue);
+    if (!match && matches.length > 0) {
+      setSelectedValue(matches[0].destinationUrl);
+    }
+  }, [selectedValue, matches]);
+
+  // Focus on omnibox input
+  useEffect(() => {
+    inputRef.current?.focus();
+    setTimeout(() => {
+      inputRef.current?.select();
+    }, 10);
+  }, []);
+
+  // Re-introduce handleOpenMatch adapting logic from omnibox.ts
+  const handleOpenMatch = (match: AutocompleteMatch, whereToOpen: "current" | "new_tab") => {
+    omniboxRef.current?.openMatch(match, whereToOpen);
+    flow.omnibox.hide();
+  };
+
+  // Esc to close omnibox, Enter to navigate/search
   useEffect(() => {
     const inputBox = inputRef.current;
     if (!inputBox) return;
 
-    const handleEscape = (event: KeyboardEvent) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         flow.omnibox.hide();
         event.preventDefault();
-      }
-    };
-    inputBox.addEventListener("keydown", handleEscape);
-    return () => inputBox.removeEventListener("keydown", handleEscape);
-  }, []);
-
-  useEffect(() => {
-    // Cancel any pending requests
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    if (input.trim() === "") {
-      setMatches([]);
-      return;
-    }
-
-    // Create new abort controller
-    abortControllerRef.current = new AbortController();
-
-    const fetchMatches = async () => {
-      try {
-        const updateCallback = (matches: OmniboxMatch[]) => {
-          setMatches(matches);
+      } else if (event.key === "Enter" && matches.length === 0 && input.trim() !== "") {
+        // Use handleOpenMatch for verbatim input
+        event.preventDefault();
+        const verbatimMatch: AutocompleteMatch = {
+          providerName: "Verbatim",
+          type: "verbatim",
+          contents: input,
+          destinationUrl: input, // Assume input is URL or search query
+          relevance: 9999,
+          isDefault: false
         };
-        await handleOmniboxInput(input, abortControllerRef.current?.signal, updateCallback);
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          // Request was aborted, do nothing
-        } else {
-          console.error("Error fetching omnibox matches:", error);
-        }
+        handleOpenMatch(verbatimMatch, openIn);
       }
     };
+    inputBox.addEventListener("keydown", handleKeyDown);
+    return () => inputBox.removeEventListener("keydown", handleKeyDown);
+  }, [input, matches.length, openIn]); // Added handleOpenMatch dependency implicitly via openIn
 
-    // Debounce the matches fetch
-    const timeoutId = setTimeout(() => {
-      fetchMatches();
-    }, 50);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [input]);
-
-  const handleSelect = async (match: OmniboxMatch) => {
-    let currentTab: chrome.tabs.Tab | null = null;
-
-    if (openIn === "current") {
-      const t = await getCurrentTab();
-      if (t?.id) {
-        currentTab = t;
-      }
-    }
-
-    if (currentTab) {
-      if (currentTab.url !== match.destinationUrl) {
-        chrome.tabs.update(currentTab.id!, { url: match.destinationUrl });
-      }
-    } else {
-      window.open(match.destinationUrl, "_blank");
-    }
-
-    flow.omnibox.hide();
+  const handleInputChange = (value: string) => {
+    setInput(value);
+    omniboxRef.current?.handleInput(value, "keystroke");
   };
 
-  // Get the appropriate icon for each match type
-  const getMatchIcon = (match: OmniboxMatch) => {
-    switch (match.type) {
-      case "search":
-        return <SearchIcon className="h-5 w-5 text-black/80 dark:text-white/80" />;
-      case "history":
-      case "bookmark":
-      case "verbatim":
-      case "navigation":
-      case "tab":
-      default:
-        return <GlobeIcon className="h-5 w-5 text-black/80 dark:text-white/80" />;
-    }
-  };
-
-  // Get appropriate action text for each match type
-  const getMatchAction = (match: OmniboxMatch) => {
-    switch (match.type) {
-      case "search":
-        return "Search";
-      case "tab":
-        return "Switch to Tab";
-      case "history":
-      case "bookmark":
-      case "verbatim":
-      case "navigation":
-      default:
-        return "Navigate";
-    }
+  // Use the handleOpenMatch helper
+  const handleSelect = (match: AutocompleteMatch) => {
+    handleOpenMatch(match, openIn);
   };
 
   const handleFocus = () => {
@@ -176,24 +149,26 @@ export function Omnibox() {
     <div className="flex justify-center items-start min-h-screen">
       <div className="w-full h-full">
         <Command
-          className="rounded-xl border-[1px] box-border border-[#464648] bg-white dark:bg-black shadow-md overflow-hidden px-2 h-screen"
+          className="rounded-xl border-[1px] box-border border-black/20 dark:border-white/20 bg-white/70 dark:bg-black/70 backdrop-blur-xl shadow-lg overflow-hidden px-2 h-screen"
           loop
-          vimBindings={false}
+          value={selectedValue}
+          onValueChange={setSelectedValue}
           shouldFilter={false}
+          vimBindings={false}
           onBlur={() => {
             inputRef.current?.focus();
           }}
           disablePointerSelection
         >
-          <div className="flex items-center py-1.5 border-b border-black/10 dark:border-white/10 *:size-full *:border-0">
+          <div className="flex items-center py-1.5 border-b border-black/15 dark:border-white/15 *:size-full *:border-0">
             <CommandInput
               placeholder="Search or Enter URL"
               value={input}
-              onValueChange={setInput}
+              onValueChange={handleInputChange}
               onFocus={handleFocus}
               onBlur={handleBlur}
               ref={inputRef}
-              className="text-sm"
+              className="text-sm text-black/90 dark:text-white/90 placeholder:text-black/40 dark:placeholder:text-white/40"
             />
           </div>
           <CommandList
@@ -203,18 +178,31 @@ export function Omnibox() {
               scrollbarWidth: "none"
             }}
           >
-            {matches.map((match, index) => (
-              <OmniboxItem
-                key={index}
-                icon={getMatchIcon(match)}
-                label={match.content}
-                value={index.toString()}
-                keywords={[match.content]}
-                action={getMatchAction(match)}
-                showArrow={true}
+            {matches.map((match) => (
+              <CommandItem
+                className="flex items-center justify-between px-4 py-3 cursor-pointer rounded-lg hover:bg-black/10 dark:hover:bg-white/10 aria-selected:bg-black/15 dark:aria-selected:bg-white/15"
+                key={match.destinationUrl}
+                value={match.destinationUrl}
                 onSelect={() => handleSelect(match)}
-              />
+              >
+                <div className="flex items-center min-w-0 flex-1 mr-3">
+                  <div className="w-7 h-7 mr-1 flex-shrink-0 flex items-center justify-center">
+                    {getIconForType(match.type, match)}
+                  </div>
+                  <span className="text-black/90 dark:text-white/90 truncate">{match.contents}</span>
+                </div>
+                <div className="flex items-center text-black/60 dark:text-white/60 flex-shrink-0">
+                  <span className="mr-2">{getActionForType(match.type)}</span>
+                  <ArrowRight className="h-4 w-4" />
+                </div>
+              </CommandItem>
             ))}
+            {input && matches.length === 0 && (
+              <div className="p-4 text-center text-sm text-black/60 dark:text-white/60">No suggestions found.</div>
+            )}
+            {!input && matches.length === 0 && (
+              <div className="p-4 text-center text-sm text-black/60 dark:text-white/60">Start typing to search...</div>
+            )}
           </CommandList>
         </Command>
       </div>

@@ -142,6 +142,7 @@ function Page() {
 function App() {
   return (
     <ThemeProvider forceTheme="dark">
+      <title>Flow Games</title>
       <Page />
     </ThemeProvider>
   );

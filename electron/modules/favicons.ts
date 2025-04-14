@@ -4,7 +4,7 @@
 
 import path from "path";
 import { knex, Knex } from "knex";
-import { net } from "electron";
+import { net, Session } from "electron";
 import { createHash } from "crypto";
 import { FLOW_DATA_DIR } from "./paths";
 import * as sharpIco from "sharp-ico";
@@ -269,10 +269,11 @@ async function detectImageType(buffer: Buffer): Promise<{ isIco: boolean; isVali
  * @param faviconURL The URL to fetch the favicon from
  * @returns A Promise resolving to a Buffer containing the favicon data
  */
-async function fetchFavicon(faviconURL: string): Promise<Buffer> {
+async function fetchFavicon(faviconURL: string, session?: Session): Promise<Buffer> {
   return new Promise<Buffer>((resolve, reject) => {
     const request = net.request({
-      url: faviconURL
+      url: faviconURL,
+      session: session
     });
 
     let data: Buffer[] = [];
@@ -420,7 +421,7 @@ export function normalizeURL(url: string): string {
  * @param url The page URL
  * @param faviconURL The URL of the favicon
  */
-export function cacheFavicon(url: string, faviconURL: string): void {
+export function cacheFavicon(url: string, faviconURL: string, session?: Session): void {
   // Normalize the URL
   const normalizedURL = normalizeURL(url);
 
@@ -430,7 +431,7 @@ export function cacheFavicon(url: string, faviconURL: string): void {
 
     try {
       // Fetch the favicon
-      const faviconData = await fetchFavicon(faviconURL);
+      const faviconData = await fetchFavicon(faviconURL, session);
 
       // Check if we got valid data
       if (!faviconData || faviconData.length === 0) {
@@ -471,6 +472,11 @@ export function cacheFavicon(url: string, faviconURL: string): void {
         `Cached ${isIco ? "ICO→PNG" : "original"} favicon for ${normalizedURL} with hash ${imageHash}`
       );
     } catch (error) {
+      if (error instanceof Error && error.message.includes("ClientRequest only supports http: and https: protocols")) {
+        // Ignore, this is expected.
+        // It just means that it cannot cache the favicons of custom protocols.
+        return;
+      }
       debugError("FAVICONS", "Error caching favicon:", error);
     }
   });

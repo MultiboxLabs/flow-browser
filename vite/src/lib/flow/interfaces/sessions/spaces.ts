@@ -40,6 +40,11 @@ export interface FlowSpacesAPI {
   setUsingSpace: (profileId: string, spaceId: string) => Promise<boolean>;
 
   /**
+   * Gets the space id that is currently being used
+   */
+  getUsingSpace: () => Promise<string | null>;
+
+  /**
    * Gets the last used space
    */
   getLastUsedSpace: () => Promise<Space | null>;

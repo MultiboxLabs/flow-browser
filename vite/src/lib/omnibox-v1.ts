@@ -1,3 +1,5 @@
+// THIS IS NOT BEING USED, STORED HERE FOR REFERENCE!
+
 import { getURLFromInput } from "@/lib/url";
 import { createSearchUrl, getSearchSuggestions } from "./search";
 

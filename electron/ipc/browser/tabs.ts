@@ -2,6 +2,7 @@ import { Tab } from "@/browser/tabs/tab";
 import { TabGroup } from "@/browser/tabs/tab-groups";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { browser } from "@/index";
+import { getSpace } from "@/sessions/spaces";
 import { ipcMain } from "electron";
 import { TabData, TabGroupData, WindowActiveTabIds } from "~/types/tabs";
 
@@ -97,3 +98,65 @@ export function windowTabsChanged(windowId: number) {
     webContents.send("tabs:on-data-changed", data);
   }
 }
+
+ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {
+  const webContents = event.sender;
+  const window = browser?.getWindowFromWebContents(webContents);
+  if (!window) return false;
+
+  const tabManager = browser?.tabs;
+  if (!tabManager) return false;
+
+  const tab = tabManager.getTabById(tabId);
+  if (!tab) return false;
+
+  tabManager.setActiveTab(tab);
+  return true;
+});
+
+ipcMain.handle("tabs:new-tab", async (event, url?: string, isForeground?: boolean, spaceId?: string) => {
+  const webContents = event.sender;
+  const window = browser?.getWindowFromWebContents(webContents);
+  if (!window) return;
+
+  const tabManager = browser?.tabs;
+  if (!tabManager) return;
+
+  if (!spaceId) {
+    const currentSpace = window.getCurrentSpace();
+    if (!currentSpace) return;
+
+    spaceId = currentSpace;
+  }
+
+  if (!spaceId) return;
+
+  const space = await getSpace(spaceId);
+  if (!space) return;
+
+  const tab = await tabManager.createTab(space.profileId, window.id, space.id);
+
+  if (url) {
+    tab.loadURL(url);
+  }
+
+  if (isForeground) {
+    tabManager.setActiveTab(tab);
+  }
+  return true;
+});
+
+ipcMain.handle("tabs:close-tab", async (event, tabId: number) => {
+  const webContents = event.sender;
+  const window = browser?.getWindowFromWebContents(webContents);
+  if (!window) return false;
+
+  const tabManager = browser?.tabs;
+  if (!tabManager) return false;
+
+  const tab = tabManager.getTabById(tabId);
+  if (!tab) return false;
+
+  tab.destroy();
+  return true;
+});

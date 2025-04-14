@@ -38,7 +38,8 @@ const FLOW_PROTOCOL_ALLOWED_DOMAINS: AllowedDomains = {
   about: true,
   error: true,
   "new-tab": true,
-  games: true
+  games: true,
+  omnibox: true
 };
 
 const FLOW_EXTERNAL_ALLOWED_DOMAINS: AllowedDomains = {
@@ -240,10 +241,41 @@ function registerFlowExternalProtocol(protocol: Protocol) {
   });
 }
 
+// Bypass CORS for flow and flow-internal protocols
+function bypassCORS(session: Session) {
+  const WHITELISTED_PROTOCOLS = ["flow:", "flow-internal:"];
+
+  session.webRequest.onHeadersReceived((details, callback) => {
+    const currentUrl = details.webContents?.getURL();
+    const protocol = URL.parse(currentUrl ?? "")?.protocol;
+
+    if (protocol && WHITELISTED_PROTOCOLS.includes(protocol)) {
+      const newResponseHeaders = { ...details.responseHeaders };
+
+      // Remove all Access-Control-Allow-Origin headers in different cases
+      for (const header of Object.keys(newResponseHeaders)) {
+        if (header.toLowerCase() == "access-control-allow-origin") {
+          newResponseHeaders[header] = [];
+        }
+      }
+
+      // Add the Access-Control-Allow-Origin header back with a wildcard
+      newResponseHeaders["Access-Control-Allow-Origin"] = ["*"];
+
+      callback({ responseHeaders: newResponseHeaders });
+      return;
+    }
+
+    callback({});
+  });
+}
+
 export function registerProtocolsWithSession(session: Session) {
   const protocol = session.protocol;
   registerFlowProtocol(protocol);
   registerFlowExternalProtocol(protocol);
+
+  bypassCORS(session);
 }
 
 app.whenReady().then(() => {
@@ -257,4 +289,6 @@ app.whenReady().then(() => {
     type: "frame",
     filePath: PATHS.PRELOAD
   });
+
+  bypassCORS(defaultSession);
 });

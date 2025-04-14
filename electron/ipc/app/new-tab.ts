@@ -1,5 +1,4 @@
 import { hideOmnibox, isOmniboxOpen, loadOmnibox, setOmniboxBounds, showOmnibox } from "@/browser/components/omnibox";
-import { NEW_TAB_URL } from "@/browser/tabs/tab-manager";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { browser } from "@/index";
 import { NewTabMode, getCurrentNewTabMode, setCurrentNewTabMode } from "@/saving/settings";
@@ -37,7 +36,6 @@ export function openNewTab(tabbedBrowserWindow: TabbedBrowserWindow) {
         if (!space) return;
 
         const tab = await tabManager.createTab(space.profileId, tabbedBrowserWindow.id, spaceId);
-        tab.loadURL(NEW_TAB_URL);
         tabManager.setActiveTab(tab);
       });
     }

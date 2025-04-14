@@ -1,8 +1,8 @@
-import { Omnibox } from "@/components/omnibox/main";
+import { OmniboxMain } from "@/components/omnibox/main";
 import { ThemeProvider } from "@/components/main/theme";
 
 function Page() {
-  return <Omnibox />;
+  return <OmniboxMain />;
 }
 
 function App() {

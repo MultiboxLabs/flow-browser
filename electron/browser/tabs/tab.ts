@@ -2,7 +2,7 @@ import { Browser } from "@/browser/browser";
 import { isRectangleEqual, TabBoundsController } from "@/browser/tabs/tab-bounds";
 import { TabGroupMode } from "~/types/tabs";
 import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
-import { TabManager } from "@/browser/tabs/tab-manager";
+import { NEW_TAB_URL, TabManager } from "@/browser/tabs/tab-manager";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { cacheFavicon } from "@/modules/favicons";
 import { FLAGS } from "@/modules/flags";
@@ -175,6 +175,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     // Setup event listeners
     this.setupEventListeners();
+
+    // Load new tab URL
+    this.loadURL(NEW_TAB_URL);
   }
 
   private setupEventListeners() {
@@ -190,7 +193,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       const faviconURL = favicons[0];
       const url = this.webContents.getURL();
       if (faviconURL && url) {
-        cacheFavicon(url, faviconURL);
+        cacheFavicon(url, faviconURL, this.session);
       }
       if (faviconURL && faviconURL !== this.faviconURL) {
         this.faviconURL = faviconURL;

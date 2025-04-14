@@ -18,9 +18,13 @@ function checkCanUseAPI() {
   const isSettingsUI = isInternalUI && location.hostname === "settings";
   const isOnboardingUI = isInternalUI && location.hostname === "onboarding";
 
+  const isOmniboxDebugPage = isProtocolUI && location.hostname === "omnibox";
+
+  const isOmnibox = isOmniboxUI || isOmniboxDebugPage;
+
   const canUseAPI = {
-    browser: isBrowserUI,
-    session: isBrowserUI || isSettingsUI,
+    browser: isBrowserUI || isOmnibox,
+    session: isBrowserUI || isSettingsUI || isOmnibox,
     app: isBrowserUI || isSettingsUI || isOnboardingUI,
     window: isBrowserUI || isSettingsUI || isOmniboxUI
   };
@@ -79,6 +83,18 @@ const tabsAPI = {
   onDataUpdated: (callback: (data: any) => void) => {
     if (!checkCanUseAPI().browser) return;
     return listenOnIPCChannel("tabs:on-data-changed", callback);
+  },
+  switchToTab: async (tabId: number) => {
+    if (!checkCanUseAPI().browser) return;
+    return ipcRenderer.invoke("tabs:switch-to-tab", tabId);
+  },
+  newTab: async (spaceId?: string, url?: string, isForeground?: boolean) => {
+    if (!checkCanUseAPI().browser) return;
+    return ipcRenderer.invoke("tabs:new-tab", spaceId, url, isForeground);
+  },
+  closeTab: async (tabId: number) => {
+    if (!checkCanUseAPI().browser) return;
+    return ipcRenderer.invoke("tabs:close-tab", tabId);
   }
 };
 
@@ -167,6 +183,10 @@ const spacesAPI = {
   setUsingSpace: async (profileId: string, spaceId: string) => {
     if (!checkCanUseAPI().session) return;
     return ipcRenderer.invoke("spaces:set-using", profileId, spaceId);
+  },
+  getUsingSpace: async () => {
+    if (!checkCanUseAPI().session) return;
+    return ipcRenderer.invoke("spaces:get-using");
   },
   getLastUsedSpace: async () => {
     if (!checkCanUseAPI().session) return;

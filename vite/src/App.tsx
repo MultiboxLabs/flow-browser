@@ -3,6 +3,10 @@ import { Route } from "./router/route";
 import { Toaster } from "sonner";
 import { PlatformProvider } from "@/components/main/platform";
 
+// Protocols //
+const flowProtocol = "flow:";
+const flowInternalProtocol = "flow-internal:";
+
 // Pages //
 import MainRoute from "./routes/main/route";
 import NewTabRoute from "./routes/new-tab/route";
@@ -12,7 +16,9 @@ import GlanceModalRoute from "./routes/glance-modal/route";
 import AboutRoute from "./routes/about/route";
 import GamesRoute from "./routes/games/route";
 import OmniboxRoute from "./routes/omnibox/route";
+import OmniboxDebugRoute from "./routes/omnibox-debug/route";
 import OnboardingRoute from "./routes/onboarding/route";
+
 // Routes //
 function Routes() {
   return (
@@ -38,8 +44,11 @@ function Routes() {
       <Route hostname="games">
         <GamesRoute />
       </Route>
-      <Route hostname="omnibox">
+      <Route protocol={flowInternalProtocol} hostname="omnibox">
         <OmniboxRoute />
+      </Route>
+      <Route protocol={flowProtocol} hostname="omnibox">
+        <OmniboxDebugRoute />
       </Route>
       <Route hostname="onboarding">
         <OnboardingRoute />

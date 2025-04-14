@@ -17,7 +17,11 @@ export class Omnibox {
 
   constructor(parentWindow: BrowserWindow) {
     debugPrint("OMNIBOX", `Creating new omnibox for window ${parentWindow.id}`);
-    const onmiboxView = new WebContentsView();
+    const onmiboxView = new WebContentsView({
+      webPreferences: {
+        transparent: true
+      }
+    });
     const onmiboxWC = onmiboxView.webContents;
 
     onmiboxView.setBorderRadius(13);

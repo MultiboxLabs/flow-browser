@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { copyTextToClipboard } from "@/lib/utils";
 
 function Page() {
-  const hostnames = ["about", "new-tab", "games", "error"];
+  const hostnames = ["about", "new-tab", "games", "omnibox", "error"];
 
   return (
     <div className="w-screen h-screen bg-background p-8 flex flex-col items-center">
@@ -49,6 +49,7 @@ function Page() {
 function App() {
   return (
     <ThemeProvider forceTheme="dark">
+      <title>Flow URLs</title>
       <Page />
     </ThemeProvider>
   );

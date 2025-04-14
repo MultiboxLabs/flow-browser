@@ -44,6 +44,14 @@ ipcMain.handle("spaces:set-using", async (event, profileId: string, spaceId: str
   return await setSpaceLastUsed(profileId, spaceId);
 });
 
+ipcMain.handle("spaces:get-using", async (event) => {
+  const window = browser?.getWindowFromWebContents(event.sender);
+  if (window) {
+    return window.getCurrentSpace();
+  }
+  return null;
+});
+
 ipcMain.handle("spaces:get-last-used", async (event) => {
   return await getLastUsedSpace();
 });

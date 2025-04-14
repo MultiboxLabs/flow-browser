@@ -1,4 +1,4 @@
-import { app, WebContents } from "electron";
+import { app, WebContents, WebContentsView } from "electron";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { BrowserEvents } from "@/browser/events";
@@ -68,6 +68,13 @@ export class WindowManager {
     for (const window of this.windows.values()) {
       for (const windowWebContents of window.coreWebContents) {
         if (webContents.id === windowWebContents.id) {
+          return window;
+        }
+      }
+
+      // Temporary solution for tabs in the window
+      for (const windowWebContents of window.window.contentView.children) {
+        if (windowWebContents instanceof WebContentsView && webContents.id === windowWebContents.webContents.id) {
           return window;
         }
       }

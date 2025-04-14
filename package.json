@@ -13,6 +13,7 @@
     "build": "bun --cwd ./vite build && bun --cwd ./electron make",
     "release": "bun --cwd ./vite build && bun --cwd ./electron release",
     "dev:server": "bun --cwd ./vite dev --strictPort",
+    "dev:electron": "bun --cwd ./electron start",
     "format": "prettier --write ."
   },
   "devDependencies": {

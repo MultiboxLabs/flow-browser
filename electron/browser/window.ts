@@ -125,18 +125,6 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     this.emit("current-space-changed", spaceId);
 
     this.browser.tabs.setCurrentWindowSpace(this.id, spaceId);
-
-    // Test Code
-    if (this.browser.tabs.getTabsInWindowSpace(this.id, spaceId).length === 0) {
-      getSpace(spaceId).then(async (space) => {
-        if (space) {
-          const profileId = space.profileId;
-          const tab = await this.browser.tabs.createTab(profileId, this.id, spaceId);
-          tab.loadURL(NEW_TAB_URL);
-          this.browser.tabs.setActiveTab(tab);
-        }
-      });
-    }
   }
 
   getCurrentSpace() {
