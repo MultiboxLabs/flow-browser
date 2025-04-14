@@ -131,7 +131,16 @@ function initializeApp() {
   });
 
   app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") app.quit();
+    if (process.platform !== "darwin") {
+      return app.quit();
+    }
+
+    // Quit app if onboarding isn't completed
+    hasCompletedOnboarding().then((completed) => {
+      if (!completed) {
+        app.quit();
+      }
+    });
   });
 
   app.whenReady().then(() => {
