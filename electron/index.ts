@@ -1,4 +1,4 @@
-import { app, ipcMain, Menu, MenuItem } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, MenuItem } from "electron";
 import { Browser } from "@/browser/browser";
 import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 import "@/ipc/main";
@@ -128,6 +128,18 @@ function initializeApp() {
     } else {
       browser?.createWindow();
     }
+  });
+
+  app.on("window-all-closed", () => {
+    if (process.platform !== "darwin") app.quit();
+  });
+
+  app.whenReady().then(() => {
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        browser?.createWindow();
+      }
+    });
   });
 }
 

@@ -1,7 +1,6 @@
 import { Browser } from "@/browser/browser";
 import { GlanceModal } from "@/browser/components/glance-modal";
 import { Omnibox } from "@/browser/components/omnibox";
-import { NEW_TAB_URL } from "@/browser/tabs/tab-manager";
 import { ViewManager } from "@/browser/view-manager";
 import { PageBounds } from "@/ipc/browser/page";
 import { FLAGS } from "@/modules/flags";
@@ -73,6 +72,10 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     this.window.once("ready-to-show", () => {
       this.window.show();
       this.window.focus();
+    });
+
+    this.window.once("closed", () => {
+      this.destroy();
     });
 
     this.window.loadURL("flow-internal://main/");
