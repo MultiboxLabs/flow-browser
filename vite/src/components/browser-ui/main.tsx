@@ -7,7 +7,7 @@ import { SpacesProvider } from "@/components/providers/spaces-provider";
 import { useEffect } from "react";
 import { useState } from "react";
 import { TabsProvider } from "@/components/providers/tabs-provider";
-import { SidebarCollapseMode } from "@/lib/flow/interfaces/windows/settings";
+import { SettingsProvider, useSettings } from "@/components/providers/settings-provider";
 
 export type CollapseMode = "icon" | "offcanvas";
 export type SidebarVariant = "sidebar" | "floating";
@@ -19,12 +19,7 @@ function InternalBrowserUI() {
 
   const { open } = useSidebar();
 
-  const [sidebarCollapseMode, setSidebarCollapseMode] = useState<SidebarCollapseMode>("icon");
-  useEffect(() => {
-    flow.settings.getSidebarCollapseMode().then((mode) => {
-      setSidebarCollapseMode(mode);
-    });
-  }, []);
+  const { sidebarCollapseMode } = useSettings();
 
   return (
     <>
@@ -95,11 +90,13 @@ export function BrowserUI() {
       )}
     >
       <SidebarProvider>
-        <SpacesProvider>
-          <TabsProvider>
-            <InternalBrowserUI />
-          </TabsProvider>
-        </SpacesProvider>
+        <SettingsProvider>
+          <SpacesProvider>
+            <TabsProvider>
+              <InternalBrowserUI />
+            </TabsProvider>
+          </SpacesProvider>
+        </SettingsProvider>
       </SidebarProvider>
     </div>
   );

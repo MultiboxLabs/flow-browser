@@ -22,4 +22,9 @@ export interface FlowSettingsAPI {
    * Sets the current sidebar collapse mode
    */
   setSidebarCollapseMode: (mode: SidebarCollapseMode) => Promise<void>;
+
+  /**
+   * Listens for changes to the settings
+   */
+  onSettingsChanged: (callback: () => void) => () => void;
 }

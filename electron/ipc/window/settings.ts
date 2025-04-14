@@ -1,3 +1,4 @@
+import { browser } from "@/index";
 import { getCurrentSidebarCollapseMode, setCurrentSidebarCollapseMode, SidebarCollapseMode } from "@/saving/settings";
 import { settings } from "@/settings/main";
 import { ipcMain } from "electron";
@@ -18,3 +19,7 @@ ipcMain.handle("settings:get-sidebar-collapse-mode", () => {
 ipcMain.handle("settings:set-sidebar-collapse-mode", (event, mode: SidebarCollapseMode) => {
   return setCurrentSidebarCollapseMode(mode);
 });
+
+export function fireOnSettingsChanged() {
+  browser?.sendMessageToCoreWebContents("settings:on-changed");
+}

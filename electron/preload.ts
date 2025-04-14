@@ -325,6 +325,10 @@ const settingsAPI = {
   setSidebarCollapseMode: async (mode: SidebarCollapseMode) => {
     if (!checkCanUseAPI().window) return;
     return ipcRenderer.invoke("settings:set-sidebar-collapse-mode", mode);
+  },
+  onSettingsChanged: (callback: () => void) => {
+    if (!checkCanUseAPI().window) return;
+    return listenOnIPCChannel("settings:on-changed", callback);
   }
 };
 

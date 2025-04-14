@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getDatastore } from "./datastore";
+import { fireOnSettingsChanged } from "@/ipc/window/settings";
 
 export const SettingsDataStore = getDatastore("settings");
 
@@ -35,6 +36,7 @@ export async function setCurrentNewTabMode(newTabMode: NewTabMode) {
 
     if (saveSuccess) {
       currentNewTabMode = newTabMode;
+      fireOnSettingsChanged();
       return true;
     }
   }
@@ -70,6 +72,7 @@ export async function setCurrentSidebarCollapseMode(newTabMode: SidebarCollapseM
 
     if (saveSuccess) {
       currentSidebarCollapseMode = newTabMode;
+      fireOnSettingsChanged();
       return true;
     }
   }
