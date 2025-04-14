@@ -10,19 +10,32 @@ import { OmniboxPedalProvider } from "@/lib/omnibox/providers/pedal";
 /** Callback function type for notifying the UI/consumer about updated suggestions. */
 export type OmniboxUpdateCallback = (results: AutocompleteMatch[], continuous?: boolean) => void;
 
+export type OmniboxCreateOptions = {
+  hasZeroSuggest?: boolean;
+  hasPedals?: boolean;
+};
+
 export class Omnibox {
   private controller: AutocompleteController;
   private lastInputText: string = ""; // Track input to manage focus vs keystroke
 
-  constructor(onUpdate: OmniboxUpdateCallback) {
+  constructor(onUpdate: OmniboxUpdateCallback, options?: OmniboxCreateOptions) {
     // Instantiate providers based on the summary
     const providers: AutocompleteProvider[] = [
-      new ZeroSuggestProvider(), // Includes zero-suggestions
       new SearchProvider(), // Includes verbatim search + network suggestions
       new HistoryURLProvider(), // Includes history + URL suggestions
-      new OpenTabProvider(), // Includes open tabs
-      new OmniboxPedalProvider() // Includes pedals
+      new OpenTabProvider() // Includes open tabs
     ];
+
+    // Includes zero-suggestions
+    if (options?.hasZeroSuggest) {
+      providers.push(new ZeroSuggestProvider());
+    }
+
+    // Includes pedals
+    if (options?.hasPedals) {
+      providers.push(new OmniboxPedalProvider());
+    }
 
     this.controller = new AutocompleteController(providers, onUpdate);
   }

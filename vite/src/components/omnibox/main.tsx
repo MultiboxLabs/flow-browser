@@ -64,7 +64,10 @@ export function OmniboxMain() {
       console.log("Received Updated Suggestions:", updatedMatches.length);
       setMatches(updatedMatches);
     };
-    omniboxRef.current = new Omnibox(handleSuggestionsUpdate);
+    omniboxRef.current = new Omnibox(handleSuggestionsUpdate, {
+      hasZeroSuggest: true,
+      hasPedals: true
+    });
 
     if (omniboxRef.current) {
       omniboxRef.current.handleInput(input, "focus");

@@ -18,9 +18,10 @@ function checkCanUseAPI() {
   const isSettingsUI = isInternalUI && location.hostname === "settings";
   const isOnboardingUI = isInternalUI && location.hostname === "onboarding";
 
+  const isNewTabPage = isProtocolUI && location.hostname === "new-tab";
   const isOmniboxDebugPage = isProtocolUI && location.hostname === "omnibox";
 
-  const isOmnibox = isOmniboxUI || isOmniboxDebugPage;
+  const isOmnibox = isOmniboxUI || isNewTabPage || isOmniboxDebugPage;
 
   const canUseAPI = {
     browser: isBrowserUI || isOmnibox,

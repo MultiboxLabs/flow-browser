@@ -28,7 +28,10 @@ function Page() {
       setSelectedSuggestion(null);
     };
 
-    omniboxRef.current = new Omnibox(handleSuggestionsUpdate);
+    omniboxRef.current = new Omnibox(handleSuggestionsUpdate, {
+      hasZeroSuggest: true,
+      hasPedals: true
+    });
 
     // Cleanup on unmount
     return () => {
