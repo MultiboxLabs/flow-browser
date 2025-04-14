@@ -1,8 +1,8 @@
 import { ThemeProvider } from "@/components/main/theme";
-import WelcomeScreen from "@/routes/onboarding/onboarding-screen";
+import { OnboardingMain } from "@/components/onboarding/main";
 
 function Page() {
-  return <WelcomeScreen />;
+  return <OnboardingMain />;
 }
 
 function App() {
