@@ -1,9 +1,10 @@
-import { useEffect, useState, createContext, useContext } from "react";
+import { useEffect, useState, createContext, useContext, useMemo } from "react";
 
 type Theme = "light" | "dark" | "system";
 
 interface ThemeContextType {
   theme: Theme;
+  appliedTheme: "light" | "dark";
   setTheme: (theme: Theme) => void;
   resolvedTheme: "light" | "dark";
 }
@@ -52,12 +53,13 @@ export function ThemeProvider({
     window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
   );
 
-  useEffect(() => {
-    // Determine the actual theme to apply
-    const applyTheme = theme === "system" ? resolvedTheme : theme;
+  const appliedTheme = useMemo(() => {
+    return theme === "system" ? resolvedTheme : theme;
+  }, [theme, resolvedTheme]);
 
+  useEffect(() => {
     // Apply theme class to document
-    if (applyTheme === "dark") {
+    if (appliedTheme === "dark") {
       document.documentElement.classList.add("dark");
       document.documentElement.classList.remove("light");
     } else {
@@ -69,7 +71,7 @@ export function ThemeProvider({
       // Save theme to localStorage
       localStorage.setItem("theme", theme);
     }
-  }, [theme, resolvedTheme, persist]);
+  }, [theme, resolvedTheme, persist, appliedTheme]);
 
   useEffect(() => {
     // Listen for changes in color scheme preference
@@ -91,7 +93,7 @@ export function ThemeProvider({
     };
   }, []);
 
-  const value = { theme, setTheme, resolvedTheme };
+  const value = { theme, appliedTheme, setTheme, resolvedTheme };
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
