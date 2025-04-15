@@ -45,10 +45,28 @@ Choose the file you need and [download from GitHub Releases](https://github.com/
 
 ## Features
 
-- **Modern UI**: Clean, intuitive interface built with React 19 and Tailwind CSS
-- **Extension Support**: Compatible with most Chrome extensions from the Chrome Web Store
-- **Better New Tab**: Shows a popup omnibox which lets you search the web or quickly open a new tab, bookmark, or history.
+- **Profiles**: Multiple profiles support, allowing you to use different settings and extensions for each profile.
+- **Spaces**: Multiple spaces support, allowing you to organize your tabs into different spaces.
+- **Sidebar**: A sidebar that allows you to quickly access your bookmarks, history, and settings.
+- **Command Palette**: A command palette that allows you to search the web or quickly open a new tab, bookmark, or history.
+- **Good Security**: Asks before opening external applications.
+- **Simple Onboarding**: A simple onboarding process that allows you to quickly get started.
 - **Wide Customization**: Custom icons, new page mode, and more.
+- **Offline Games**: A collection of offline games to play when you have nothing to do. (flow://games)
+
+## Upcoming Features
+
+- **Native Adblocker**: A native adblocker that blocks ads and trackers.
+- **Topbar**: Allow you to customise between a topbar or sidebar.
+- **Downloads**: Allow you to download files from the web.
+- **Extensions**: Allow you to install chrome extensions from the Chrome Web Store.
+- **Favourites**: Allow you to add websites to your favourites.
+- **Pinned Tabs**: Allow you to pin tabs in spaces.
+- **Persist Tabs**: Allow you to persist tabs between restarts.
+- **Sleep Tabs**: Allow you to put tabs to sleep to save resources.
+- **Custom Search Engines**: Allow you to add custom search engines.
+- **Preview Tabs**: Allow you to preview tabs before switching to them.
+- **Widewine Support**: Allow you to watch DRM protected content.
 
 ## Contributing
 

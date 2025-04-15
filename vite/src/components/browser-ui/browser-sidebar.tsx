@@ -54,7 +54,6 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
     const titlebar = titlebarRef.current;
     if (titlebar) {
       const titlebarBounds = titlebar.getBoundingClientRect();
-      console.log(titlebarBounds);
       flow.interface.setWindowButtonPosition({
         x: titlebarBounds.x,
         y: titlebarBounds.y + titlebarBounds.height / 4
