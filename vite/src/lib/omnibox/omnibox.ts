@@ -73,8 +73,6 @@ export class Omnibox {
   }
 
   public openMatch(autocompleteMatch: AutocompleteMatch, whereToOpen: "current" | "new_tab"): void {
-    console.log("openMatch", autocompleteMatch, whereToOpen);
-
     if (autocompleteMatch.type === "open-tab") {
       const [, tabId] = autocompleteMatch.destinationUrl.split(":");
       flow.tabs.switchToTab(parseInt(tabId));
@@ -89,7 +87,11 @@ export class Omnibox {
       }
     } else {
       const url = autocompleteMatch.destinationUrl;
-      flow.tabs.newTab(url, true);
+      if (whereToOpen === "current") {
+        flow.navigation.goTo(url);
+      } else {
+        flow.tabs.newTab(url, true);
+      }
     }
   }
 }

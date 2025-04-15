@@ -149,10 +149,10 @@ export function OmniboxMain() {
   };
 
   return (
-    <div className="flex justify-center items-start min-h-screen">
+    <div className="flex justify-center items-center min-h-screen">
       <div className="w-full h-full">
         <Command
-          className="rounded-xl border-[1px] box-border border-[#e0e0e0] dark:border-[#504F4F] bg-white/80 dark:bg-black/80 backdrop-blur-xl shadow-lg overflow-hidden px-2 h-screen"
+          className="rounded-xl border-[1px] box-border border-[#e0e0e0] dark:border-[#504F4F] bg-white/90 dark:bg-black/90 backdrop-blur-xl overflow-hidden px-2 h-screen"
           loop
           value={selectedValue}
           onValueChange={setSelectedValue}

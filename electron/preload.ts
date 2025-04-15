@@ -113,9 +113,17 @@ const navigationAPI = {
     if (!checkCanUseAPI().browser) return;
     return ipcRenderer.invoke("navigation:get-tab-status", tabId);
   },
+  goTo: (tabId: number, url: string) => {
+    if (!checkCanUseAPI().browser) return;
+    return ipcRenderer.send("navigation:go-to", tabId, url);
+  },
   stopLoadingTab: (tabId: number) => {
     if (!checkCanUseAPI().browser) return;
     return ipcRenderer.send("navigation:stop-loading-tab", tabId);
+  },
+  reloadTab: (tabId: number) => {
+    if (!checkCanUseAPI().browser) return;
+    return ipcRenderer.send("navigation:reload-tab", tabId);
   },
   goToNavigationEntry: (tabId: number, index: number) => {
     if (!checkCanUseAPI().browser) return;

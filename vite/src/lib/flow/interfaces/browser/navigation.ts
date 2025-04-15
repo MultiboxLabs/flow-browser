@@ -22,11 +22,26 @@ export interface FlowNavigationAPI {
   getTabNavigationStatus: (tabId: number) => Promise<TabNavigationStatus | null>;
 
   /**
+   * Navigates to a specific URL
+   * This can only be called from the Browser UI
+   * @param tabId The id of the tab to navigate to
+   * @param url The URL to navigate to
+   */
+  goTo: (url: string, tabId?: number) => void;
+
+  /**
    * Stops loading a tab
    * This can only be called from the Browser UI
    * @param tabId The id of the tab to stop loading
    */
   stopLoadingTab: (tabId: number) => void;
+
+  /**
+   * Reloads a tab
+   * This can only be called from the Browser UI
+   * @param tabId The id of the tab to reload
+   */
+  reloadTab: (tabId: number) => void;
 
   /**
    * Navigates to a specific navigation entry

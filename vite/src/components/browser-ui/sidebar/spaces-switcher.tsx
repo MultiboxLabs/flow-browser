@@ -4,6 +4,7 @@ import { Space } from "@/lib/flow/interfaces/sessions/spaces";
 import { cn, getLucideIcon } from "@/lib/utils";
 import { CircleHelpIcon, LucideIcon } from "lucide-react";
 import { useSpaces } from "@/components/providers/spaces-provider";
+import { SIDEBAR_HOVER_COLOR } from "@/components/browser-ui/browser-sidebar";
 
 type SpaceButtonProps = {
   space: Space;
@@ -19,10 +20,14 @@ function SpaceButton({ space, isActive, onClick }: SpaceButtonProps) {
   }, [space.icon]);
 
   return (
-    <SidebarMenuButton key={space.id} onClick={onClick} className="hover:bg-white/10 active:bg-white/15">
+    <SidebarMenuButton key={space.id} onClick={onClick} className={SIDEBAR_HOVER_COLOR}>
       <Icon
-        strokeWidth={3}
-        className={cn("transition-colors duration-300", "text-muted-foreground", isActive && "text-white")}
+        strokeWidth={2.5}
+        className={cn(
+          "transition-colors duration-300",
+          "text-white/40 dark:text-muted-foreground/80",
+          isActive && "text-black dark:text-white"
+        )}
       />
     </SidebarMenuButton>
   );
@@ -32,7 +37,7 @@ export function SidebarSpacesSwitcher() {
   const { spaces, currentSpace, setCurrentSpace } = useSpaces();
 
   return (
-    <SidebarMenuItem className="flex flex-row gap-0.5">
+    <SidebarMenuItem className={cn("flex flex-row gap-0.5")}>
       {spaces.map((space) => (
         <SpaceButton
           key={space.id}

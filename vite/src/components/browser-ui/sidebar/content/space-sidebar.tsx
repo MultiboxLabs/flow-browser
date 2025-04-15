@@ -1,52 +1,63 @@
+import { SIDEBAR_HOVER_COLOR } from "@/components/browser-ui/browser-sidebar";
 import { NewTabButton } from "@/components/browser-ui/sidebar/content/new-tab-button";
-import { SidebarTab } from "@/components/browser-ui/sidebar/content/sidebar-tab";
+import { SidebarTabGroups } from "@/components/browser-ui/sidebar/content/sidebar-tab-groups";
 import { SpaceTitle } from "@/components/browser-ui/sidebar/content/space-title";
 import { useTabs } from "@/components/providers/tabs-provider";
 import { SidebarGroup, SidebarGroupAction, SidebarGroupLabel, SidebarMenu } from "@/components/ui/resizable-sidebar";
 import { Space } from "@/lib/flow/interfaces/sessions/spaces";
+import { cn, hex_is_light } from "@/lib/utils";
 import { Trash2Icon } from "lucide-react";
 import { AnimatePresence } from "motion/react";
-import { useMemo } from "react";
+import { useCallback } from "react";
 
 export function SpaceSidebar({ space }: { space: Space }) {
-  const handleCloseAllTabs = () => {
-    // TODO: Close all tabs
-  };
+  const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabs();
 
-  const { tabsData, getActiveTabId, getFocusedTabId } = useTabs();
-  const tabs = useMemo(() => {
-    return tabsData?.tabs.filter((tab) => tab.spaceId === space.id) || [];
-  }, [tabsData, space.id]);
+  const tabGroups = getTabGroups(space.id);
 
-  const activeTabId = getActiveTabId(space.id);
-  const focusedTabId = getFocusedTabId(space.id);
+  const activeTabGroup = getActiveTabGroup(space.id);
+  const focusedTab = getFocusedTab(space.id);
+
+  const isSpaceLight = hex_is_light(space.bgStartColor || "#000000");
+
+  const handleCloseAllTabs = useCallback(() => {
+    const closeActive = tabGroups.length <= 1;
+
+    for (const tabGroup of tabGroups) {
+      const isTabGroupActive = activeTabGroup?.id === tabGroup.id;
+
+      if (!closeActive && isTabGroupActive) continue;
+
+      for (const tab of tabGroup.tabs) {
+        flow.tabs.closeTab(tab.id);
+      }
+    }
+  }, [tabGroups, activeTabGroup]);
 
   return (
-    <>
+    <div className={cn(isSpaceLight ? "" : "dark")}>
+      <SpaceTitle space={space} />
       <SidebarGroup>
-        <SpaceTitle space={space} />
-      </SidebarGroup>
-      <SidebarGroup>
-        <SidebarGroupLabel>Tabs</SidebarGroupLabel>
-        <SidebarGroupAction onClick={handleCloseAllTabs} className="hover:bg-white/10 active:bg-white/15">
-          <Trash2Icon className="size-1.5 m-1 text-muted-foreground" />
+        <SidebarGroupLabel className="font-medium text-black dark:text-white">Tabs</SidebarGroupLabel>
+        <SidebarGroupAction onClick={handleCloseAllTabs} className={cn(SIDEBAR_HOVER_COLOR, "size-6")}>
+          <Trash2Icon className="size-1.5 m-1 text-black dark:text-white" />
         </SidebarGroupAction>
         <SidebarMenu>
           <NewTabButton />
           <AnimatePresence initial={true}>
-            {tabs
-              .map((tab) => (
-                <SidebarTab
-                  key={tab.id}
-                  tab={tab}
-                  isActive={activeTabId === tab.id}
-                  isFocused={focusedTabId === tab.id}
+            {tabGroups
+              .map((tabGroup) => (
+                <SidebarTabGroups
+                  key={tabGroup.id}
+                  tabGroup={tabGroup}
+                  isActive={activeTabGroup?.id === tabGroup.id || false}
+                  isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
                 />
               ))
               .reverse()}
           </AnimatePresence>
         </SidebarMenu>
       </SidebarGroup>
-    </>
+    </div>
   );
 }

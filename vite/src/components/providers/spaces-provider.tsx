@@ -1,10 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { Space } from "../../lib/flow/interfaces/sessions/spaces";
 import { hexToOKLCHString } from "@/lib/colors";
+import { hex_is_light } from "@/lib/utils";
 
 interface SpacesContextValue {
   spaces: Space[];
   currentSpace: Space | null;
+  isCurrentSpaceLight: boolean;
   isLoading: boolean;
   revalidate: () => Promise<void>;
   setCurrentSpace: (spaceId: string) => Promise<void>;
@@ -100,12 +102,24 @@ export const SpacesProvider = ({ children }: SpacesProviderProps) => {
     return () => unsub();
   }, [revalidate]);
 
+  const isSpaceLight = hex_is_light(currentSpace?.bgStartColor || "#000000");
+
+  // On current space change, hide omnibox
+  const currentSpaceIdRef = useRef("");
+  useEffect(() => {
+    if (currentSpaceIdRef.current === currentSpace?.id) return;
+    if (!currentSpace) return;
+    currentSpaceIdRef.current = currentSpace.id;
+    flow.omnibox.hide();
+  }, [currentSpace]);
+
   return (
     <SpacesContext.Provider
       value={{
         spaces,
         currentSpace,
         isLoading,
+        isCurrentSpaceLight: isSpaceLight,
         revalidate,
         setCurrentSpace: handleSetCurrentSpace
       }}

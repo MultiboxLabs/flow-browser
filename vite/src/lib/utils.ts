@@ -40,3 +40,17 @@ export function generateUUID(): string {
     (+c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (+c / 4)))).toString(16)
   );
 }
+
+/**
+ * Checks if a hex color is light.
+ * @param color - The hex color to check.
+ * @returns True if the color is light, false otherwise.
+ */
+export function hex_is_light(color: string) {
+  const hex = color.replace("#", "");
+  const c_r = parseInt(hex.substring(0, 0 + 2), 16);
+  const c_g = parseInt(hex.substring(2, 2 + 2), 16);
+  const c_b = parseInt(hex.substring(4, 4 + 2), 16);
+  const brightness = (c_r * 299 + c_g * 587 + c_b * 114) / 1000;
+  return brightness > 155;
+}

@@ -1,10 +1,10 @@
 import { Tab } from "@/browser/tabs/tab";
-import { TabGroup } from "@/browser/tabs/tab-groups";
+import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { browser } from "@/index";
 import { getSpace } from "@/sessions/spaces";
 import { ipcMain } from "electron";
-import { TabData, TabGroupData, WindowActiveTabIds } from "~/types/tabs";
+import { TabData, TabGroupData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
 
 function getTabData(tab: Tab): TabData {
   return {
@@ -56,7 +56,7 @@ function getWindowTabsData(window: TabbedBrowserWindow) {
     }
   }
 
-  const focusedTabs: WindowActiveTabIds = {};
+  const focusedTabs: WindowFocusedTabIds = {};
   const activeTabs: WindowActiveTabIds = {};
 
   for (const spaceId of windowSpaces) {
@@ -67,7 +67,11 @@ function getWindowTabsData(window: TabbedBrowserWindow) {
 
     const activeTab = tabManager.getActiveTab(windowId, spaceId);
     if (activeTab) {
-      activeTabs[spaceId] = activeTab.id;
+      if (activeTab instanceof BaseTabGroup) {
+        activeTabs[spaceId] = activeTab.tabs.map((tab) => tab.id);
+      } else {
+        activeTabs[spaceId] = [activeTab.id];
+      }
     }
   }
 

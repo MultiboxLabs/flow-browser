@@ -4,22 +4,28 @@ import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar";
 import { SpacesProvider } from "@/components/providers/spaces-provider";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useState } from "react";
-import { TabsProvider } from "@/components/providers/tabs-provider";
+import { TabsProvider, useTabs } from "@/components/providers/tabs-provider";
 import { SettingsProvider, useSettings } from "@/components/providers/settings-provider";
+import { TabDisabler } from "@/components/logic/tab-disabler";
 
 export type CollapseMode = "icon" | "offcanvas";
 export type SidebarVariant = "sidebar" | "floating";
 export type SidebarSide = "left" | "right";
 
 function InternalBrowserUI() {
-  const dynamicTitle: string | null = null;
-  const isActiveTabLoading = true;
-
   const { open } = useSidebar();
-
   const { sidebarCollapseMode } = useSettings();
+  const { focusedTab } = useTabs();
+
+  const dynamicTitle: string | null = useMemo(() => {
+    if (!focusedTab) return null;
+
+    return focusedTab.title;
+  }, [focusedTab]);
+
+  const isActiveTabLoading = focusedTab?.isLoading || false;
 
   return (
     <>
@@ -28,7 +34,7 @@ function InternalBrowserUI() {
       <SidebarInset className="bg-transparent">
         <div
           className={cn(
-            "flex-1 flex p-3 platform-win32:pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))] app-drag",
+            "dark flex-1 flex p-3 platform-win32:pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))] app-drag",
             open && "pl-1"
           )}
         >
@@ -89,6 +95,7 @@ export function BrowserUI() {
         isReady && "transition-colors duration-300"
       )}
     >
+      <TabDisabler />
       <SidebarProvider>
         <SettingsProvider>
           <SpacesProvider>

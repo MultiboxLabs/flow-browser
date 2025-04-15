@@ -2,6 +2,8 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { SidebarMenuButton } from "@/components/ui/resizable-sidebar";
 import { PlusIcon } from "lucide-react";
+import { SIDEBAR_HOVER_COLOR } from "@/components/browser-ui/browser-sidebar";
+import { cn } from "@/lib/utils";
 
 const MotionSidebarMenuButton = motion(SidebarMenuButton);
 
@@ -27,10 +29,10 @@ export function NewTabButton() {
       transition={{
         scale: { type: "spring", stiffness: 600, damping: 20 }
       }}
-      className="hover:bg-white/10 active:bg-white/15"
+      className={cn(SIDEBAR_HOVER_COLOR, "text-black/50 dark:text-muted-foreground")}
     >
-      <PlusIcon className="size-4 text-muted-foreground" />
-      <span className="text-muted-foreground">New Tab</span>
+      <PlusIcon className="size-4" />
+      <span className="font-medium">New Tab</span>
     </MotionSidebarMenuButton>
   );
 }

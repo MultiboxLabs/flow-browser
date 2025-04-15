@@ -27,18 +27,16 @@ export class SearchProvider extends BaseProvider {
     const url = getURLFromInput(inputText);
 
     // Add the verbatim search immediately
-    if (!url) {
-      const verbatimMatch: AutocompleteMatch = {
-        providerName: this.name,
-        relevance: 1300, // High score to appear near top, but below strong nav
-        contents: inputText,
-        description: `Search for "${inputText}"`, // Or search engine name
-        destinationUrl: createSearchUrl(inputText),
-        type: "verbatim", // Special type for clarity, often treated as search
-        isDefault: true // Usually the fallback default action
-      };
-      onResults([verbatimMatch], true); // Send verbatim immediately
-    }
+    const verbatimMatch: AutocompleteMatch = {
+      providerName: this.name,
+      relevance: url ? 1250 : 1300, // High score to appear near top, but below strong nav
+      contents: inputText,
+      description: `Search for "${inputText}"`, // Or search engine name
+      destinationUrl: createSearchUrl(inputText),
+      type: "verbatim", // Special type for clarity, often treated as search
+      isDefault: true // Usually the fallback default action
+    };
+    onResults([verbatimMatch], true); // Send verbatim immediately
 
     // Fetch remote suggestions asynchronously
     this.abortController = new AbortController();
