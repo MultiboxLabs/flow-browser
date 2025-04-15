@@ -190,7 +190,7 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
     if (!transformedUrl) {
       return currentURL;
     } else {
-      if (transformedUrl && transformedUrl !== "flow://new") {
+      if (transformedUrl && transformedUrl !== "flow://new-tab") {
         return transformedUrl;
       } else {
         return "";
