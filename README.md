@@ -38,10 +38,10 @@ Choose the file you need and [download from GitHub Releases](https://github.com/
 
 ## Screenshots
 
-![Flow Browser macOS Screenshot](./assets/screenshots/beta-1.png)
-![Flow Browser macOS Screenshot](./assets/screenshots/beta-2.png)
-![Flow Browser Windows Screenshot](./assets/screenshots/beta-3.png)
-![Flow Browser Windows Screenshot](./assets/screenshots/beta-4.png)
+![Onboarding - macOS](./assets/screenshots/beta-onboarding-1.png)
+![Browser - macOS](./assets/screenshots/beta-browser-1.png)
+![Command - macOS](./assets/screenshots/beta-command-1.png)
+![Settings - macOS](./assets/screenshots/beta-settings-1.png)
 
 ## Features
 
