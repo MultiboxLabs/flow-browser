@@ -27,7 +27,7 @@ function checkCanUseAPI() {
     browser: isBrowserUI || isOmnibox,
     session: isBrowserUI || isSettingsUI || isOmnibox,
     app: isBrowserUI || isSettingsUI || isOnboardingUI,
-    window: isBrowserUI || isSettingsUI || isOmniboxUI
+    window: isBrowserUI || isSettingsUI || isOmniboxUI || isOnboardingUI
   };
   return canUseAPI;
 }
