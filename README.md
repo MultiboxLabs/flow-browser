@@ -69,6 +69,10 @@ Choose the file you need and [download from GitHub Releases](https://github.com/
 - **Preview Tabs**: Allow you to preview tabs before switching to them.
 - **Widewine Support**: Allow you to watch DRM protected content.
 
+## Feedback / Feature Requests / Bugs
+
+https://flowbrowser.userjot.com/
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for more information.
