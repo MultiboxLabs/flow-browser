@@ -58,7 +58,7 @@ export async function getProfile(profileId: string) {
   };
 }
 
-export async function createProfile(profileId: string, profileName: string) {
+export async function createProfile(profileId: string, profileName: string, shouldCreateSpace: boolean = true) {
   // Validate profileId to prevent directory traversal attacks or invalid characters
   if (!/^[a-zA-Z0-9_-]+$/.test(profileId)) {
     debugError("PROFILES", `Invalid profile ID: ${profileId}`);
@@ -80,11 +80,13 @@ export async function createProfile(profileId: string, profileName: string) {
     await profileStore.set("name", profileName);
     await profileStore.set("createdAt", getCurrentTimestamp());
 
-    await createSpace(profileId, generateID(), profileName).then((success) => {
-      if (!success) {
-        debugError("PROFILES", `Error creating default space for profile ${profileId}`);
-      }
-    });
+    if (shouldCreateSpace) {
+      await createSpace(profileId, generateID(), profileName).then((success) => {
+        if (!success) {
+          debugError("PROFILES", `Error creating default space for profile ${profileId}`);
+        }
+      });
+    }
 
     return true;
   } catch (error) {
@@ -168,15 +170,9 @@ function setupInitialProfile() {
   const profileId = "main";
   const profileName = "Main";
 
-  const profileCreated = createProfile(profileId, profileName);
+  const profileCreated = createProfile(profileId, profileName, false);
   if (!profileCreated) {
     debugError("PROFILES", `Error creating initial profile ${profileId}`);
-    return false;
-  }
-
-  const spaceCreated = createSpace(profileId, "default", profileName);
-  if (!spaceCreated) {
-    debugError("PROFILES", `Error creating initial space for profile ${profileId}`);
     return false;
   }
 

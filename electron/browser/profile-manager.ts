@@ -4,7 +4,6 @@ import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getProfile, ProfileData } from "@/sessions/profiles";
 import { BrowserEvents } from "@/browser/events";
 import { Browser } from "@/browser/browser";
-import { getSpacesFromProfile } from "@/sessions/spaces";
 import { FLAGS } from "@/modules/flags";
 
 /**

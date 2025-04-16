@@ -1,10 +1,9 @@
 import { SidebarMenuItem, SidebarMenuButton } from "@/components/ui/resizable-sidebar";
-import { useEffect, useState } from "react";
 import { Space } from "@/lib/flow/interfaces/sessions/spaces";
-import { cn, getLucideIcon } from "@/lib/utils";
-import { CircleHelpIcon, LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { SIDEBAR_HOVER_COLOR } from "@/components/browser-ui/browser-sidebar";
+import { DynamicLucideIcon } from "@/components/main/dynamic-lucide-icon";
 
 type SpaceButtonProps = {
   space: Space;
@@ -13,15 +12,10 @@ type SpaceButtonProps = {
 };
 
 function SpaceButton({ space, isActive, onClick }: SpaceButtonProps) {
-  const [Icon, setIcon] = useState<LucideIcon>(CircleHelpIcon);
-
-  useEffect(() => {
-    getLucideIcon(space.icon).then(setIcon);
-  }, [space.icon]);
-
   return (
     <SidebarMenuButton key={space.id} onClick={onClick} className={SIDEBAR_HOVER_COLOR}>
-      <Icon
+      <DynamicLucideIcon
+        iconId={space.icon}
         strokeWidth={2.5}
         className={cn(
           "transition-colors duration-300",

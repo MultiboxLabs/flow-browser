@@ -25,7 +25,7 @@ function checkCanUseAPI() {
 
   const canUseAPI = {
     browser: isBrowserUI || isOmnibox,
-    session: isBrowserUI || isSettingsUI || isOmnibox,
+    session: isBrowserUI || isSettingsUI || isOmnibox || isOnboardingUI,
     app: isBrowserUI || isSettingsUI || isOnboardingUI,
     window: isBrowserUI || isSettingsUI || isOmniboxUI || isOnboardingUI
   };

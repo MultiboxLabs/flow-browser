@@ -5,8 +5,8 @@ let onboardingWindow: BrowserWindow | null = null;
 
 function createOnboardingWindow() {
   const window = new BrowserWindow({
-    width: 800,
-    height: 580,
+    width: 1000,
+    height: 700,
     resizable: false,
     center: true,
     show: false,
@@ -28,6 +28,10 @@ function createOnboardingWindow() {
 
   registerWindow(WindowType.ONBOARDING, "onboarding", window);
   onboardingWindow = window;
+
+  window.webContents.openDevTools({
+    mode: "detach"
+  });
 
   return new Promise((resolve) => {
     window.once("ready-to-show", () => {

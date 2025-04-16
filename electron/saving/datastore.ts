@@ -32,7 +32,7 @@ class DataStoreError extends Error {
  * Each DataStore instance manages a single namespace (file)
  */
 class DataStore {
-  private directoryPath: string;
+  public directoryPath: string;
   private accessQueue: Queue;
 
   /**
