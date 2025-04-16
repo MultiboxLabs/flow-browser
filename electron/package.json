@@ -23,6 +23,7 @@
     "electron-chrome-context-menu": "npm:@iamevan/electron-chrome-context-menu@1.1.0",
     "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.6.9",
     "electron-chrome-web-store": "npm:@iamevan/electron-chrome-web-store@0.10.0",
+    "electron-context-menu": "^4.0.5",
     "electron-squirrel-startup": "^1.0.1",
     "ico-to-png": "^0.2.2",
     "knex": "^3.1.0",

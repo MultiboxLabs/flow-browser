@@ -58,19 +58,21 @@ export function parseAddressBarInput(input: string): string {
 }
 
 export function transformUrl(url: string): string | null {
+  const urlObject = URL.parse(url);
+
   // Error Page
-  try {
-    const urlObject = new URL(url);
-    if (urlObject.protocol === "flow:" && urlObject.hostname === "error") {
-      const erroredURL = urlObject.searchParams.get("url");
-      if (erroredURL) {
-        return erroredURL;
-      } else {
-        return "";
-      }
+  if (urlObject && urlObject.protocol === "flow:" && urlObject.hostname === "error") {
+    const erroredURL = urlObject.searchParams.get("url");
+    if (erroredURL) {
+      return erroredURL;
+    } else {
+      return "";
     }
-  } catch {
-    // Do nothing
+  }
+
+  // New Tab Page
+  if (urlObject && urlObject.protocol === "flow:" && urlObject.hostname === "new-tab") {
+    return "";
   }
 
   // Other Protocols

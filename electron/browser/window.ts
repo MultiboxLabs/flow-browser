@@ -5,7 +5,7 @@ import { ViewManager } from "@/browser/view-manager";
 import { PageBounds } from "@/ipc/browser/page";
 import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { getLastUsedSpace, getSpace, SpaceData } from "@/sessions/spaces";
+import { getLastUsedSpace } from "@/sessions/spaces";
 import { BrowserWindow, nativeTheme, WebContents } from "electron";
 
 type BrowserWindowType = "normal" | "popup";
@@ -149,9 +149,17 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     this.isDestroyed = true;
     this.emit("destroy");
     this.browser.destroyWindowById(this.id);
-    this.viewManager.destroy();
+
+    // WE CANNOT CALL REMOVECHILDVIEW AFTER DESTROY, OR IT WILL CRASH!!!!
+    const windowDestroyed = this.window.isDestroyed();
+    this.viewManager.destroy(windowDestroyed);
+
     this.glanceModal.destroy();
     this.omnibox.destroy();
+
+    if (!windowDestroyed) {
+      this.window.destroy();
+    }
 
     // Destroy emitter
     this.destroyEmitter();

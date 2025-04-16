@@ -187,10 +187,10 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
     const currentURL = focusedTab.url;
 
     const transformedUrl = transformUrl(currentURL);
-    if (!transformedUrl) {
+    if (transformedUrl === null) {
       return currentURL;
     } else {
-      if (transformedUrl && transformedUrl !== "flow://new-tab") {
+      if (transformedUrl) {
         return transformedUrl;
       } else {
         return "";

@@ -161,6 +161,10 @@ export class Omnibox {
   }
 
   maybeHide() {
+    if (this.window.isDestroyed()) {
+      return;
+    }
+
     this.assertNotDestroyed();
 
     // Keep open if webContents is being inspected

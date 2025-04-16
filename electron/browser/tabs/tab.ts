@@ -9,7 +9,9 @@ import { FLAGS } from "@/modules/flags";
 import { PATHS } from "@/modules/paths";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { Rectangle, Session, WebContents, WebContentsView, WebPreferences } from "electron";
-import buildChromeContextMenu from "electron-chrome-context-menu";
+
+// @ts-expect-error: Webpack will handle this :)
+import contextMenu from "electron-context-menu";
 
 // Configuration
 const GLANCE_FRONT_ZINDEX = 3;
@@ -252,17 +254,21 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     });
 
     // Handle context menu
-    webContents.on("context-menu", (_event, params) => {
-      const menu = buildChromeContextMenu({
-        params,
-        webContents,
-        openLink: (url, disposition) => {
-          return this.createNewTab(url, disposition);
-        }
-      });
-
-      menu.popup();
+    contextMenu({
+      window: webContents
     });
+
+    // webContents.on("context-menu", (_event, params) => {
+    //   const menu = buildChromeContextMenu({
+    //     params,
+    //     webContents,
+    //     openLink: (url, disposition) => {
+    //       return this.createNewTab(url, disposition);
+    //     }
+    //   });
+
+    //   menu.popup();
+    // });
   }
 
   public createNewTab(
@@ -580,12 +586,13 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public destroy() {
     if (this.isDestroyed) return;
 
-    this.bounds.destroy();
-    this.removeViewFromWindow();
-    this.webContents.close();
-
     this.isDestroyed = true;
     this.emit("destroyed");
+
+    this.bounds.destroy();
+
+    this.removeViewFromWindow();
+    this.webContents.close();
 
     this.destroyEmitter();
   }

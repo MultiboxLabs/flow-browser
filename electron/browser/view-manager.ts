@@ -37,16 +37,18 @@ export class ViewManager {
     return this.views.get(view);
   }
 
-  destroy(): void {
+  destroy(dontRemoveViews: boolean = false): void {
     // Remove all managed views from the parent
-    this.views.forEach((_, view) => {
-      try {
-        this.parentView.removeChildView(view);
-      } catch (error) {
-        // Log error but continue cleanup
-        console.warn(`Failed to remove view ${view} during destroy:`, error);
-      }
-    });
+    if (!dontRemoveViews) {
+      this.views.forEach((_, view) => {
+        try {
+          this.parentView.removeChildView(view);
+        } catch (error) {
+          // Log error but continue cleanup
+          console.warn(`Failed to remove view ${view} during destroy:`, error);
+        }
+      });
+    }
 
     // Clear the internal map
     this.views.clear();
