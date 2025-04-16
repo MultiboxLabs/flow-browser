@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { SidebarMenuButton, useSidebar } from "@/components/ui/resizable-sidebar";
 import { cn } from "@/lib/utils";
-import { XIcon } from "lucide-react";
+import { XIcon, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { TabGroup } from "@/components/providers/tabs-provider";
@@ -30,6 +30,9 @@ export function SidebarTab({
   const [isPressed, setIsPressed] = useState(false);
   const noFavicon = !cachedFaviconUrl || isError;
   const noFrontFavicon = !frontFaviconUrl || isFrontError;
+
+  const isMuted = tab.muted;
+  const isPlayingAudio = tab.audible;
 
   const { open } = useSidebar();
 
@@ -76,6 +79,13 @@ export function SidebarTab({
     }
 
     setIsPressed(true);
+  };
+
+  const handleToggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // TODO: function for muting/unmuting
+    console.log("Toggle mute for tab:", tab.id);
+    // In the future this would call: flow.tabs.toggleMute(tab.id);
   };
 
   // Apply different styles based on tab group mode
@@ -168,6 +178,20 @@ export function SidebarTab({
             </div>
             {/* Right side (front tab favicon) */}
             <div className={cn("flex flex-row items-center gap-2", open && "flex-shrink-0")}>
+              {/* Audio indicator */}
+              {(isPlayingAudio || isMuted) && (
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleToggleMute}
+                    className="size-5 bg-transparent hover:!bg-white dark:hover:!bg-white/10 text-gray-600 dark:text-gray-400"
+                    title={isMuted ? "Unmute tab" : "Mute tab"}
+                  >
+                    {isMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+                  </Button>
+                </motion.div>
+              )}
               {/* Close tab button */}
               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                 <Button
@@ -212,6 +236,20 @@ export function SidebarTab({
             </div>
             {/* Right side */}
             <div className={cn("flex flex-row items-center gap-2 rounded-md aspect-square", open && "flex-shrink-0")}>
+              {/* Audio indicator */}
+              {(isPlayingAudio || isMuted) && (
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleToggleMute}
+                    className="size-5 bg-transparent hover:!bg-white dark:hover:!bg-white/10 text-gray-600 dark:text-gray-400"
+                    title={isMuted ? "Unmute tab" : "Mute tab"}
+                  >
+                    {isMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+                  </Button>
+                </motion.div>
+              )}
               {/* Close tab button */}
               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                 <Button
