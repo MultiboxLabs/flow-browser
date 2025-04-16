@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, Save, Settings, Trash2, PaintBucket } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Settings, Trash2, PaintBucket, Check } from "lucide-react";
 import type { Space } from "@/lib/flow/interfaces/sessions/spaces";
 import { BasicSettingsTab, ThemeSettingsTab } from "./editor-tabs";
 import { DeleteConfirmDialog } from "./space-dialogs";
+import { motion, AnimatePresence } from "motion/react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Main Space Editor Component
 interface SpaceEditorProps {
@@ -18,6 +20,7 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
   const [editedSpace, setEditedSpace] = useState<Space>({ ...space });
   const [activeTab, setActiveTab] = useState("basic");
   const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -29,6 +32,7 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
   // Handle space update
   const handleSave = async () => {
     setIsSaving(true);
+    setSaveSuccess(false);
     try {
       // Only send the fields that have changed
       const updatedFields: Partial<Space> = {};
@@ -54,8 +58,18 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
 
         await flow.spaces.updateSpace(space.profileId, space.id, updatedFields);
         onSpacesUpdate(); // Refetch spaces after successful update
+        setSaveSuccess(true);
+
+        // Auto-close after short delay
+        setTimeout(() => {
+          if (saveSuccess) {
+            onClose();
+          }
+        }, 1500);
+      } else {
+        // No changes to save
+        onClose();
       }
-      onClose();
     } catch (error) {
       console.error("Failed to update space:", error);
     } finally {
@@ -85,10 +99,30 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
     });
   };
 
+  // Detect if there are unsaved changes
+  const hasChanges = () => {
+    return (
+      editedSpace.name !== space.name ||
+      editedSpace.bgStartColor !== space.bgStartColor ||
+      editedSpace.bgEndColor !== space.bgEndColor ||
+      editedSpace.icon !== space.icon
+    );
+  };
+
   return (
-    <div className="z-50 flex flex-col">
+    <motion.div
+      className="z-50 flex flex-col bg-background h-full"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
       {/* Header Bar */}
-      <div className="flex items-center border-b p-4">
+      <motion.div
+        className="flex items-center border-b p-4"
+        initial={{ y: -10, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+      >
         <Button variant="ghost" size="icon" onClick={onClose} className="mr-2">
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -101,66 +135,97 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
             variant="destructive"
             size="sm"
             onClick={() => setDeleteDialogOpen(true)}
-            className="gap-1"
+            className="gap-1 transition-all hover:bg-destructive/90"
             title="Delete space"
           >
             <Trash2 className="h-4 w-4" />
             Delete
           </Button>
-          <Button variant="default" size="sm" onClick={handleSave} className="gap-1" disabled={isSaving}>
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
-              </>
+          <AnimatePresence mode="wait">
+            {saveSuccess ? (
+              <motion.div
+                key="success"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Button variant="default" size="sm" className="gap-1 bg-green-600 hover:bg-green-700">
+                  <Check className="h-4 w-4" />
+                  Saved
+                </Button>
+              </motion.div>
             ) : (
-              <>
-                <Save className="h-4 w-4" />
-                Save
-              </>
+              <motion.div
+                key="save"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleSave}
+                  className={`gap-1 transition-all ${hasChanges() ? "bg-primary hover:bg-primary/90" : "bg-muted/80 hover:bg-muted"}`}
+                  disabled={isSaving || !hasChanges()}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      Save
+                    </>
+                  )}
+                </Button>
+              </motion.div>
             )}
-          </Button>
+          </AnimatePresence>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Content Area with Sidebar and Main Panel */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar Navigation */}
-        <div className="w-64 border-r p-4">
-          <nav className="space-y-1">
-            <Button
-              variant={activeTab === "basic" ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => setActiveTab("basic")}
-            >
-              <Settings className="mr-2 h-5 w-5" />
-              Basic Settings
-            </Button>
-            <Button
-              variant={activeTab === "theme" ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => setActiveTab("theme")}
-            >
-              <PaintBucket className="mr-2 h-5 w-5" />
-              Theme Settings
-            </Button>
-          </nav>
-        </div>
-
-        {/* Tab Content */}
-        <div className="flex-1 p-6 overflow-auto">
-          {activeTab === "basic" && (
-            <div className="space-y-6">
-              <BasicSettingsTab space={space} editedSpace={editedSpace} handleNameChange={handleNameChange} />
+      {/* Content Area with Tabs */}
+      <div className="flex flex-row flex-1 overflow-hidden">
+        <Tabs
+          defaultValue="basic"
+          onValueChange={setActiveTab}
+          value={activeTab}
+          className="flex flex-row flex-1 h-full"
+          orientation="vertical"
+        >
+          {/* Tab Navigation - Always Vertical */}
+          <div className="border-r min-h-0 h-full flex-shrink-0">
+            <div className="p-4">
+              <TabsList className="flex flex-col items-stretch h-auto bg-background p-0 gap-1">
+                <TabsTrigger value="basic" className="w-full data-[state=active]:text-primary flex justify-start gap-2">
+                  <Settings className="h-5 w-5" />
+                  <span>Basic Settings</span>
+                </TabsTrigger>
+                <TabsTrigger value="theme" className="w-full data-[state=active]:text-primary flex justify-start gap-2">
+                  <PaintBucket className="h-5 w-5" />
+                  <span>Theme Settings</span>
+                </TabsTrigger>
+              </TabsList>
             </div>
-          )}
+          </div>
 
-          {activeTab === "theme" && (
-            <div className="space-y-6">
-              <ThemeSettingsTab editedSpace={editedSpace} updateEditedSpace={updateEditedSpace} />
-            </div>
-          )}
-        </div>
+          {/* Tab Content */}
+          <div className="flex-1 p-6 overflow-auto">
+            <AnimatePresence mode="wait">
+              <TabsContent value="basic" className="m-0 h-full">
+                <BasicSettingsTab space={space} editedSpace={editedSpace} handleNameChange={handleNameChange} />
+              </TabsContent>
+
+              <TabsContent value="theme" className="m-0 h-full">
+                <ThemeSettingsTab editedSpace={editedSpace} updateEditedSpace={updateEditedSpace} />
+              </TabsContent>
+            </AnimatePresence>
+          </div>
+        </Tabs>
       </div>
 
       {/* Delete Confirmation Dialog */}
@@ -171,6 +236,6 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
         isDeleting={isDeleting}
         onConfirm={handleDeleteConfirm}
       />
-    </div>
+    </motion.div>
   );
 }
