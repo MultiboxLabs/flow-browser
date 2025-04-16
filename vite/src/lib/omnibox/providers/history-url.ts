@@ -9,7 +9,8 @@ export class HistoryURLProvider extends BaseProvider {
   name = "HistoryURLProvider";
 
   start(input: AutocompleteInput, onResults: OmniboxUpdateCallback): void {
-    const inputText = input.text.toLowerCase();
+    const inputText = input.text;
+    const inputTextLowered = inputText.toLowerCase();
     if (!inputText) {
       onResults([]);
       return;
@@ -36,15 +37,15 @@ export class HistoryURLProvider extends BaseProvider {
         const titleLower = entry.title?.toLowerCase() ?? "";
 
         // Calculate similarity against URL and Title
-        const urlSimilarity = getStringSimilarity(inputText, urlLower);
-        const titleSimilarity = titleLower ? getStringSimilarity(inputText, titleLower) : 0;
+        const urlSimilarity = getStringSimilarity(inputTextLowered, urlLower);
+        const titleSimilarity = titleLower ? getStringSimilarity(inputTextLowered, titleLower) : 0;
         const bestSimilarity = Math.max(urlSimilarity, titleSimilarity);
 
         // Match if similarity is above threshold OR if it's a prefix match (for URL typing)
         const isPrefixMatch =
-          urlLower.startsWith(inputText) ||
-          urlLower.startsWith("http://" + inputText) ||
-          urlLower.startsWith("https://" + inputText);
+          urlLower.startsWith(inputTextLowered) ||
+          urlLower.startsWith("http://" + inputTextLowered) ||
+          urlLower.startsWith("https://" + inputTextLowered);
 
         if (bestSimilarity > 0 || isPrefixMatch) {
           // Base score on counts, boost significantly by similarity
@@ -54,7 +55,11 @@ export class HistoryURLProvider extends BaseProvider {
           let relevance = similarityScore + entry.typedCount * 10 + entry.visitCount;
 
           // Boost exact matches significantly for inline autocompletion
-          if (urlLower === inputText || urlLower === "http://" + inputText || urlLower === "https://" + inputText) {
+          if (
+            urlLower === inputTextLowered ||
+            urlLower === "http://" + inputTextLowered ||
+            urlLower === "https://" + inputTextLowered
+          ) {
             relevance = Math.max(relevance + 200, 1400); // Ensure high score for exact match
           } else if (isPrefixMatch) {
             // Give prefix matches a smaller boost

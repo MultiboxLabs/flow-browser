@@ -10,7 +10,8 @@ export class OpenTabProvider extends BaseProvider {
   name = "OpenTabProvider";
 
   start(input: AutocompleteInput, onResults: OmniboxUpdateCallback): void {
-    const inputText = input.text.toLowerCase();
+    const inputText = input.text;
+    const inputTextLowered = inputText.toLowerCase();
     if (inputText.length < 3) {
       // Don't suggest for very short input
       onResults([]);
@@ -24,15 +25,15 @@ export class OpenTabProvider extends BaseProvider {
         const titleLower = tab.title.toLowerCase();
         const urlLower = tab.url.toLowerCase();
 
-        const titleSimilarity = getStringSimilarity(inputText, titleLower);
-        const urlSimilarity = getStringSimilarity(inputText, urlLower);
+        const titleSimilarity = getStringSimilarity(inputTextLowered, titleLower);
+        const urlSimilarity = getStringSimilarity(inputTextLowered, urlLower);
         const bestSimilarity = Math.max(titleSimilarity, urlSimilarity);
 
         if (bestSimilarity > 0) {
           // High relevance to encourage switching tabs, scaled by similarity
           let relevance = Math.min(1500, Math.ceil(1100 + bestSimilarity * 300));
 
-          if (!tab.url.includes(inputText)) {
+          if (!urlLower.includes(inputTextLowered)) {
             // Caps relevance at 1200 if the URL doesn't match
             relevance = Math.min(1200, relevance);
           }
