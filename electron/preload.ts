@@ -72,6 +72,10 @@ const browserAPI = {
   unloadProfile: async (profileId: string) => {
     if (!checkCanUseAPI().browser) return;
     return ipcRenderer.send("browser:unload-profile", profileId);
+  },
+  createWindow: () => {
+    if (!checkCanUseAPI().browser) return;
+    return ipcRenderer.send("browser:create-window");
   }
 };
 

@@ -11,4 +11,9 @@ export interface FlowBrowserAPI {
    * @param profileId The id of the profile to unload
    */
   unloadProfile: (profileId: string) => Promise<void>;
+
+  /**
+   * Creates a new window
+   */
+  createWindow: () => Promise<void>;
 }

@@ -17,7 +17,7 @@ const PEDALS = [
     description: "Open settings"
   },
   {
-    triggers: ["new window"],
+    triggers: ["new window", "window", "browser window"],
     action: "open_new_window",
     description: "Open new window"
   }

@@ -82,8 +82,7 @@ export class Omnibox {
       if (pedalAction === "open_settings") {
         flow.settings.open();
       } else if (pedalAction === "open_new_window") {
-        // TODO: Open a new window
-        console.log("open new window");
+        flow.browser.createWindow();
       }
     } else {
       const url = autocompleteMatch.destinationUrl;

@@ -8,3 +8,7 @@ ipcMain.on("browser:load-profile", async (event, profileId: string) => {
 ipcMain.on("browser:unload-profile", async (event, profileId: string) => {
   browser?.unloadProfile(profileId);
 });
+
+ipcMain.on("browser:create-window", async (event) => {
+  browser?.createWindow();
+});
