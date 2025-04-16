@@ -314,6 +314,8 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   }
 
   public updateTabState() {
+    if (this.isDestroyed) return;
+
     const { webContents } = this;
 
     let changed = false;
