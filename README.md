@@ -57,6 +57,7 @@ Choose the file you need and [download from GitHub Releases](https://github.com/
 
 ## Upcoming Features
 
+- **Reorder Tabs**: Allow you to reorder tabs.
 - **Native Adblocker**: A native adblocker that blocks ads and trackers.
 - **Topbar**: Allow you to customise between a topbar or sidebar.
 - **Downloads**: Allow you to download files from the web.

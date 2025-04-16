@@ -27,6 +27,11 @@ function InternalBrowserUI() {
 
   const isActiveTabLoading = focusedTab?.isLoading || false;
 
+  // Only show the browser content if the focused tab is in full screen mode
+  if (focusedTab?.fullScreen) {
+    return <BrowserContent />;
+  }
+
   return (
     <>
       {dynamicTitle && <title>{`${dynamicTitle} | Flow`}</title>}

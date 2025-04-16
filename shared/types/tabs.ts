@@ -9,6 +9,7 @@ export type TabData = {
   isLoading: boolean;
   audible: boolean;
   muted: boolean;
+  fullScreen: boolean;
   faviconURL: string | null;
 };
 

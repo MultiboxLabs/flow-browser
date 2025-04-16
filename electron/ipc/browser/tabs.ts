@@ -16,6 +16,7 @@ function getTabData(tab: Tab): TabData {
     isLoading: tab.isLoading,
     audible: tab.audible,
     muted: tab.muted,
+    fullScreen: tab.fullScreen,
     faviconURL: tab.faviconURL
   };
 }

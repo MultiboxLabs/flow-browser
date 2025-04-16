@@ -92,6 +92,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public visible: boolean = false;
   public isDestroyed: boolean = false;
   public faviconURL: string | null = null;
+  public fullScreen: boolean = false;
 
   // Content properties
   public title: string = "New Tab";
@@ -182,8 +183,55 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.loadURL(NEW_TAB_URL);
   }
 
+  private setFullScreen(isFullScreen: boolean) {
+    if (this.fullScreen === isFullScreen) return false;
+
+    this.fullScreen = isFullScreen;
+    this.emit("updated");
+
+    const tabbedWindow = this.window;
+    const window = tabbedWindow.window;
+
+    if (isFullScreen) {
+      if (!window.fullScreen) {
+        window.setFullScreen(true);
+      }
+    } else {
+      if (window.fullScreen) {
+        window.setFullScreen(false);
+      }
+
+      setTimeout(() => {
+        this.webContents.executeJavaScript(`if (document.fullscreenElement) { document.exitFullscreen(); }`, true);
+      }, 100);
+    }
+
+    this.updateLayout();
+
+    return true;
+  }
+
   private setupEventListeners() {
-    const { webContents } = this;
+    const { webContents, window: tabbedWindow } = this;
+
+    const window = tabbedWindow.window;
+
+    // Handle fullscreen events
+    webContents.on("enter-html-full-screen", () => {
+      this.setFullScreen(true);
+    });
+
+    webContents.on("leave-html-full-screen", () => {
+      if (window.fullScreen) {
+        // Then it will fire "leave-full-screen", which we can use to exit fullscreen for the tab.
+        // Tried other methods, didn't work as well.
+        window.setFullScreen(false);
+      }
+    });
+
+    tabbedWindow.on("leave-full-screen", () => {
+      this.setFullScreen(false);
+    });
 
     // Used by the tab manager to determine which tab is focused
     webContents.on("focus", () => {
@@ -481,7 +529,11 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     // Get base bounds and current group state
     const pageBounds = window.getPageBounds();
-    this.view.setBorderRadius(8);
+    if (this.fullScreen) {
+      this.view.setBorderRadius(0);
+    } else {
+      this.view.setBorderRadius(8);
+    }
 
     const tabGroup = tabManager.getTabGroupByTabId(this.id);
 
@@ -595,6 +647,10 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     this.removeViewFromWindow();
     this.webContents.close();
+
+    if (this.fullScreen) {
+      this.window.window.setFullScreen(false);
+    }
 
     this.destroyEmitter();
   }

@@ -17,6 +17,8 @@ type BrowserWindowCreationOptions = {
 type BrowserWindowEvents = {
   "page-bounds-changed": [PageBounds];
   "current-space-changed": [string];
+  "enter-full-screen": [];
+  "leave-full-screen": [];
   destroy: [];
 };
 
@@ -69,6 +71,14 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       show: false
     });
 
+    this.window.on("enter-full-screen", () => {
+      this.emit("enter-full-screen");
+    });
+
+    this.window.on("leave-full-screen", () => {
+      this.emit("leave-full-screen");
+    });
+
     this.window.once("ready-to-show", () => {
       this.window.show();
       this.window.focus();
@@ -119,7 +129,9 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     }
 
     getLastUsedSpace().then((space) => {
-      this.setCurrentSpace(space.id);
+      if (space) {
+        this.setCurrentSpace(space.id);
+      }
     });
   }
 
