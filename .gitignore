@@ -135,6 +135,9 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+# macOS
+.DS_Store
+
 # Others
 extensions/*
 vite-old
