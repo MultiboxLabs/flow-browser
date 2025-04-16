@@ -25,7 +25,7 @@ Flow Browser is a lightweight, feature-rich web browser that combines the power 
 
 ```bash
 # Run this command in your terminal
-curl -LO https://github.com/MultiboxLabs/flow-browser/releases/download/v0.4.0/FlowInstaller.dmg
+curl -LO https://github.com/MultiboxLabs/flow-browser/releases/download/v0.4.0/FlowInstaller.dmg && open .
 ```
 
 ### Windows:
