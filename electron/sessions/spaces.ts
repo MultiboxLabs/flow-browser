@@ -4,6 +4,7 @@ import z from "zod";
 import { debugError } from "@/modules/output";
 import { getProfile, getProfiles, ProfileData } from "@/sessions/profiles";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
+import path from "path";
 
 export const spacesEmitter = new TypedEventEmitter<{
   changed: [];
@@ -193,7 +194,20 @@ export async function getSpacesFromProfile(profileId: string, prefetchedProfile?
       }
 
       // Read the directory to get space IDs
-      const spaceIds = await fs.readdir(spacesPath);
+      const spaceIds = (
+        await fs.readdir(spacesPath).then((ids) => {
+          const promises = ids.map((id) => {
+            const stats = fs.stat(path.join(spacesPath, id));
+            return stats.then((stats) => {
+              if (stats.isDirectory()) {
+                return id;
+              }
+              return null;
+            });
+          });
+          return Promise.all(promises);
+        })
+      ).filter((id) => id !== null);
 
       if (!spaceIds || spaceIds.length === 0) {
         return [];

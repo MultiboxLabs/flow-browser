@@ -91,7 +91,11 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     if (!spaceId) {
       try {
         const lastUsedSpace = await getLastUsedSpaceFromProfile(profileId);
-        spaceId = lastUsedSpace.id;
+        if (lastUsedSpace) {
+          spaceId = lastUsedSpace.id;
+        } else {
+          throw new Error("Could not determine space ID for new tab");
+        }
       } catch (error) {
         console.error("Failed to get last used space:", error);
         throw new Error("Could not determine space ID for new tab");

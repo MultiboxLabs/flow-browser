@@ -84,6 +84,8 @@ export function OnboardingCreateSpace({
           setTimeout(() => {
             advance();
           }, 1000);
+        } else {
+          setErrorMessage("Space created but couldn't be activated. You can manage spaces later in settings.");
         }
       }
     } catch (error) {
