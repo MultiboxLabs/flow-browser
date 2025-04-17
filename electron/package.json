@@ -27,12 +27,12 @@
     "electron-squirrel-startup": "^1.0.1",
     "ico-to-png": "^0.2.2",
     "knex": "^3.1.0",
-    "lucide": "^0.487.0",
-    "mime-types": "^2.1.35",
+    "lucide": "^0.488.0",
+    "mime-types": "^3.0.1",
     "sharp": "^0.34.1",
     "sharp-ico": "^0.1.5",
     "update-electron-app": "^3.1.1",
-    "zod": "^3.24.2"
+    "zod": "^3.24.3"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.8.0",
