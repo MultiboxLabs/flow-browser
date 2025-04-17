@@ -25,6 +25,12 @@ export function getURLFromInput(input: string): string | null {
     return trimmedInput;
   }
 
+  // Check if it is parsable
+  const url = URL.parse(input);
+  if (url) {
+    return url.toString();
+  }
+
   // Check if it looks like a URL using a more robust regex pattern
   // This regex checks for domain patterns like example.com, sub.example.co.uk, etc.
   const urlRegex = /^([-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_+.~#?&//=]*))$/;
@@ -86,24 +92,27 @@ export function transformUrl(url: string): string | null {
 }
 
 export function simplifyUrl(url: string): string {
-  try {
-    const parsedUrl = new URL(url);
-
-    let hostname = parsedUrl.hostname;
-    if (hostname.startsWith("www.")) {
-      hostname = hostname.slice(4);
-    }
-
-    let shortenedURL = hostname;
-
-    const isHttp = ["http:", "https:"].includes(parsedUrl.protocol);
-    if (!isHttp) {
-      shortenedURL = `${parsedUrl.protocol}//${hostname}`;
-    }
-
-    return shortenedURL;
-  } catch {
-    // Not a valid URL, return the original string
+  const parsedUrl = URL.parse(url);
+  if (!parsedUrl) {
     return url;
   }
+
+  let hostname = parsedUrl.hostname;
+  if (hostname.startsWith("www.")) {
+    hostname = hostname.slice(4);
+  }
+
+  let shortenedURL = hostname;
+
+  const isHttp = ["http:", "https:"].includes(parsedUrl.protocol);
+  if (isHttp) {
+    return shortenedURL;
+  } else if (!isHttp && parsedUrl.hostname) {
+    parsedUrl.pathname = "";
+    parsedUrl.search = "";
+    parsedUrl.hash = "";
+    shortenedURL = parsedUrl.toString();
+  }
+
+  return parsedUrl.toString();
 }

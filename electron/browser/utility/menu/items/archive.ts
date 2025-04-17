@@ -11,9 +11,11 @@ export const createArchiveMenu = (browser: Browser): MenuItemConstructorOptions 
       click: () => {
         const tabWc = getTabWcFromFocusedWindow(browser);
         if (!tabWc) return;
+
+        const navigationHistory = tabWc.navigationHistory;
         // Check if back navigation is possible before calling goBack
-        if (tabWc.canGoBack()) {
-          tabWc.goBack();
+        if (navigationHistory.canGoBack()) {
+          navigationHistory.goBack();
         }
       }
     },
@@ -23,9 +25,11 @@ export const createArchiveMenu = (browser: Browser): MenuItemConstructorOptions 
       click: () => {
         const tabWc = getTabWcFromFocusedWindow(browser);
         if (!tabWc) return;
+
+        const navigationHistory = tabWc.navigationHistory;
         // Check if forward navigation is possible before calling goForward
-        if (tabWc.canGoForward()) {
-          tabWc.goForward();
+        if (navigationHistory.canGoForward()) {
+          navigationHistory.goForward();
         }
       }
     }

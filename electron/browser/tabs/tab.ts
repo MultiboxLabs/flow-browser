@@ -9,9 +9,7 @@ import { FLAGS } from "@/modules/flags";
 import { PATHS } from "@/modules/paths";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { Rectangle, Session, WebContents, WebContentsView, WebPreferences } from "electron";
-
-// @ts-expect-error: Webpack will handle this :)
-import contextMenu from "electron-context-menu";
+import { createTabContextMenu } from "@/browser/tabs/tab-context-menu";
 
 // Configuration
 const GLANCE_FRONT_ZINDEX = 3;
@@ -212,7 +210,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   }
 
   private setupEventListeners() {
-    const { webContents, window: tabbedWindow } = this;
+    const { webContents, window: tabbedWindow, browser, profileId, spaceId } = this;
 
     const window = tabbedWindow.window;
 
@@ -302,21 +300,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     });
 
     // Handle context menu
-    contextMenu({
-      window: webContents
-    });
-
-    // webContents.on("context-menu", (_event, params) => {
-    //   const menu = buildChromeContextMenu({
-    //     params,
-    //     webContents,
-    //     openLink: (url, disposition) => {
-    //       return this.createNewTab(url, disposition);
-    //     }
-    //   });
-
-    //   menu.popup();
-    // });
+    createTabContextMenu(this.browser, this, this.profileId, this.window, this.spaceId);
   }
 
   public createNewTab(
