@@ -508,6 +508,33 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     // Ensure visibility is updated first
     if (this.view.getVisible() !== visible) {
       this.view.setVisible(visible);
+
+      // Enter / Exit Picture in Picture mode
+      if (visible === true) {
+        const exitPiP = function () {
+          if (document.pictureInPictureElement) {
+            document.exitPictureInPicture();
+          }
+        };
+
+        this.webContents.executeJavaScript(`(${exitPiP})()`, true).catch((err) => console.error("PiP error:", err));
+      } else {
+        const enterPiP = function () {
+          const videos = Array.from(document.querySelectorAll("video")).filter(
+            (video) => !video.paused && !video.ended && video.readyState > 2
+          );
+
+          if (videos.length > 0 && document.pictureInPictureElement !== videos[0]) {
+            try {
+              videos[0].requestPictureInPicture();
+            } catch (e) {
+              console.error("Failed to enter Picture in Picture mode:", e);
+            }
+          }
+        };
+
+        this.webContents.executeJavaScript(`(${enterPiP})()`, true).catch((err) => console.error("PiP error:", err));
+      }
     }
 
     if (!visible) return;
