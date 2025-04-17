@@ -7,7 +7,9 @@ import { FLAGS } from "@/modules/flags";
  */
 export function setupHotReloadFileDescriptors() {
   if (FLAGS.DEBUG_HOT_RELOAD_FRONTEND && !app.isPackaged) {
-    process.setFdLimit(8192);
+    if ("setFdLimit" in process) {
+      process.setFdLimit(8192);
+    }
   }
 }
 

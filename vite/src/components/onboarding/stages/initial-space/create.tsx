@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import type { Profile } from "@/lib/flow/interfaces/sessions/profiles";
 
+const DEFAULT_SPACE_NAME = "Personal";
+
 export function OnboardingCreateSpace({
   advance,
   setActiveSpaceId
@@ -15,7 +17,7 @@ export function OnboardingCreateSpace({
   setActiveSpaceId: (id: string) => void;
 }) {
   // States for space creation
-  const [spaceName, setSpaceName] = useState<string>("Default");
+  const [spaceName, setSpaceName] = useState<string>(DEFAULT_SPACE_NAME);
 
   // States for profile/system checking
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -177,7 +179,7 @@ export function OnboardingCreateSpace({
                 value={spaceName}
                 onChange={(e) => setSpaceName(e.target.value)}
                 className="bg-white/10 border-white/30 text-white"
-                placeholder="Default"
+                placeholder={DEFAULT_SPACE_NAME}
               />
             </div>
 

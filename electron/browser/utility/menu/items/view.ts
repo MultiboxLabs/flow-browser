@@ -7,6 +7,32 @@ import { toggleSidebar } from "@/ipc/browser/interface";
 
 const isMac = process.platform === "darwin";
 
+export function menuCloseTab(browser: Browser) {
+  const winData = getFocusedWindowData();
+  if (!winData) return;
+
+  if (winData.type !== WindowType.BROWSER) {
+    if (winData.window.closable) {
+      winData.window.close();
+    }
+    return;
+  }
+
+  const browserWindow = winData.window;
+  if (browserWindow && isOmniboxOpen(browserWindow)) {
+    hideOmnibox(browserWindow);
+  } else {
+    const tab = getTab(browser, winData);
+    if (tab) {
+      tab.destroy();
+    } else {
+      if (winData.window) {
+        winData.window.close();
+      }
+    }
+  }
+}
+
 export const createViewMenu = (browser: Browser): MenuItemConstructorOptions => ({
   label: "View",
   submenu: [
@@ -44,29 +70,7 @@ export const createViewMenu = (browser: Browser): MenuItemConstructorOptions => 
       label: "Close Tab",
       accelerator: "CmdOrCtrl+W",
       click: () => {
-        const winData = getFocusedWindowData();
-        if (!winData) return;
-
-        if (winData.type !== WindowType.BROWSER) {
-          if (winData.window.closable) {
-            winData.window.close();
-          }
-          return;
-        }
-
-        const browserWindow = winData.window;
-        if (browserWindow && isOmniboxOpen(browserWindow)) {
-          hideOmnibox(browserWindow);
-        } else {
-          const tab = getTab(browser, winData);
-          if (tab) {
-            tab.destroy();
-          } else {
-            if (winData.window) {
-              winData.window.close();
-            }
-          }
-        }
+        menuCloseTab(browser)
       }
     },
     {

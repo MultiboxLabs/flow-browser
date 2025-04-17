@@ -1,5 +1,6 @@
 import { BrowserWindow, nativeTheme } from "electron";
 import { registerWindow, WindowType } from "@/modules/windows";
+import { FLAGS } from "@/modules/flags";
 
 let onboardingWindow: BrowserWindow | null = null;
 
@@ -11,7 +12,7 @@ function createOnboardingWindow() {
     center: true,
     show: false,
     frame: false,
-    titleBarStyle: process.platform === "darwin" ? "hidden" : "hiddenInset",
+    titleBarStyle: "hidden",
     titleBarOverlay: {
       height: 20,
       symbolColor: nativeTheme.shouldUseDarkColors ? "white" : "black",
@@ -29,9 +30,13 @@ function createOnboardingWindow() {
   registerWindow(WindowType.ONBOARDING, "onboarding", window);
   onboardingWindow = window;
 
-  window.webContents.openDevTools({
-    mode: "detach"
-  });
+  if (FLAGS.SHOW_DEBUG_DEVTOOLS) {
+    setTimeout(() => {
+      window.webContents.openDevTools({
+        mode: "detach"
+      });
+    }, 0);
+  }
 
   return new Promise((resolve) => {
     window.once("ready-to-show", () => {

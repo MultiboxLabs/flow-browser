@@ -7,6 +7,7 @@ import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getLastUsedSpace } from "@/sessions/spaces";
 import { BrowserWindow, nativeTheme, WebContents } from "electron";
+import "./close-preventer"
 
 type BrowserWindowType = "normal" | "popup";
 
@@ -50,20 +51,21 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       titleBarOverlay: {
         height: 30,
         symbolColor: nativeTheme.shouldUseDarkColors ? "white" : "black",
-        color: "rgba(0,0,0,0)"
+        color: "rgba(0,0,0,0)",
       },
       webPreferences: {
         sandbox: true,
         nodeIntegration: false,
         contextIsolation: true
       },
+      title: "Flow",
       frame: false,
       transparent: false,
       resizable: true,
-      backgroundColor: "#00000000",
+      backgroundColor: process.platform === "darwin" ? "#00000000" : "#000000",
       visualEffectState: "followWindow",
       vibrancy: "fullscreen-ui", // on MacOS
-      // backgroundMaterial: "mica", // on Windows (Disabled as it interferes with rounded corners)
+      backgroundMaterial: "none", // on Windows (Disabled as it interferes with rounded corners)
       roundedCorners: true,
       ...(options.window || {}),
 
