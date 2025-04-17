@@ -7,7 +7,7 @@ import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getLastUsedSpace } from "@/sessions/spaces";
 import { BrowserWindow, nativeTheme, WebContents } from "electron";
-import "./close-preventer"
+import "./close-preventer";
 
 type BrowserWindowType = "normal" | "popup";
 
@@ -51,7 +51,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       titleBarOverlay: {
         height: 30,
         symbolColor: nativeTheme.shouldUseDarkColors ? "white" : "black",
-        color: "rgba(0,0,0,0)",
+        color: "rgba(0,0,0,0)"
       },
       webPreferences: {
         sandbox: true,
@@ -72,6 +72,8 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       // Show after ready
       show: false
     });
+
+    this.window.maximize();
 
     this.window.on("enter-full-screen", () => {
       this.emit("enter-full-screen");

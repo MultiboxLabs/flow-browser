@@ -99,7 +99,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public isLoading: boolean = false;
   public audible: boolean = false;
   public muted: boolean = false;
-
+  public isPictureInPicture: boolean = false;
   // View & content objects
   public readonly view: PatchedWebContentsView;
   public readonly webContents: WebContents;
@@ -511,29 +511,70 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
       // Enter / Exit Picture in Picture mode
       if (visible === true) {
+        // This function must be self-contained: it runs in the actual tab's context
         const exitPiP = function () {
           if (document.pictureInPictureElement) {
             document.exitPictureInPicture();
+            return true;
           }
+          return false;
         };
 
-        this.webContents.executeJavaScript(`(${exitPiP})()`, true).catch((err) => console.error("PiP error:", err));
+        const exitedPiPPromise = this.webContents
+          .executeJavaScript(`(${exitPiP})()`, true)
+          .then((res) => res === true)
+          .catch((err) => {
+            console.error("PiP error:", err);
+            return false;
+          });
+
+        exitedPiPPromise.then((result) => {
+          if (result) {
+            this.isPictureInPicture = false;
+            this.emit("updated");
+          }
+        });
       } else {
-        const enterPiP = function () {
+        // This function must be self-contained: it runs in the actual tab's context
+        const enterPiP = function (tabId: number) {
           const videos = Array.from(document.querySelectorAll("video")).filter(
             (video) => !video.paused && !video.ended && video.readyState > 2
           );
 
           if (videos.length > 0 && document.pictureInPictureElement !== videos[0]) {
             try {
-              videos[0].requestPictureInPicture();
+              const video = videos[0];
+              video.requestPictureInPicture();
+
+              const onLeavePiP = () => {
+                // @ts-expect-error: Flow APIs will be available
+                flow.tabs.disablePictureInPicture(tabId);
+                video.removeEventListener("leavepictureinpicture", onLeavePiP);
+              };
+
+              video.addEventListener("leavepictureinpicture", onLeavePiP);
+              return true;
             } catch (e) {
               console.error("Failed to enter Picture in Picture mode:", e);
+              return false;
             }
           }
         };
 
-        this.webContents.executeJavaScript(`(${enterPiP})()`, true).catch((err) => console.error("PiP error:", err));
+        const enteredPiPPromise = this.webContents
+          .executeJavaScript(`(${enterPiP})(${this.id})`, true)
+          .then((res) => res === true)
+          .catch((err) => {
+            console.error("PiP error:", err);
+            return false;
+          });
+
+        enteredPiPPromise.then((result) => {
+          if (result) {
+            this.isPictureInPicture = true;
+            this.emit("updated");
+          }
+        });
       }
     }
 

@@ -17,6 +17,7 @@ function getTabData(tab: Tab): TabData {
     audible: tab.audible,
     muted: tab.muted,
     fullScreen: tab.fullScreen,
+    isPictureInPicture: tab.isPictureInPicture,
     faviconURL: tab.faviconURL
   };
 }
@@ -164,4 +165,9 @@ ipcMain.handle("tabs:close-tab", async (event, tabId: number) => {
 
   tab.destroy();
   return true;
+});
+
+ipcMain.handle("tabs:disable-picture-in-picture", async (event, tabId: number) => {
+  const disabled = browser?.tabs.disablePictureInPicture(tabId);
+  return disabled ?? false;
 });

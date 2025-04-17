@@ -100,6 +100,12 @@ const tabsAPI = {
   closeTab: async (tabId: number) => {
     if (!checkCanUseAPI().browser) return;
     return ipcRenderer.invoke("tabs:close-tab", tabId);
+  },
+
+  // Special Exception: This is allowed on every tab, but very tightly secured.
+  // It will only work if the tab is currently in Picture-in-Picture mode.
+  disablePictureInPicture: async (tabId: number) => {
+    return ipcRenderer.invoke("tabs:disable-picture-in-picture", tabId);
   }
 };
 

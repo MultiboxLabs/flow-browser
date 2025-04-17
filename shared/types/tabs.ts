@@ -10,6 +10,7 @@ export type TabData = {
   audible: boolean;
   muted: boolean;
   fullScreen: boolean;
+  isPictureInPicture: boolean;
   faviconURL: string | null;
 };
 

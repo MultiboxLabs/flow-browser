@@ -191,6 +191,22 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
   }
 
   /**
+   * Disable Picture in Picture mode for a tab
+   */
+  public disablePictureInPicture(tabId: number) {
+    const tab = this.getTabById(tabId);
+    if (tab && tab.isPictureInPicture) {
+      tab.isPictureInPicture = false;
+      tab.emit("updated");
+
+      this.setActiveTab(tab);
+
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Process an active tab change
    */
   private processActiveTabChange(windowId: number, spaceId: string) {
