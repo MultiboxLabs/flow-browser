@@ -107,6 +107,18 @@ const config: ForgeConfig = {
         "**/node_modules/@img/**/*"
       ].join(",")
     },
+    extendInfo: "assets/Info.plist",
+    appCategoryType: "public.app-category.productivity",
+    protocols: [
+      {
+        name: "http URL",
+        schemes: ["http"]
+      },
+      {
+        name: "Secure http URL",
+        schemes: ["https"]
+      }
+    ],
     appBundleId: "dev.iamevan.flow",
     extraResource: [uiPath, "assets"],
     icon: "assets/AppIcon",

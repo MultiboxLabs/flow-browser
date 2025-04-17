@@ -139,7 +139,7 @@ ipcMain.handle("tabs:new-tab", async (event, url?: string, isForeground?: boolea
   const space = await getSpace(spaceId);
   if (!space) return;
 
-  const tab = await tabManager.createTab(space.profileId, window.id, space.id);
+  const tab = await tabManager.createTab(window.id, space.profileId, space.id);
 
   if (url) {
     tab.loadURL(url);

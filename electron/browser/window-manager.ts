@@ -55,6 +55,18 @@ export class WindowManager {
   }
 
   /**
+   * Gets the focused window
+   */
+  public getFocusedWindow(): TabbedBrowserWindow | undefined {
+    for (const window of this.windows.values()) {
+      if (window.window.isFocused()) {
+        return window;
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Gets a window by its ID
    */
   public getWindowById(windowId: number): TabbedBrowserWindow | undefined {

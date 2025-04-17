@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar";
 import { SpacesProvider } from "@/components/providers/spaces-provider";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useState } from "react";
 import { TabsProvider, useTabs } from "@/components/providers/tabs-provider";
 import { SettingsProvider, useSettings } from "@/components/providers/settings-provider";
@@ -14,16 +14,26 @@ export type CollapseMode = "icon" | "offcanvas";
 export type SidebarVariant = "sidebar" | "floating";
 export type SidebarSide = "left" | "right";
 
-function InternalBrowserUI() {
+function InternalBrowserUI({ isReady }: { isReady: boolean }) {
   const { open } = useSidebar();
   const { sidebarCollapseMode } = useSettings();
-  const { focusedTab } = useTabs();
+  const { focusedTab, tabGroups } = useTabs();
 
   const dynamicTitle: string | null = useMemo(() => {
     if (!focusedTab) return null;
 
     return focusedTab.title;
   }, [focusedTab]);
+
+  const openedNewTabRef = useRef(false);
+  useEffect(() => {
+    if (isReady && !openedNewTabRef.current) {
+      openedNewTabRef.current = true;
+      if (tabGroups.length === 0) {
+        flow.newTab.open();
+      }
+    }
+  }, [isReady, tabGroups.length]);
 
   const isActiveTabLoading = focusedTab?.isLoading || false;
 
@@ -86,9 +96,6 @@ export function BrowserUI() {
   useEffect(() => {
     setTimeout(() => {
       setIsReady(true);
-
-      // Open new tab on first load
-      flow.newTab.open();
     }, 100);
   }, []);
 
@@ -105,7 +112,7 @@ export function BrowserUI() {
         <SettingsProvider>
           <SpacesProvider>
             <TabsProvider>
-              <InternalBrowserUI />
+              <InternalBrowserUI isReady={isReady} />
             </TabsProvider>
           </SpacesProvider>
         </SettingsProvider>

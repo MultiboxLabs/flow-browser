@@ -104,6 +104,13 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
   }
 
   /**
+   * Gets the focused window
+   */
+  public getFocusedWindow(): TabbedBrowserWindow | undefined {
+    return this.windowManager.getFocusedWindow();
+  }
+
+  /**
    * Gets a window by its ID
    */
   public getWindowById(windowId: number): TabbedBrowserWindow | undefined {

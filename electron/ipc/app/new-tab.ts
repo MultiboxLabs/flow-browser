@@ -35,7 +35,7 @@ export function openNewTab(tabbedBrowserWindow: TabbedBrowserWindow) {
       getSpace(spaceId).then(async (space) => {
         if (!space) return;
 
-        const tab = await tabManager.createTab(space.profileId, tabbedBrowserWindow.id, spaceId);
+        const tab = await tabManager.createTab(tabbedBrowserWindow.id, space.profileId, spaceId);
         tabManager.setActiveTab(tab);
       });
     }

@@ -321,7 +321,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       windowId = newWindow.id;
     }
 
-    const newTab = this.tabManager.internalCreateTab(this.profileId, windowId, this.spaceId, constructorOptions);
+    const newTab = this.tabManager.internalCreateTab(windowId, this.profileId, this.spaceId, constructorOptions);
     newTab.loadURL(url);
 
     let glanced = false;

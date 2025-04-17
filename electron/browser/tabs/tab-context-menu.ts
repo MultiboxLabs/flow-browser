@@ -31,7 +31,7 @@ export function createTabContextMenu(
 
       // Helper function to create a new tab
       const createNewTab = async (url: string, window?: TabbedBrowserWindow) => {
-        const sourceTab = await browser.tabs.createTab(profileId, window ? window.id : tabbedWindow.id, spaceId);
+        const sourceTab = await browser.tabs.createTab(window ? window.id : tabbedWindow.id, profileId, spaceId);
         sourceTab.loadURL(url);
         browser.tabs.setActiveTab(sourceTab);
       };

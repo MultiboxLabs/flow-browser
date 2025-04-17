@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, MenuItem } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, MenuItem } from "electron";
 import { Browser } from "@/browser/browser";
 import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 import "@/ipc/main";
@@ -7,6 +7,10 @@ import { hasCompletedOnboarding } from "@/saving/onboarding";
 import { onboarding } from "@/onboarding/main";
 
 export let browser: Browser | null = null;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 // Function to check if --new-window flag is present in command line arguments
 function shouldCreateNewWindow(args: string[]): boolean {
@@ -149,6 +153,45 @@ function initializeApp() {
         browser?.createWindow();
       }
     });
+  });
+
+  // Handle open links
+  app.on("open-url", async (_event, url) => {
+    if (!browser) return;
+
+    if (!app.isReady) {
+      await app.whenReady();
+    }
+
+    let window = null;
+
+    for (let i = 0; i < 5; i++) {
+      // Check if there is a focused window
+      const focusedWindow = browser.getFocusedWindow();
+      if (focusedWindow) {
+        window = focusedWindow;
+        break;
+      }
+
+      // Check for any window
+      const firstWindow = browser.getWindows()[0];
+      if (firstWindow) {
+        window = firstWindow;
+        break;
+      }
+
+      await sleep(50);
+    }
+
+    // If no window was found after 5 attempts, create a new one
+    // This is to make sure it doesn't create two windows on startup.
+    if (!window) {
+      window = await browser.createWindow();
+    }
+
+    const tab = await browser.tabs.createTab(window.id);
+    tab.loadURL(url);
+    browser.tabs.setActiveTab(tab);
   });
 }
 

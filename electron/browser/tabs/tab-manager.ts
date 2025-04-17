@@ -5,7 +5,7 @@ import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
 import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
 import { windowTabsChanged } from "@/ipc/browser/tabs";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { getLastUsedSpaceFromProfile } from "@/sessions/spaces";
+import { getLastUsedSpace, getLastUsedSpaceFromProfile } from "@/sessions/spaces";
 import { TabGroupMode } from "~/types/tabs";
 
 export const NEW_TAB_URL = "flow://new-tab";
@@ -78,8 +78,8 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
    * Create a new tab
    */
   public async createTab(
-    profileId: string,
     windowId: number,
+    profileId?: string,
     spaceId?: string,
     webContentsViewOptions?: Electron.WebContentsViewConstructorOptions
   ) {
@@ -87,8 +87,16 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
       throw new Error("TabManager has been destroyed");
     }
 
-    // Get space ID if not provided
-    if (!spaceId) {
+    // Get profile ID and space ID if not provided
+    if (!profileId) {
+      const lastUsedSpace = await getLastUsedSpace();
+      if (lastUsedSpace) {
+        profileId = lastUsedSpace.profileId;
+        spaceId = lastUsedSpace.id;
+      } else {
+        throw new Error("Could not determine profile ID for new tab");
+      }
+    } else if (!spaceId) {
       try {
         const lastUsedSpace = await getLastUsedSpaceFromProfile(profileId);
         if (lastUsedSpace) {
@@ -107,7 +115,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     await browser.loadProfile(profileId);
 
     // Create tab
-    return this.internalCreateTab(profileId, windowId, spaceId, webContentsViewOptions);
+    return this.internalCreateTab(windowId, profileId, spaceId, webContentsViewOptions);
   }
 
   /**
@@ -115,8 +123,8 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
    * Does not load profile or anything else!
    */
   public internalCreateTab(
-    profileId: string,
     windowId: number,
+    profileId: string,
     spaceId: string,
     webContentsViewOptions?: Electron.WebContentsViewConstructorOptions
   ) {
