@@ -6,6 +6,7 @@ import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
 import { windowTabsChanged } from "@/ipc/browser/tabs";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getLastUsedSpace, getLastUsedSpaceFromProfile } from "@/sessions/spaces";
+import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
 
 export const NEW_TAB_URL = "flow://new-tab";
@@ -436,6 +437,18 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
    */
   public getTabById(tabId: number): Tab | undefined {
     return this.tabs.get(tabId);
+  }
+
+  /**
+   * Get a tab by webContents
+   */
+  public getTabByWebContents(webContents: WebContents): Tab | undefined {
+    for (const tab of this.tabs.values()) {
+      if (tab.webContents === webContents) {
+        return tab;
+      }
+    }
+    return undefined;
   }
 
   /**

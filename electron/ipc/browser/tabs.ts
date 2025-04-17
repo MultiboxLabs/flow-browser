@@ -172,12 +172,9 @@ ipcMain.handle("tabs:disable-picture-in-picture", async (event) => {
 
   const sender = event.sender;
 
-  for (const tab of browser?.tabs.tabs.values()) {
-    if (tab.webContents === sender) {
-      const disabled = browser.tabs.disablePictureInPicture(tab.id);
-      return disabled;
-    }
-  }
+  const tab = browser.tabs.getTabByWebContents(sender);
+  if (!tab) return false;
 
-  return false;
+  const disabled = browser.tabs.disablePictureInPicture(tab.id);
+  return disabled;
 });
