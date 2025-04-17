@@ -167,7 +167,17 @@ ipcMain.handle("tabs:close-tab", async (event, tabId: number) => {
   return true;
 });
 
-ipcMain.handle("tabs:disable-picture-in-picture", async (event, tabId: number) => {
-  const disabled = browser?.tabs.disablePictureInPicture(tabId);
-  return disabled ?? false;
+ipcMain.handle("tabs:disable-picture-in-picture", async (event) => {
+  if (!browser) return false;
+
+  const sender = event.sender;
+
+  for (const tab of browser?.tabs.tabs.values()) {
+    if (tab.webContents === sender) {
+      const disabled = browser.tabs.disablePictureInPicture(tab.id);
+      return disabled;
+    }
+  }
+
+  return false;
 });

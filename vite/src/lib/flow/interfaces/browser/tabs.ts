@@ -36,7 +36,6 @@ export interface FlowTabsAPI {
 
   /**
    * Disable Picture in Picture mode for a tab
-   * @param tabId The id of the tab to disable Picture in Picture mode for
    */
-  disablePictureInPicture: (tabId: number) => Promise<boolean>;
+  disablePictureInPicture: () => Promise<boolean>;
 }
