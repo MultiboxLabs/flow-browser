@@ -58,6 +58,7 @@ function createWebContentsView(
 
     // Basic preferences
     sandbox: true,
+    webSecurity: true,
     session: session,
     scrollBounce: true,
     safeDialogs: true,
