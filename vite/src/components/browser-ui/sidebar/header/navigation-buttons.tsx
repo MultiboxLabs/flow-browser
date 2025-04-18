@@ -84,7 +84,7 @@ export function GoBackButton({
   const goBack = () => {
     if (!focusedTab?.id) return;
     if (backwardTabs.length === 0) return;
-    flow.navigation.goToNavigationEntry(focusedTab.id, backwardTabs[backwardTabs.length - 1].index);
+    flow.navigation.goToNavigationEntry(focusedTab.id, backwardTabs[0].index);
   };
 
   return (
