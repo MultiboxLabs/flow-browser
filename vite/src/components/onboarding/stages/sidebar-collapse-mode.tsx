@@ -9,7 +9,7 @@ export function OnboardingSidebarCollapseMode({ advance }: { advance: Onboarding
   const card = useSettings().cards.find((card) => card.title === "Sidebar Collapse Mode");
 
   if (!card) {
-    return;
+    return null;
   }
 
   return (

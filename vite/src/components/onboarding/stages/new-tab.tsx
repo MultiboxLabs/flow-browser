@@ -9,7 +9,7 @@ export function OnboardingNewTab({ advance }: { advance: OnboardingAdvanceCallba
   const card = useSettings().cards.find((card) => card.title === "New Tab Mode");
 
   if (!card) {
-    return;
+    return null;
   }
 
   return (
