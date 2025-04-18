@@ -40,6 +40,37 @@ export const BasicSettings: BasicSetting[] = [
         name: "Off-Screen"
       }
     ]
+  },
+
+  // Archive Tab After
+  {
+    id: "archiveTabAfter",
+    name: "Archive Tab After",
+    showName: false,
+    type: "enum",
+    defaultValue: "12h",
+    options: [
+      {
+        id: "12h",
+        name: "12 Hours"
+      },
+      {
+        id: "24h",
+        name: "24 Hours"
+      },
+      {
+        id: "7d",
+        name: "7 Days"
+      },
+      {
+        id: "30d",
+        name: "30 Days"
+      },
+      {
+        id: "never",
+        name: "Never"
+      }
+    ]
   }
 ];
 
@@ -56,5 +87,12 @@ export const BasicSettingCards: BasicSettingCard[] = [
     title: "Sidebar Collapse Mode",
     subtitle: "Choose how the sidebar should collapse",
     settings: ["sidebarCollapseMode"]
+  },
+
+  // Archive Tab After Card
+  {
+    title: "Archive Tab After",
+    subtitle: "Choose how long tabs should be archived",
+    settings: ["archiveTabAfter"]
   }
 ];
