@@ -30,11 +30,11 @@ export const SettingsProvider = ({ children }: SettingsProviderProps) => {
   const fetchSettings = useCallback(async () => {
     if (!flow) return;
 
-    const { settings, cards } = await flow.settings.getBasicSettings();
-    setSettings(settings);
-    setCards(cards);
+    const { settings: fetchedSettings, cards: fetchedCards } = await flow.settings.getBasicSettings();
+    setSettings(fetchedSettings);
+    setCards(fetchedCards);
 
-    const promises = settings.map(async (setting) => {
+    const promises = fetchedSettings.map(async (setting) => {
       const value = await flow.settings.getSetting(setting.id);
       setSettingsValues((prev) => ({ ...prev, [setting.id]: value }));
     });
