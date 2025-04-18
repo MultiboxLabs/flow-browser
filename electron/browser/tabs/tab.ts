@@ -426,7 +426,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     }
 
     const newNavHistory = webContents.navigationHistory.getAllEntries();
-    if (newNavHistory !== this.navHistory) {
+    const oldNavHistoryJSON = JSON.stringify(this.navHistory);
+    const newNavHistoryJSON = JSON.stringify(newNavHistory);
+    if (oldNavHistoryJSON !== newNavHistoryJSON) {
       this.navHistory = newNavHistory;
       changedKeys.push("navHistory");
     }
