@@ -6,9 +6,10 @@ import { getSpace } from "@/sessions/spaces";
 import { ipcMain } from "electron";
 import { TabData, TabGroupData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
 
-function getTabData(tab: Tab): TabData {
+export function getTabData(tab: Tab): TabData {
   return {
     id: tab.id,
+    uniqueId: tab.uniqueId,
     profileId: tab.profileId,
     spaceId: tab.spaceId,
     title: tab.title,
@@ -24,7 +25,7 @@ function getTabData(tab: Tab): TabData {
   };
 }
 
-function getTabGroupData(tabGroup: TabGroup): TabGroupData {
+export function getTabGroupData(tabGroup: TabGroup): TabGroupData {
   return {
     id: tabGroup.id,
     mode: tabGroup.mode,

@@ -7,6 +7,7 @@ export type NavigationEntry = {
 
 export type TabData = {
   id: number;
+  uniqueId: string;
   profileId: string;
   spaceId: string;
   title: string;

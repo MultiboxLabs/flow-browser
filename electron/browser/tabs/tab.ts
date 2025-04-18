@@ -10,6 +10,7 @@ import { PATHS } from "@/modules/paths";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { NavigationEntry, Rectangle, Session, WebContents, WebContentsView, WebPreferences } from "electron";
 import { createTabContextMenu } from "@/browser/tabs/tab-context-menu";
+import { generateID } from "@/browser/utility/utils";
 
 // Configuration
 const GLANCE_FRONT_ZINDEX = 3;
@@ -49,6 +50,7 @@ interface TabCreationDetails {
 }
 
 interface TabCreationOptions {
+  uniqueId: string;
   window: TabbedBrowserWindow;
   webContentsViewOptions?: Electron.WebContentsViewConstructorOptions;
   navHistory?: NavigationEntry[];
@@ -90,10 +92,12 @@ function createWebContentsView(
 // Tab Class
 export class Tab extends TypedEventEmitter<TabEvents> {
   // Public properties
-  public groupId: number | null = null;
   public readonly id: number;
+  public groupId: number | null = null;
   public readonly profileId: string;
   public spaceId: string;
+
+  public readonly uniqueId: string;
 
   // State properties (Recorded)
   public visible: boolean = false;
@@ -102,6 +106,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public fullScreen: boolean = false;
   public isPictureInPicture: boolean = false;
   public asleep: boolean = false;
+  public createdAt: number;
 
   // Content properties (From WebContents)
   public title: string = "New Tab";
@@ -154,7 +159,13 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.bounds = new TabBoundsController(this);
 
     // Create Options
-    const { window, webContentsViewOptions = {}, navHistory = [], asleep = false } = options;
+    const { window, webContentsViewOptions = {}, navHistory = [], asleep = false, uniqueId } = options;
+
+    if (!uniqueId) {
+      this.uniqueId = generateID();
+    } else {
+      this.uniqueId = uniqueId;
+    }
 
     // Create WebContentsView
     const webContentsView = createWebContentsView(session, webContentsViewOptions);
@@ -174,6 +185,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     if (asleep) {
       this.putToSleep();
     }
+
+    // Set creation time
+    this.createdAt = Math.floor(Date.now() / 1000);
 
     // Setup window
     this.setWindow(window);
