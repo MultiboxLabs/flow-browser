@@ -18,7 +18,9 @@ function getTabData(tab: Tab): TabData {
     muted: tab.muted,
     fullScreen: tab.fullScreen,
     isPictureInPicture: tab.isPictureInPicture,
-    faviconURL: tab.faviconURL
+    faviconURL: tab.faviconURL,
+    asleep: tab.asleep,
+    navHistory: tab.navHistory
   };
 }
 

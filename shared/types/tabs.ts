@@ -1,5 +1,10 @@
 export type TabGroupMode = "normal" | "glance" | "split";
 
+export type NavigationEntry = {
+  title: string;
+  url: string;
+};
+
 export type TabData = {
   id: number;
   profileId: string;
@@ -12,6 +17,8 @@ export type TabData = {
   fullScreen: boolean;
   isPictureInPicture: boolean;
   faviconURL: string | null;
+  asleep: boolean;
+  navHistory: NavigationEntry[];
 };
 
 export type TabGroupData = {

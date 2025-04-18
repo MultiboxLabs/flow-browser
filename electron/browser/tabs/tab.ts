@@ -8,7 +8,7 @@ import { cacheFavicon } from "@/modules/favicons";
 import { FLAGS } from "@/modules/flags";
 import { PATHS } from "@/modules/paths";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { Rectangle, Session, WebContents, WebContentsView, WebPreferences } from "electron";
+import { NavigationEntry, Rectangle, Session, WebContents, WebContentsView, WebPreferences } from "electron";
 import { createTabContextMenu } from "@/browser/tabs/tab-context-menu";
 
 // Configuration
@@ -21,8 +21,8 @@ interface PatchedWebContentsView extends WebContentsView {
   destroy: () => void;
 }
 
-type TabStateProperty = "visible" | "isDestroyed" | "faviconURL" | "fullScreen" | "isPictureInPicture";
-type TabContentProperty = "title" | "url" | "isLoading" | "audible" | "muted";
+type TabStateProperty = "visible" | "isDestroyed" | "faviconURL" | "fullScreen" | "isPictureInPicture" | "asleep";
+type TabContentProperty = "title" | "url" | "isLoading" | "audible" | "muted" | "navHistory";
 
 type TabPublicProperty = TabStateProperty | TabContentProperty;
 
@@ -51,6 +51,8 @@ interface TabCreationDetails {
 interface TabCreationOptions {
   window: TabbedBrowserWindow;
   webContentsViewOptions?: Electron.WebContentsViewConstructorOptions;
+  navHistory?: NavigationEntry[];
+  asleep?: boolean;
 }
 
 function createWebContentsView(
@@ -99,6 +101,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public faviconURL: string | null = null;
   public fullScreen: boolean = false;
   public isPictureInPicture: boolean = false;
+  public asleep: boolean = false;
 
   // Content properties (From WebContents)
   public title: string = "New Tab";
@@ -106,6 +109,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public isLoading: boolean = false;
   public audible: boolean = false;
   public muted: boolean = false;
+  public navHistory: NavigationEntry[] = [];
 
   // View & content objects
   public readonly view: PatchedWebContentsView;
@@ -150,7 +154,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.bounds = new TabBoundsController(this);
 
     // Create Options
-    const { window, webContentsViewOptions = {} } = options;
+    const { window, webContentsViewOptions = {}, navHistory = [], asleep = false } = options;
 
     // Create WebContentsView
     const webContentsView = createWebContentsView(session, webContentsViewOptions);
@@ -158,6 +162,18 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.id = webContents.id;
     this.view = webContentsView;
     this.webContents = webContents;
+
+    // Restore navigation history
+    if (navHistory.length > 0) {
+      this.webContents.navigationHistory.restore({
+        entries: navHistory
+      });
+    }
+
+    // Put to sleep if requested
+    if (asleep) {
+      this.putToSleep();
+    }
 
     // Setup window
     this.setWindow(window);
@@ -351,6 +367,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     return newTab.webContents;
   }
 
+  /**
+   * Updates the tab state property
+   */
   public updateStateProperty<T extends TabStateProperty>(property: T, newValue: this[T]) {
     if (this.isDestroyed) return false;
 
@@ -362,8 +381,14 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     return true;
   }
 
+  /**
+   * Updates the tab content state
+   */
   public updateTabState() {
-    if (this.isDestroyed) return;
+    if (this.isDestroyed) return false;
+
+    // If the tab is asleep, the data from the webContents is not reliable.
+    if (this.asleep) return false;
 
     const { webContents } = this;
 
@@ -400,11 +425,51 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       changedKeys.push("muted");
     }
 
+    const newNavHistory = webContents.navigationHistory.getAllEntries();
+    if (newNavHistory !== this.navHistory) {
+      this.navHistory = newNavHistory;
+      changedKeys.push("navHistory");
+    }
+
     if (changedKeys.length > 0) {
       this.emit("updated", changedKeys);
       return true;
     }
     return false;
+  }
+
+  /**
+   * Restores the tab state for the WebContents
+   */
+  public restoreTabState() {
+    this.loadURL(this.url, true);
+  }
+
+  /**
+   * Puts the tab to sleep
+   */
+  public putToSleep() {
+    if (this.asleep) return;
+
+    this.updateStateProperty("asleep", true);
+
+    // Save current state (To be safe)
+    this.updateTabState();
+
+    // Load about:blank to save resources
+    this.loadURL("about:blank", true);
+  }
+
+  /**
+   * Wakes up the tab
+   */
+  public wakeUp() {
+    if (!this.asleep) return;
+
+    // Load the URL to wake up the tab
+    this.restoreTabState();
+
+    this.updateStateProperty("asleep", false);
   }
 
   /**
@@ -465,8 +530,8 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public loadURL(url: string, replace?: boolean) {
     if (replace) {
       // Replace mode is not very reliable, don't know if this works :)
-      const sanitizedUrl = url.replace(/`/g, "\\`").replace(/"/g, '\\"');
-      this.webContents.executeJavaScript(`window.location.replace("${sanitizedUrl}")`);
+      const sanitizedUrl = JSON.stringify(url);
+      this.webContents.executeJavaScript(`window.location.replace(${sanitizedUrl})`);
     } else {
       this.webContents.loadURL(url);
     }
@@ -596,6 +661,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     }
 
     if (!visible) return;
+
+    // Automatically wake tab up if it is asleep
+    this.wakeUp();
 
     // Get base bounds and current group state
     const pageBounds = window.getPageBounds();
