@@ -15,10 +15,7 @@ function validateSettingValue<T extends SettingType>(setting: T, value: unknown)
   if (setting.type === "boolean") {
     return typeof value === "boolean";
   }
-  if (setting.type === "enumString") {
-    return setting.options.some((option) => option.id === value);
-  }
-  if (setting.type === "enumNumber") {
+  if (setting.type === "enum") {
     return setting.options.some((option) => option.id === value);
   }
   return false;

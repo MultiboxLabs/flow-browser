@@ -9,7 +9,7 @@ export const BasicSettings: BasicSetting[] = [
     id: "newTabMode",
     name: "New Tab Mode",
     showName: false,
-    type: "enumString",
+    type: "enum",
     defaultValue: "omnibox",
     options: [
       {
@@ -28,7 +28,7 @@ export const BasicSettings: BasicSetting[] = [
     id: "sidebarCollapseMode",
     name: "Sidebar Collapse Mode",
     showName: false,
-    type: "enumString",
+    type: "enum",
     defaultValue: "icon",
     options: [
       {

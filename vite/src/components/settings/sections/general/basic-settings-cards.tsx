@@ -13,7 +13,7 @@ function SettingsInput({ setting }: { setting: BasicSetting }) {
     setSetting(setting.id, value);
   };
 
-  if (setting.type === "enumString") {
+  if (setting.type === "enum") {
     const settingValue = getSetting<string>(setting.id);
     return (
       <div className={cn(setting.showName ? "w-1/2" : "w-full")}>
@@ -24,24 +24,6 @@ function SettingsInput({ setting }: { setting: BasicSetting }) {
           <SelectContent className="remove-app-drag z-50">
             {setting.options.map((option) => (
               <SelectItem key={option.id} value={option.id}>
-                {option.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    );
-  } else if (setting.type === "enumNumber") {
-    const settingValue = getSetting<number>(setting.id);
-    return (
-      <div className={cn(setting.showName ? "w-1/2" : "w-full")}>
-        <Select value={settingValue.toString()} onValueChange={(value) => handleSettingChange(parseInt(value))}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="remove-app-drag">
-            {setting.options.map((option) => (
-              <SelectItem key={option.id} value={option.id.toString()}>
                 {option.name}
               </SelectItem>
             ))}

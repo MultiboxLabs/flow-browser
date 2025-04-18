@@ -7,31 +7,19 @@ type SettingTypeBoolean = {
   defaultValue: boolean;
 };
 
-// Setting Type: Enum String //
-type SettingTypeEnumStringOption = {
+// Setting Type: Enum //
+type SettingTypeEnumOption = {
   id: string;
   name: string;
 };
 
-type SettingTypeEnumString = {
-  type: "enumString";
+type SettingTypeEnum = {
+  type: "enum";
   defaultValue: string;
-  options: SettingTypeEnumStringOption[];
+  options: SettingTypeEnumOption[];
 };
 
-// Setting Type: Enum Number //
-type SettingTypeEnumNumberOption = {
-  id: number;
-  name: string;
-};
-
-type SettingTypeEnumNumber = {
-  type: "enumNumber";
-  defaultValue: number;
-  options: SettingTypeEnumNumberOption[];
-};
-
-export type SettingType = SettingTypeBoolean | SettingTypeEnumString | SettingTypeEnumNumber;
+export type SettingType = SettingTypeBoolean | SettingTypeEnum;
 
 // Setting //
 export type BasicSetting = {
