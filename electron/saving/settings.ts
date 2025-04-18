@@ -25,8 +25,8 @@ function validateSettingValue<T extends SettingType>(setting: T, value: unknown)
 }
 
 async function cacheSetting(setting: BasicSetting) {
-  const value = await SettingsDataStore.get<SettingType["defaultValue"]>(setting.id).catch(() => null);
-  if (value && validateSettingValue(setting, value)) {
+  const value = await SettingsDataStore.get<SettingType["defaultValue"]>(setting.id).catch(() => undefined);
+  if (value !== undefined && validateSettingValue(setting, value)) {
     basicSettingsCurrentValues[setting.id] = value;
   } else {
     basicSettingsCurrentValues[setting.id] = setting.defaultValue;
