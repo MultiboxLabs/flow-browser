@@ -306,6 +306,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     const COLOR_BACKGROUND = "#ffffffff";
     this.on("updated", (properties) => {
       if (properties.includes("url") && this.url) {
+        // @ts-ignore: URL.parse should work, but tsc thinks it doesn't
         const url = URL.parse(this.url);
 
         if (url) {
@@ -544,6 +545,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    */
   public loadErrorPage(errorCode: number, url: string) {
     // Errored on error page? Don't show another error page to prevent infinite loop
+    // @ts-ignore: URL.parse should work, but tsc thinks it doesn't
     const parsedURL = URL.parse(url);
     if (parsedURL && parsedURL.protocol === "flow:" && parsedURL.hostname === "error") {
       return;

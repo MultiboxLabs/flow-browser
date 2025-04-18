@@ -7,6 +7,8 @@ import { WindowManager, BrowserWindowType, BrowserWindowCreationOptions } from "
 import { TabManager } from "@/browser/tabs/tab-manager";
 import { Tab } from "@/browser/tabs/tab";
 import { setupMenu } from "@/browser/utility/menu";
+import { settings } from "@/settings/main";
+import { onboarding } from "@/onboarding/main";
 
 /**
  * Main Browser controller that coordinates browser components
@@ -178,5 +180,7 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
     for (const window of this.getWindows()) {
       window.sendMessageToCoreWebContents(channel, ...args);
     }
+    settings.sendMessage(channel, ...args);
+    onboarding.sendMessage(channel, ...args);
   }
 }

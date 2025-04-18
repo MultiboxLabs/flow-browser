@@ -1,9 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { NewTabMode, SidebarCollapseMode } from "@/lib/flow/interfaces/windows/settings";
+import type { BasicSetting, BasicSettingCard } from "~/types/settings";
 
 interface SettingsContextValue {
-  sidebarCollapseMode: SidebarCollapseMode;
-  newTabMode: NewTabMode;
+  settings: BasicSetting[];
+  cards: BasicSettingCard[];
+  getSetting: <T>(settingId: string) => T;
+  setSetting: (settingId: string, value: unknown) => Promise<boolean>;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -21,21 +23,23 @@ interface SettingsProviderProps {
 }
 
 export const SettingsProvider = ({ children }: SettingsProviderProps) => {
-  const [sidebarCollapseMode, setSidebarCollapseMode] = useState<SidebarCollapseMode>("icon");
-  const [newTabMode, setNewTabMode] = useState<NewTabMode>("omnibox");
+  const [settings, setSettings] = useState<BasicSetting[]>([]);
+  const [cards, setCards] = useState<BasicSettingCard[]>([]);
+  const [settingsValues, setSettingsValues] = useState<Record<string, unknown>>({});
 
   const fetchSettings = useCallback(async () => {
     if (!flow) return;
 
-    const sidebarCollapsePromise = flow.settings.getSidebarCollapseMode().then((mode) => {
-      setSidebarCollapseMode(mode);
+    const { settings, cards } = await flow.settings.getBasicSettings();
+    setSettings(settings);
+    setCards(cards);
+
+    const promises = settings.map(async (setting) => {
+      const value = await flow.settings.getSetting(setting.id);
+      setSettingsValues((prev) => ({ ...prev, [setting.id]: value }));
     });
 
-    const newTabPromise = flow.newTab.getCurrentNewTabMode().then((mode) => {
-      setNewTabMode(mode);
-    });
-
-    await Promise.all([sidebarCollapsePromise, newTabPromise]);
+    await Promise.all(promises);
   }, []);
 
   const revalidate = useCallback(async () => {
@@ -53,11 +57,24 @@ export const SettingsProvider = ({ children }: SettingsProviderProps) => {
     return () => unsub();
   }, [revalidate]);
 
+  const getSetting = useCallback(
+    (settingId: string) => {
+      return settingsValues[settingId];
+    },
+    [settingsValues]
+  );
+
+  const setSetting = useCallback((settingId: string, value: unknown) => {
+    return flow.settings.setSetting(settingId, value);
+  }, []);
+
   return (
     <SettingsContext.Provider
       value={{
-        sidebarCollapseMode,
-        newTabMode
+        settings,
+        cards,
+        getSetting: getSetting as <T>(settingId: string) => T,
+        setSetting
       }}
     >
       {children}

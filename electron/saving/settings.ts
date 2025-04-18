@@ -1,41 +1,56 @@
-import { z } from "zod";
 import { getDatastore } from "./datastore";
 import { fireOnSettingsChanged } from "@/ipc/window/settings";
+import { BasicSettings } from "@/modules/basic-settings";
+import { BasicSetting, SettingType } from "~/types/settings";
 
 export const SettingsDataStore = getDatastore("settings");
 
 // Settings: Current Icon //
 // Find in `@/modules/icons.ts`
 
-// Settings: New Tab Mode //
-export const NewTabModeSchema = z.enum(["omnibox", "tab"]);
-export type NewTabMode = z.infer<typeof NewTabModeSchema>;
+// Settings: Settings Config //
+const basicSettingsCurrentValues: Record<string, SettingType["defaultValue"]> = {};
 
-let currentNewTabMode: NewTabMode = "omnibox";
+function validateSettingValue<T extends SettingType>(setting: T, value: unknown) {
+  if (setting.type === "boolean") {
+    return typeof value === "boolean";
+  }
+  if (setting.type === "enumString") {
+    return setting.options.some((option) => option.id === value);
+  }
+  if (setting.type === "enumNumber") {
+    return setting.options.some((option) => option.id === value);
+  }
+  return false;
+}
 
-async function cacheNewTabMode() {
-  // Use default value if error raised
-  const iconId = await SettingsDataStore.get<NewTabMode>("newTabMode").catch(() => null);
-
-  const parseResult = NewTabModeSchema.safeParse(iconId);
-  if (parseResult.success) {
-    currentNewTabMode = parseResult.data;
+async function cacheSetting(setting: BasicSetting) {
+  const value = await SettingsDataStore.get<SettingType["defaultValue"]>(setting.id).catch(() => null);
+  if (value && validateSettingValue(setting, value)) {
+    basicSettingsCurrentValues[setting.id] = value;
+  } else {
+    basicSettingsCurrentValues[setting.id] = setting.defaultValue;
   }
 }
-cacheNewTabMode();
 
-export function getCurrentNewTabMode() {
-  return currentNewTabMode;
+for (const setting of BasicSettings) {
+  cacheSetting(setting);
 }
-export async function setCurrentNewTabMode(newTabMode: NewTabMode) {
-  const parseResult = NewTabModeSchema.safeParse(newTabMode);
-  if (parseResult.success) {
-    const saveSuccess = await SettingsDataStore.set("newTabMode", newTabMode)
+
+// Export: Get Setting //
+export function getSettingValueById(settingId: string): SettingType["defaultValue"] {
+  return basicSettingsCurrentValues[settingId];
+}
+
+// Export: Set Setting //
+async function setSettingValue<T extends BasicSetting>(setting: T, value: unknown) {
+  if (validateSettingValue(setting, value)) {
+    const saveSuccess = await SettingsDataStore.set(setting.id, value)
       .then(() => true)
       .catch(() => false);
 
     if (saveSuccess) {
-      currentNewTabMode = newTabMode;
+      basicSettingsCurrentValues[setting.id] = value as T["defaultValue"];
       fireOnSettingsChanged();
       return true;
     }
@@ -43,38 +58,10 @@ export async function setCurrentNewTabMode(newTabMode: NewTabMode) {
   return false;
 }
 
-// Settings: Sidebar Collapse Mode //
-export const SidebarCollapseModeSchema = z.enum(["icon", "offcanvas"]);
-export type SidebarCollapseMode = z.infer<typeof SidebarCollapseModeSchema>;
-
-let currentSidebarCollapseMode: SidebarCollapseMode = "icon";
-
-async function cacheSidebarCollapseMode() {
-  // Use default value if error raised
-  const mode = await SettingsDataStore.get<SidebarCollapseMode>("sidebarCollapseMode").catch(() => null);
-
-  const parseResult = SidebarCollapseModeSchema.safeParse(mode);
-  if (parseResult.success) {
-    currentSidebarCollapseMode = parseResult.data;
-  }
-}
-cacheSidebarCollapseMode();
-
-export function getCurrentSidebarCollapseMode() {
-  return currentSidebarCollapseMode;
-}
-export async function setCurrentSidebarCollapseMode(newTabMode: SidebarCollapseMode) {
-  const parseResult = SidebarCollapseModeSchema.safeParse(newTabMode);
-  if (parseResult.success) {
-    const saveSuccess = await SettingsDataStore.set("sidebarCollapseMode", newTabMode)
-      .then(() => true)
-      .catch(() => false);
-
-    if (saveSuccess) {
-      currentSidebarCollapseMode = newTabMode;
-      fireOnSettingsChanged();
-      return true;
-    }
+export async function setSettingValueById(settingId: string, value: unknown) {
+  const setting = BasicSettings.find((setting) => setting.id === settingId);
+  if (setting) {
+    return setSettingValue(setting, value);
   }
   return false;
 }

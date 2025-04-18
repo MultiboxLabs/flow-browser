@@ -116,13 +116,16 @@ export const createSpacesMenu = async (browser: Browser, padding: number = 2): P
   const lastUsedSpace = await getLastUsedSpace();
 
   const spaceMenuItems = await Promise.all(
-    spaces.map((space, index) => createSpaceMenuItem(space, index, lastUsedSpace.id, padding))
+    spaces.map((space, index) => {
+      if (!lastUsedSpace) return null;
+      return createSpaceMenuItem(space, index, lastUsedSpace.id, padding);
+    })
   );
 
   return {
     label: "Spaces",
     submenu: [
-      ...spaceMenuItems,
+      ...spaceMenuItems.filter((item) => item !== null),
       { type: "separator" },
       {
         label: "Manage Spaces",

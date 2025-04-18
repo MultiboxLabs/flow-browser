@@ -16,8 +16,10 @@ export type SidebarSide = "left" | "right";
 
 function InternalBrowserUI({ isReady }: { isReady: boolean }) {
   const { open } = useSidebar();
-  const { sidebarCollapseMode } = useSettings();
+  const { getSetting } = useSettings();
   const { focusedTab, tabGroups } = useTabs();
+
+  const sidebarCollapseMode = getSetting<CollapseMode>("sidebarCollapseMode");
 
   const dynamicTitle: string | null = useMemo(() => {
     if (!focusedTab) return null;

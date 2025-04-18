@@ -67,5 +67,10 @@ export const settings = {
     } else {
       settings.show();
     }
+  },
+  sendMessage: (channel: string, ...args: any[]) => {
+    if (!settingsWindow) return;
+
+    settingsWindow.webContents.send(channel, ...args);
   }
 };

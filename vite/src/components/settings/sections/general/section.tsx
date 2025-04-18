@@ -1,6 +1,5 @@
+import { BasicSettingsCards } from "@/components/settings/sections/general/basic-settings-cards";
 import { ResetOnboardingCard } from "@/components/settings/sections/general/reset-onboarding-card";
-import { NewTabModeCard } from "./new-tab-mode-card";
-import { SidebarCollapseModeCard } from "@/components/settings/sections/general/sidebar-collapse-mode-card";
 
 export function GeneralSettings() {
   return (
@@ -10,8 +9,7 @@ export function GeneralSettings() {
         <p className="text-muted-foreground">Manage your browser's general settings</p>
       </div>
 
-      <NewTabModeCard />
-      <SidebarCollapseModeCard />
+      <BasicSettingsCards />
       <ResetOnboardingCard />
     </div>
   );

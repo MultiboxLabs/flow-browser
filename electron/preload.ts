@@ -3,7 +3,6 @@
 
 // IMPORTS //
 import { ProfileData } from "@/sessions/profiles";
-import { NewTabMode, SidebarCollapseMode } from "@/saving/settings";
 import { contextBridge, ipcRenderer } from "electron";
 import { injectBrowserAction } from "electron-chrome-extensions/browser-action";
 import { SpaceData } from "@/sessions/spaces";
@@ -276,14 +275,6 @@ const iconsAPI = {
 
 // NEW TAB API //
 const newTabAPI = {
-  getCurrentNewTabMode: async () => {
-    if (!checkCanUseAPI().app) return;
-    return ipcRenderer.invoke("new-tab-mode:get");
-  },
-  setCurrentNewTabMode: async (newTabMode: NewTabMode) => {
-    if (!checkCanUseAPI().app) return;
-    return ipcRenderer.invoke("new-tab-mode:set", newTabMode);
-  },
   open: () => {
     if (!checkCanUseAPI().app) return;
     return ipcRenderer.send("new-tab:open");
@@ -336,13 +327,17 @@ const settingsAPI = {
     if (!checkCanUseAPI().window) return;
     return ipcRenderer.send("settings:close");
   },
-  getSidebarCollapseMode: async () => {
+  getSetting: async (settingId: string) => {
     if (!checkCanUseAPI().window) return;
-    return ipcRenderer.invoke("settings:get-sidebar-collapse-mode");
+    return ipcRenderer.invoke("settings:get-setting", settingId);
   },
-  setSidebarCollapseMode: async (mode: SidebarCollapseMode) => {
+  setSetting: async (settingId: string, value: unknown) => {
     if (!checkCanUseAPI().window) return;
-    return ipcRenderer.invoke("settings:set-sidebar-collapse-mode", mode);
+    return ipcRenderer.invoke("settings:set-setting", settingId, value);
+  },
+  getBasicSettings: async () => {
+    if (!checkCanUseAPI().window) return;
+    return ipcRenderer.invoke("settings:get-basic-settings");
   },
   onSettingsChanged: (callback: () => void) => {
     if (!checkCanUseAPI().window) return;

@@ -247,6 +247,7 @@ function bypassCORS(session: Session) {
 
   session.webRequest.onHeadersReceived((details, callback) => {
     const currentUrl = details.webContents?.getURL();
+    // @ts-ignore: URL.parse should work, but tsc thinks it doesn't
     const protocol = URL.parse(currentUrl ?? "")?.protocol;
 
     if (protocol && WHITELISTED_PROTOCOLS.includes(protocol)) {

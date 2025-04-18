@@ -55,6 +55,7 @@ export async function fetchFromDevServer(path: string, request?: Request, port: 
   const url = new URL(`http://localhost:${port}/${path}`);
 
   if (request?.url) {
+    // @ts-ignore: URL.parse should work, but tsc thinks it doesn't
     const reqURL = URL.parse(request?.url);
     if (reqURL) {
       url.search = reqURL.search;

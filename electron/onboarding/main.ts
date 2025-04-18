@@ -75,5 +75,10 @@ export const onboarding = {
     } else {
       onboarding.show();
     }
+  },
+  sendMessage: (channel: string, ...args: any[]) => {
+    if (!onboardingWindow) return;
+
+    onboardingWindow.webContents.send(channel, ...args);
   }
 };

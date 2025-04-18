@@ -6,6 +6,7 @@ import { AboutSettings } from "@/components/settings/sections/about/section";
 import { ProfilesSettings } from "@/components/settings/sections/profiles/section";
 import { SpacesSettings } from "@/components/settings/sections/spaces/section";
 import { ExternalAppsSettings } from "@/components/settings/sections/external-apps/section";
+import { SettingsProvider } from "@/components/providers/settings-provider";
 
 export function SettingsLayout() {
   const [activeSection, setActiveSection] = useState("general");
@@ -44,11 +45,13 @@ export function SettingsLayout() {
   }, [activeSection, selectedProfileId, selectedSpaceId]);
 
   return (
-    <div className="select-none flex flex-col h-screen bg-background text-gray-600 dark:text-gray-300">
-      <SettingsTopbar activeSection={activeSection} setActiveSection={setActiveSection} />
-      <div className="flex-1 overflow-auto p-4 md:p-6">
-        <div className="mx-auto max-w-3xl">{ActiveSection}</div>
+    <SettingsProvider>
+      <div className="select-none flex flex-col h-screen bg-background text-gray-600 dark:text-gray-300">
+        <SettingsTopbar activeSection={activeSection} setActiveSection={setActiveSection} />
+        <div className="flex-1 overflow-auto p-4 md:p-6">
+          <div className="mx-auto max-w-3xl">{ActiveSection}</div>
+        </div>
       </div>
-    </div>
+    </SettingsProvider>
   );
 }

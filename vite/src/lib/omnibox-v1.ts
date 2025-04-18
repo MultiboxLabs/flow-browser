@@ -4,7 +4,8 @@ import { getURLFromInput } from "@/lib/url";
 import { createSearchUrl, getSearchSuggestions } from "./search";
 
 export async function getNewTabMode() {
-  return await flow.newTab.getCurrentNewTabMode();
+  // Replaced with a static value bc old function is removed.
+  return "omnibox";
 }
 
 /**

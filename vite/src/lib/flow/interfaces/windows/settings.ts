@@ -1,5 +1,4 @@
-export type NewTabMode = "omnibox" | "tab";
-export type SidebarCollapseMode = "icon" | "offcanvas";
+import type { BasicSetting, BasicSettingCard } from "~/types/settings";
 
 // API //
 export interface FlowSettingsAPI {
@@ -14,17 +13,24 @@ export interface FlowSettingsAPI {
   close: () => void;
 
   /**
-   * Gets the current sidebar collapse mode
+   * Gets the value of a setting
    */
-  getSidebarCollapseMode: () => Promise<SidebarCollapseMode>;
+  getSetting<T extends BasicSetting>(settingId: string): Promise<T["defaultValue"]>;
 
   /**
-   * Sets the current sidebar collapse mode
+   * Sets the value of a setting
    */
-  setSidebarCollapseMode: (mode: SidebarCollapseMode) => Promise<void>;
+  setSetting: (settingId: string, value: unknown) => Promise<boolean>;
 
   /**
-   * Listens for changes to the settings
+   * Gets the basic settings and cards
    */
+  getBasicSettings: () => Promise<{
+    settings: BasicSetting[];
+    cards: BasicSettingCard[];
+  }>;
+
+  /**
+   * Listens for changes to the settings */
   onSettingsChanged: (callback: () => void) => () => void;
 }

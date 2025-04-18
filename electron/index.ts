@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, MenuItem } from "electron";
+import { app, BrowserWindow, Menu, MenuItem } from "electron";
 import { Browser } from "@/browser/browser";
 import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 import "@/ipc/main";

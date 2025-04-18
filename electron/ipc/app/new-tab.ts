@@ -1,22 +1,14 @@
 import { hideOmnibox, isOmniboxOpen, loadOmnibox, setOmniboxBounds, showOmnibox } from "@/browser/components/omnibox";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { browser } from "@/index";
-import { NewTabMode, getCurrentNewTabMode, setCurrentNewTabMode } from "@/saving/settings";
+import { getSettingValueById } from "@/saving/settings";
 import { getSpace } from "@/sessions/spaces";
 import { ipcMain } from "electron";
-
-ipcMain.handle("new-tab-mode:get", () => {
-  return getCurrentNewTabMode();
-});
-
-ipcMain.handle("new-tab-mode:set", (_, newTabMode: NewTabMode) => {
-  return setCurrentNewTabMode(newTabMode);
-});
 
 export function openNewTab(tabbedBrowserWindow: TabbedBrowserWindow) {
   const browserWindow = tabbedBrowserWindow.window;
 
-  if (getCurrentNewTabMode() === "omnibox") {
+  if (getSettingValueById("newTabMode") === "omnibox") {
     if (isOmniboxOpen(browserWindow)) {
       hideOmnibox(browserWindow);
     } else {
