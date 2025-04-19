@@ -1,6 +1,5 @@
 import { Browser } from "@/browser/browser";
 import { Tab } from "@/browser/tabs/tab";
-import { TabbedBrowserWindow } from "@/browser/window";
 import { browser } from "@/index";
 import { getTabData } from "@/ipc/browser/tabs";
 import { ArchiveTabValueMap } from "@/modules/basic-settings";
@@ -11,6 +10,8 @@ import { TabData } from "~/types/tabs";
 
 const TabsDataStore = getDatastore("tabs");
 const TabGroupsDataStore = getDatastore("tabgroups");
+
+// TODO: Persist tab groups?
 
 export async function persistTabToStorage(tab: Tab) {
   const window = tab.getWindow();
