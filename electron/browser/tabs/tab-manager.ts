@@ -5,6 +5,7 @@ import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
 import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
 import { windowTabsChanged } from "@/ipc/browser/tabs";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
+import { shouldArchiveTab } from "@/saving/tabs";
 import { getLastUsedSpace, getLastUsedSpaceFromProfile } from "@/sessions/spaces";
 import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
@@ -72,6 +73,19 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
 
     this.on("tab-removed", (tab) => {
       windowTabsChanged(tab.getWindow().id);
+    });
+
+    // Archive tabs over their lifetime
+    const interval = setInterval(() => {
+      for (const tab of this.tabs.values()) {
+        if (!tab.visible && shouldArchiveTab(tab.lastActiveAt)) {
+          tab.destroy();
+        }
+      }
+    }, 1000);
+
+    this.on("destroyed", () => {
+      clearInterval(interval);
     });
   }
 

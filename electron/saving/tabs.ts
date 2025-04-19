@@ -39,6 +39,17 @@ export async function removeTabDataFromStorage(tabData: TabData) {
   return await removeTabFromStorageById(uniqueId);
 }
 
+export function shouldArchiveTab(lastActiveAt: number) {
+  const archiveTabAfter = getSettingValueById("archiveTabAfter");
+  const archiveTabAfterSeconds = ArchiveTabValueMap[archiveTabAfter as keyof typeof ArchiveTabValueMap];
+
+  if (typeof archiveTabAfterSeconds !== "number") return false;
+
+  const now = Math.floor(Date.now() / 1000);
+  const diff = now - lastActiveAt;
+  return diff > archiveTabAfterSeconds;
+}
+
 export async function loadTabsFromStorage() {
   const tabs: { [uniqueId: string]: TabData } = await TabsDataStore.getFullData();
 
@@ -49,9 +60,7 @@ export async function loadTabsFromStorage() {
     .map(([, tabData]) => {
       if (typeof tabData.lastActiveAt === "number") {
         const lastActiveAt = tabData.lastActiveAt;
-        const now = Math.floor(Date.now() / 1000);
-        const diff = now - lastActiveAt;
-        if (diff > archiveTabAfterSeconds) {
+        if (shouldArchiveTab(lastActiveAt)) {
           removeTabDataFromStorage(tabData);
           return null;
         }

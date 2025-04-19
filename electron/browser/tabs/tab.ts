@@ -224,11 +224,6 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       this.updateStateProperty("faviconURL", faviconURL);
     }
 
-    // Put to sleep if requested
-    if (asleep) {
-      this.putToSleep();
-    }
-
     // Set creation time
     this.createdAt = Math.floor(Date.now() / 1000);
     this.lastActiveAt = this.createdAt;
@@ -236,6 +231,13 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     // Setup window
     this.setWindow(window);
     this.window = window;
+
+    // Put to sleep if requested
+    setImmediate(() => {
+      if (asleep) {
+        this.putToSleep();
+      }
+    });
 
     // Set window open handler
     this.webContents.setWindowOpenHandler((details) => {
@@ -666,7 +668,8 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     const { visible, window, tabManager } = this;
 
     // Ensure visibility is updated first
-    if (this.view.getVisible() !== visible) {
+    const wasVisible = this.view.getVisible();
+    if (wasVisible !== visible) {
       this.view.setVisible(visible);
 
       // Enter / Exit Picture in Picture mode
@@ -739,10 +742,13 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       }
     }
 
-    if (!visible) return;
+    // Update last active at if the tab was just hidden or is showing
+    const justHidden = wasVisible && !visible;
+    if (justHidden || visible) {
+      this.updateStateProperty("lastActiveAt", Math.floor(Date.now() / 1000));
+    }
 
-    // Update last active at
-    this.updateStateProperty("lastActiveAt", Math.floor(Date.now() / 1000));
+    if (!visible) return;
 
     // Automatically wake tab up if it is asleep
     this.wakeUp();
