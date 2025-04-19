@@ -87,7 +87,8 @@ async function createTabsFromTabDatas(browser: Browser, tabDatas: TabData[]) {
         navHistory: tabData.navHistory,
         navHistoryIndex: tabData.navHistoryIndex,
         uniqueId: tabData.uniqueId,
-        title: tabData.title
+        title: tabData.title,
+        faviconURL: tabData.faviconURL || undefined
       });
     }
   }

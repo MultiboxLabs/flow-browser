@@ -18,6 +18,8 @@ const GLANCE_FRONT_ZINDEX = 3;
 const TAB_ZINDEX = 2;
 const GLANCE_BACK_ZINDEX = 0;
 
+export const SLEEP_MODE_URL = "about:blank?sleep=true";
+
 // Interfaces and Types
 interface PatchedWebContentsView extends WebContentsView {
   destroy: () => void;
@@ -60,6 +62,7 @@ export interface TabCreationOptions {
 
   // Old States to be restored
   title?: string;
+  faviconURL?: string;
   navHistory?: NavigationEntry[];
   navHistoryIndex?: number;
 }
@@ -176,6 +179,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
       // Old States to be restored
       title,
+      faviconURL,
       navHistory = [],
       navHistoryIndex,
       uniqueId
@@ -203,9 +207,13 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       });
     }
 
-    // Restore title
+    // Restore states
     if (title) {
       this.title = title;
+    }
+
+    if (faviconURL) {
+      this.updateStateProperty("faviconURL", faviconURL);
     }
 
     // Put to sleep if requested
@@ -430,6 +438,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     this[property] = newValue;
     this.emit("updated", [property]);
+    this.saveTabToStorage();
     return true;
   }
 
@@ -500,13 +509,6 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   }
 
   /**
-   * Restores the tab state for the WebContents
-   */
-  public restoreTabState() {
-    this.loadURL(this.url, true);
-  }
-
-  /**
    * Puts the tab to sleep
    */
   public putToSleep() {
@@ -518,7 +520,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.updateTabState();
 
     // Load about:blank to save resources
-    this.loadURL("about:blank", true);
+    this.loadURL(SLEEP_MODE_URL);
   }
 
   /**
@@ -528,7 +530,13 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     if (!this.asleep) return;
 
     // Load the URL to wake up the tab
-    this.restoreTabState();
+    const navigationHistory = this.webContents.navigationHistory;
+
+    const activeIndex = navigationHistory.getActiveIndex();
+    const currentEntry = navigationHistory.getEntryAtIndex(activeIndex);
+    if (currentEntry && currentEntry.url === SLEEP_MODE_URL && navigationHistory.canGoBack()) {
+      navigationHistory.goBack();
+    }
 
     this.updateStateProperty("asleep", false);
   }

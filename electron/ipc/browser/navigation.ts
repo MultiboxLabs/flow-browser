@@ -1,3 +1,4 @@
+import { SLEEP_MODE_URL } from "@/browser/tabs/tab";
 import { browser } from "@/index";
 import { ipcMain } from "electron";
 
@@ -38,11 +39,16 @@ ipcMain.handle("navigation:get-tab-status", async (event, tabId: number) => {
   const navigationHistory = tabWebContents?.navigationHistory;
   if (!navigationHistory) return null;
 
+  const entries = navigationHistory.getAllEntries().filter((entry) => entry.url !== SLEEP_MODE_URL);
+  const activeIndex = navigationHistory.getActiveIndex();
+  const canGoBack = navigationHistory.canGoBack() && activeIndex - 1 >= 0;
+  const canGoForward = navigationHistory.canGoForward() && activeIndex + 1 < entries.length;
+
   return {
-    navigationHistory: navigationHistory.getAllEntries(),
-    activeIndex: navigationHistory.getActiveIndex(),
-    canGoBack: navigationHistory.canGoBack(),
-    canGoForward: navigationHistory.canGoForward()
+    navigationHistory: entries,
+    activeIndex,
+    canGoBack,
+    canGoForward
   };
 });
 
