@@ -107,7 +107,6 @@ export async function createInitialWindow() {
   await app.whenReady();
 
   const tabs = await loadTabsFromStorage();
-  // await wipeTabsFromStorage();
   if (tabs.length > 0) {
     await createTabsFromTabDatas(browser, tabs);
   } else {

@@ -11,6 +11,7 @@ import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
 
 export const NEW_TAB_URL = "flow://new-tab";
+const ARCHIVE_CHECK_INTERVAL_MS = 10 * 1000;
 
 type TabManagerEvents = {
   "tab-created": [Tab];
@@ -82,7 +83,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
           tab.destroy();
         }
       }
-    }, 1000);
+    }, ARCHIVE_CHECK_INTERVAL_MS);
 
     this.on("destroyed", () => {
       clearInterval(interval);

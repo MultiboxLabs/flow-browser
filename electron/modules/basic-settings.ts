@@ -3,6 +3,10 @@
 
 import type { BasicSetting, BasicSettingCard } from "~/types/settings";
 
+/**
+ * Maps archive tab duration settings to their equivalent values in seconds.
+ * 'never' is mapped to Infinity.
+ */
 export const ArchiveTabValueMap = {
   "12h": 12 * 60 * 60,
   "24h": 24 * 60 * 60,
