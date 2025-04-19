@@ -547,6 +547,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     const currentEntry = navigationHistory.getEntryAtIndex(activeIndex);
     if (currentEntry && currentEntry.url === SLEEP_MODE_URL && navigationHistory.canGoBack()) {
       navigationHistory.goBack();
+      setTimeout(() => {
+        navigationHistory.removeEntryAtIndex(activeIndex);
+      }, 100);
     }
 
     this.updateStateProperty("asleep", false);

@@ -53,9 +53,6 @@ export function shouldArchiveTab(lastActiveAt: number) {
 export async function loadTabsFromStorage() {
   const tabs: { [uniqueId: string]: TabData } = await TabsDataStore.getFullData();
 
-  const archiveTabAfter = getSettingValueById("archiveTabAfter");
-  const archiveTabAfterSeconds = ArchiveTabValueMap[archiveTabAfter as keyof typeof ArchiveTabValueMap];
-
   const filteredTabs = Object.entries(tabs)
     .map(([, tabData]) => {
       if (typeof tabData.lastActiveAt === "number") {
