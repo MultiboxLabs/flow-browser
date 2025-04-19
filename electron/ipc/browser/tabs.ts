@@ -11,6 +11,7 @@ export function getTabData(tab: Tab): TabData {
     id: tab.id,
     uniqueId: tab.uniqueId,
     createdAt: tab.createdAt,
+    lastActiveAt: tab.lastActiveAt,
 
     profileId: tab.profileId,
     spaceId: tab.spaceId,

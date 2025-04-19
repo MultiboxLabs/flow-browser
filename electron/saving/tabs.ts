@@ -47,10 +47,10 @@ export async function loadTabsFromStorage() {
 
   const filteredTabs = Object.entries(tabs)
     .map(([, tabData]) => {
-      if (typeof tabData.createdAt === "number") {
-        const createdAt = tabData.createdAt;
+      if (typeof tabData.lastActiveAt === "number") {
+        const lastActiveAt = tabData.lastActiveAt;
         const now = Math.floor(Date.now() / 1000);
-        const diff = now - createdAt;
+        const diff = now - lastActiveAt;
         if (diff > archiveTabAfterSeconds) {
           removeTabDataFromStorage(tabData);
           return null;

@@ -25,7 +25,14 @@ interface PatchedWebContentsView extends WebContentsView {
   destroy: () => void;
 }
 
-type TabStateProperty = "visible" | "isDestroyed" | "faviconURL" | "fullScreen" | "isPictureInPicture" | "asleep";
+type TabStateProperty =
+  | "visible"
+  | "isDestroyed"
+  | "faviconURL"
+  | "fullScreen"
+  | "isPictureInPicture"
+  | "asleep"
+  | "lastActiveAt";
 type TabContentProperty = "title" | "url" | "isLoading" | "audible" | "muted" | "navHistory" | "navHistoryIndex";
 
 type TabPublicProperty = TabStateProperty | TabContentProperty;
@@ -117,6 +124,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public isPictureInPicture: boolean = false;
   public asleep: boolean = false;
   public createdAt: number;
+  public lastActiveAt: number;
 
   // Content properties (From WebContents)
   public title: string = "New Tab";
@@ -223,6 +231,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     // Set creation time
     this.createdAt = Math.floor(Date.now() / 1000);
+    this.lastActiveAt = this.createdAt;
 
     // Setup window
     this.setWindow(window);
@@ -731,6 +740,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     }
 
     if (!visible) return;
+
+    // Update last active at
+    this.updateStateProperty("lastActiveAt", Math.floor(Date.now() / 1000));
 
     // Automatically wake tab up if it is asleep
     this.wakeUp();

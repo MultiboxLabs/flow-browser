@@ -9,6 +9,7 @@ export type TabData = {
   id: number;
   uniqueId: string;
   createdAt: number;
+  lastActiveAt: number;
 
   profileId: string;
   spaceId: string;
