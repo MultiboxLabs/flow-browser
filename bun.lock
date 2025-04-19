@@ -13,7 +13,6 @@
       "dependencies": {
         "@phosphor-icons/core": "^2.1.1",
         "better-sqlite3": "^11.9.1",
-        "electron-chrome-context-menu": "npm:@iamevan/electron-chrome-context-menu@1.1.0",
         "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.6.9",
         "electron-chrome-web-store": "npm:@iamevan/electron-chrome-web-store@0.10.0",
         "electron-context-menu": "^4.0.5",
@@ -958,8 +957,6 @@
     "ee-first": ["ee-first@1.1.1", "", {}, "sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow=="],
 
     "electron": ["electron@35.2.0", "", { "dependencies": { "@electron/get": "^2.0.0", "@types/node": "^22.7.7", "extract-zip": "^2.0.1" }, "bin": { "electron": "cli.js" } }, "sha512-GHda7oCkN0pA23qzah735DEbRa06IPwlzP3uvjAmf9af8gxdj5i93JEHeQVGVmSVpd7sSb1pfecs9nz7B1q5ag=="],
-
-    "electron-chrome-context-menu": ["@iamevan/electron-chrome-context-menu@1.1.0", "", { "peerDependencies": { "electron": ">=9.0.0" } }, "sha512-p0UIEKBfwvMT6qd1uwwBKyX80fkMb+HBOSyKoQv0VHOqDHy7ij5U9P0UytD1iEhCujtUP2UMDDmJxcdZE+brFA=="],
 
     "electron-chrome-extensions": ["@iamevan/electron-chrome-extensions@4.6.9", "", { "dependencies": { "debug": "^4.3.1" } }, "sha512-jPhKm4eFpyM/htVC+XoYWfgBnUZIt2KQVpu1C9FU8B+6YjWT6Q2N292uHrVwmxyBGh5O8o9ZoH5WdhWi/rlOZA=="],
 
