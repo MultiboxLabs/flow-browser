@@ -33,7 +33,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
   public omnibox: Omnibox;
 
   private browser: Browser;
-  private readonly type: BrowserWindowType;
+  public readonly type: BrowserWindowType;
   private pageBounds: PageBounds;
   private currentSpaceId: string | null = null;
 

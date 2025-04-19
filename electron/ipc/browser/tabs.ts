@@ -10,8 +10,12 @@ export function getTabData(tab: Tab): TabData {
   return {
     id: tab.id,
     uniqueId: tab.uniqueId,
+    createdAt: tab.createdAt,
+
     profileId: tab.profileId,
     spaceId: tab.spaceId,
+    windowId: tab.getWindow().id,
+
     title: tab.title,
     url: tab.url,
     isLoading: tab.isLoading,
@@ -21,7 +25,9 @@ export function getTabData(tab: Tab): TabData {
     isPictureInPicture: tab.isPictureInPicture,
     faviconURL: tab.faviconURL,
     asleep: tab.asleep,
-    navHistory: tab.navHistory
+
+    navHistory: tab.navHistory,
+    navHistoryIndex: tab.navHistoryIndex
   };
 }
 

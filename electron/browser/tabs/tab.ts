@@ -11,6 +11,7 @@ import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { NavigationEntry, Rectangle, Session, WebContents, WebContentsView, WebPreferences } from "electron";
 import { createTabContextMenu } from "@/browser/tabs/tab-context-menu";
 import { generateID } from "@/browser/utility/utils";
+import { persistTabToStorage, removeTabFromStorage } from "@/saving/tabs";
 
 // Configuration
 const GLANCE_FRONT_ZINDEX = 3;
@@ -23,7 +24,7 @@ interface PatchedWebContentsView extends WebContentsView {
 }
 
 type TabStateProperty = "visible" | "isDestroyed" | "faviconURL" | "fullScreen" | "isPictureInPicture" | "asleep";
-type TabContentProperty = "title" | "url" | "isLoading" | "audible" | "muted" | "navHistory";
+type TabContentProperty = "title" | "url" | "isLoading" | "audible" | "muted" | "navHistory" | "navHistoryIndex";
 
 type TabPublicProperty = TabStateProperty | TabContentProperty;
 
@@ -49,12 +50,18 @@ interface TabCreationDetails {
   session: Session;
 }
 
-interface TabCreationOptions {
-  uniqueId: string;
+export interface TabCreationOptions {
+  uniqueId?: string;
   window: TabbedBrowserWindow;
   webContentsViewOptions?: Electron.WebContentsViewConstructorOptions;
-  navHistory?: NavigationEntry[];
+
+  // Options
   asleep?: boolean;
+
+  // Old States to be restored
+  title?: string;
+  navHistory?: NavigationEntry[];
+  navHistoryIndex?: number;
 }
 
 function createWebContentsView(
@@ -115,6 +122,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public audible: boolean = false;
   public muted: boolean = false;
   public navHistory: NavigationEntry[] = [];
+  public navHistoryIndex: number = 0;
 
   // View & content objects
   public readonly view: PatchedWebContentsView;
@@ -159,7 +167,19 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.bounds = new TabBoundsController(this);
 
     // Create Options
-    const { window, webContentsViewOptions = {}, navHistory = [], asleep = false, uniqueId } = options;
+    const {
+      window,
+      webContentsViewOptions = {},
+
+      // Options
+      asleep = false,
+
+      // Old States to be restored
+      title,
+      navHistory = [],
+      navHistoryIndex,
+      uniqueId
+    } = options;
 
     if (!uniqueId) {
       this.uniqueId = generateID();
@@ -175,10 +195,17 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.webContents = webContents;
 
     // Restore navigation history
-    if (navHistory.length > 0) {
+    const restoreNavHistory = navHistory.length > 0;
+    if (restoreNavHistory) {
       this.webContents.navigationHistory.restore({
-        entries: navHistory
+        entries: navHistory,
+        index: navHistoryIndex
       });
+    }
+
+    // Restore title
+    if (title) {
+      this.title = title;
     }
 
     // Put to sleep if requested
@@ -216,7 +243,17 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.setupEventListeners();
 
     // Load new tab URL
-    this.loadURL(NEW_TAB_URL);
+    if (!restoreNavHistory) {
+      this.loadURL(NEW_TAB_URL);
+    }
+  }
+
+  /**
+   * Saves the tab to storage
+   */
+  public async saveTabToStorage() {
+    if (this.isDestroyed) return;
+    return persistTabToStorage(this);
   }
 
   private setFullScreen(isFullScreen: boolean) {
@@ -448,8 +485,15 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       changedKeys.push("navHistory");
     }
 
+    const newNavHistoryIndex = webContents.navigationHistory.getActiveIndex();
+    if (newNavHistoryIndex !== this.navHistoryIndex) {
+      this.navHistoryIndex = newNavHistoryIndex;
+      changedKeys.push("navHistoryIndex");
+    }
+
     if (changedKeys.length > 0) {
       this.emit("updated", changedKeys);
+      this.saveTabToStorage();
       return true;
     }
     return false;
@@ -807,6 +851,8 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     if (this.fullScreen) {
       this.window.window.setFullScreen(false);
     }
+
+    removeTabFromStorage(this);
 
     this.destroyEmitter();
   }

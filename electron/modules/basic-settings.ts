@@ -3,6 +3,14 @@
 
 import type { BasicSetting, BasicSettingCard } from "~/types/settings";
 
+export const ArchiveTabValueMap = {
+  "12h": 12 * 60 * 60,
+  "24h": 24 * 60 * 60,
+  "7d": 7 * 24 * 60 * 60,
+  "30d": 30 * 24 * 60 * 60,
+  never: Infinity
+};
+
 export const BasicSettings: BasicSetting[] = [
   // New Tab Mode
   {

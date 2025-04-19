@@ -8,8 +8,12 @@ export type NavigationEntry = {
 export type TabData = {
   id: number;
   uniqueId: string;
+  createdAt: number;
+
   profileId: string;
   spaceId: string;
+  windowId: number;
+
   title: string;
   url: string;
   isLoading: boolean;
@@ -19,7 +23,9 @@ export type TabData = {
   isPictureInPicture: boolean;
   faviconURL: string | null;
   asleep: boolean;
+
   navHistory: NavigationEntry[];
+  navHistoryIndex: number;
 };
 
 export type TabGroupData = {

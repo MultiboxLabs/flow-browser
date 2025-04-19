@@ -5,6 +5,7 @@ import "@/ipc/main";
 import "@/settings/main";
 import { hasCompletedOnboarding } from "@/saving/onboarding";
 import { onboarding } from "@/onboarding/main";
+import { createInitialWindow } from "@/saving/tabs";
 
 export let browser: Browser | null = null;
 
@@ -135,7 +136,7 @@ function initializeApp() {
     if (!completed) {
       onboarding.show();
     } else {
-      browser?.createWindow();
+      createInitialWindow();
     }
   });
 

@@ -1,5 +1,5 @@
 import { Browser } from "@/browser/browser";
-import { Tab } from "@/browser/tabs/tab";
+import { Tab, TabCreationOptions } from "@/browser/tabs/tab";
 import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
 import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
 import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
@@ -82,7 +82,8 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     windowId: number,
     profileId?: string,
     spaceId?: string,
-    webContentsViewOptions?: Electron.WebContentsViewConstructorOptions
+    webContentsViewOptions?: Electron.WebContentsViewConstructorOptions,
+    tabCreationOptions: Partial<TabCreationOptions> = {}
   ) {
     if (this.isDestroyed) {
       throw new Error("TabManager has been destroyed");
@@ -116,7 +117,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     await browser.loadProfile(profileId);
 
     // Create tab
-    return this.internalCreateTab(windowId, profileId, spaceId, webContentsViewOptions);
+    return this.internalCreateTab(windowId, profileId, spaceId, webContentsViewOptions, tabCreationOptions);
   }
 
   /**
@@ -127,7 +128,8 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     windowId: number,
     profileId: string,
     spaceId: string,
-    webContentsViewOptions?: Electron.WebContentsViewConstructorOptions
+    webContentsViewOptions?: Electron.WebContentsViewConstructorOptions,
+    tabCreationOptions: Partial<TabCreationOptions> = {}
   ) {
     if (this.isDestroyed) {
       throw new Error("TabManager has been destroyed");
@@ -160,7 +162,8 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
       },
       {
         window: window,
-        webContentsViewOptions
+        webContentsViewOptions,
+        ...tabCreationOptions
       }
     );
 
