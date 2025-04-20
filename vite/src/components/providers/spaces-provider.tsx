@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import type { Space } from "../../lib/flow/interfaces/sessions/spaces";
 import { hexToOKLCHString } from "@/lib/colors";
 import { hex_is_light } from "@/lib/utils";
+import { WindowType } from "@/components/browser-ui/main";
 
 interface SpacesContextValue {
   spaces: Space[];
@@ -23,10 +24,11 @@ export const useSpaces = () => {
 };
 
 interface SpacesProviderProps {
+  windowType: WindowType;
   children: React.ReactNode;
 }
 
-export const SpacesProvider = ({ children }: SpacesProviderProps) => {
+export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) => {
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [currentSpace, setCurrentSpace] = useState<Space | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,6 +64,9 @@ export const SpacesProvider = ({ children }: SpacesProviderProps) => {
 
   const handleSetCurrentSpace = useCallback(
     async (spaceId: string) => {
+      // Do not allow switching spaces in popup windows
+      if (windowType === "popup" && currentSpace) return;
+
       if (!flow) return;
       const space = spaces.find((s) => s.id === spaceId);
       if (!space) return;
@@ -75,7 +80,7 @@ export const SpacesProvider = ({ children }: SpacesProviderProps) => {
         console.error("Failed to set current space:", error);
       }
     },
-    [spaces, currentSpace]
+    [spaces, currentSpace, windowType]
   );
 
   useEffect(() => {

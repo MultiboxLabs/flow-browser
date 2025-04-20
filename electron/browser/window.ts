@@ -45,8 +45,8 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     super();
 
     this.window = new BrowserWindow({
-      minWidth: 800,
-      minHeight: 400,
+      minWidth: type === "normal" ? 800 : 250,
+      minHeight: type === "normal" ? 400 : 200,
       width: 1280,
       height: 720,
       titleBarStyle: "hidden",
@@ -75,7 +75,13 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       show: false
     });
 
-    this.window.maximize();
+    const windowOptions = options.window || {};
+    const hasSizeOptions = "width" in windowOptions || "height" in windowOptions;
+    const hasPositionOptions = "x" in windowOptions || "y" in windowOptions;
+
+    if (!hasSizeOptions && !hasPositionOptions) {
+      this.window.maximize();
+    }
 
     this.window.on("enter-full-screen", () => {
       this.emit("enter-full-screen");

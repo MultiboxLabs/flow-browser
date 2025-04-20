@@ -161,10 +161,8 @@ function createNavigationItems(
 function createExtensionItems(tab: Tab, parameters: Electron.ContextMenuParams): Electron.MenuItemConstructorOptions[] {
   // TODO: Add extension items
   const extensions = tab.loadedProfile.extensions;
-  // @ts-expect-error: aaaaa
+  // @ts-expect-error: ts error, but still works
   const items: Electron.MenuItemConstructorOptions[] = extensions.getContextMenuItems(tab.webContents, parameters);
-
-  console.log("createExtensionItems", items);
   return items;
 }
 
