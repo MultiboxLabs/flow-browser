@@ -21,7 +21,7 @@
   "dependencies": {
     "@phosphor-icons/core": "^2.1.1",
     "better-sqlite3": "^11.9.1",
-    "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.7.1",
+    "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.7.2",
     "electron-chrome-web-store": "npm:@iamevan/electron-chrome-web-store@0.11.1",
     "electron-context-menu": "^4.0.5",
     "electron-squirrel-startup": "^1.0.1",

@@ -1,4 +1,4 @@
-import { app, dialog, Session } from "electron";
+import { app, BrowserWindow, dialog, Session } from "electron";
 import { getSession } from "@/browser/sessions";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getProfile, getProfilePath, ProfileData } from "@/sessions/profiles";
@@ -10,6 +10,7 @@ import { NEW_TAB_URL } from "@/browser/tabs/tab-manager";
 import { installChromeWebStore } from "electron-chrome-web-store";
 import path from "path";
 import { setWindowSpace } from "@/ipc/session/spaces";
+import { registerWindow, WindowType } from "@/modules/windows";
 
 /**
  * Represents a loaded browser profile
@@ -21,6 +22,20 @@ export type LoadedProfile = {
   readonly extensions: ElectronChromeExtensions;
   newTabUrl: string;
   unload: () => void;
+};
+
+type PopupView = {
+  readonly POSITION_PADDING: number;
+  readonly BOUNDS: {
+    minWidth: number;
+    minHeight: number;
+    maxWidth: number;
+    maxHeight: number;
+  };
+
+  browserWindow?: BrowserWindow;
+  parent?: Electron.BaseWindow;
+  extensionId: string;
 };
 
 /**
@@ -101,34 +116,6 @@ export class ProfileManager {
       const profileSession = getSession(profileId);
       const profilePath = getProfilePath(profileId);
 
-      // Install Chrome web store and wait for extensions to load
-      await installChromeWebStore({
-        session: profileSession,
-        extensionsPath: path.join(profilePath, "Extensions"),
-        beforeInstall: async (details) => {
-          if (!details.browserWindow || details.browserWindow.isDestroyed()) {
-            return { action: "deny" };
-          }
-
-          const title = `Add “${details.localizedName}”?`;
-
-          let message = `${title}`;
-          if (details.manifest.permissions) {
-            const permissions = (details.manifest.permissions || []).join(", ");
-            message += `\n\nPermissions: ${permissions}`;
-          }
-
-          const returnValue = await dialog.showMessageBox(details.browserWindow, {
-            title,
-            message,
-            icon: details.icon,
-            buttons: ["Cancel", "Add Extension"]
-          });
-
-          return { action: returnValue.response === 0 ? "deny" : "allow" };
-        }
-      });
-
       // Remove Electron and App details to closer emulate Chrome's UA
       if (FLAGS.SCRUBBED_USER_AGENT) {
         const userAgent = profileSession
@@ -162,6 +149,9 @@ export class ProfileManager {
           const window = windowId ? this.browser.getWindowById(windowId) : undefined;
 
           const tab = await tabManager.createTab(window?.id, profileId, undefined);
+          if (tabDetails.url) {
+            tab.loadURL(tabDetails.url);
+          }
           if (tabDetails.active) {
             tabManager.setActiveTab(tab);
           }
@@ -182,7 +172,7 @@ export class ProfileManager {
           const tab = tabManager.getTabByWebContents(tabWebContents);
           if (!tab) return;
 
-          tabManager.removeTab(tab);
+          tab.destroy();
         },
 
         // Windows
@@ -198,8 +188,14 @@ export class ProfileManager {
         }
       });
 
-      extensions.on("browser-action-popup-created", (popup) => {
-        console.log("browser-action-popup-created", popup);
+      extensions.on("browser-action-popup-created", (popup: PopupView) => {
+        if (popup.browserWindow) {
+          registerWindow(
+            WindowType.EXTENSION_POPUP,
+            `${popup.extensionId}-${popup.browserWindow.id}`,
+            popup.browserWindow
+          );
+        }
       });
 
       extensions.on("url-overrides-updated", (urlOverrides: { newtab?: string }) => {
@@ -208,6 +204,35 @@ export class ProfileManager {
         }
       });
 
+      // Install Chrome web store and wait for extensions to load
+      await installChromeWebStore({
+        session: profileSession,
+        extensionsPath: path.join(profilePath, "Extensions"),
+        beforeInstall: async (details) => {
+          if (!details.browserWindow || details.browserWindow.isDestroyed()) {
+            return { action: "deny" };
+          }
+
+          const title = `Add “${details.localizedName}”?`;
+
+          let message = `${title}`;
+          if (details.manifest.permissions) {
+            const permissions = (details.manifest.permissions || []).join(", ");
+            message += `\n\nPermissions: ${permissions}`;
+          }
+
+          const returnValue = await dialog.showMessageBox(details.browserWindow, {
+            title,
+            message,
+            icon: details.icon,
+            buttons: ["Cancel", "Add Extension"]
+          });
+
+          return { action: returnValue.response === 0 ? "deny" : "allow" };
+        }
+      });
+
+      // Create the loaded profile object
       const newProfile: LoadedProfile = {
         profileId,
         profileData,

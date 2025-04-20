@@ -911,7 +911,10 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.bounds.destroy();
 
     this.removeViewFromWindow();
-    this.webContents.close();
+
+    if (!this.webContents.isDestroyed()) {
+      this.webContents.close();
+    }
 
     if (this.fullScreen && !this.window.window.isDestroyed()) {
       this.window.window.setFullScreen(false);
@@ -919,8 +922,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     removeTabFromStorage(this);
 
-    const extensions = this.loadedProfile.extensions;
-    extensions.removeTab(this.webContents);
+    // Should be automatically removed when the webContents is destroyed
+    // const extensions = this.loadedProfile.extensions;
+    // extensions.removeTab(this.webContents);
 
     this.destroyEmitter();
   }

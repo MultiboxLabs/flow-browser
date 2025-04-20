@@ -67,6 +67,10 @@ function createSession(profileId: string) {
   return profileSession;
 }
 
+export function getSessionWithoutCreating(profileId: string): Session | undefined {
+  return sessions.get(profileId);
+}
+
 export function getSession(profileId: string): Session {
   if (!sessions.has(profileId)) {
     const newSession = createSession(profileId);

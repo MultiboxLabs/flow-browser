@@ -13,6 +13,7 @@ const mainWindows: WindowData[] = [];
 
 export enum WindowType {
   BROWSER = "browser",
+  EXTENSION_POPUP = "extension-popup",
   SETTINGS = "settings",
   ONBOARDING = "onboarding"
 }
