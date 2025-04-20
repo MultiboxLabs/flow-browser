@@ -58,15 +58,16 @@ type BrowserActionIconProps = {
   action: Action;
   activeTabId: number;
   tabInfo: ExtensionAction | null;
+  partitionId: string;
 };
-function BrowserActionIcon({ action, activeTabId, tabInfo }: BrowserActionIconProps) {
+function BrowserActionIcon({ action, activeTabId, tabInfo, partitionId }: BrowserActionIconProps) {
   const { iconModified } = { ...action, ...tabInfo };
 
   const [isError, setIsError] = useState(false);
   const iconSize = 32;
   const resizeType = 2;
   const timeParam = iconModified ? `&t=${iconModified}` : "";
-  const iconUrl = `crx://extension-icon/${action.id}/${iconSize}/${resizeType}?tabId=${activeTabId}${timeParam}`;
+  const iconUrl = `crx://extension-icon/${action.id}/${iconSize}/${resizeType}?tabId=${activeTabId}${timeParam}&partition=${encodeURIComponent(partitionId)}`;
 
   if (isError) {
     return <PuzzleIcon />;
@@ -160,7 +161,7 @@ function BrowserAction({ action, alignment, partition, activeTabId }: BrowserAct
   return (
     <div className="flex flex-row justify-between gap-0.5">
       <SidebarMenuButton id={action.id} ref={buttonRef} onClick={onClick} onContextMenu={onContextMenu}>
-        <BrowserActionIcon action={action} activeTabId={activeTabId} tabInfo={tabInfo} />
+        <BrowserActionIcon action={action} activeTabId={activeTabId} tabInfo={tabInfo} partitionId={partition} />
         <Badge color={tabInfo?.color} text={tabInfo?.text} />
         <span className="font-semibold truncate">{action.title}</span>
       </SidebarMenuButton>

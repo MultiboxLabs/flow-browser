@@ -131,6 +131,7 @@ export class ProfileManager {
       const extensions = new ElectronChromeExtensions({
         license: "GPL-3.0",
         session: profileSession,
+        registerCrxProtocolInDefaultSession: false,
         assignTabDetails: (tabDetails, tabWebContents) => {
           const tab = tabManager.getTabByWebContents(tabWebContents);
           if (!tab) return;
