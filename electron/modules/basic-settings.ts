@@ -83,6 +83,15 @@ export const BasicSettings: BasicSetting[] = [
         name: "Never"
       }
     ]
+  },
+
+  // [ADVANCED] Enable mv2 extensions
+  {
+    id: "enableMv2Extensions",
+    name: "Re-enable Manifest V2 extensions [UNSTABLE]",
+    showName: true,
+    type: "boolean",
+    defaultValue: false
   }
 ];
 
@@ -106,5 +115,12 @@ export const BasicSettingCards: BasicSettingCard[] = [
     title: "Archive Tab After",
     subtitle: "Choose how long tabs should be archived",
     settings: ["archiveTabAfter"]
+  },
+
+  // Advanced Settings Card
+  {
+    title: "Advanced Settings",
+    subtitle: "Power users only (Some settings may require a restart)",
+    settings: ["enableMv2Extensions"]
   }
 ];

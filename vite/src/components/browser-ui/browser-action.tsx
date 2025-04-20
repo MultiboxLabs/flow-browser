@@ -216,6 +216,7 @@ export function BrowserActionList({
   }, [browserAction, partition, onActionsUpdate]);
 
   if (!activeTabId) return null;
+  if (actions.length === 0) return null;
 
   const spaceInjectedClasses = cn(isCurrentSpaceLight ? "" : "dark");
   return (

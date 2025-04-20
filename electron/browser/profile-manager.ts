@@ -11,6 +11,7 @@ import { installChromeWebStore } from "electron-chrome-web-store";
 import path from "path";
 import { setWindowSpace } from "@/ipc/session/spaces";
 import { registerWindow, WindowType } from "@/modules/windows";
+import { getSettingValueById } from "@/saving/settings";
 
 /**
  * Represents a loaded browser profile
@@ -241,9 +242,11 @@ export class ProfileManager {
       });
 
       // Install Chrome web store and wait for extensions to load
+      const minimumManifestVersion = getSettingValueById("enableMv2Extensions") ? 2 : undefined;
       await installChromeWebStore({
         session: profileSession,
         extensionsPath: path.join(profilePath, "Extensions"),
+        minimumManifestVersion,
         beforeInstall: async (details) => {
           if (!details.browserWindow || details.browserWindow.isDestroyed()) {
             return { action: "deny" };
