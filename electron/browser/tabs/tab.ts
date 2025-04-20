@@ -12,6 +12,7 @@ import { NavigationEntry, Rectangle, Session, WebContents, WebContentsView, WebP
 import { createTabContextMenu } from "@/browser/tabs/tab-context-menu";
 import { generateID } from "@/browser/utility/utils";
 import { persistTabToStorage, removeTabFromStorage } from "@/saving/tabs";
+import { LoadedProfile } from "@/browser/profile-manager";
 
 // Configuration
 const GLANCE_FRONT_ZINDEX = 3;
@@ -57,6 +58,9 @@ interface TabCreationDetails {
 
   // Session
   session: Session;
+
+  // Loaded Profile
+  loadedProfile: LoadedProfile;
 }
 
 export interface TabCreationOptions {
@@ -143,6 +147,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   // Private properties
   private readonly session: Session;
   private readonly browser: Browser;
+  public readonly loadedProfile: LoadedProfile;
   private window: TabbedBrowserWindow;
   private readonly tabManager: TabManager;
   private readonly bounds: TabBoundsController;
@@ -209,10 +214,16 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     // Restore navigation history
     const restoreNavHistory = navHistory.length > 0;
     if (restoreNavHistory) {
-      this.webContents.navigationHistory.restore({
-        entries: navHistory,
-        index: navHistoryIndex
-      });
+      this.webContents.navigationHistory
+        .restore({
+          entries: navHistory,
+          index: navHistoryIndex
+        })
+        .then(() => {
+          if (asleep) {
+            this.putToSleep();
+          }
+        });
     }
 
     // Restore states
@@ -235,11 +246,13 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.window = window;
 
     // Put to sleep if requested
-    setImmediate(() => {
-      if (asleep) {
-        this.putToSleep();
-      }
-    });
+    if (!restoreNavHistory) {
+      setImmediate(() => {
+        if (asleep) {
+          this.putToSleep();
+        }
+      });
+    }
 
     // Set window open handler
     this.webContents.setWindowOpenHandler((details) => {
@@ -264,9 +277,18 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.setupEventListeners();
 
     // Load new tab URL
+    this.loadedProfile = details.loadedProfile;
     if (!restoreNavHistory) {
-      this.loadURL(NEW_TAB_URL);
+      this.loadURL(this.loadedProfile.newTabUrl);
     }
+
+    // Setup extensions
+    const extensions = this.loadedProfile.extensions;
+    extensions.addTab(this.webContents, this.window.window);
+
+    this.on("updated", () => {
+      extensions.tabUpdated(this.webContents);
+    });
   }
 
   /**
@@ -283,6 +305,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     const tabbedWindow = this.window;
     const window = tabbedWindow.window;
+    if (window.isDestroyed()) return false;
 
     if (isFullScreen) {
       if (!window.fullScreen) {
@@ -325,6 +348,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       this.setFullScreen(false);
     });
     this.on("destroyed", () => {
+      if (tabbedWindow.emitterDestroyed) return;
       disconnectLeaveFullScreen();
     });
 
@@ -752,11 +776,18 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     // Update last active at if the tab was just hidden or is showing
     const justHidden = wasVisible && !visible;
+    const justShown = !wasVisible && visible;
     if (justHidden || visible) {
       this.updateStateProperty("lastActiveAt", Math.floor(Date.now() / 1000));
     }
 
     if (!visible) return;
+
+    // Update extensions
+    const extensions = this.loadedProfile.extensions;
+    if (justShown) {
+      extensions.selectTab(this.webContents);
+    }
 
     // Automatically wake tab up if it is asleep
     this.wakeUp();
@@ -882,11 +913,14 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.removeViewFromWindow();
     this.webContents.close();
 
-    if (this.fullScreen) {
+    if (this.fullScreen && !this.window.window.isDestroyed()) {
       this.window.window.setFullScreen(false);
     }
 
     removeTabFromStorage(this);
+
+    const extensions = this.loadedProfile.extensions;
+    extensions.removeTab(this.webContents);
 
     this.destroyEmitter();
   }

@@ -63,6 +63,7 @@ function createSession(profileId: string) {
 
   registerProtocolsWithSession(profileSession);
   registerCallbacksWithSession(profileSession);
+
   return profileSession;
 }
 

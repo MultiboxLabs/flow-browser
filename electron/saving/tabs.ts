@@ -20,6 +20,7 @@ export async function persistTabToStorage(tab: Tab) {
   // Prevent saving tabs stuck in sleep mode
   if (tab.url === SLEEP_MODE_URL) return;
   if (tab.asleep) return;
+  if (tab.navHistory.length === 0) return;
 
   const uniqueId = tab.uniqueId;
   const tabData = getTabData(tab);

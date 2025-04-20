@@ -182,6 +182,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
 
   public sendMessageToCoreWebContents(channel: string, ...args: any[]) {
     for (const content of this.coreWebContents) {
+      if (content.isDestroyed()) continue;
       content.send(channel, ...args);
     }
   }
@@ -190,6 +191,15 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     if (this.isDestroyed) {
       throw new Error("Window already destroyed!");
     }
+
+    // Destroy all tabs in the window
+    // Do this so that it won't run if the app is closing
+    // Technically after 500ms, the app is dead, so it won't run.
+    setTimeout(() => {
+      for (const tab of this.browser.tabs.getTabsInWindow(this.id)) {
+        tab.destroy();
+      }
+    }, 500);
 
     // Destroy the window
     this.isDestroyed = true;

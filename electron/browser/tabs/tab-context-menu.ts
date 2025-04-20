@@ -40,7 +40,7 @@ export function createTabContextMenu(
       const openLinkItems = createOpenLinkItems(parameters, createNewTab, browser);
       const linkItems = createLinkItems(defaultActions);
       const navigationItems = createNavigationItems(navigationHistory, webContents, canGoBack, canGoForward);
-      const extensionItems = createExtensionItems();
+      const extensionItems = createExtensionItems(tab, parameters);
       const textHistoryItems = createTextHistoryItems(webContents);
       const textEditItems = createTextEditItems(defaultActions, webContents);
       const selectionItems = createSelectionItems(defaultActions, parameters, createNewTab, searchEngine);
@@ -158,9 +158,14 @@ function createNavigationItems(
   ];
 }
 
-function createExtensionItems(): Electron.MenuItemConstructorOptions[] {
+function createExtensionItems(tab: Tab, parameters: Electron.ContextMenuParams): Electron.MenuItemConstructorOptions[] {
   // TODO: Add extension items
-  return [];
+  const extensions = tab.loadedProfile.extensions;
+  // @ts-expect-error: aaaaa
+  const items: Electron.MenuItemConstructorOptions[] = extensions.getContextMenuItems(tab.webContents, parameters);
+
+  console.log("createExtensionItems", items);
+  return items;
 }
 
 function createTextHistoryItems(webContents: Electron.WebContents): Electron.MenuItemConstructorOptions[] {

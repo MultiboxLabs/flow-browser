@@ -94,7 +94,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
    * Create a new tab
    */
   public async createTab(
-    windowId: number,
+    windowId?: number,
     profileId?: string,
     spaceId?: string,
     webContentsViewOptions?: Electron.WebContentsViewConstructorOptions,
@@ -102,6 +102,20 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
   ) {
     if (this.isDestroyed) {
       throw new Error("TabManager has been destroyed");
+    }
+
+    if (!windowId) {
+      const focusedWindow = this.browser.getFocusedWindow();
+      if (focusedWindow) {
+        windowId = focusedWindow.id;
+      } else {
+        const windows = this.browser.getWindows();
+        if (windows.length > 0) {
+          windowId = windows[0].id;
+        } else {
+          throw new Error("Could not determine window ID for new tab");
+        }
+      }
     }
 
     // Get profile ID and space ID if not provided
@@ -173,7 +187,8 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
         tabManager: this,
         profileId: profileId,
         spaceId: spaceId,
-        session: profileSession
+        session: profileSession,
+        loadedProfile: profile
       },
       {
         window: window,

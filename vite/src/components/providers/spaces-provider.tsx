@@ -66,6 +66,8 @@ export const SpacesProvider = ({ children }: SpacesProviderProps) => {
       const space = spaces.find((s) => s.id === spaceId);
       if (!space) return;
 
+      if (space.id === currentSpace?.id) return;
+
       try {
         await flow.spaces.setUsingSpace(space.profileId, spaceId);
         setCurrentSpace(space);
@@ -73,7 +75,7 @@ export const SpacesProvider = ({ children }: SpacesProviderProps) => {
         console.error("Failed to set current space:", error);
       }
     },
-    [spaces]
+    [spaces, currentSpace]
   );
 
   useEffect(() => {

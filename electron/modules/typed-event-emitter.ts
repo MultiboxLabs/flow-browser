@@ -7,7 +7,7 @@ import { EventEmitter } from "events";
  */
 export class TypedEventEmitter<TEvents extends Record<string, any>> {
   private emitter = new EventEmitter();
-  private emitterDestroyed = false;
+  public emitterDestroyed = false;
 
   private assertNotDestroyed() {
     if (this.emitterDestroyed) {

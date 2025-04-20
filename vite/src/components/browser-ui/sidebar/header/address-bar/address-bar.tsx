@@ -55,7 +55,7 @@ function FakeAddressBar() {
       onClick={handleClick}
     >
       {isPlaceholder && <SearchIcon className="size-3.5" strokeWidth={2.5} />}
-      <span className={cn("text-sm font-medium")}>{value}</span>
+      <span className={cn("text-sm font-medium truncate")}>{value}</span>
       {/* Right Side */}
       <div className="ml-auto flex items-center gap-1">
         {!isPlaceholder && <AddressBarCopyLinkButton addressUrl={addressUrl} />}
