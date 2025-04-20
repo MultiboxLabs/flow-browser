@@ -14,7 +14,9 @@ export type CollapseMode = "icon" | "offcanvas";
 export type SidebarVariant = "sidebar" | "floating";
 export type SidebarSide = "left" | "right";
 
-function InternalBrowserUI({ isReady }: { isReady: boolean }) {
+export type WindowType = "main" | "popup";
+
+function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowType }) {
   const { open } = useSidebar();
   const { getSetting } = useSettings();
   const { focusedTab, tabGroups } = useTabs();
@@ -44,15 +46,17 @@ function InternalBrowserUI({ isReady }: { isReady: boolean }) {
     return <BrowserContent />;
   }
 
+  const hasSidebar = type === "main";
+
   return (
     <>
       {dynamicTitle && <title>{`${dynamicTitle} | Flow`}</title>}
-      <BrowserSidebar collapseMode={sidebarCollapseMode} variant="sidebar" side="left" />
+      {hasSidebar && <BrowserSidebar collapseMode={sidebarCollapseMode} variant="sidebar" side="left" />}
       <SidebarInset className="bg-transparent">
         <div
           className={cn(
             "dark flex-1 flex p-2.5 platform-win32:pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))] app-drag",
-            open && "pl-1"
+            open && hasSidebar && "pl-0.5"
           )}
         >
           {/* Topbar */}
@@ -91,7 +95,7 @@ function InternalBrowserUI({ isReady }: { isReady: boolean }) {
   );
 }
 
-export function BrowserUI() {
+export function BrowserUI({ type }: { type: WindowType }) {
   const [isReady, setIsReady] = useState(false);
 
   // No transition on first load
@@ -114,7 +118,7 @@ export function BrowserUI() {
         <SettingsProvider>
           <SpacesProvider>
             <TabsProvider>
-              <InternalBrowserUI isReady={isReady} />
+              <InternalBrowserUI isReady={isReady} type={type} />
             </TabsProvider>
           </SpacesProvider>
         </SettingsProvider>

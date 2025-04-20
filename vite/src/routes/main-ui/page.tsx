@@ -1,7 +1,7 @@
 import { BrowserUI } from "@/components/browser-ui/main";
 
 function Page() {
-  return <BrowserUI />;
+  return <BrowserUI type="main" />;
 }
 
 function App() {

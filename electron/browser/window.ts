@@ -121,7 +121,23 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       this.destroy();
     });
 
-    this.window.loadURL("flow-internal://main/");
+    // If the window is a popup, destroy the window when there are no tabs left
+    if (type === "popup") {
+      browser.tabs.on("tab-removed", () => {
+        const windowTabs = browser.tabs.getTabsInWindow(this.id);
+        if (windowTabs.length === 0) {
+          this.destroy();
+        }
+      });
+    }
+
+    if (type === "normal") {
+      // Show normal UI
+      this.window.loadURL("flow-internal://main-ui/");
+    } else if (type === "popup") {
+      // TODO: Show popup UI
+      this.window.loadURL("flow-internal://popup-ui/");
+    }
 
     if (FLAGS.SHOW_DEBUG_DEVTOOLS) {
       setTimeout(() => {
@@ -155,12 +171,6 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       height: 0
     };
 
-    if (type === "normal") {
-      // Show normal UI
-    } else if (type === "popup") {
-      // TODO: Show popup UI
-    }
-
     getLastUsedSpace().then((space) => {
       if (space) {
         this.setCurrentSpace(space.id);
@@ -189,7 +199,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
 
   destroy() {
     if (this.isDestroyed) {
-      throw new Error("Window already destroyed!");
+      return;
     }
 
     // Destroy all tabs in the window

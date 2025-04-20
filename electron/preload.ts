@@ -12,7 +12,10 @@ function checkCanUseAPI() {
   const isInternalUI = location.protocol === "flow-internal:";
   const isProtocolUI = location.protocol === "flow:";
 
-  const isBrowserUI = isInternalUI && location.hostname === "main";
+  const isMainUI = isInternalUI && location.hostname === "main-ui";
+  const isPopupUI = isInternalUI && location.hostname === "popup-ui";
+  const isBrowserUI = isMainUI || isPopupUI;
+
   const isOmniboxUI = isInternalUI && location.hostname === "omnibox";
   const isSettingsUI = isInternalUI && location.hostname === "settings";
   const isOnboardingUI = isInternalUI && location.hostname === "onboarding";

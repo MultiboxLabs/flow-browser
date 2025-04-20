@@ -177,8 +177,43 @@ export class ProfileManager {
 
         // Windows
         createWindow: async (details) => {
-          const tabbedWindow = await this.browser.createWindow();
-          return tabbedWindow.window;
+          const browser = this.browser;
+          const tabManager = browser.tabs;
+
+          const tabbedWindow = await browser.createWindow(details.type === "normal" ? "normal" : "popup", {
+            window: {
+              height: details.height,
+              width: details.width,
+              x: details.left,
+              y: details.top
+            }
+          });
+
+          const browserWindow = tabbedWindow.window;
+
+          if (details.url) {
+            const urls: string[] = Array.isArray(details.url) ? details.url : [details.url];
+
+            let tabIndex = 0;
+            for (const url of urls) {
+              const currentTabIndex = tabIndex;
+
+              tabManager.createTab(tabbedWindow.id, profileId).then((tab) => {
+                tab.loadURL(url);
+                if (currentTabIndex === 0) {
+                  tabManager.setActiveTab(tab);
+                }
+              });
+
+              tabIndex++;
+            }
+          }
+
+          if (details.focused) {
+            browserWindow.focus();
+          }
+
+          return browserWindow;
         },
         removeWindow: (window) => {
           const tabbedWindow = this.browser.getWindowById(window.id);

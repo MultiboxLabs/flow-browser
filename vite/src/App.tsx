@@ -8,7 +8,8 @@ const flowProtocol = "flow:";
 const flowInternalProtocol = "flow-internal:";
 
 // Pages //
-import MainRoute from "./routes/main/route";
+import MainUIRoute from "./routes/main-ui/route";
+import PopupUIRoute from "./routes/popup-ui/route";
 import NewTabRoute from "./routes/new-tab/route";
 import SettingsRoute from "./routes/settings/route";
 import ErrorRoute from "./routes/error/route";
@@ -23,8 +24,11 @@ import OnboardingRoute from "./routes/onboarding/route";
 function Routes() {
   return (
     <RouterProvider>
-      <Route hostname="main">
-        <MainRoute />
+      <Route hostname="main-ui">
+        <MainUIRoute />
+      </Route>
+      <Route hostname="popup-ui">
+        <PopupUIRoute />
       </Route>
       <Route hostname="new-tab">
         <NewTabRoute />
