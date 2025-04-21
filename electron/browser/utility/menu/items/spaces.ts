@@ -92,11 +92,11 @@ async function createSvgFromIconPath(iconPath: string): Promise<NativeImage | nu
 }
 
 // Icon cache
-type IconCacheKey = `${string}-${number | undefined}`;
+type IconCacheKey = `${string}`;
 const iconCache = new Map<IconCacheKey, NativeImage>();
 
-async function getIconAsNativeImage(name: string, padding?: number): Promise<NativeImage | null> {
-  const cacheKey = `${name}-${padding}` as IconCacheKey;
+async function getIconAsNativeImage(name: string): Promise<NativeImage | null> {
+  const cacheKey = `${name}` as IconCacheKey;
 
   // Check cache first
   if (iconCache.has(cacheKey)) {
@@ -121,14 +121,13 @@ async function getIconAsNativeImage(name: string, padding?: number): Promise<Nat
 async function createSpaceMenuItem(
   space: Space,
   index: number,
-  currentSpaceId: string | null,
-  padding: number = 2
+  currentSpaceId: string | null
 ): Promise<MenuItemConstructorOptions> {
   let iconImage = null;
 
   if (space.icon) {
     try {
-      iconImage = await getIconAsNativeImage(space.icon, padding);
+      iconImage = await getIconAsNativeImage(space.icon);
     } catch (error) {
       console.error(`Failed to load icon for space "${space.name}":`, error);
       // Continue without an icon
@@ -154,7 +153,7 @@ async function createSpaceMenuItem(
 /**
  * Creates the Spaces menu for the application
  */
-export async function createSpacesMenu(_browser: Browser, padding: number = 2): Promise<MenuItemConstructorOptions> {
+export async function createSpacesMenu(_browser: Browser): Promise<MenuItemConstructorOptions> {
   try {
     const spaces = await getSpaces();
 
@@ -176,7 +175,7 @@ export async function createSpacesMenu(_browser: Browser, padding: number = 2): 
     // Use Promise.allSettled to ensure all space menu items are attempted
     // even if some fail to be created
     const spaceMenuItemResults = await Promise.allSettled(
-      spaces.map((space, index) => createSpaceMenuItem(space, index, currentSpaceId, padding))
+      spaces.map((space, index) => createSpaceMenuItem(space, index, currentSpaceId))
     );
 
     // Filter out any rejected promises and only keep the fulfilled ones
