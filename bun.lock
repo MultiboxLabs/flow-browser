@@ -11,6 +11,7 @@
       "name": "flow-browser",
       "version": "0.4.2",
       "dependencies": {
+        "@phosphor-icons/core": "^2.1.1",
         "better-sqlite3": "^11.9.1",
         "electron-chrome-context-menu": "npm:@iamevan/electron-chrome-context-menu@1.1.0",
         "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.6.9",
@@ -19,7 +20,6 @@
         "electron-squirrel-startup": "^1.0.1",
         "ico-to-png": "^0.2.2",
         "knex": "^3.1.0",
-        "lucide": "^0.488.0",
         "mime-types": "^3.0.1",
         "sharp": "^0.34.1",
         "sharp-ico": "^0.1.5",
@@ -1406,8 +1406,6 @@
     "lowercase-keys": ["lowercase-keys@2.0.0", "", {}, "sha512-tqNXrS78oMOE73NMxK4EMLQsQowWf8jKooH9g7xPavRT706R6bkQJ6DY2Te7QukaZsulxa30wQ7bk0pm4XiHmA=="],
 
     "lru-cache": ["lru-cache@11.1.0", "", {}, "sha512-QIXZUBJUx+2zHUdQujWejBkcD9+cs94tLn0+YL8UrCh+D5sCXZ4c7LaEH48pNwRY3MLDgqUFyhlCyjJPf1WP0A=="],
-
-    "lucide": ["lucide@0.488.0", "", {}, "sha512-AcCuN/R9ZRDEH+H47azM5RWbhUTi02+OL4QHeY6kP/MGMSislGWtRDNqj/2EJIBp/qMKpuAU1v5BLAVT0BDE/g=="],
 
     "lucide-react": ["lucide-react@0.488.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-ronlL0MyKut4CEzBY/ai2ZpKPxyWO4jUqdAkm2GNK5Zn3Rj+swDz+3lvyAUXN0PNqPKIX6XM9Xadwz/skLs/pQ=="],
 

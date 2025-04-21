@@ -19,6 +19,7 @@
   "license": "MIT",
   "private": true,
   "dependencies": {
+    "@phosphor-icons/core": "^2.1.1",
     "better-sqlite3": "^11.9.1",
     "electron-chrome-context-menu": "npm:@iamevan/electron-chrome-context-menu@1.1.0",
     "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.6.9",
@@ -27,7 +28,6 @@
     "electron-squirrel-startup": "^1.0.1",
     "ico-to-png": "^0.2.2",
     "knex": "^3.1.0",
-    "lucide": "^0.488.0",
     "mime-types": "^3.0.1",
     "sharp": "^0.34.1",
     "sharp-ico": "^0.1.5",
