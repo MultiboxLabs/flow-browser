@@ -24,6 +24,7 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
   private readonly tabManager: TabManager;
   private _isDestroyed: boolean = false;
   public tabs: TabManager;
+  public updateMenu: () => Promise<void>;
 
   /**
    * Creates a new Browser instance
@@ -38,7 +39,7 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
     this.tabs = this.tabManager;
 
     // Load menu
-    setupMenu(this);
+    this.updateMenu = setupMenu(this);
   }
 
   // Profile Management - Delegated to ProfileManager

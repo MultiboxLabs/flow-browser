@@ -20,13 +20,15 @@ export enum WindowType {
 export enum WindowEventType {
   ADDED = "window-added",
   REMOVED = "window-removed",
-  UPDATED = "window-updated"
+  UPDATED = "window-updated",
+  FOCUSED = "window-focused"
 }
 
 type WindowEventsType = {
   [WindowEventType.ADDED]: (windowData: WindowData) => void;
   [WindowEventType.REMOVED]: (windowData: WindowData) => void;
   [WindowEventType.UPDATED]: (windowData: WindowData) => void;
+  [WindowEventType.FOCUSED]: (window: BrowserWindow) => void;
 };
 
 export const windowEvents = new EventEmitter() as {
@@ -78,6 +80,9 @@ export function deleteWindow(id: string) {
 export function registerWindow(type: WindowType, id: string, window: BrowserWindow) {
   window.on("closed", () => {
     deleteWindow(id);
+  });
+  window.on("focus", () => {
+    windowEvents.emit(WindowEventType.FOCUSED, window);
   });
 
   const windowData = { id, type, window };

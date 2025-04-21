@@ -8,6 +8,8 @@ import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getLastUsedSpace } from "@/sessions/spaces";
 import { BrowserWindow, nativeTheme, WebContents } from "electron";
 import "./close-preventer";
+import { WindowEventType } from "@/modules/windows";
+import { windowEvents } from "@/modules/windows";
 
 type BrowserWindowType = "normal" | "popup";
 
@@ -111,6 +113,10 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       this.window.focus();
     });
 
+    this.window.on("focus", () => {
+      windowEvents.emit(WindowEventType.FOCUSED, this.window);
+    });
+
     this.window.once("closed", () => {
       this.destroy();
     });
@@ -165,6 +171,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
   setCurrentSpace(spaceId: string) {
     this.currentSpaceId = spaceId;
     this.emit("current-space-changed", spaceId);
+    this.browser.updateMenu();
 
     this.browser.tabs.setCurrentWindowSpace(this.id, spaceId);
   }

@@ -1,6 +1,6 @@
 import { app, MenuItemConstructorOptions, nativeImage, NativeImage } from "electron";
 import { Browser } from "@/browser/browser";
-import { getLastUsedSpace, getSpaces } from "@/sessions/spaces";
+import { getSpaces } from "@/sessions/spaces";
 import { getFocusedBrowserWindowData } from "../helpers";
 import { settings } from "@/settings/main";
 import sharp from "sharp";
@@ -8,7 +8,7 @@ import { setWindowSpace } from "@/ipc/session/spaces";
 import path from "path";
 import { readFile } from "fs/promises";
 import { IconEntry, icons } from "@phosphor-icons/core";
-import { PATHS } from "@/modules/paths";
+import { getFocusedWindow } from "@/modules/windows";
 
 // Types
 interface Space {
@@ -121,7 +121,7 @@ async function getIconAsNativeImage(name: string, padding?: number): Promise<Nat
 async function createSpaceMenuItem(
   space: Space,
   index: number,
-  lastUsedSpaceId: string,
+  currentSpaceId: string | null,
   padding: number = 2
 ): Promise<MenuItemConstructorOptions> {
   let iconImage = null;
@@ -135,8 +135,11 @@ async function createSpaceMenuItem(
     }
   }
 
+  const checked = space.id === currentSpaceId;
   return {
-    checked: space.id === lastUsedSpaceId,
+    type: "checkbox",
+    id: `space-${space.id}-${checked ? "checked" : "unchecked"}`,
+    checked,
     label: space.name,
     accelerator: `Ctrl+${index + 1}`,
     click: () => {
@@ -154,9 +157,11 @@ async function createSpaceMenuItem(
 export async function createSpacesMenu(_browser: Browser, padding: number = 2): Promise<MenuItemConstructorOptions> {
   try {
     const spaces = await getSpaces();
-    const lastUsedSpace = await getLastUsedSpace();
 
-    if (!lastUsedSpace) {
+    const focusedWindow = getFocusedWindow();
+    const currentSpaceId = focusedWindow?.tabbedBrowserWindow?.getCurrentSpace() ?? null;
+
+    if (!focusedWindow?.tabbedBrowserWindow) {
       return {
         label: "Spaces",
         submenu: [
@@ -171,7 +176,7 @@ export async function createSpacesMenu(_browser: Browser, padding: number = 2): 
     // Use Promise.allSettled to ensure all space menu items are attempted
     // even if some fail to be created
     const spaceMenuItemResults = await Promise.allSettled(
-      spaces.map((space, index) => createSpaceMenuItem(space, index, lastUsedSpace.id, padding))
+      spaces.map((space, index) => createSpaceMenuItem(space, index, currentSpaceId, padding))
     );
 
     // Filter out any rejected promises and only keep the fulfilled ones
