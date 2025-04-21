@@ -3,7 +3,7 @@ import { Space } from "@/lib/flow/interfaces/sessions/spaces";
 import { cn } from "@/lib/utils";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { SIDEBAR_HOVER_COLOR } from "@/components/browser-ui/browser-sidebar";
-import { DynamicLucideIcon } from "@/components/main/dynamic-lucide-icon";
+import { SpaceIcon } from "@/lib/phosphor-icons";
 
 type SpaceButtonProps = {
   space: Space;
@@ -14,8 +14,8 @@ type SpaceButtonProps = {
 function SpaceButton({ space, isActive, onClick }: SpaceButtonProps) {
   return (
     <SidebarMenuButton key={space.id} onClick={onClick} className={SIDEBAR_HOVER_COLOR}>
-      <DynamicLucideIcon
-        iconId={space.icon}
+      <SpaceIcon
+        id={space.icon}
         strokeWidth={2.5}
         className={cn(
           "transition-colors duration-300",

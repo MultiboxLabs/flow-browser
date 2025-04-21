@@ -1,10 +1,10 @@
 import { ColorPicker } from "../color-picker";
-import { IconPreview } from "../icon-picker";
 import { motion } from "motion/react";
 import { GalleryVerticalEnd, Shuffle } from "lucide-react";
 import { Space } from "@/lib/flow/interfaces/sessions/spaces";
 import { useReducer, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { SpaceIcon } from "@/lib/phosphor-icons";
 
 type BackgroundGradientEditor = {
   editedSpace: Space;
@@ -100,7 +100,7 @@ export function BackgroundGradientEditor({ editedSpace, updateEditedSpace }: Bac
               className="flex flex-col items-center gap-2"
             >
               <div className="size-16 rounded-full bg-background/20 backdrop-blur-sm grid place-items-center shadow-lg">
-                <IconPreview iconId={editedSpace.icon} />
+                <SpaceIcon id={editedSpace.icon} className="size-6 text-white" />
               </div>
               <div className="text-white/90 text-xs font-medium px-3 py-1 rounded-full bg-black/20 backdrop-blur-md">
                 {editedSpace.name}

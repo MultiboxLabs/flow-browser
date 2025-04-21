@@ -1,5 +1,5 @@
 import { Space } from "@/lib/flow/interfaces/sessions/spaces";
-import { LucideIconPicker } from "../icon-picker";
+import { SpaceIconPicker } from "../icon-picker";
 import { motion } from "motion/react";
 
 type SpaceIconEditorProps = {
@@ -16,7 +16,7 @@ export function SpaceIconEditor({ editedSpace, updateEditedSpace }: SpaceIconEdi
       transition={{ duration: 0.3, delay: 0.6 }}
     >
       <h3 className="text-lg font-medium flex items-center gap-2">Space Icon</h3>
-      <LucideIconPicker
+      <SpaceIconPicker
         selectedIcon={editedSpace.icon || "Globe"}
         onSelectIcon={(iconId) => updateEditedSpace({ icon: iconId })}
       />

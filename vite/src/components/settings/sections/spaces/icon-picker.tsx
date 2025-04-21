@@ -1,28 +1,27 @@
 import { useState, useEffect, useMemo, memo } from "react";
-import { LucideIcon, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { motion } from "motion/react";
 import { Input } from "@/components/ui/input";
-import { getLucideIcon } from "@/lib/utils";
-import dynamicIconImports from "lucide-react/dynamicIconImports";
+import { PhosphorIcons, SpaceIcon } from "@/lib/phosphor-icons";
+import { IconEntry } from "@phosphor-icons/core";
 
 // ==============================
-// LucideIconPicker Component
+// PhosphorIconPicker Component
 // ==============================
-interface LucideIconPickerProps {
+interface SpaceIconPickerProps {
   selectedIcon: string;
   onSelectIcon: (iconId: string) => void;
 }
 
-export function LucideIconPicker({ selectedIcon, onSelectIcon }: LucideIconPickerProps) {
+export function SpaceIconPicker({ selectedIcon, onSelectIcon }: SpaceIconPickerProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [iconList, setIconList] = useState<string[]>([]);
-  const [filteredIcons, setFilteredIcons] = useState<string[]>([]);
+  const [iconList, setIconList] = useState<IconEntry[]>([]);
+  const [filteredIcons, setFilteredIcons] = useState<IconEntry[]>([]);
 
   // Load icons only once on component mount
   useEffect(() => {
-    const icons = Object.keys(dynamicIconImports);
-    setIconList(icons);
-    setFilteredIcons(icons);
+    setIconList(PhosphorIcons);
+    setFilteredIcons(PhosphorIcons);
   }, []);
 
   // Memoize filter operation to prevent excessive re-renders
@@ -31,7 +30,13 @@ export function LucideIconPicker({ selectedIcon, onSelectIcon }: LucideIconPicke
     if (!query) {
       setFilteredIcons(iconList);
     } else {
-      const filtered = iconList.filter((icon) => icon.toLowerCase().includes(query));
+      const filtered = iconList.filter((icon) => {
+        const searchValues = [...icon.tags, ...icon.categories, icon.name, icon.pascal_name].map((s) =>
+          s.toLowerCase()
+        );
+
+        return searchValues.some((value) => value.includes(query));
+      });
       setFilteredIcons(filtered);
     }
   }, [searchQuery, iconList]);
@@ -41,12 +46,12 @@ export function LucideIconPicker({ selectedIcon, onSelectIcon }: LucideIconPicke
     return (
       <div className="grid grid-cols-8 gap-1 p-1">
         {filteredIcons.map((icon) => (
-          <IconItem
-            key={icon}
-            iconId={icon}
-            isSelected={selectedIcon === icon}
+          <MemoizedIconItem
+            key={icon.name}
+            icon={icon}
+            isSelected={selectedIcon === icon.pascal_name}
             onSelect={() => {
-              onSelectIcon(icon);
+              onSelectIcon(icon.pascal_name);
             }}
           />
         ))}
@@ -74,25 +79,7 @@ export function LucideIconPicker({ selectedIcon, onSelectIcon }: LucideIconPicke
   );
 }
 
-// Helper function to transform icon ID to human readable name
-function transformIconName(iconId: string): string {
-  return iconId
-    .split(/(?=[A-Z])/) // Split on uppercase letters (for camelCase)
-    .join(" ") // Join with spaces
-    .replace(/-/g, " ") // Replace hyphens with spaces (for kebab-case)
-    .replace(/\b\w/g, (char) => char.toUpperCase()); // Capitalize first letter of each word
-}
-
-// Extracted IconItem to a separate component with memo for performance
-export const IconItem = memo(function IconItem({
-  iconId,
-  isSelected,
-  onSelect
-}: {
-  iconId: string;
-  isSelected: boolean;
-  onSelect: () => void;
-}) {
+function IconItem({ icon, isSelected, onSelect }: { icon: IconEntry; isSelected: boolean; onSelect: () => void }) {
   return (
     <motion.div
       whileHover={{ scale: 1.05 }}
@@ -101,30 +88,13 @@ export const IconItem = memo(function IconItem({
         isSelected ? "bg-primary/10 border-primary border" : "border border-muted/50"
       }`}
       onClick={onSelect}
-      title={transformIconName(iconId)}
+      title={icon.name}
     >
       <div className="relative h-6 w-6 flex items-center justify-center">
-        <IconPreview iconId={iconId} />
+        <SpaceIcon id={icon.pascal_name} className="h-5 w-5" />
       </div>
     </motion.div>
   );
-});
-
-// Helper component to display icon preview
-export function IconPreview({ iconId }: { iconId: string }) {
-  const [Icon, setIcon] = useState<LucideIcon | null>(null);
-
-  useEffect(() => {
-    getLucideIcon(iconId).then(setIcon);
-  }, [iconId]);
-
-  if (Icon) {
-    return <Icon className="h-5 w-5" />;
-  }
-
-  return (
-    <div className="h-5 w-5 flex items-center justify-center">
-      <div className="h-3 w-3 rounded-full bg-muted-foreground animate-pulse"></div>
-    </div>
-  );
 }
+
+export const MemoizedIconItem = memo(IconItem);

@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { getLucideIcon } from "@/lib/utils";
 import type { Space } from "@/lib/flow/interfaces/sessions/spaces";
+import { SpaceIcon } from "@/lib/phosphor-icons";
 
 // ==============================
 // Space Card Component
@@ -12,27 +11,6 @@ interface SpaceCardProps {
 }
 
 export function SpaceCard({ space, activateEdit }: SpaceCardProps) {
-  const [SpaceIcon, setSpaceIcon] = useState<React.ComponentType<{ className?: string }> | null>(null);
-
-  useEffect(() => {
-    async function loadIcon() {
-      try {
-        if (space.icon) {
-          const icon = await getLucideIcon(space.icon);
-          setSpaceIcon(() => icon);
-        } else {
-          // Default icon if none is set
-          const icon = await getLucideIcon("Globe");
-          setSpaceIcon(() => icon);
-        }
-      } catch (error) {
-        console.error("Failed to load icon:", error);
-      }
-    }
-
-    loadIcon();
-  }, [space.icon]);
-
   return (
     <motion.div
       key={space.id}
@@ -50,7 +28,7 @@ export function SpaceCard({ space, activateEdit }: SpaceCardProps) {
               : "var(--muted)"
         }}
       >
-        {SpaceIcon && <SpaceIcon className="size-6 text-white" />}
+        <SpaceIcon id={space.icon} className="size-6 text-white" />
       </div>
       <div className="flex-1 min-w-0">
         <h3 className="font-medium text-base truncate">{space.name}</h3>

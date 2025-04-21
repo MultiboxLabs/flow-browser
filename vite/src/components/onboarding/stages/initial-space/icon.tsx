@@ -2,10 +2,10 @@ import { OnboardingAdvanceCallback } from "@/components/onboarding/main";
 import { motion } from "motion/react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { LucideIconPicker } from "@/components/settings/sections/spaces/icon-picker";
+import { SpaceIconPicker } from "@/components/settings/sections/spaces/icon-picker";
 import { Label } from "@/components/ui/label";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
-import { DynamicLucideIcon } from "@/components/main/dynamic-lucide-icon";
+import { SpaceIcon } from "@/lib/phosphor-icons";
 
 export function OnboardingSpaceIcon({
   advance,
@@ -128,7 +128,7 @@ export function OnboardingSpaceIcon({
                 <div className="flex flex-col items-center gap-2 mr-2">
                   <div className="size-16 rounded-full bg-white/10 backdrop-blur-sm grid place-items-center shadow-lg">
                     <div className="h-8 w-8 text-white">
-                      <DynamicLucideIcon iconId={selectedIcon} className="h-8 w-8" />
+                      <SpaceIcon id={selectedIcon} className="h-8 w-8" />
                     </div>
                   </div>
                   <div className="text-white/90 text-xs font-medium">Your Space Icon</div>
@@ -139,7 +139,7 @@ export function OnboardingSpaceIcon({
               <div className="flex-1 w-full md:w-auto space-y-2">
                 <Label className="text-white text-sm">Select an Icon</Label>
                 <div className="bg-white/10 border border-white/30 rounded-md p-3">
-                  <LucideIconPicker selectedIcon={selectedIcon} onSelectIcon={setSelectedIcon} />
+                  <SpaceIconPicker selectedIcon={selectedIcon} onSelectIcon={setSelectedIcon} />
                 </div>
               </div>
             </div>
