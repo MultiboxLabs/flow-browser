@@ -11,8 +11,7 @@ export function PhosphorIcon({
   id,
   fallbackId,
   ...props
-  // eslint-disable-next-line @typescript-eslint/no-wrapper-object-types
-}: { id: IconId | String; fallbackId?: string } & IconProps) {
+}: { id: IconId | (string & Record<never, never>); fallbackId?: string } & IconProps) {
   const Icon = IconComponents[id as IconId];
 
   // Check if Icon is a function (component type)
@@ -21,7 +20,7 @@ export function PhosphorIcon({
     return <IconComponent {...props} />;
   }
 
-  if (fallbackId) {
+  if (fallbackId && fallbackId !== id) {
     return <PhosphorIcon id={fallbackId} {...props} />;
   }
 
