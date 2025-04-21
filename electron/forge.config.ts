@@ -120,7 +120,7 @@ const config: ForgeConfig = {
       }
     ],
     appBundleId: "dev.iamevan.flow",
-    extraResource: [uiPath, "assets"],
+    extraResource: [uiPath, "assets", "../node_modules/@phosphor-icons/core/assets/duotone"],
     icon: "assets/AppIcon",
     appVersion: packageJson.version,
     buildVersion: getGitHash() ?? undefined,

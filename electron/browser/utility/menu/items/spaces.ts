@@ -1,4 +1,4 @@
-import { MenuItemConstructorOptions, nativeImage, NativeImage } from "electron";
+import { app, MenuItemConstructorOptions, nativeImage, NativeImage } from "electron";
 import { Browser } from "@/browser/browser";
 import { getLastUsedSpace, getSpaces } from "@/sessions/spaces";
 import { getFocusedBrowserWindowData } from "../helpers";
@@ -8,6 +8,7 @@ import { setWindowSpace } from "@/ipc/session/spaces";
 import path from "path";
 import { readFile } from "fs/promises";
 import { IconEntry, icons } from "@phosphor-icons/core";
+import { PATHS } from "@/modules/paths";
 
 // Types
 interface Space {
@@ -30,8 +31,31 @@ function getPhosphorIconPath(pascalName: string): string | null {
   const name = getIconNameFromPascalCase(pascalName);
   if (!name) return null;
 
-  const packagePath = require.resolve("@phosphor-icons/core");
-  return path.join(packagePath, "..", "..", "assets", "duotone", `${name}-duotone.svg`);
+  try {
+    // Find the icon directly from node_modules in dev, or from app.asar in production
+    let iconPath: string;
+
+    // Use the packaged path if the app is packaged
+    if (app.isPackaged) {
+      const pkgPath = path.join(process.resourcesPath, "duotone", `${name}-duotone.svg`);
+      iconPath = pkgPath;
+    } else {
+      const devPath = path.join(
+        require.resolve("@phosphor-icons/core"),
+        "..",
+        "..",
+        "assets",
+        "duotone",
+        `${name}-duotone.svg`
+      );
+      iconPath = devPath;
+    }
+
+    return iconPath;
+  } catch (error) {
+    console.error("Failed to resolve phosphor-icons path:", error);
+    return null;
+  }
 }
 
 async function createSvgFromIconPath(iconPath: string): Promise<NativeImage | null> {
@@ -92,7 +116,12 @@ async function createSpaceMenuItem(
   let iconImage = null;
 
   if (space.icon) {
-    iconImage = await getIconAsNativeImage(space.icon, padding);
+    try {
+      iconImage = await getIconAsNativeImage(space.icon, padding);
+    } catch (error) {
+      console.error(`Failed to load icon for space "${space.name}":`, error);
+      // Continue without an icon
+    }
   }
 
   return {
@@ -112,10 +141,47 @@ async function createSpaceMenuItem(
  * Creates the Spaces menu for the application
  */
 export async function createSpacesMenu(_browser: Browser, padding: number = 2): Promise<MenuItemConstructorOptions> {
-  const spaces = await getSpaces();
-  const lastUsedSpace = await getLastUsedSpace();
+  try {
+    const spaces = await getSpaces();
+    const lastUsedSpace = await getLastUsedSpace();
 
-  if (!lastUsedSpace) {
+    if (!lastUsedSpace) {
+      return {
+        label: "Spaces",
+        submenu: [
+          {
+            label: "Manage Spaces",
+            click: () => settings.show()
+          }
+        ]
+      };
+    }
+
+    // Use Promise.allSettled to ensure all space menu items are attempted
+    // even if some fail to be created
+    const spaceMenuItemResults = await Promise.allSettled(
+      spaces.map((space, index) => createSpaceMenuItem(space, index, lastUsedSpace.id, padding))
+    );
+
+    // Filter out any rejected promises and only keep the fulfilled ones
+    const spaceMenuItems = spaceMenuItemResults
+      .filter((result): result is PromiseFulfilledResult<MenuItemConstructorOptions> => result.status === "fulfilled")
+      .map((result) => result.value);
+
+    return {
+      label: "Spaces",
+      submenu: [
+        ...spaceMenuItems,
+        { type: "separator" },
+        {
+          label: "Manage Spaces",
+          click: () => settings.show()
+        }
+      ]
+    };
+  } catch (error) {
+    console.error("Failed to create spaces menu:", error);
+    // Provide a fallback menu if the spaces menu creation fails
     return {
       label: "Spaces",
       submenu: [
@@ -126,20 +192,4 @@ export async function createSpacesMenu(_browser: Browser, padding: number = 2): 
       ]
     };
   }
-
-  const spaceMenuItems = await Promise.all(
-    spaces.map((space, index) => createSpaceMenuItem(space, index, lastUsedSpace.id, padding))
-  );
-
-  return {
-    label: "Spaces",
-    submenu: [
-      ...spaceMenuItems,
-      { type: "separator" },
-      {
-        label: "Manage Spaces",
-        click: () => settings.show()
-      }
-    ]
-  };
 }
