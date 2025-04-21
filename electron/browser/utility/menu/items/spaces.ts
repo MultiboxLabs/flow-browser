@@ -58,17 +58,28 @@ function getPhosphorIconPath(pascalName: string): string | null {
   }
 }
 
+const svgPlatforms: NodeJS.Platform[] = ["darwin"];
 async function createSvgFromIconPath(iconPath: string): Promise<NativeImage | null> {
+  if (!svgPlatforms.includes(process.platform)) {
+    // The SVG will not show on the platform, so it's not needed
+    return null;
+  }
+
   try {
     let svgString = await readFile(iconPath, "utf8");
 
-    // Make SVG white by modifying fill attribute safely
-    // Replace existing fill attribute or add it if not present
-    if (svgString.includes('fill="')) {
-      svgString = svgString.replace(/fill="[^"]*"/, 'fill="white"');
-    } else {
-      svgString = svgString.replace(/<svg/, '<svg fill="white"');
-    }
+    // Make SVG white using a more robust approach
+    // 1. Handle existing fill attributes on the SVG root
+    svgString = svgString.replace(/<svg([^>]*)>/, (match, attributes) => {
+      // Remove any existing fill attribute
+      const cleanedAttributes = attributes.replace(/\s*fill="[^"]*"\s*/g, " ");
+      return `<svg${cleanedAttributes} fill="white">`;
+    });
+
+    // 2. Add style to ensure all elements inherit the white color
+    svgString = svgString.replace(/<svg([^>]*)>/, (match) => {
+      return `${match}<style>* { fill: white; stroke: white; }</style>`;
+    });
 
     // Convert to native image
     const iconBuffer = await sharp(Buffer.from(svgString)).png().resize(16, 16).toBuffer();
