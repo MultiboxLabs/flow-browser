@@ -9,7 +9,7 @@ import { Tab } from "@/browser/tabs/tab";
 import { setupMenu } from "@/browser/utility/menu";
 import { settings } from "@/settings/main";
 import { onboarding } from "@/onboarding/main";
-import "@/modules/extensions";
+import "@/modules/extensions/main";
 
 /**
  * Main Browser controller that coordinates browser components

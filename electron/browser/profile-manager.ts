@@ -7,11 +7,12 @@ import { Browser } from "@/browser/browser";
 import { FLAGS } from "@/modules/flags";
 import { ElectronChromeExtensions } from "electron-chrome-extensions";
 import { NEW_TAB_URL } from "@/browser/tabs/tab-manager";
-import { installChromeWebStore } from "electron-chrome-web-store";
+import { ExtensionInstallStatus, installChromeWebStore } from "electron-chrome-web-store";
 import path from "path";
 import { setWindowSpace } from "@/ipc/session/spaces";
 import { registerWindow, WindowType } from "@/modules/windows";
 import { getSettingValueById } from "@/saving/settings";
+import { ExtensionManager } from "@/modules/extensions/management";
 
 /**
  * Represents a loaded browser profile
@@ -129,6 +130,9 @@ export class ProfileManager {
       // Setup Extensions
       const tabManager = this.browser.tabs;
 
+      const extensionsPath = path.join(profilePath, "Extensions");
+      const crxExtensionsPath = path.join(extensionsPath, "crx");
+
       const extensions = new ElectronChromeExtensions({
         license: "GPL-3.0",
         session: profileSession,
@@ -241,12 +245,17 @@ export class ProfileManager {
         }
       });
 
-      // Install Chrome web store and wait for extensions to load
+      // Load extensions
+      const extensionsManager = new ExtensionManager(profileId, profileSession, extensionsPath);
+      await extensionsManager.loadExtensions();
+
+      // Install Chrome web store
       const minimumManifestVersion = getSettingValueById("enableMv2Extensions") ? 2 : undefined;
       await installChromeWebStore({
         session: profileSession,
-        extensionsPath: path.join(profilePath, "Extensions"),
+        extensionsPath: crxExtensionsPath,
         minimumManifestVersion,
+        loadExtensions: false,
         beforeInstall: async (details) => {
           if (!details.browserWindow || details.browserWindow.isDestroyed()) {
             return { action: "deny" };
@@ -268,6 +277,21 @@ export class ProfileManager {
           });
 
           return { action: returnValue.response === 0 ? "deny" : "allow" };
+        },
+        afterInstall: async (details) => {
+          await extensionsManager.addInstalledExtension("crx", details.id);
+        },
+        afterUninstall: async (details) => {
+          await extensionsManager.removeInstalledExtension(details.id);
+        },
+        customSetExtensionEnabled: async (_state, extensionId, enabled) => {
+          await extensionsManager.setExtensionDisabled(extensionId, !enabled);
+        },
+        overrideExtensionInstallStatus: (_state, extensionId) => {
+          const isDisabled = extensionsManager.getExtensionDisabled(extensionId);
+          if (isDisabled) {
+            return ExtensionInstallStatus.DISABLED;
+          }
         }
       });
 

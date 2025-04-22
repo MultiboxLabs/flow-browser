@@ -2,6 +2,7 @@ import { getSessionWithoutCreating } from "@/browser/sessions";
 import { app, protocol, Session, session } from "electron";
 import { ElectronChromeExtensions, setPartitionSessionGrabber } from "electron-chrome-extensions";
 
+// A hack to load profiles rather than partitions
 const partitionSessionGrabber = (partition: string) => {
   // custom: grab the session from the profile
   const PROFILE_PREFIX = "profile:";
