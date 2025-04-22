@@ -86,7 +86,7 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
             <SidebarMenuItem>
               <SidebarMenuButton
                 className={cn(SIDEBAR_HOVER_COLOR, "text-black dark:text-white")}
-                onClick={() => flow.settings.open()}
+                onClick={() => flow.windows.openSettingsWindow()}
               >
                 <SettingsIcon />
               </SidebarMenuButton>

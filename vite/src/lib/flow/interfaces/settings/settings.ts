@@ -3,16 +3,6 @@ import type { BasicSetting, BasicSettingCard } from "~/types/settings";
 // API //
 export interface FlowSettingsAPI {
   /**
-   * Opens the settings window
-   */
-  open: () => void;
-
-  /**
-   * Closes the settings window
-   */
-  close: () => void;
-
-  /**
    * Gets the value of a setting
    */
   getSetting<T extends BasicSetting>(settingId: string): Promise<T["defaultValue"]>;

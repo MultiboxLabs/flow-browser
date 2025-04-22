@@ -8,35 +8,54 @@ import { injectBrowserAction } from "electron-chrome-extensions/browser-action";
 import { SpaceData } from "@/sessions/spaces";
 
 // API CHECKS //
-function checkCanUseAPI() {
-  const isInternalUI = location.protocol === "flow-internal:";
-  const isProtocolUI = location.protocol === "flow:";
+function isProtocol(protocol: string) {
+  return location.protocol === protocol;
+}
 
-  const isMainUI = isInternalUI && location.hostname === "main-ui";
-  const isPopupUI = isInternalUI && location.hostname === "popup-ui";
+function isLocation(protocol: string, hostname: string) {
+  return location.protocol === protocol && location.hostname === hostname;
+}
+
+type Permission = "app" | "browser" | "session" | "settings";
+
+function hasPermission(permission: Permission) {
+  const isFlowProtocol = isProtocol("flow:");
+  const isFlowInternalProtocol = isProtocol("flow-internal:");
+
+  const isInternalProtocols = isFlowInternalProtocol || isFlowProtocol;
+
+  // Browser UI
+  const isMainUI = isLocation("flow-internal:", "main-ui");
+  const isPopupUI = isLocation("flow-internal:", "popup-ui");
   const isBrowserUI = isMainUI || isPopupUI;
 
-  const isOmniboxUI = isInternalUI && location.hostname === "omnibox";
-  const isSettingsUI = isInternalUI && location.hostname === "settings";
-  const isOnboardingUI = isInternalUI && location.hostname === "onboarding";
+  // Windows
+  const isNewTab = isLocation("flow:", "new-tab");
+  const isOmniboxUI = isLocation("flow-internal:", "omnibox");
+  const isOmniboxDebug = isLocation("flow:", "omnibox");
+  const isOmnibox = isOmniboxUI || isNewTab || isOmniboxDebug;
 
-  const isNewTabPage = isProtocolUI && location.hostname === "new-tab";
-  const isOmniboxDebugPage = isProtocolUI && location.hostname === "omnibox";
+  // Extensions
+  const isExtensions = isLocation("flow:", "extensions");
 
-  const isOmnibox = isOmniboxUI || isNewTabPage || isOmniboxDebugPage;
-
-  const canUseAPI = {
-    browser: isBrowserUI || isOmnibox,
-    session: isBrowserUI || isSettingsUI || isOmnibox || isOnboardingUI,
-    app: isBrowserUI || isSettingsUI || isOnboardingUI,
-    window: isBrowserUI || isSettingsUI || isOmniboxUI || isOnboardingUI
-  };
-  return canUseAPI;
+  console.log("permission", permission);
+  switch (permission) {
+    case "app":
+      return isInternalProtocols || isExtensions;
+    case "browser":
+      return isBrowserUI || isOmnibox;
+    case "session":
+      return isFlowInternalProtocol || isOmnibox || isBrowserUI;
+    case "settings":
+      return isInternalProtocols;
+    default:
+      return false;
+  }
 }
 
 // BROWSER ACTION //
 // Inject <browser-action-list> element into WebUI
-if (checkCanUseAPI().browser) {
+if (hasPermission("browser")) {
   injectBrowserAction();
 }
 
@@ -65,18 +84,52 @@ function listenOnIPCChannel(channel: string, callback: (...args: any[]) => void)
   };
 }
 
+function wrapAPI<T extends object>(
+  api: T,
+  permission: Permission,
+  overridePermissions?: {
+    [key in keyof T]?: Permission;
+  }
+): T {
+  const wrappedAPI = {} as T;
+
+  for (const key in api) {
+    const value = api[key];
+
+    if (typeof value === "function") {
+      // @ts-expect-error
+      wrappedAPI[key] = (...args: any[]) => {
+        let noPermission = false;
+
+        if (overridePermissions?.[key]) {
+          noPermission = !hasPermission(overridePermissions[key]);
+        } else {
+          noPermission = !hasPermission(permission);
+        }
+
+        if (noPermission) {
+          throw new Error(`Permission denied: flow.${permission}.${key}()`);
+        }
+
+        return value(...args);
+      };
+    } else {
+      wrappedAPI[key] = value;
+    }
+  }
+
+  return wrappedAPI;
+}
+
 // BROWSER API //
 const browserAPI = {
   loadProfile: async (profileId: string) => {
-    if (!checkCanUseAPI().browser) return;
     return ipcRenderer.send("browser:load-profile", profileId);
   },
   unloadProfile: async (profileId: string) => {
-    if (!checkCanUseAPI().browser) return;
     return ipcRenderer.send("browser:unload-profile", profileId);
   },
   createWindow: () => {
-    if (!checkCanUseAPI().browser) return;
     return ipcRenderer.send("browser:create-window");
   }
 };
@@ -84,23 +137,18 @@ const browserAPI = {
 // TABS API //
 const tabsAPI = {
   getData: async () => {
-    if (!checkCanUseAPI().browser) return;
     return ipcRenderer.invoke("tabs:get-data");
   },
   onDataUpdated: (callback: (data: any) => void) => {
-    if (!checkCanUseAPI().browser) return;
     return listenOnIPCChannel("tabs:on-data-changed", callback);
   },
   switchToTab: async (tabId: number) => {
-    if (!checkCanUseAPI().browser) return;
     return ipcRenderer.invoke("tabs:switch-to-tab", tabId);
   },
   newTab: async (spaceId?: string, url?: string, isForeground?: boolean) => {
-    if (!checkCanUseAPI().browser) return;
     return ipcRenderer.invoke("tabs:new-tab", spaceId, url, isForeground);
   },
   closeTab: async (tabId: number) => {
-    if (!checkCanUseAPI().browser) return;
     return ipcRenderer.invoke("tabs:close-tab", tabId);
   },
 
@@ -114,7 +162,6 @@ const tabsAPI = {
 // PAGE API //
 const pageAPI = {
   setPageBounds: (bounds: { x: number; y: number; width: number; height: number }) => {
-    if (!checkCanUseAPI().browser) return;
     return ipcRenderer.send("page:set-bounds", bounds);
   }
 };
@@ -122,23 +169,18 @@ const pageAPI = {
 // NAVIGATION API //
 const navigationAPI = {
   getTabNavigationStatus: (tabId: number) => {
-    if (!checkCanUseAPI().browser) return;
     return ipcRenderer.invoke("navigation:get-tab-status", tabId);
   },
   goTo: (tabId: number, url: string) => {
-    if (!checkCanUseAPI().browser) return;
     return ipcRenderer.send("navigation:go-to", tabId, url);
   },
   stopLoadingTab: (tabId: number) => {
-    if (!checkCanUseAPI().browser) return;
     return ipcRenderer.send("navigation:stop-loading-tab", tabId);
   },
   reloadTab: (tabId: number) => {
-    if (!checkCanUseAPI().browser) return;
     return ipcRenderer.send("navigation:reload-tab", tabId);
   },
   goToNavigationEntry: (tabId: number, index: number) => {
-    if (!checkCanUseAPI().browser) return;
     return ipcRenderer.send("navigation:go-to-entry", tabId, index);
   }
 };
@@ -146,15 +188,12 @@ const navigationAPI = {
 // INTERFACE API //
 const interfaceAPI = {
   setWindowButtonPosition: (position: { x: number; y: number }) => {
-    if (!checkCanUseAPI().browser) return;
     return ipcRenderer.send("window-button:set-position", position);
   },
   setWindowButtonVisibility: (visible: boolean) => {
-    if (!checkCanUseAPI().browser) return;
     return ipcRenderer.send("window-button:set-visibility", visible);
   },
   onToggleSidebar: (callback: () => void) => {
-    if (!checkCanUseAPI().browser) return;
     return listenOnIPCChannel("sidebar:on-toggle", callback);
   }
 };
@@ -162,19 +201,15 @@ const interfaceAPI = {
 // PROFILES API //
 const profilesAPI = {
   getProfiles: async () => {
-    if (!checkCanUseAPI().session) return;
     return ipcRenderer.invoke("profiles:get-all");
   },
   createProfile: async (profileName: string) => {
-    if (!checkCanUseAPI().session) return;
     return ipcRenderer.invoke("profiles:create", profileName);
   },
   updateProfile: async (profileId: string, profileData: Partial<ProfileData>) => {
-    if (!checkCanUseAPI().session) return;
     return ipcRenderer.invoke("profiles:update", profileId, profileData);
   },
   deleteProfile: async (profileId: string) => {
-    if (!checkCanUseAPI().session) return;
     return ipcRenderer.invoke("profiles:delete", profileId);
   }
 };
@@ -182,47 +217,36 @@ const profilesAPI = {
 // SPACES API //
 const spacesAPI = {
   getSpaces: async () => {
-    if (!checkCanUseAPI().session) return;
     return ipcRenderer.invoke("spaces:get-all");
   },
   getSpacesFromProfile: async (profileId: string) => {
-    if (!checkCanUseAPI().session) return;
     return ipcRenderer.invoke("spaces:get-from-profile", profileId);
   },
   createSpace: async (profileId: string, spaceName: string) => {
-    if (!checkCanUseAPI().session) return;
     return ipcRenderer.invoke("spaces:create", profileId, spaceName);
   },
   deleteSpace: async (profileId: string, spaceId: string) => {
-    if (!checkCanUseAPI().session) return;
     return ipcRenderer.invoke("spaces:delete", profileId, spaceId);
   },
   updateSpace: async (profileId: string, spaceId: string, spaceData: Partial<SpaceData>) => {
-    if (!checkCanUseAPI().session) return;
     return ipcRenderer.invoke("spaces:update", profileId, spaceId, spaceData);
   },
   setUsingSpace: async (profileId: string, spaceId: string) => {
-    if (!checkCanUseAPI().session) return;
     return ipcRenderer.invoke("spaces:set-using", profileId, spaceId);
   },
   getUsingSpace: async () => {
-    if (!checkCanUseAPI().session) return;
     return ipcRenderer.invoke("spaces:get-using");
   },
   getLastUsedSpace: async () => {
-    if (!checkCanUseAPI().session) return;
     return ipcRenderer.invoke("spaces:get-last-used");
   },
   reorderSpaces: async (orderMap: { profileId: string; spaceId: string; order: number }[]) => {
-    if (!checkCanUseAPI().session) return;
     return ipcRenderer.invoke("spaces:reorder", orderMap);
   },
   onSpacesChanged: (callback: () => void) => {
-    if (!checkCanUseAPI().session) return;
     return listenOnIPCChannel("spaces:on-changed", callback);
   },
   onSetWindowSpace: (callback: (spaceId: string) => void) => {
-    if (!checkCanUseAPI().session) return;
     return listenOnIPCChannel("spaces:on-set-window-space", callback);
   }
 };
@@ -230,8 +254,6 @@ const spacesAPI = {
 // APP API //
 const appAPI = {
   getAppInfo: async () => {
-    if (!checkCanUseAPI().app) return;
-
     const appInfo: {
       version: string;
       packaged: boolean;
@@ -251,7 +273,6 @@ const appAPI = {
     };
   },
   getPlatform: () => {
-    if (!checkCanUseAPI().app) return;
     return process.platform;
   }
 };
@@ -259,19 +280,15 @@ const appAPI = {
 // ICONS API //
 const iconsAPI = {
   getIcons: async () => {
-    if (!checkCanUseAPI().app) return;
     return ipcRenderer.invoke("icons:get-all");
   },
   isPlatformSupported: async () => {
-    if (!checkCanUseAPI().app) return;
     return ipcRenderer.invoke("icons:is-platform-supported");
   },
   getCurrentIcon: async () => {
-    if (!checkCanUseAPI().app) return;
     return ipcRenderer.invoke("icons:get-current-icon-id");
   },
   setCurrentIcon: async (iconId: string) => {
-    if (!checkCanUseAPI().app) return;
     return ipcRenderer.invoke("icons:set-current-icon-id", iconId);
   }
 };
@@ -279,7 +296,6 @@ const iconsAPI = {
 // NEW TAB API //
 const newTabAPI = {
   open: () => {
-    if (!checkCanUseAPI().app) return;
     return ipcRenderer.send("new-tab:open");
   }
 };
@@ -287,11 +303,9 @@ const newTabAPI = {
 // OPEN EXTERNAL API //
 const openExternalAPI = {
   getAlwaysOpenExternal: async () => {
-    if (!checkCanUseAPI().app) return;
     return ipcRenderer.invoke("open-external:get");
   },
   unsetAlwaysOpenExternal: async (requestingURL: string, openingURL: string) => {
-    if (!checkCanUseAPI().app) return;
     return ipcRenderer.invoke("open-external:unset", requestingURL, openingURL);
   }
 };
@@ -299,11 +313,9 @@ const openExternalAPI = {
 // ONBOARDING API //
 const onboardingAPI = {
   finish: () => {
-    if (!checkCanUseAPI().app) return;
     return ipcRenderer.send("onboarding:finish");
   },
   reset: () => {
-    if (!checkCanUseAPI().app) return;
     return ipcRenderer.send("onboarding:reset");
   }
 };
@@ -311,64 +323,61 @@ const onboardingAPI = {
 // OMNIBOX API //
 const omniboxAPI = {
   show: (bounds: Electron.Rectangle | null, params: { [key: string]: string } | null) => {
-    if (!checkCanUseAPI().window) return;
     return ipcRenderer.send("omnibox:show", bounds, params);
   },
   hide: () => {
-    if (!checkCanUseAPI().window) return;
     return ipcRenderer.send("omnibox:hide");
   }
 };
 
 // SETTINGS API //
 const settingsAPI = {
-  open: () => {
-    if (!checkCanUseAPI().window) return;
-    return ipcRenderer.send("settings:open");
-  },
-  close: () => {
-    if (!checkCanUseAPI().window) return;
-    return ipcRenderer.send("settings:close");
-  },
   getSetting: async (settingId: string) => {
-    if (!checkCanUseAPI().window) return;
     return ipcRenderer.invoke("settings:get-setting", settingId);
   },
   setSetting: async (settingId: string, value: unknown) => {
-    if (!checkCanUseAPI().window) return;
     return ipcRenderer.invoke("settings:set-setting", settingId, value);
   },
   getBasicSettings: async () => {
-    if (!checkCanUseAPI().window) return;
     return ipcRenderer.invoke("settings:get-basic-settings");
   },
   onSettingsChanged: (callback: () => void) => {
-    if (!checkCanUseAPI().window) return;
     return listenOnIPCChannel("settings:on-changed", callback);
+  }
+};
+
+// WINDOWS API //
+const windowsAPI = {
+  openSettingsWindow: () => {
+    return ipcRenderer.send("settings:open");
+  },
+  closeSettingsWindow: () => {
+    return ipcRenderer.send("settings:close");
   }
 };
 
 // EXPOSE FLOW API //
 contextBridge.exposeInMainWorld("flow", {
+  // App APIs
+  app: wrapAPI(appAPI, "app"),
+  windows: wrapAPI(windowsAPI, "app"),
+
   // Browser APIs
-  browser: browserAPI,
-  tabs: tabsAPI,
-  page: pageAPI,
-  navigation: navigationAPI,
-  interface: interfaceAPI,
+  browser: wrapAPI(browserAPI, "browser"),
+  tabs: wrapAPI(tabsAPI, "browser"),
+  page: wrapAPI(pageAPI, "browser"),
+  navigation: wrapAPI(navigationAPI, "browser"),
+  interface: wrapAPI(interfaceAPI, "browser"),
+  omnibox: wrapAPI(omniboxAPI, "browser"),
+  newTab: wrapAPI(newTabAPI, "browser"),
 
   // Session APIs
-  profiles: profilesAPI,
-  spaces: spacesAPI,
+  profiles: wrapAPI(profilesAPI, "session"),
+  spaces: wrapAPI(spacesAPI, "session"),
 
-  // App APIs
-  app: appAPI,
-  icons: iconsAPI,
-  newTab: newTabAPI,
-  openExternal: openExternalAPI,
-  onboarding: onboardingAPI,
-
-  // Windows APIs
-  omnibox: omniboxAPI,
-  settings: settingsAPI
+  // Settings APIs
+  settings: wrapAPI(settingsAPI, "settings"),
+  icons: wrapAPI(iconsAPI, "settings"),
+  openExternal: wrapAPI(openExternalAPI, "settings"),
+  onboarding: wrapAPI(onboardingAPI, "settings")
 });

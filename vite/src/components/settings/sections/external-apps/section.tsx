@@ -13,7 +13,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
-import { ExternalAppPermission } from "@/lib/flow/interfaces/app/openExternal";
+import { ExternalAppPermission } from "@/lib/flow/interfaces/settings/openExternal";
 import { toast } from "sonner";
 
 function PermissionItem({

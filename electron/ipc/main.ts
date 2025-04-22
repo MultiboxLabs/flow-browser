@@ -1,21 +1,21 @@
+// App APIs
+import "@/ipc/app/app";
+
 // Browser APIs
 import "@/ipc/browser/browser";
 import "@/ipc/browser/tabs";
 import "@/ipc/browser/page";
 import "@/ipc/browser/navigation";
 import "@/ipc/browser/interface";
+import "@/ipc/window/omnibox";
+import "@/ipc/app/new-tab";
 
 // Session APIs
 import "@/ipc/session/profiles";
 import "@/ipc/session/spaces";
 
-// App APIs
-import "@/ipc/app/app";
+// Settings APIs
+import "@/ipc/window/settings";
 import "@/ipc/app/icons";
-import "@/ipc/app/new-tab";
 import "@/ipc/app/open-external";
 import "@/ipc/app/onboarding";
-
-// Windows APIs
-import "@/ipc/window/omnibox";
-import "@/ipc/window/settings";
