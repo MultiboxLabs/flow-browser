@@ -1,30 +1,78 @@
 // Manage listeners for IPC channels on the renderer process
 // Make sure messages are not wasted by sending to renderer processes that are not listening
 
-import { ipcMain, WebContents } from "electron";
+import { TabbedBrowserWindow } from "@/browser/window";
+import { ipcMain, WebContents, WebContentsView } from "electron";
 
 type ListenerMap = Map<string, [WebContents, () => void]>;
 
 const listeners = new Map<string, ListenerMap>();
 
-export function sendMessageToListeners(channel: string, ...args: any[]) {
-  const channelListeners = listeners.get(channel);
-  if (!channelListeners) return;
-
+// Utility Functions //
+function getConnectedWebContents(channel: string) {
   const webContentsSet = new Set<WebContents>();
 
-  for (const [, [webContents, _onDestroyed]] of channelListeners) {
+  const channelListeners = listeners.get(channel);
+  if (!channelListeners) return webContentsSet;
+
+  for (const [, [webContents]] of channelListeners) {
     webContentsSet.add(webContents);
   }
 
+  return webContentsSet;
+}
+
+function sendMessageToWebContents(webContents: WebContents, channel: string, ...args: any[]) {
+  if (webContents.isDestroyed()) {
+    return false;
+  }
+  webContents.send(channel, ...args);
+  return true;
+}
+
+// Public Functions //
+export function sendMessageToListeners(channel: string, ...args: any[]) {
+  const webContentsSet = getConnectedWebContents(channel);
+
   for (const webContents of webContentsSet) {
-    if (webContents.isDestroyed()) {
-      continue;
-    }
-    webContents.send(channel, ...args);
+    sendMessageToWebContents(webContents, channel, ...args);
   }
 }
 
+export function sendMessageToListenersInWindow(window: TabbedBrowserWindow, channel: string, ...args: any[]) {
+  const webContentsSet = getConnectedWebContents(channel);
+  const win = window.window;
+
+  const webContentsInWindow: WebContents[] = [win.webContents];
+
+  for (const child of win.contentView.children) {
+    if (child instanceof WebContentsView) {
+      webContentsInWindow.push(child.webContents);
+    }
+  }
+
+  for (const webContents of webContentsInWindow) {
+    if (webContentsSet.has(webContents)) {
+      sendMessageToWebContents(webContents, channel, ...args);
+    }
+  }
+}
+
+export function sendMessageToListenersWithWebContents(
+  selectedWebContents: WebContents[],
+  channel: string,
+  ...args: any[]
+) {
+  const webContentsSet = getConnectedWebContents(channel);
+
+  for (const webContents of selectedWebContents) {
+    if (webContentsSet.has(webContents)) {
+      sendMessageToWebContents(webContents, channel, ...args);
+    }
+  }
+}
+
+// Internal Functions //
 function addListener(channel: string, listenerId: string, webContents: WebContents) {
   const channelListeners: ListenerMap = listeners.get(channel) || new Map();
 

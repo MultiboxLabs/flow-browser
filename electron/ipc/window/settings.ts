@@ -1,4 +1,4 @@
-import { browser } from "@/index";
+import { sendMessageToListeners } from "@/ipc/listeners-manager";
 import { BasicSettings, BasicSettingCards } from "@/modules/basic-settings";
 import { getSettingValueById, setSettingValueById } from "@/saving/settings";
 import { settings } from "@/settings/main";
@@ -28,5 +28,5 @@ ipcMain.handle("settings:get-basic-settings", (event) => {
 });
 
 export function fireOnSettingsChanged() {
-  browser?.sendMessageToCoreWebContents("settings:on-changed");
+  sendMessageToListeners("settings:on-changed");
 }

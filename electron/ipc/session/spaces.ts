@@ -14,6 +14,7 @@ import {
 import { generateID } from "@/browser/utility/utils";
 import { browser } from "@/index";
 import { TabbedBrowserWindow } from "@/browser/window";
+import { sendMessageToListeners, sendMessageToListenersInWindow } from "@/ipc/listeners-manager";
 
 ipcMain.handle("spaces:get-all", async (event) => {
   return await getSpaces();
@@ -61,10 +62,10 @@ ipcMain.handle("spaces:reorder", async (event, orderMap: { profileId: string; sp
 });
 
 export function setWindowSpace(window: TabbedBrowserWindow, spaceId: string) {
-  window.sendMessageToCoreWebContents("spaces:on-set-window-space", spaceId);
+  sendMessageToListenersInWindow(window, "spaces:on-set-window-space", spaceId);
 }
 
 function fireOnSpacesChanged() {
-  browser?.sendMessageToCoreWebContents("spaces:on-changed");
+  sendMessageToListeners("spaces:on-changed");
 }
 spacesEmitter.on("changed", fireOnSpacesChanged);

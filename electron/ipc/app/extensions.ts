@@ -1,9 +1,10 @@
 import { browser } from "@/index";
+import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
 import { transformStringToLocale } from "@/modules/extensions/locales";
 import { ExtensionData, ExtensionManager, getExtensionSize, getManifest } from "@/modules/extensions/management";
 import { getPermissionWarnings } from "@/modules/extensions/permission-warnings";
 import { getSpace } from "@/sessions/spaces";
-import { ipcMain, IpcMainInvokeEvent } from "electron";
+import { ipcMain, IpcMainInvokeEvent, WebContents } from "electron";
 import { SharedExtensionData } from "~/types/extensions";
 
 function translateManifestString(extensionPath: string, str: string) {
@@ -96,9 +97,14 @@ export async function fireOnExtensionsUpdated(profileId: string) {
   if (!browser) return;
 
   const extensions = await getExtensionDataFromProfile(profileId);
+
+  // Select tabs with the correct profile ID
+  const selectedWebContents: WebContents[] = [];
   for (const tab of browser?.tabs.getTabsInProfile(profileId)) {
     if (tab.profileId === profileId) {
-      tab.webContents.send("extensions:on-updated", extensions);
+      selectedWebContents.push(tab.webContents);
     }
   }
+
+  sendMessageToListenersWithWebContents(selectedWebContents, "extensions:on-updated", extensions);
 }
