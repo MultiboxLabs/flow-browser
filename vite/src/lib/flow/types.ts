@@ -4,3 +4,5 @@ export type PageBounds = {
   width: number;
   height: number;
 };
+
+export type IPCListener<T> = (callback: (data: T) => void) => () => void;

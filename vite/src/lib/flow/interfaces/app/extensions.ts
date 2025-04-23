@@ -1,0 +1,15 @@
+import { IPCListener } from "@/lib/flow/types";
+import { SharedExtensionData } from "~/types/extensions";
+
+// API //
+export interface FlowExtensionsAPI {
+  /**
+   * Get all extensions in the current profile
+   */
+  getAllInCurrentProfile: () => Promise<SharedExtensionData[]>;
+
+  /**
+   * Listen for updates to the extensions in the current profile
+   */
+  onUpdated: IPCListener<SharedExtensionData[]>;
+}

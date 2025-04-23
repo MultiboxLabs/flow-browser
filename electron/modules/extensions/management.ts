@@ -1,11 +1,13 @@
 import { DataStore, getDatastore } from "@/saving/datastore";
-import { Extension, Session } from "electron";
+import { Extension, NativeImage, Session, nativeImage } from "electron";
 import path from "path";
 import fs from "fs/promises";
+import { getActualSize, getFsStat } from "@/modules/utils";
+import { ExtensionType } from "~/types/extensions";
+import { TypedEventEmitter } from "@/modules/typed-event-emitter";
+import { fireOnExtensionsUpdated } from "@/ipc/app/extensions";
 
-type ExtensionType = "unpacked" | "crx";
-
-type ExtensionData = {
+export type ExtensionData = {
   type: ExtensionType;
   disabled: boolean;
 };
@@ -23,15 +25,6 @@ type ExtensionDataWithId = ExtensionData & {
  */
 function getProfileExtensionStore(profileId: string) {
   return getDatastore("extensions", ["profiles", profileId]);
-}
-
-/**
- * Get the stats of a path
- * @param path - The path to get the stats of
- * @returns The stats of the path
- */
-async function getFsStat(path: string) {
-  return await fs.stat(path).catch(() => null);
 }
 
 /**
@@ -65,7 +58,91 @@ async function hasManifest(extensionPath: string) {
   return hasFile(path.join(extensionPath, "manifest.json"));
 }
 
-export class ExtensionManager {
+/**
+ * Get the manifest of an extension
+ * @param extensionPath - The path to the extension
+ * @returns The manifest of the extension
+ */
+export async function getManifest(extensionPath: string) {
+  const manifestPath = path.join(extensionPath, "manifest.json");
+  if (!hasFile(manifestPath)) return null;
+
+  const manifestJSON = await fs.readFile(manifestPath, "utf-8");
+  const manifest: chrome.runtime.Manifest = JSON.parse(manifestJSON);
+  return manifest;
+}
+
+/**
+ * Get the size of an extension
+ * @param extensionPath - The path to the extension
+ * @returns The size of the extension
+ */
+export async function getExtensionSize(extensionPath: string) {
+  return await getActualSize(extensionPath);
+}
+
+/**
+ * Get the icon of an extension
+ * @param extensionPath - The path to the extension
+ * @returns The icon of the extension
+ */
+export async function getExtensionIcon(extensionPath: string): Promise<NativeImage | null> {
+  const manifest = await getManifest(extensionPath);
+  if (!manifest || !manifest.icons) {
+    console.warn(`No manifest or icons found for extension at ${extensionPath}`);
+    return null;
+  }
+
+  // Prefer 128px icon, then largest available
+  const iconSizes = Object.keys(manifest.icons)
+    .map(Number)
+    .sort((a, b) => b - a);
+  let bestIconPath: string | null = null;
+
+  const preferredSize = "128";
+  if (manifest.icons[preferredSize]) {
+    bestIconPath = manifest.icons[preferredSize];
+  } else if (iconSizes.length > 0) {
+    const largestSize = iconSizes[0];
+    const sizeKey = largestSize.toString();
+    bestIconPath = (manifest.icons as any)[sizeKey];
+    console.warn(
+      `Using largest available icon size (${largestSize}px) for extension at ${extensionPath} as 128px icon is not available.`
+    );
+  }
+
+  if (!bestIconPath) {
+    console.warn(`No suitable icon path found in manifest for extension at ${extensionPath}`);
+    return null;
+  }
+
+  const fullIconPath = path.join(extensionPath, bestIconPath);
+
+  try {
+    // Check if the icon file exists before reading using the existing getFsStat helper
+    const stats = await getFsStat(fullIconPath);
+    if (!stats || !stats.isFile()) {
+      console.error(`Icon file not found or is not a file at ${fullIconPath}`);
+      return null;
+    }
+
+    const iconBuffer = await fs.readFile(fullIconPath);
+    const image = nativeImage.createFromBuffer(iconBuffer);
+    // Check if the image is empty (e.g., invalid file format)
+    if (image.isEmpty()) {
+      console.error(`Failed to create NativeImage from ${fullIconPath}: Image is empty or invalid format.`);
+      return null;
+    }
+    return image;
+  } catch (error) {
+    console.error(`Failed to read or create NativeImage for icon at ${fullIconPath}:`, error);
+    return null;
+  }
+}
+
+export class ExtensionManager extends TypedEventEmitter<{
+  "cache-updated": [];
+}> {
   readonly profileId: string;
   private readonly profileSession: Session;
   private readonly extensionsPath: string;
@@ -73,15 +150,24 @@ export class ExtensionManager {
   private cache: ExtensionDataWithId[] = [];
 
   constructor(profileId: string, profileSession: Session, extensionsPath: string) {
+    super();
+
     this.profileId = profileId;
     this.profileSession = profileSession;
     this.extensionsPath = extensionsPath;
 
     this.extensionStore = getProfileExtensionStore(profileId);
+
+    // Fire Event
+    this.on("cache-updated", () => {
+      fireOnExtensionsUpdated(profileId);
+    });
   }
 
   private async updateCache() {
-    return await this.getInstalledExtensions();
+    const extensions = await this.getInstalledExtensions();
+    this.emit("cache-updated");
+    return extensions;
   }
 
   /**
@@ -105,7 +191,7 @@ export class ExtensionManager {
    * @param extensionData - The data of the extension
    * @returns The path of the extension
    */
-  private async getExtensionPath(extensionId: string, extensionData: ExtensionData) {
+  public async getExtensionPath(extensionId: string, extensionData: ExtensionData) {
     switch (extensionData.type) {
       case "unpacked": {
         const unpackedPath = path.join(this.extensionsPath, "unpacked", extensionId);
@@ -295,5 +381,14 @@ export class ExtensionManager {
    */
   public getExtensionDisabled(extensionId: string): boolean {
     return this.cache.find((extension) => extension.id === extensionId)?.disabled ?? false;
+  }
+
+  /**
+   * Get the extension data from the cache
+   * @param extensionId - The ID of the extension
+   * @returns The extension data
+   */
+  public getExtensionDataFromCache(extensionId: string): ExtensionData | undefined {
+    return this.cache.find((extension) => extension.id === extensionId);
   }
 }

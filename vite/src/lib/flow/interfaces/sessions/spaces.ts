@@ -1,3 +1,5 @@
+import { IPCListener } from "@/lib/flow/types";
+
 export type Space = {
   id: string;
   name: string;
@@ -57,10 +59,10 @@ export interface FlowSpacesAPI {
   /**
    * Listens for changes to the spaces
    */
-  onSpacesChanged: (callback: () => void) => () => void;
+  onSpacesChanged: IPCListener<void>;
 
   /**
    * Listens for changes to the space that the current window is using
    */
-  onSetWindowSpace: (callback: (spaceId: string) => void) => () => void;
+  onSetWindowSpace: IPCListener<string>;
 }

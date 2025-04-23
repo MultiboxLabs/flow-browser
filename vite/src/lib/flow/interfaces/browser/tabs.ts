@@ -1,3 +1,4 @@
+import { IPCListener } from "@/lib/flow/types";
 import { WindowTabsData } from "~/types/tabs";
 
 // API //
@@ -12,7 +13,7 @@ export interface FlowTabsAPI {
    * Add a callback to be called when the tabs data is updated
    * @param callback The callback to be called when the tabs data is updated
    */
-  onDataUpdated: (callback: (data: WindowTabsData) => void) => () => void;
+  onDataUpdated: IPCListener<WindowTabsData>;
 
   /**
    * Switch to a tab

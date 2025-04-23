@@ -22,6 +22,7 @@ export type LoadedProfile = {
   readonly profileData: ProfileData;
   readonly session: Session;
   readonly extensions: ElectronChromeExtensions;
+  readonly extensionsManager: ExtensionManager;
   newTabUrl: string;
   unload: () => void;
 };
@@ -301,6 +302,7 @@ export class ProfileManager {
         profileData,
         session: profileSession,
         extensions,
+        extensionsManager,
         newTabUrl: NEW_TAB_URL,
         unload: () => this.handleProfileUnload(profileId)
       };

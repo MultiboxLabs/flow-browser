@@ -6,6 +6,7 @@ import { ProfileData } from "@/sessions/profiles";
 import { contextBridge, ipcRenderer } from "electron";
 import { injectBrowserAction } from "electron-chrome-extensions/browser-action";
 import { SpaceData } from "@/sessions/spaces";
+import { SharedExtensionData } from "~/types/extensions";
 
 // API CHECKS //
 function isProtocol(protocol: string) {
@@ -38,7 +39,6 @@ function hasPermission(permission: Permission) {
   // Extensions
   const isExtensions = isLocation("flow:", "extensions");
 
-  console.log("permission", permission);
   switch (permission) {
     case "app":
       return isInternalProtocols || isExtensions;
@@ -356,11 +356,22 @@ const windowsAPI = {
   }
 };
 
+// EXTENSIONS API //
+const extensionsAPI = {
+  getAllInCurrentProfile: async () => {
+    return ipcRenderer.invoke("extensions:get-all-in-current-profile");
+  },
+  onUpdated: (callback: (extensions: SharedExtensionData[]) => void) => {
+    return listenOnIPCChannel("extensions:on-updated", callback);
+  }
+};
+
 // EXPOSE FLOW API //
 contextBridge.exposeInMainWorld("flow", {
   // App APIs
   app: wrapAPI(appAPI, "app"),
   windows: wrapAPI(windowsAPI, "app"),
+  extensions: wrapAPI(extensionsAPI, "app"),
 
   // Browser APIs
   browser: wrapAPI(browserAPI, "browser"),

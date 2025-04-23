@@ -58,6 +58,9 @@ function Routes() {
       <Route protocol={flowInternalProtocol} hostname="onboarding">
         <OnboardingRoute />
       </Route>
+      <Route protocol={flowProtocol} hostname="extensions">
+        <ExtensionsRoute />
+      </Route>
     </RouterProvider>
   );
 }

@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { copyTextToClipboard } from "@/lib/utils";
 
 function Page() {
-  const hostnames = ["about", "new-tab", "games", "omnibox", "error"];
+  const hostnames = ["about", "new-tab", "games", "omnibox", "error", "extensions"];
 
   return (
     <div className="w-screen h-screen bg-background p-8 flex flex-col items-center">

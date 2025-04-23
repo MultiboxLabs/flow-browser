@@ -1,0 +1,17 @@
+type ExtensionInspectView = "service_worker" | "background";
+
+export type ExtensionType = "unpacked" | "crx";
+
+export interface SharedExtensionData {
+  type: ExtensionType;
+  id: string;
+  name: string;
+  description?: string;
+  icon: string;
+  enabled: boolean;
+  version: string;
+  path: string;
+  size: number;
+  permissions: string[];
+  inspectViews: ExtensionInspectView[];
+}

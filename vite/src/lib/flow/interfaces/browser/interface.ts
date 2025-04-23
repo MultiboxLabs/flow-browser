@@ -1,3 +1,5 @@
+import { IPCListener } from "@/lib/flow/types";
+
 // API //
 export interface FlowInterfaceAPI {
   /**
@@ -17,5 +19,5 @@ export interface FlowInterfaceAPI {
   /**
    * Adds a callback to be called when the sidebar is toggled
    */
-  onToggleSidebar: (callback: () => void) => () => void;
+  onToggleSidebar: IPCListener<void>;
 }

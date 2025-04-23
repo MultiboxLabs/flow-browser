@@ -63,13 +63,11 @@ export function createTabContextMenu(
         sections.push(linkItems);
       } else if (hasLookUpSelection && parameters.selectionText.trim()) {
         sections.push([lookUpSelection]);
+      } else if (parameters.hasImageContents) {
+        sections.push(imageItems);
       } else {
         noSpecialActions = true;
         sections.push(navigationItems);
-      }
-
-      if (parameters.hasImageContents) {
-        sections.push(imageItems);
       }
 
       if (parameters.selectionText.trim() && !parameters.isEditable) {

@@ -1,5 +1,6 @@
 import { FlowAppAPI } from "@/lib/flow/interfaces/app/app";
 import { FlowWindowsAPI } from "@/lib/flow/interfaces/app/windows";
+import { FlowExtensionsAPI } from "@/lib/flow/interfaces/app/extensions";
 
 import { FlowBrowserAPI } from "@/lib/flow/interfaces/browser/browser";
 import { FlowTabsAPI } from "@/lib/flow/interfaces/browser/tabs";
@@ -26,6 +27,7 @@ declare global {
     // App APIs
     app: FlowAppAPI;
     windows: FlowWindowsAPI;
+    extensions: FlowExtensionsAPI;
 
     // Browser APIs
     browser: FlowBrowserAPI;
