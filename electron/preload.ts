@@ -73,13 +73,26 @@ function getOSFromPlatform(platform: NodeJS.Platform) {
   }
 }
 
+/**
+ * Generates a UUIDv4 string.
+ * @returns A UUIDv4 string.
+ */
+function generateUUID(): string {
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) =>
+    (+c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (+c / 4)))).toString(16)
+  );
+}
+
 function listenOnIPCChannel(channel: string, callback: (...args: any[]) => void) {
   const wrappedCallback = (_event: any, ...args: any[]) => {
     callback(...args);
   };
 
+  const listenerId = generateUUID();
+  ipcRenderer.send("listeners:add", channel, listenerId);
   ipcRenderer.on(channel, wrappedCallback);
   return () => {
+    ipcRenderer.send("listeners:remove", channel, listenerId);
     ipcRenderer.removeListener(channel, wrappedCallback);
   };
 }
