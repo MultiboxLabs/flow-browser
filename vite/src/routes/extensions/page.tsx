@@ -7,8 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { useRouter } from "@/router/provider";
 import { ExternalLink } from "lucide-react";
 
-import ExtensionCard from "./components/ExtensionCard";
-import ExtensionDetails from "./components/ExtensionDetails";
+import ExtensionCard from "./components/extension-card";
+import ExtensionDetails from "./components/extension-details";
 import { ExtensionsProvider, useExtensions } from "@/components/providers/extensions-provider";
 import { toast } from "sonner";
 
