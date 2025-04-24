@@ -9,6 +9,7 @@ import { useState } from "react";
 import { TabsProvider, useTabs } from "@/components/providers/tabs-provider";
 import { SettingsProvider, useSettings } from "@/components/providers/settings-provider";
 import { TabDisabler } from "@/components/logic/tab-disabler";
+import { BrowserActionProvider } from "@/components/providers/browser-action-provider";
 
 export type CollapseMode = "icon" | "offcanvas";
 export type SidebarVariant = "sidebar" | "floating";
@@ -61,7 +62,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
           )}
         >
           {/* Topbar */}
-          <div className="absolute top-0 left-0 w-full h-3 flex justify-center items-center">
+          <div className="absolute top-0 left-0 w-full h-2.5 flex justify-center items-center">
             <AnimatePresence>
               {isActiveTabLoading && (
                 <motion.div
@@ -119,7 +120,9 @@ export function BrowserUI({ type }: { type: WindowType }) {
         <SettingsProvider>
           <SpacesProvider windowType={type}>
             <TabsProvider>
-              <InternalBrowserUI isReady={isReady} type={type} />
+              <BrowserActionProvider>
+                <InternalBrowserUI isReady={isReady} type={type} />
+              </BrowserActionProvider>
             </TabsProvider>
           </SpacesProvider>
         </SettingsProvider>

@@ -1,25 +1,18 @@
 import { SIDEBAR_HOVER_COLOR } from "@/components/browser-ui/browser-sidebar";
+import { useBrowserAction } from "@/components/providers/browser-action-provider";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SidebarMenu, SidebarMenuButton } from "@/components/ui/resizable-sidebar";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { PinIcon, PuzzleIcon } from "lucide-react";
-import { MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CogIcon, LayersIcon, PackageXIcon, PinIcon, PuzzleIcon } from "lucide-react";
+import { MouseEvent, useCallback, useMemo, useRef, useState } from "react";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 interface BrowserActionListProps {
   partition?: string;
   alignmentX?: "left" | "right";
   alignmentY?: "top" | "bottom";
-}
-
-interface ActivateDetails {
-  eventType: string;
-  extensionId: string;
-  tabId: number;
-  anchorRect: { x: number; y: number; width: number; height: number };
-  alignment?: string;
 }
 
 interface ExtensionAction {
@@ -39,27 +32,13 @@ interface Action {
   tabs: Record<string, ExtensionAction>;
 }
 
-type State = {
-  activeTabId?: number;
-  actions: Action[];
-};
-
-type __browserAction__ = {
-  addEventListener(name: string, listener: (...args: any[]) => void): void;
-  removeEventListener(name: string, listener: (...args: any[]) => void): void;
-  getAction(extensionId: string): any;
-  getState(partition: string): Promise<State>;
-  activate: (partition: string, details: ActivateDetails) => Promise<unknown>;
-  addObserver(partition: string): void;
-  removeObserver(partition: string): void;
-};
-
 type BrowserActionIconProps = {
   action: Action;
   activeTabId: number;
   tabInfo: ExtensionAction | null;
   partitionId: string;
 };
+
 function BrowserActionIcon({ action, activeTabId, tabInfo, partitionId }: BrowserActionIconProps) {
   const { iconModified } = { ...action, ...tabInfo };
 
@@ -109,51 +88,27 @@ type BrowserActionProps = {
   activeTabId: number;
 };
 function BrowserAction({ action, alignment, partition, activeTabId }: BrowserActionProps) {
-  const browserAction: __browserAction__ = (globalThis as any).browserAction;
-
+  const { activate } = useBrowserAction();
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const tabInfo = activeTabId > -1 ? action.tabs[activeTabId] : null;
 
-  const onActivated = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
-      if (!buttonRef.current) return;
+  const onActivated = useCallback(() => {
+    if (!buttonRef.current) return;
 
-      const button = buttonRef.current;
+    activate(action.id, activeTabId, buttonRef.current, alignment);
+  }, [action.id, activeTabId, alignment, activate]);
 
-      const rect = button.getBoundingClientRect();
-
-      // Prediction of Native Frame Size on Left Click
-      const Y_PADDING = event.button === 0 ? 20 : 0;
-      browserAction.activate(partition, {
-        eventType: event.type,
-        extensionId: action.id,
-        tabId: activeTabId,
-        alignment: alignment,
-        anchorRect: {
-          x: rect.left,
-          y: rect.top + Y_PADDING,
-          width: rect.width,
-          height: rect.height
-        }
-      });
-    },
-    [action.id, activeTabId, alignment, browserAction, partition]
-  );
-
-  const onClick = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
-      return onActivated(event);
-    },
-    [onActivated]
-  );
+  const onClick = useCallback(() => {
+    return onActivated();
+  }, [onActivated]);
 
   const onContextMenu = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
       event.nativeEvent.stopImmediatePropagation();
 
-      return onActivated(event);
+      return onActivated();
     },
     [onActivated]
   );
@@ -173,54 +128,25 @@ function BrowserAction({ action, alignment, partition, activeTabId }: BrowserAct
   );
 }
 
-export function BrowserActionList({
-  partition = "_self",
-  alignmentX = "left",
-  alignmentY = "bottom"
-}: BrowserActionListProps) {
-  const browserAction: __browserAction__ = (globalThis as any).browserAction;
-
+export function BrowserActionList({ alignmentX = "left", alignmentY = "bottom" }: BrowserActionListProps) {
   const { isCurrentSpaceLight } = useSpaces();
+  const { actions, activeTabId, partition } = useBrowserAction();
+  const [open, setOpen] = useState(false);
 
   const alignment = useMemo(() => {
     return `${alignmentX} ${alignmentY}`;
   }, [alignmentX, alignmentY]);
 
-  const fetchState = useCallback(async () => {
-    return browserAction.getState(partition);
-  }, [browserAction, partition]);
-
-  const [activeTabId, setActiveTabId] = useState<number | undefined>(undefined);
-  const [actions, setActions] = useState<Action[]>([]);
-
-  useEffect(() => {
-    fetchState().then((state) => {
-      setActions(state.actions);
-      setActiveTabId(state.activeTabId);
-    });
-  }, [fetchState]);
-
-  const onActionsUpdate = useCallback((state: State) => {
-    setActions(state.actions);
-    setActiveTabId(state.activeTabId);
+  const openExtensionsPage = useCallback(() => {
+    flow.tabs.newTab("flow://extensions", true);
+    setOpen(false);
   }, []);
 
-  useEffect(() => {
-    browserAction.addEventListener("update", onActionsUpdate);
-    browserAction.addObserver(partition);
-
-    return () => {
-      browserAction.removeEventListener("update", onActionsUpdate);
-      browserAction.removeObserver(partition);
-    };
-  }, [browserAction, partition, onActionsUpdate]);
-
-  if (!activeTabId) return null;
-  if (actions.length === 0) return null;
+  const disabled = !activeTabId || actions.length === 0;
 
   const spaceInjectedClasses = cn(isCurrentSpaceLight ? "" : "dark");
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <SidebarMenuButton className={cn(SIDEBAR_HOVER_COLOR, "text-black dark:text-white")}>
           <PuzzleIcon />
@@ -228,15 +154,33 @@ export function BrowserActionList({
       </PopoverTrigger>
       <PopoverContent className={cn("w-56 p-2 select-none", spaceInjectedClasses)}>
         <SidebarMenu>
-          {actions.map((action) => (
-            <BrowserAction
-              key={action.id}
-              action={action}
-              alignment={alignment}
-              partition={partition}
-              activeTabId={activeTabId}
-            />
-          ))}
+          {!disabled &&
+            actions.map((action) => (
+              <BrowserAction
+                key={action.id}
+                action={action}
+                alignment={alignment}
+                partition={partition}
+                activeTabId={activeTabId}
+              />
+            ))}
+          {!activeTabId && (
+            <SidebarMenuButton disabled>
+              <LayersIcon />
+              No Active Tab
+            </SidebarMenuButton>
+          )}
+          {activeTabId && !actions.length && (
+            <SidebarMenuButton disabled>
+              <PackageXIcon />
+              No Extensions Available
+            </SidebarMenuButton>
+          )}
+          <Separator />
+          <SidebarMenuButton onClick={openExtensionsPage}>
+            <CogIcon />
+            <span className="font-semibold truncate">Manage Extensions</span>
+          </SidebarMenuButton>
         </SidebarMenu>
       </PopoverContent>
     </Popover>

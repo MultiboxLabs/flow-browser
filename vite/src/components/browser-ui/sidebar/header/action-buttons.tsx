@@ -2,7 +2,6 @@ import { BrowserActionList } from "@/components/browser-ui/browser-action";
 import { SIDEBAR_HOVER_COLOR } from "@/components/browser-ui/browser-sidebar";
 import { GoBackButton, GoForwardButton } from "@/components/browser-ui/sidebar/header/navigation-buttons";
 import { RefreshCWIcon, RefreshCWIconHandle } from "@/components/icons/refresh-cw";
-import { useSpaces } from "@/components/providers/spaces-provider";
 import { useTabs } from "@/components/providers/tabs-provider";
 import {
   SidebarGroup,
@@ -98,7 +97,6 @@ function StopLoadingIcon() {
 export function NavigationControls() {
   const { focusedTab } = useTabs();
   const { open, setOpen } = useSidebar();
-  const { currentSpace } = useSpaces();
 
   const [entries, setEntries] = useState<NavigationEntryWithIndex[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -106,8 +104,6 @@ export function NavigationControls() {
   const [canGoForward, setCanGoForward] = useState(false);
 
   const isLoading = focusedTab?.isLoading || false;
-
-  const currentProfileId = currentSpace?.profileId;
 
   useEffect(() => {
     const tabId = focusedTab?.id;
@@ -170,9 +166,7 @@ export function NavigationControls() {
           />
 
           {/* Browser Actions */}
-          {currentProfileId && focusedTab && (
-            <BrowserActionList partition={`profile:${currentProfileId}`} alignmentY="bottom" alignmentX="right" />
-          )}
+          <BrowserActionList alignmentY="bottom" alignmentX="right" />
         </SidebarMenuItem>
         {/* Right Side Buttons */}
         <SidebarMenuItem className="flex flex-row gap-0.5">

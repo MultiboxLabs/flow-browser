@@ -12,6 +12,8 @@ import ExtensionDetails from "./components/extension-details";
 import { ExtensionsProvider, useExtensions } from "@/components/providers/extensions-provider";
 import { toast } from "sonner";
 
+const CHROME_WEB_STORE_URL = "https://chromewebstore.google.com/category/extensions?utm_source=ext_sidebar";
+
 function ExtensionsPage() {
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
   const router = useRouter();
@@ -62,7 +64,7 @@ function ExtensionsPage() {
                   <p className="text-muted-foreground mt-1">Manage your browser extensions</p>
                 </div>
                 <a
-                  href="https://chromewebstore.google.com/category/extensions?utm_source=ext_sidebar&hl=en-US"
+                  href={CHROME_WEB_STORE_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
@@ -109,21 +111,34 @@ function ExtensionsPage() {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  {extensions.map((extension) => (
-                    <ExtensionCard
-                      key={extension.id}
-                      extension={extension}
-                      isToggling={isToggling}
-                      onToggle={toggleExtension}
-                      onDetailsClick={handleDetailsClick}
-                    />
-                  ))}
-                </div>
+                {extensions.length > 0 ? (
+                  <div className="space-y-2">
+                    {extensions.map((extension) => (
+                      <ExtensionCard
+                        key={extension.id}
+                        extension={extension}
+                        isToggling={isToggling}
+                        onToggle={toggleExtension}
+                        onDetailsClick={handleDetailsClick}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <h3 className="text-lg font-medium mb-2">No extensions installed</h3>
+                    <p className="text-muted-foreground mb-6">Install extensions to enhance your browsing experience</p>
+                    <a href={CHROME_WEB_STORE_URL} target="_blank" rel="noopener noreferrer">
+                      <Button className="gap-2">
+                        <ExternalLink size={16} />
+                        Browse Chrome Web Store
+                      </Button>
+                    </a>
+                  </div>
+                )}
 
                 <div className="mt-8 text-center py-4 border-t border-border">
                   <a
-                    href="https://chromewebstore.google.com/category/extensions?utm_source=ext_sidebar&hl=en-US"
+                    href={CHROME_WEB_STORE_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-primary hover:text-primary/80 flex items-center justify-center gap-1"
