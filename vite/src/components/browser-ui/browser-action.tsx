@@ -170,7 +170,7 @@ export function BrowserActionList({ alignmentX = "left", alignmentY = "bottom" }
               No Active Tab
             </SidebarMenuButton>
           )}
-          {activeTabId && !actions.length && (
+          {activeTabId && actions.length === 0 && (
             <SidebarMenuButton disabled>
               <PackageXIcon />
               No Extensions Available

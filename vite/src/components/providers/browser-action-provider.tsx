@@ -95,11 +95,15 @@ function InternalBrowserActionProvider({
   useEffect(() => {
     if (!browserAction || disabled) return;
 
-    browserAction.addEventListener("update", onActionsUpdate);
+    const updateListener = (newState: BrowserActionState) => {
+      onActionsUpdate(newState);
+    };
+
+    browserAction.addEventListener("update", updateListener);
     browserAction.addObserver(partition);
 
     return () => {
-      browserAction.removeEventListener("update", onActionsUpdate);
+      browserAction.removeEventListener("update", updateListener);
       browserAction.removeObserver(partition);
     };
   }, [browserAction, partition, onActionsUpdate, disabled]);
