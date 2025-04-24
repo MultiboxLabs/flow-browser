@@ -1,4 +1,5 @@
 import { AddressBarCopyLinkButton } from "@/components/browser-ui/sidebar/header/address-bar/copy-link-button";
+import { PinnedBrowserActions } from "@/components/browser-ui/sidebar/header/address-bar/pinned-browser-actions";
 import { useTabs } from "@/components/providers/tabs-provider";
 import { SidebarGroup, useSidebar } from "@/components/ui/resizable-sidebar";
 import { simplifyUrl } from "@/lib/url";
@@ -58,6 +59,7 @@ function FakeAddressBar() {
       <span className={cn("text-sm font-medium truncate")}>{value}</span>
       {/* Right Side */}
       <div className="ml-auto flex items-center gap-1">
+        <PinnedBrowserActions />
         {!isPlaceholder && <AddressBarCopyLinkButton addressUrl={addressUrl} />}
       </div>
     </div>

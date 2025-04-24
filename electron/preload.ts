@@ -408,8 +408,12 @@ contextBridge.exposeInMainWorld("flow", {
   newTab: wrapAPI(newTabAPI, "browser"),
 
   // Session APIs
-  profiles: wrapAPI(profilesAPI, "session"),
-  spaces: wrapAPI(spacesAPI, "session"),
+  profiles: wrapAPI(profilesAPI, "session", {
+    getUsingProfile: "app"
+  }),
+  spaces: wrapAPI(spacesAPI, "session", {
+    getUsingSpace: "app"
+  }),
 
   // Settings APIs
   settings: wrapAPI(settingsAPI, "settings"),

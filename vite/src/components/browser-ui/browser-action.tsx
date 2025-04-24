@@ -1,12 +1,13 @@
 import { SIDEBAR_HOVER_COLOR } from "@/components/browser-ui/browser-sidebar";
 import { useBrowserAction } from "@/components/providers/browser-action-provider";
+import { useExtensions } from "@/components/providers/extensions-provider";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SidebarMenu, SidebarMenuButton } from "@/components/ui/resizable-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { CogIcon, LayersIcon, PackageXIcon, PinIcon, PuzzleIcon } from "lucide-react";
+import { CogIcon, LayersIcon, PackageXIcon, PinIcon, PinOffIcon, PuzzleIcon } from "lucide-react";
 import { MouseEvent, useCallback, useMemo, useRef, useState } from "react";
 
 interface BrowserActionListProps {
@@ -88,6 +89,7 @@ type BrowserActionProps = {
   activeTabId: number;
 };
 function BrowserAction({ action, alignment, partition, activeTabId }: BrowserActionProps) {
+  // Action //
   const { activate } = useBrowserAction();
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -113,6 +115,18 @@ function BrowserAction({ action, alignment, partition, activeTabId }: BrowserAct
     [onActivated]
   );
 
+  // Extension //
+  const extensionId = action.id;
+  const { extensions } = useExtensions();
+  const extension = extensions.find((e) => e.id === extensionId);
+  const isPinned = extension?.pinned;
+
+  const togglePin = useCallback(() => {
+    if (!extensionId) return;
+    flow.extensions.setExtensionPinned(extensionId, !isPinned);
+  }, [extensionId, isPinned]);
+
+  // UI //
   return (
     <div className="flex flex-row justify-between gap-0.5">
       <SidebarMenuButton id={action.id} ref={buttonRef} onClick={onClick} onContextMenu={onContextMenu}>
@@ -120,9 +134,8 @@ function BrowserAction({ action, alignment, partition, activeTabId }: BrowserAct
         <Badge color={tabInfo?.color} text={tabInfo?.text} />
         <span className="font-semibold truncate">{action.title}</span>
       </SidebarMenuButton>
-      {/* TODO: Add pin functionality */}
-      <Button variant="ghost" size="icon" disabled>
-        <PinIcon className="size-4" />
+      <Button variant="ghost" size="icon" onClick={togglePin}>
+        {isPinned ? <PinOffIcon className="size-4" /> : <PinIcon className="size-4" />}
       </Button>
     </div>
   );

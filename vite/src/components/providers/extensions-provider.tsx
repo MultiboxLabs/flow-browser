@@ -1,3 +1,4 @@
+import { useSpaces } from "@/components/providers/spaces-provider";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { SharedExtensionData } from "~/types/extensions";
 
@@ -18,9 +19,10 @@ export const useExtensions = () => {
 
 interface ExtensionsProviderProps {
   children: React.ReactNode;
+  dataKey?: string;
 }
 
-export const ExtensionsProvider = ({ children }: ExtensionsProviderProps) => {
+export const ExtensionsProvider = ({ dataKey = "extensions", children }: ExtensionsProviderProps) => {
   const [extensions, setExtensions] = useState<SharedExtensionData[]>([]);
 
   const fetchExtensions = useCallback(async () => {
@@ -37,18 +39,28 @@ export const ExtensionsProvider = ({ children }: ExtensionsProviderProps) => {
     await fetchExtensions();
   }, [fetchExtensions]);
 
+  // Initial fetch
   useEffect(() => {
     fetchExtensions();
   }, [fetchExtensions]);
 
+  // When dataKey changes, flush state and refetch
+  useEffect(() => {
+    setExtensions([]);
+    fetchExtensions();
+  }, [dataKey, fetchExtensions]);
+
   useEffect(() => {
     if (!flow) return;
 
-    flow.extensions.onUpdated(async (data) => {
-      setExtensions(data);
+    const unsubscribe = flow.extensions.onUpdated(async (profileId, data) => {
+      const currentProfileId = await flow.profiles.getUsingProfile();
+      if (currentProfileId === profileId) {
+        setExtensions(data);
+      }
     });
-    // Note: The onUpdated method doesn't return an unsubscribe function
-    // based on the FlowExtensionsAPI interface
+
+    return () => unsubscribe();
   }, []);
 
   return (
@@ -62,3 +74,8 @@ export const ExtensionsProvider = ({ children }: ExtensionsProviderProps) => {
     </ExtensionsContext.Provider>
   );
 };
+
+export function ExtensionsProviderWithSpaces({ children }: { children: React.ReactNode }) {
+  const { currentSpace } = useSpaces();
+  return <ExtensionsProvider dataKey={currentSpace?.id}>{children}</ExtensionsProvider>;
+}

@@ -1,5 +1,5 @@
 import { browser } from "@/index";
-import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
+import { sendMessageToListeners, sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
 import { transformStringToLocale } from "@/modules/extensions/locales";
 import {
   ExtensionData,
@@ -193,14 +193,5 @@ export async function fireOnExtensionsUpdated(profileId: string) {
   if (!browser) return;
 
   const extensions = await getExtensionDataFromProfile(profileId);
-
-  // Select tabs with the correct profile ID
-  const selectedWebContents: WebContents[] = [];
-  for (const tab of browser?.tabs.getTabsInProfile(profileId)) {
-    if (tab.profileId === profileId) {
-      selectedWebContents.push(tab.webContents);
-    }
-  }
-
-  sendMessageToListenersWithWebContents(selectedWebContents, "extensions:on-updated", extensions);
+  sendMessageToListeners("extensions:on-updated", profileId, extensions);
 }

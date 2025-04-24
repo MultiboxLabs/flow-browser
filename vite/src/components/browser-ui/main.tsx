@@ -10,6 +10,7 @@ import { TabsProvider, useTabs } from "@/components/providers/tabs-provider";
 import { SettingsProvider, useSettings } from "@/components/providers/settings-provider";
 import { TabDisabler } from "@/components/logic/tab-disabler";
 import { BrowserActionProvider } from "@/components/providers/browser-action-provider";
+import { ExtensionsProviderWithSpaces } from "@/components/providers/extensions-provider";
 
 export type CollapseMode = "icon" | "offcanvas";
 export type SidebarVariant = "sidebar" | "floating";
@@ -121,7 +122,9 @@ export function BrowserUI({ type }: { type: WindowType }) {
           <SpacesProvider windowType={type}>
             <TabsProvider>
               <BrowserActionProvider>
-                <InternalBrowserUI isReady={isReady} type={type} />
+                <ExtensionsProviderWithSpaces>
+                  <InternalBrowserUI isReady={isReady} type={type} />
+                </ExtensionsProviderWithSpaces>
               </BrowserActionProvider>
             </TabsProvider>
           </SpacesProvider>
