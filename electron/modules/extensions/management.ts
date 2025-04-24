@@ -6,6 +6,7 @@ import { getActualSize, getFsStat } from "@/modules/utils";
 import { ExtensionType } from "~/types/extensions";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { fireOnExtensionsUpdated } from "@/ipc/app/extensions";
+import { uninstallExtension } from "electron-chrome-web-store";
 
 export type ExtensionData = {
   type: ExtensionType;
@@ -185,6 +186,22 @@ export class ExtensionManager extends TypedEventEmitter<{
     return extensions;
   }
 
+  public getExtensionsPath(extensionType: ExtensionType) {
+    switch (extensionType) {
+      case "unpacked": {
+        return path.join(this.extensionsPath, "unpacked");
+      }
+
+      case "crx": {
+        return path.join(this.extensionsPath, "crx");
+      }
+
+      default: {
+        throw new Error(`Unknown extension type: ${extensionType}`);
+      }
+    }
+  }
+
   /**
    * Get the path of an extension
    * @param extensionId - The ID of the extension
@@ -194,7 +211,7 @@ export class ExtensionManager extends TypedEventEmitter<{
   public async getExtensionPath(extensionId: string, extensionData: ExtensionData) {
     switch (extensionData.type) {
       case "unpacked": {
-        const unpackedPath = path.join(this.extensionsPath, "unpacked", extensionId);
+        const unpackedPath = this.getExtensionsPath("unpacked");
 
         const unpackedHasManifest = await hasManifest(unpackedPath);
         if (!unpackedHasManifest) {
@@ -205,7 +222,7 @@ export class ExtensionManager extends TypedEventEmitter<{
       }
 
       case "crx": {
-        const crxPath = path.join(this.extensionsPath, "crx");
+        const crxPath = this.getExtensionsPath("crx");
         const extensionFolder = path.join(crxPath, extensionId);
 
         const isADirectory = await isDirectory(extensionFolder);
@@ -372,6 +389,25 @@ export class ExtensionManager extends TypedEventEmitter<{
         return true;
       })
       .catch(() => false);
+  }
+
+  public async uninstallExtension(extensionId: string): Promise<boolean> {
+    const extensionData = this.getExtensionDataFromCache(extensionId);
+    if (!extensionData) {
+      return false;
+    }
+
+    if (extensionData.type === "unpacked") {
+      // TODO: Remove unpacked extension
+    } else if (extensionData.type === "crx") {
+      await uninstallExtension(extensionId, {
+        extensionsPath: this.getExtensionsPath(extensionData.type),
+        session: this.profileSession
+      });
+    }
+
+    await this.removeInstalledExtension(extensionId);
+    return true;
   }
 
   /**

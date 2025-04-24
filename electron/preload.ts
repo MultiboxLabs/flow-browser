@@ -379,6 +379,9 @@ const extensionsAPI = {
   },
   setExtensionEnabled: async (extensionId: string, enabled: boolean) => {
     return ipcRenderer.invoke("extensions:set-extension-enabled", extensionId, enabled);
+  },
+  uninstallExtension: async (extensionId: string) => {
+    return ipcRenderer.invoke("extensions:uninstall-extension", extensionId);
   }
 };
 

@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { motion } from "motion/react";
+import { useState } from "react";
+import { toast } from "sonner";
 import type { SharedExtensionData } from "~/types/extensions";
 
 // Keeping this for backward compatibility
@@ -25,6 +27,20 @@ interface ExtensionCardProps {
 }
 
 const ExtensionCard: React.FC<ExtensionCardProps> = ({ extension, isToggling, onToggle, onDetailsClick }) => {
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  const onRemoveClick = async () => {
+    setIsRemoving(true);
+
+    const success = await flow.extensions.uninstallExtension(extension.id);
+
+    if (success) {
+      toast.success("Extension uninstalled successfully!");
+    }
+
+    setIsRemoving(false);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -52,7 +68,7 @@ const ExtensionCard: React.FC<ExtensionCardProps> = ({ extension, isToggling, on
             <Button variant="outline" size="sm" className="text-xs" onClick={() => onDetailsClick(extension.id)}>
               Details
             </Button>
-            <Button variant="outline" size="sm" className="text-xs">
+            <Button variant="outline" size="sm" className="text-xs" onClick={onRemoveClick} disabled={isRemoving}>
               Remove
             </Button>
           </div>

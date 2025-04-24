@@ -1,10 +1,16 @@
 import { browser } from "@/index";
 import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
 import { transformStringToLocale } from "@/modules/extensions/locales";
-import { ExtensionData, ExtensionManager, getExtensionSize, getManifest } from "@/modules/extensions/management";
+import {
+  ExtensionData,
+  ExtensionManager,
+  getExtensionIcon,
+  getExtensionSize,
+  getManifest
+} from "@/modules/extensions/management";
 import { getPermissionWarnings } from "@/modules/extensions/permission-warnings";
 import { getSpace } from "@/sessions/spaces";
-import { ipcMain, IpcMainInvokeEvent, WebContents } from "electron";
+import { dialog, ipcMain, IpcMainInvokeEvent, WebContents } from "electron";
 import { SharedExtensionData } from "~/types/extensions";
 
 function translateManifestString(extensionPath: string, str: string) {
@@ -33,6 +39,9 @@ async function generateSharedExtensionData(
   const permissions: string[] = getPermissionWarnings(manifest.permissions ?? [], manifest.host_permissions ?? []);
 
   const translatedName = await translateManifestString(extensionPath, manifest.name);
+  const translatedShortName = manifest.short_name
+    ? await translateManifestString(extensionPath, manifest.short_name)
+    : undefined;
   const translatedDescription = manifest.description
     ? await translateManifestString(extensionPath, manifest.description)
     : undefined;
@@ -45,6 +54,7 @@ async function generateSharedExtensionData(
     type: extensionData.type,
     id: extensionId,
     name: translatedName,
+    short_name: translatedShortName,
     description: translatedDescription,
     icon: iconURL.toString(),
     enabled: !extensionData.disabled,
@@ -115,6 +125,47 @@ ipcMain.handle(
     if (!extensionsManager) return false;
 
     return await extensionsManager.setExtensionDisabled(extensionId, !enabled);
+  }
+);
+
+ipcMain.handle(
+  "extensions:uninstall-extension",
+  async (event: IpcMainInvokeEvent, extensionId: string): Promise<boolean> => {
+    if (!browser) return false;
+
+    const profileId = await getCurrentProfileIdFromWebContents(event.sender);
+    if (!profileId) return false;
+
+    const loadedProfile = browser.getLoadedProfile(profileId);
+    if (!loadedProfile) return false;
+
+    const { extensionsManager } = loadedProfile;
+    if (!extensionsManager) return false;
+
+    const window = browser.getWindowFromWebContents(event.sender);
+    if (!window) return false;
+
+    const extensionData = extensionsManager.getExtensionDataFromCache(extensionId);
+    if (!extensionData) return false;
+
+    const sharedExtensionData = await generateSharedExtensionData(extensionsManager, extensionId, extensionData);
+
+    if (!sharedExtensionData) return false;
+
+    const extensionIcon = await getExtensionIcon(sharedExtensionData.path);
+
+    const returnValue = await dialog.showMessageBox(window.window, {
+      icon: extensionIcon ?? undefined,
+      title: "Uninstall Extension",
+      message: `Are you sure you want to uninstall "${sharedExtensionData.name}"?`,
+      buttons: ["Cancel", "Uninstall"]
+    });
+
+    if (returnValue.response === 0) {
+      return false;
+    }
+
+    return await extensionsManager.uninstallExtension(extensionId);
   }
 );
 

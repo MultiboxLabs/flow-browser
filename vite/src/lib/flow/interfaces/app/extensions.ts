@@ -17,4 +17,9 @@ export interface FlowExtensionsAPI {
    * Set the enabled state of an extension
    */
   setExtensionEnabled: (extensionId: string, enabled: boolean) => Promise<boolean>;
+
+  /**
+   * Uninstall an extension
+   */
+  uninstallExtension: (extensionId: string) => Promise<boolean>;
 }

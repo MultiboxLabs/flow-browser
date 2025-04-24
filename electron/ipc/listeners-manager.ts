@@ -35,6 +35,9 @@ export function sendMessageToListeners(channel: string, ...args: any[]) {
   const webContentsSet = getConnectedWebContents(channel);
 
   for (const webContents of webContentsSet) {
+    if (webContents.isDestroyed()) {
+      continue;
+    }
     sendMessageToWebContents(webContents, channel, ...args);
   }
 }
@@ -43,10 +46,17 @@ export function sendMessageToListenersInWindow(window: TabbedBrowserWindow, chan
   const webContentsSet = getConnectedWebContents(channel);
   const win = window.window;
 
-  const webContentsInWindow: WebContents[] = [win.webContents];
+  if (win.isDestroyed()) {
+    return;
+  }
+
+  const webContentsInWindow: WebContents[] = [];
+  if (!win.webContents.isDestroyed()) {
+    webContentsInWindow.push(win.webContents);
+  }
 
   for (const child of win.contentView.children) {
-    if (child instanceof WebContentsView) {
+    if (child instanceof WebContentsView && !child.webContents.isDestroyed()) {
       webContentsInWindow.push(child.webContents);
     }
   }
@@ -66,6 +76,9 @@ export function sendMessageToListenersWithWebContents(
   const webContentsSet = getConnectedWebContents(channel);
 
   for (const webContents of selectedWebContents) {
+    if (webContents.isDestroyed()) {
+      continue;
+    }
     if (webContentsSet.has(webContents)) {
       sendMessageToWebContents(webContents, channel, ...args);
     }

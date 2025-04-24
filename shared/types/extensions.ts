@@ -6,6 +6,7 @@ export interface SharedExtensionData {
   type: ExtensionType;
   id: string;
   name: string;
+  short_name?: string;
   description?: string;
   icon: string;
   enabled: boolean;
