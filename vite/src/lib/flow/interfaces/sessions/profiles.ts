@@ -24,4 +24,9 @@ export interface FlowProfilesAPI {
    * Deletes a profile
    */
   deleteProfile: (profileId: string) => Promise<boolean>;
+
+  /**
+   * Gets the profile id that is currently being used
+   */
+  getUsingProfile: () => Promise<string | null>;
 }

@@ -43,7 +43,8 @@ export const ExtensionsProvider = ({ children }: ExtensionsProviderProps) => {
 
   useEffect(() => {
     if (!flow) return;
-    flow.extensions.onUpdated((data) => {
+
+    flow.extensions.onUpdated(async (data) => {
       setExtensions(data);
     });
     // Note: The onUpdated method doesn't return an unsubscribe function

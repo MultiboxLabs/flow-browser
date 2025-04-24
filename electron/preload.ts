@@ -224,6 +224,9 @@ const profilesAPI = {
   },
   deleteProfile: async (profileId: string) => {
     return ipcRenderer.invoke("profiles:delete", profileId);
+  },
+  getUsingProfile: async () => {
+    return ipcRenderer.invoke("profile:get-using");
   }
 };
 

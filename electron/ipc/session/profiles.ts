@@ -1,6 +1,8 @@
 import { getProfiles, ProfileData, createProfile, updateProfile, deleteProfile } from "@/sessions/profiles";
 import { generateID } from "@/browser/utility/utils";
 import { ipcMain } from "electron";
+import { browser } from "@/index";
+import { getSpace } from "@/sessions/spaces";
 
 ipcMain.handle("profiles:get-all", async () => {
   return await getProfiles();
@@ -18,4 +20,16 @@ ipcMain.handle("profiles:update", async (event, profileId: string, profileData: 
 
 ipcMain.handle("profiles:delete", async (event, profileId: string) => {
   return await deleteProfile(profileId);
+});
+
+ipcMain.handle("profile:get-using", async (event) => {
+  const window = browser?.getWindowFromWebContents(event.sender);
+  if (window) {
+    const spaceId = window.getCurrentSpace();
+    if (spaceId) {
+      const space = await getSpace(spaceId);
+      return space?.profileId;
+    }
+  }
+  return null;
 });
