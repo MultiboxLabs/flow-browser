@@ -10,6 +10,7 @@ export interface SharedExtensionData {
   description?: string;
   icon: string;
   enabled: boolean;
+  pinned: boolean;
   version: string;
   path: string;
   size: number;

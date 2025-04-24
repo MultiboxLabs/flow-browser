@@ -22,4 +22,9 @@ export interface FlowExtensionsAPI {
    * Uninstall an extension
    */
   uninstallExtension: (extensionId: string) => Promise<boolean>;
+
+  /**
+   * Set the pinned state of an extension
+   */
+  setExtensionPinned: (extensionId: string, pinned: boolean) => Promise<boolean>;
 }

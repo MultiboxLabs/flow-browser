@@ -11,6 +11,7 @@ import { uninstallExtension } from "electron-chrome-web-store";
 export type ExtensionData = {
   type: ExtensionType;
   disabled: boolean;
+  pinned: boolean;
 };
 
 type ExtensionDataWithId = ExtensionData & {
@@ -426,5 +427,26 @@ export class ExtensionManager extends TypedEventEmitter<{
    */
   public getExtensionDataFromCache(extensionId: string): ExtensionData | undefined {
     return this.cache.find((extension) => extension.id === extensionId);
+  }
+
+  /**
+   * Set the pinned state of an extension
+   * @param extensionId - The ID of the extension
+   * @param pinned - The new pinned state
+   * @returns True if the pinned state was changed, false otherwise
+   */
+  public async setPinned(extensionId: string, pinned: boolean) {
+    const oldData: ExtensionData | undefined = await this.extensionStore.get(extensionId);
+    if (!oldData) {
+      return false;
+    }
+
+    if (oldData.pinned === pinned) {
+      return false;
+    }
+
+    await this.extensionStore.set(extensionId, { ...oldData, pinned });
+    await this.updateCache();
+    return true;
   }
 }

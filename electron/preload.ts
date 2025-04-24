@@ -382,6 +382,9 @@ const extensionsAPI = {
   },
   uninstallExtension: async (extensionId: string) => {
     return ipcRenderer.invoke("extensions:uninstall-extension", extensionId);
+  },
+  setExtensionPinned: async (extensionId: string, pinned: boolean) => {
+    return ipcRenderer.invoke("extensions:set-extension-pinned", extensionId, pinned);
   }
 };
 

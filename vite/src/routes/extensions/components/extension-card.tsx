@@ -21,12 +21,17 @@ export interface Extension {
 
 interface ExtensionCardProps {
   extension: SharedExtensionData;
-  isToggling: boolean;
-  onToggle: (id: string) => Promise<boolean>;
+  isProcessing: boolean;
+  setExtensionEnabled: (id: string, enabled: boolean) => Promise<boolean>;
   onDetailsClick: (id: string) => void;
 }
 
-const ExtensionCard: React.FC<ExtensionCardProps> = ({ extension, isToggling, onToggle, onDetailsClick }) => {
+const ExtensionCard: React.FC<ExtensionCardProps> = ({
+  extension,
+  isProcessing,
+  setExtensionEnabled,
+  onDetailsClick
+}) => {
   const [isRemoving, setIsRemoving] = useState(false);
 
   const onRemoveClick = async () => {
@@ -56,8 +61,8 @@ const ExtensionCard: React.FC<ExtensionCardProps> = ({ extension, isToggling, on
           <h3 className="text-foreground font-medium">{extension.name}</h3>
           <Switch
             checked={extension.enabled}
-            disabled={isToggling}
-            onCheckedChange={() => onToggle(extension.id)}
+            disabled={isProcessing}
+            onCheckedChange={() => setExtensionEnabled(extension.id, !extension.enabled)}
             className="ml-4"
           />
         </div>

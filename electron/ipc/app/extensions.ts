@@ -57,7 +57,8 @@ async function generateSharedExtensionData(
     short_name: translatedShortName,
     description: translatedDescription,
     icon: iconURL.toString(),
-    enabled: !extensionData.disabled,
+    enabled: extensionData.disabled ? false : true,
+    pinned: extensionData.pinned ? true : false,
     version: manifest.version,
     path: extensionPath,
     size,
@@ -167,6 +168,24 @@ ipcMain.handle(
     }
 
     return await extensionsManager.uninstallExtension(extensionId);
+  }
+);
+
+ipcMain.handle(
+  "extensions:set-extension-pinned",
+  async (event: IpcMainInvokeEvent, extensionId: string, pinned: boolean): Promise<boolean> => {
+    if (!browser) return false;
+
+    const profileId = await getCurrentProfileIdFromWebContents(event.sender);
+    if (!profileId) return false;
+
+    const loadedProfile = browser.getLoadedProfile(profileId);
+    if (!loadedProfile) return false;
+
+    const { extensionsManager } = loadedProfile;
+    if (!extensionsManager) return false;
+
+    return await extensionsManager.setPinned(extensionId, pinned);
   }
 );
 

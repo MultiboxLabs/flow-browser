@@ -21,11 +21,11 @@ function ExtensionsPage() {
 
   const { extensions } = useExtensions();
 
-  const [isToggling, setIsToggling] = useState(false);
-  const toggleExtension = async (id: string) => {
-    setIsToggling(true);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-    const enabled = !extensions.find((ext) => ext.id === id)?.enabled;
+  const setExtensionEnabled = async (id: string, enabled: boolean) => {
+    setIsProcessing(true);
+
     const success = await flow.extensions.setExtensionEnabled(id, enabled);
     if (success) {
       toast.success(`This extension has been successfully ${enabled ? "enabled" : "disabled"}!`);
@@ -33,7 +33,21 @@ function ExtensionsPage() {
       toast.error(`Failed to ${enabled ? "enable" : "disable"} this extension!`);
     }
 
-    setIsToggling(false);
+    setIsProcessing(false);
+    return success;
+  };
+
+  const setExtensionPinned = async (id: string, pinned: boolean) => {
+    setIsProcessing(true);
+
+    const success = await flow.extensions.setExtensionPinned(id, pinned);
+    if (success) {
+      toast.success(`This extension has been successfully ${pinned ? "pinned" : "unpinned"}!`);
+    } else {
+      toast.error(`Failed to ${pinned ? "pin" : "unpin"} this extension!`);
+    }
+
+    setIsProcessing(false);
     return success;
   };
 
@@ -117,8 +131,8 @@ function ExtensionsPage() {
                       <ExtensionCard
                         key={extension.id}
                         extension={extension}
-                        isToggling={isToggling}
-                        onToggle={toggleExtension}
+                        isProcessing={isProcessing}
+                        setExtensionEnabled={setExtensionEnabled}
                         onDetailsClick={handleDetailsClick}
                       />
                     ))}
@@ -156,8 +170,9 @@ function ExtensionsPage() {
               <ExtensionDetails
                 extension={selectedExtension}
                 isDeveloperMode={isDeveloperMode}
-                isToggling={isToggling}
-                onToggle={toggleExtension}
+                isProcessing={isProcessing}
+                setExtensionEnabled={setExtensionEnabled}
+                setExtensionPinned={setExtensionPinned}
                 onBack={handleBack}
               />
             </CardContent>

@@ -6,16 +6,18 @@ import type { SharedExtensionData } from "~/types/extensions";
 interface ExtensionDetailsProps {
   extension: SharedExtensionData;
   isDeveloperMode: boolean;
-  isToggling: boolean;
-  onToggle: (id: string) => Promise<boolean>;
+  isProcessing: boolean;
+  setExtensionEnabled: (id: string, enabled: boolean) => Promise<boolean>;
+  setExtensionPinned: (id: string, pinned: boolean) => Promise<boolean>;
   onBack: () => void;
 }
 
 const ExtensionDetails: React.FC<ExtensionDetailsProps> = ({
   extension,
   isDeveloperMode,
-  isToggling,
-  onToggle,
+  isProcessing,
+  setExtensionEnabled,
+  setExtensionPinned,
   onBack
 }) => {
   return (
@@ -34,7 +36,11 @@ const ExtensionDetails: React.FC<ExtensionDetailsProps> = ({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <span>Enabled</span>
-          <Switch checked={extension.enabled} disabled={isToggling} onCheckedChange={() => onToggle(extension.id)} />
+          <Switch
+            checked={extension.enabled}
+            disabled={isProcessing}
+            onCheckedChange={() => setExtensionEnabled(extension.id, !extension.enabled)}
+          />
         </div>
 
         <div className="space-y-2">
@@ -99,7 +105,11 @@ const ExtensionDetails: React.FC<ExtensionDetailsProps> = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Pin to toolbar</span>
-            <Switch disabled />
+            <Switch
+              checked={extension.pinned}
+              disabled={isProcessing}
+              onCheckedChange={() => setExtensionPinned(extension.id, !extension.pinned)}
+            />
           </div>
         </div>
 
