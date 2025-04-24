@@ -23,5 +23,5 @@ export interface FlowSettingsAPI {
 
   /**
    * Listens for changes to the settings */
-  onSettingsChanged: IPCListener<void>;
+  onSettingsChanged: IPCListener<[void]>;
 }

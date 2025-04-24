@@ -13,7 +13,7 @@ export interface FlowTabsAPI {
    * Add a callback to be called when the tabs data is updated
    * @param callback The callback to be called when the tabs data is updated
    */
-  onDataUpdated: IPCListener<WindowTabsData>;
+  onDataUpdated: IPCListener<[WindowTabsData]>;
 
   /**
    * Switch to a tab

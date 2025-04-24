@@ -59,10 +59,10 @@ export interface FlowSpacesAPI {
   /**
    * Listens for changes to the spaces
    */
-  onSpacesChanged: IPCListener<void>;
+  onSpacesChanged: IPCListener<[void]>;
 
   /**
    * Listens for changes to the space that the current window is using
    */
-  onSetWindowSpace: IPCListener<string>;
+  onSetWindowSpace: IPCListener<[string]>;
 }

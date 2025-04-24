@@ -5,4 +5,4 @@ export type PageBounds = {
   height: number;
 };
 
-export type IPCListener<T> = (callback: (data: T) => void) => () => void;
+export type IPCListener<T extends unknown[]> = (callback: (...data: T) => void) => () => void;

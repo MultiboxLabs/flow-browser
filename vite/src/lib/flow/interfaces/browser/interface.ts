@@ -19,5 +19,5 @@ export interface FlowInterfaceAPI {
   /**
    * Adds a callback to be called when the sidebar is toggled
    */
-  onToggleSidebar: IPCListener<void>;
+  onToggleSidebar: IPCListener<[void]>;
 }
