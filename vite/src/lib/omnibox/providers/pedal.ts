@@ -20,6 +20,11 @@ const PEDALS = [
     triggers: ["new window", "window", "browser window"],
     action: "open_new_window",
     description: "Open new window"
+  },
+  {
+    triggers: ["extensions", "extension", "extension manager"],
+    action: "open_extensions",
+    description: "Extensions Manager"
   }
 ] satisfies Pedal[];
 

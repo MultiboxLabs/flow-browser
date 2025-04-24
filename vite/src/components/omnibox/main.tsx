@@ -2,7 +2,7 @@ import { Command, CommandItem, CommandList } from "@/components/ui/command";
 import { AutocompleteMatch } from "@/lib/omnibox/types";
 import { Omnibox } from "@/lib/omnibox/omnibox";
 import { useEffect, useRef, useState } from "react";
-import { Search, History, Zap, Terminal, Settings, PlusSquare, Link } from "lucide-react";
+import { Search, History, Zap, Terminal, Settings, PlusSquare, Link, PuzzleIcon } from "lucide-react";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { AnimatePresence } from "motion/react";
 import { motion } from "motion/react";
@@ -27,6 +27,9 @@ function getIconForType(type: AutocompleteMatch["type"], match: AutocompleteMatc
       }
       if (match.destinationUrl === "open_new_window") {
         return <PlusSquare className="h-5 w-5 text-green-500" />;
+      }
+      if (match.destinationUrl === "open_extensions") {
+        return <PuzzleIcon className="h-5 w-5 text-purple-500" />;
       }
       return <Zap className="h-5 w-5 text-purple-500" />;
     case "open-tab":

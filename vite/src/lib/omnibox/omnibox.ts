@@ -83,6 +83,8 @@ export class Omnibox {
         flow.windows.openSettingsWindow();
       } else if (pedalAction === "open_new_window") {
         flow.browser.createWindow();
+      } else if (pedalAction === "open_extensions") {
+        flow.tabs.newTab("flow://extensions", true);
       }
     } else {
       const url = autocompleteMatch.destinationUrl;

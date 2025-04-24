@@ -62,6 +62,7 @@ async function generateSharedExtensionData(
     path: extensionPath,
     size,
     permissions,
+    // TODO: Add inspect views
     inspectViews: []
   };
 }
