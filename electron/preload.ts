@@ -376,6 +376,9 @@ const extensionsAPI = {
   },
   onUpdated: (callback: (extensions: SharedExtensionData[]) => void) => {
     return listenOnIPCChannel("extensions:on-updated", callback);
+  },
+  setExtensionEnabled: async (extensionId: string, enabled: boolean) => {
+    return ipcRenderer.invoke("extensions:set-extension-enabled", extensionId, enabled);
   }
 };
 

@@ -10,6 +10,7 @@ import { ExternalLink } from "lucide-react";
 import ExtensionCard from "./components/ExtensionCard";
 import ExtensionDetails from "./components/ExtensionDetails";
 import { ExtensionsProvider, useExtensions } from "@/components/providers/extensions-provider";
+import { toast } from "sonner";
 
 function ExtensionsPage() {
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
@@ -18,9 +19,20 @@ function ExtensionsPage() {
 
   const { extensions } = useExtensions();
 
-  const toggleExtension = (id: string) => {
-    // No-op: This would typically call an API to toggle the extension
-    console.log(`Toggle extension ${id}`);
+  const [isToggling, setIsToggling] = useState(false);
+  const toggleExtension = async (id: string) => {
+    setIsToggling(true);
+
+    const enabled = !extensions.find((ext) => ext.id === id)?.enabled;
+    const success = await flow.extensions.setExtensionEnabled(id, enabled);
+    if (success) {
+      toast.success(`This extension has been successfully ${enabled ? "enabled" : "disabled"}!`);
+    } else {
+      toast.error(`Failed to ${enabled ? "enable" : "disable"} this extension!`);
+    }
+
+    setIsToggling(false);
+    return success;
   };
 
   const handleDetailsClick = (id: string) => {
@@ -68,7 +80,12 @@ function ExtensionsPage() {
                 <div className="flex justify-between items-center mb-6">
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-2">
-                      <Switch checked={isDeveloperMode} onCheckedChange={setIsDeveloperMode} id="developer-mode" />
+                      <Switch
+                        checked={isDeveloperMode}
+                        onCheckedChange={setIsDeveloperMode}
+                        disabled
+                        id="developer-mode"
+                      />
                       <label
                         htmlFor="developer-mode"
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
@@ -97,6 +114,7 @@ function ExtensionsPage() {
                     <ExtensionCard
                       key={extension.id}
                       extension={extension}
+                      isToggling={isToggling}
                       onToggle={toggleExtension}
                       onDetailsClick={handleDetailsClick}
                     />
@@ -120,7 +138,13 @@ function ExtensionsPage() {
         ) : (
           <Card className="border-border">
             <CardContent className="p-6">
-              <ExtensionDetails extension={selectedExtension} isDeveloperMode={isDeveloperMode} onBack={handleBack} />
+              <ExtensionDetails
+                extension={selectedExtension}
+                isDeveloperMode={isDeveloperMode}
+                isToggling={isToggling}
+                onToggle={toggleExtension}
+                onBack={handleBack}
+              />
             </CardContent>
           </Card>
         )}

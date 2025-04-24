@@ -1,16 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ChevronLeft } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { SharedExtensionData } from "~/types/extensions";
 
 interface ExtensionDetailsProps {
   extension: SharedExtensionData;
   isDeveloperMode: boolean;
+  isToggling: boolean;
+  onToggle: (id: string) => Promise<boolean>;
   onBack: () => void;
 }
 
-const ExtensionDetails: React.FC<ExtensionDetailsProps> = ({ extension, isDeveloperMode, onBack }) => {
+const ExtensionDetails: React.FC<ExtensionDetailsProps> = ({
+  extension,
+  isDeveloperMode,
+  isToggling,
+  onToggle,
+  onBack
+}) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
@@ -26,8 +33,8 @@ const ExtensionDetails: React.FC<ExtensionDetailsProps> = ({ extension, isDevelo
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <span>On</span>
-          <Switch checked={extension.enabled} onCheckedChange={() => {}} />
+          <span>Enabled</span>
+          <Switch checked={extension.enabled} disabled={isToggling} onCheckedChange={() => onToggle(extension.id)} />
         </div>
 
         <div className="space-y-2">
@@ -90,35 +97,16 @@ const ExtensionDetails: React.FC<ExtensionDetailsProps> = ({ extension, isDevelo
         )}
 
         <div className="space-y-2">
-          <h3 className="text-sm font-medium">Site access</h3>
-          <div className="flex items-center justify-between">
-            <span className="text-sm">
-              Allow this extension to read and change all your data on websites you visit:
-            </span>
-            <Select defaultValue="all_sites">
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all_sites">On all sites</SelectItem>
-                <SelectItem value="specific_sites">On specific sites</SelectItem>
-                <SelectItem value="on_click">On click</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Pin to toolbar</span>
-            <Switch defaultChecked />
+            <Switch disabled />
           </div>
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Allow in Incognito</span>
-            <Switch />
+            <Switch disabled />
           </div>
           <p className="text-xs text-muted-foreground">
             Warning: Flow cannot prevent extensions from recording your browsing history. To disable this extension in

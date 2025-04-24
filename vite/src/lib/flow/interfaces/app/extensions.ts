@@ -12,4 +12,9 @@ export interface FlowExtensionsAPI {
    * Listen for updates to the extensions in the current profile
    */
   onUpdated: IPCListener<SharedExtensionData[]>;
+
+  /**
+   * Set the enabled state of an extension
+   */
+  setExtensionEnabled: (extensionId: string, enabled: boolean) => Promise<boolean>;
 }

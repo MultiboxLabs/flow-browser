@@ -75,21 +75,46 @@ async function getExtensionDataFromProfile(profileId: string): Promise<SharedExt
   return results.filter((result) => result !== null);
 }
 
+async function getCurrentProfileIdFromWebContents(webContents: WebContents): Promise<string | null> {
+  if (!browser) return null;
+
+  const window = browser.getWindowFromWebContents(webContents);
+  if (!window) return null;
+
+  const spaceId = window.getCurrentSpace();
+  if (!spaceId) return null;
+
+  const space = await getSpace(spaceId);
+  if (!space) return null;
+
+  return space.profileId;
+}
+
 ipcMain.handle(
   "extensions:get-all-in-current-profile",
   async (event: IpcMainInvokeEvent): Promise<SharedExtensionData[]> => {
-    if (!browser) return [];
+    const profileId = await getCurrentProfileIdFromWebContents(event.sender);
+    if (!profileId) return [];
 
-    const window = browser.getWindowFromWebContents(event.sender);
-    if (!window) return [];
+    return getExtensionDataFromProfile(profileId);
+  }
+);
 
-    const spaceId = window.getCurrentSpace();
-    if (!spaceId) return [];
+ipcMain.handle(
+  "extensions:set-extension-enabled",
+  async (event: IpcMainInvokeEvent, extensionId: string, enabled: boolean): Promise<boolean> => {
+    if (!browser) return false;
 
-    const space = await getSpace(spaceId);
-    if (!space) return [];
+    const profileId = await getCurrentProfileIdFromWebContents(event.sender);
+    if (!profileId) return false;
 
-    return getExtensionDataFromProfile(space.profileId);
+    const loadedProfile = browser.getLoadedProfile(profileId);
+    if (!loadedProfile) return false;
+
+    const { extensionsManager } = loadedProfile;
+    if (!extensionsManager) return false;
+
+    return await extensionsManager.setExtensionDisabled(extensionId, !enabled);
   }
 );
 

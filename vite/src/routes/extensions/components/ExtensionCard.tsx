@@ -19,11 +19,12 @@ export interface Extension {
 
 interface ExtensionCardProps {
   extension: SharedExtensionData;
-  onToggle: (id: string) => void;
+  isToggling: boolean;
+  onToggle: (id: string) => Promise<boolean>;
   onDetailsClick: (id: string) => void;
 }
 
-const ExtensionCard: React.FC<ExtensionCardProps> = ({ extension, onToggle, onDetailsClick }) => {
+const ExtensionCard: React.FC<ExtensionCardProps> = ({ extension, isToggling, onToggle, onDetailsClick }) => {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -37,7 +38,12 @@ const ExtensionCard: React.FC<ExtensionCardProps> = ({ extension, onToggle, onDe
       <div className="flex-grow space-y-1">
         <div className="flex items-center justify-between">
           <h3 className="text-foreground font-medium">{extension.name}</h3>
-          <Switch checked={extension.enabled} onCheckedChange={() => onToggle(extension.id)} className="ml-4" />
+          <Switch
+            checked={extension.enabled}
+            disabled={isToggling}
+            onCheckedChange={() => onToggle(extension.id)}
+            className="ml-4"
+          />
         </div>
         <p className="text-muted-foreground text-sm">{extension.description || ""}</p>
         <div className="flex items-center space-x-4">
