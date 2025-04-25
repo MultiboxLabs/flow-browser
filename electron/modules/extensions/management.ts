@@ -18,6 +18,8 @@ type ExtensionDataWithId = ExtensionData & {
   id: string;
 };
 
+const DEFAULT_PINNED_STATE = false;
+
 /**
  * Get the extension store for a profile
  *
@@ -381,7 +383,7 @@ export class ExtensionManager extends TypedEventEmitter<{
    */
   public async addInstalledExtension(type: ExtensionType, extensionId: string): Promise<boolean> {
     return await this.extensionStore
-      .set(extensionId, { type, disabled: false })
+      .set(extensionId, { type, disabled: false, pinned: DEFAULT_PINNED_STATE })
       .then(async () => {
         await this.updateCache();
         return true;
