@@ -348,7 +348,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       this.setFullScreen(false);
     });
     this.on("destroyed", () => {
-      if (tabbedWindow.emitterDestroyed) return;
+      if (tabbedWindow.isEmitterDestroyed()) return;
       disconnectLeaveFullScreen();
     });
 
