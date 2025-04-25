@@ -70,9 +70,14 @@ export async function getManifest(extensionPath: string) {
   const hasManifest = await hasFile(manifestPath);
   if (!hasManifest) return null;
 
-  const manifestJSON = await fs.readFile(manifestPath, "utf-8");
-  const manifest: chrome.runtime.Manifest = JSON.parse(manifestJSON);
-  return manifest;
+  try {
+    const manifestJSON = await fs.readFile(manifestPath, "utf-8");
+    const manifest: chrome.runtime.Manifest = JSON.parse(manifestJSON);
+    return manifest;
+  } catch (error) {
+    console.error(`Failed to parse manifest at ${manifestPath}:`, error);
+    return null;
+  }
 }
 
 /**
