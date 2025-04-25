@@ -67,7 +67,8 @@ async function hasManifest(extensionPath: string) {
  */
 export async function getManifest(extensionPath: string) {
   const manifestPath = path.join(extensionPath, "manifest.json");
-  if (!hasFile(manifestPath)) return null;
+  const hasManifest = await hasFile(manifestPath);
+  if (!hasManifest) return null;
 
   const manifestJSON = await fs.readFile(manifestPath, "utf-8");
   const manifest: chrome.runtime.Manifest = JSON.parse(manifestJSON);
@@ -213,13 +214,19 @@ export class ExtensionManager extends TypedEventEmitter<{
     switch (extensionData.type) {
       case "unpacked": {
         const unpackedPath = this.getExtensionsPath("unpacked");
+        const extensionFolder = path.join(unpackedPath, extensionId);
 
-        const unpackedHasManifest = await hasManifest(unpackedPath);
+        const isADirectory = await isDirectory(extensionFolder);
+        if (!isADirectory) {
+          return null;
+        }
+
+        const unpackedHasManifest = await hasManifest(extensionFolder);
         if (!unpackedHasManifest) {
           return null;
         }
 
-        return unpackedPath;
+        return extensionFolder;
       }
 
       case "crx": {

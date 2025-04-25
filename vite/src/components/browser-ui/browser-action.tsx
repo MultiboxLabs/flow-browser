@@ -155,7 +155,9 @@ export function BrowserActionList({ alignmentX = "left", alignmentY = "bottom" }
     setOpen(false);
   }, []);
 
-  const disabled = !activeTabId || actions.length === 0;
+  const noActions = actions.length === 0;
+  const noActiveTab = typeof activeTabId !== "number";
+  const disabled = noActiveTab || noActions;
 
   const spaceInjectedClasses = cn(isCurrentSpaceLight ? "" : "dark");
   return (
@@ -177,13 +179,13 @@ export function BrowserActionList({ alignmentX = "left", alignmentY = "bottom" }
                 activeTabId={activeTabId}
               />
             ))}
-          {!activeTabId && (
+          {noActiveTab && (
             <SidebarMenuButton disabled>
               <LayersIcon />
               No Active Tab
             </SidebarMenuButton>
           )}
-          {activeTabId && actions.length === 0 && (
+          {!noActiveTab && noActions && (
             <SidebarMenuButton disabled>
               <PackageXIcon />
               No Extensions Available

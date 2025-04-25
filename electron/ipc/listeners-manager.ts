@@ -95,7 +95,7 @@ function addListener(channel: string, listenerId: string, webContents: WebConten
   webContents.on("destroyed", onDestroyed);
 
   const removeCallback = () => {
-    if (!webContents.isDestroyed) {
+    if (!webContents.isDestroyed()) {
       webContents.off("destroyed", onDestroyed);
     }
   };

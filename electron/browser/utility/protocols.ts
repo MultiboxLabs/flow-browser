@@ -213,19 +213,19 @@ function registerFlowProtocol(protocol: Protocol) {
 
     const loadedProfile = browser?.getLoadedProfile(profileId);
     if (!loadedProfile) {
-      return new Response("Internal Server Error", { status: 500 });
+      return new Response("No loaded profile found", { status: 404 });
     }
 
     const { extensionsManager } = loadedProfile;
 
     const extData = extensionsManager.getExtensionDataFromCache(extensionId);
     if (!extData) {
-      return new Response("Internal Server Error", { status: 500 });
+      return new Response("No extension data found", { status: 404 });
     }
 
     const extensionPath = await extensionsManager.getExtensionPath(extensionId, extData);
     if (!extensionPath) {
-      return new Response("Internal Server Error", { status: 500 });
+      return new Response("No extension path found", { status: 404 });
     }
 
     const icon = await getExtensionIcon(extensionPath);
