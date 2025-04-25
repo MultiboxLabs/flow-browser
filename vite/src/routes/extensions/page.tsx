@@ -110,6 +110,7 @@ function ExtensionsPage() {
                       </label>
                     </div>
                   </div>
+                  {/* TODO: Add developer mode & Allow Loading Unpacked Extensions */}
                   {isDeveloperMode && (
                     <div className="flex space-x-2">
                       <Button variant="outline" size="sm">
