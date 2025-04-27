@@ -1,5 +1,5 @@
 import BrowserContent from "@/components/browser-ui/browser-content";
-import { SidebarInset, SidebarProvider } from "@/components/ui/resizable-sidebar";
+import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/resizable-sidebar";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar";
@@ -19,7 +19,7 @@ export type SidebarSide = "left" | "right";
 export type WindowType = "main" | "popup";
 
 function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowType }) {
-  // const { open } = useSidebar();
+  const { open } = useSidebar();
   const { getSetting } = useSettings();
   const { focusedTab, tabGroups } = useTabs();
 
@@ -49,16 +49,17 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
   }
 
   const hasSidebar = type === "main";
+  const variant: SidebarVariant = "sidebar" as SidebarVariant;
 
   return (
     <>
       {dynamicTitle && <title>{`${dynamicTitle} | Flow`}</title>}
-      {hasSidebar && <BrowserSidebar collapseMode={sidebarCollapseMode} variant="floating" side="left" />}
+      {hasSidebar && <BrowserSidebar collapseMode={sidebarCollapseMode} variant={variant} side="left" />}
       <SidebarInset className="bg-transparent">
         <div
           className={cn(
             "dark flex-1 flex p-2.5 platform-win32:pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))] app-drag",
-            // open && hasSidebar && "pl-0.5",
+            open && hasSidebar && variant === "sidebar" && "pl-0.5",
             type === "popup" && "pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))]"
           )}
         >

@@ -19,7 +19,7 @@ function SpaceButton({ space, isActive, onClick }: SpaceButtonProps) {
         strokeWidth={2.5}
         className={cn(
           "transition-colors duration-300",
-          "text-white/40 dark:text-muted-foreground/80",
+          "text-black/40 dark:text-white/40",
           isActive && "text-black dark:text-white"
         )}
       />

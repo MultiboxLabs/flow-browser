@@ -1,0 +1,109 @@
+import { useState, useLayoutEffect, RefObject, useCallback, useRef } from "react";
+
+export interface UseBoundingRectOptions {
+  throttleMs?: number;
+}
+
+export function useBoundingRect<T extends HTMLElement>(
+  ref: RefObject<T | null>,
+  options: UseBoundingRectOptions = {}
+): DOMRect | null {
+  const { throttleMs = 0 } = options;
+  const [rect, setRect] = useState<DOMRect | null>(null);
+  const lastUpdateTimeRef = useRef(0);
+  const pendingUpdateRef = useRef<number | null>(null);
+  const lastRectRef = useRef<DOMRect | null>(null);
+
+  const updateRect = useCallback(() => {
+    const target = ref.current;
+    if (target == null) return;
+
+    const newRect = target.getBoundingClientRect();
+    lastRectRef.current = newRect;
+
+    const now = Date.now();
+    const timeSinceLastUpdate = now - lastUpdateTimeRef.current;
+
+    if (timeSinceLastUpdate >= throttleMs) {
+      // Update immediately if throttle time has passed
+      setRect((prevRect) => (equals(prevRect, newRect) ? prevRect : newRect));
+      lastUpdateTimeRef.current = now;
+      pendingUpdateRef.current = null;
+    } else if (pendingUpdateRef.current === null) {
+      // Schedule update for later
+      pendingUpdateRef.current = window.setTimeout(() => {
+        // Apply the most recent rect
+        if (lastRectRef.current) {
+          setRect((prevRect) => (equals(prevRect, lastRectRef.current) ? prevRect : lastRectRef.current));
+        }
+        lastUpdateTimeRef.current = Date.now();
+        pendingUpdateRef.current = null;
+      }, throttleMs - timeSinceLastUpdate);
+    }
+    // If there's already a pending update, we don't need to do anything
+    // The timeout will use lastRectRef.current which contains the latest values
+  }, [ref, throttleMs]);
+
+  useLayoutEffect(() => {
+    const target = ref.current;
+    if (target == null) return;
+
+    // Initial measurement
+    updateRect();
+
+    // Track resize changes
+    const resizeObserver = new ResizeObserver(() => {
+      requestAnimationFrame(updateRect);
+    });
+    resizeObserver.observe(target);
+
+    // Track DOM mutations that might affect position
+    const mutationObserver = new MutationObserver(() => {
+      requestAnimationFrame(updateRect);
+    });
+
+    mutationObserver.observe(target, {
+      attributes: true,
+      attributeFilter: ["style", "class"]
+    });
+
+    // Track position changes by observing parent elements
+    let parent = target.parentElement;
+    while (parent) {
+      resizeObserver.observe(parent);
+      mutationObserver.observe(parent, {
+        attributes: true,
+        attributeFilter: ["style", "class"]
+      });
+      parent = parent.parentElement;
+    }
+
+    // Also check on animation frames for smooth tracking during animations
+    let animationFrameId: number;
+    const checkOnAnimationFrame = () => {
+      updateRect();
+      animationFrameId = requestAnimationFrame(checkOnAnimationFrame);
+    };
+    animationFrameId = requestAnimationFrame(checkOnAnimationFrame);
+
+    return () => {
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+      cancelAnimationFrame(animationFrameId);
+
+      // Clear any pending timeouts
+      if (pendingUpdateRef.current !== null) {
+        clearTimeout(pendingUpdateRef.current);
+      }
+    };
+  }, [ref, updateRect]);
+
+  return rect;
+}
+
+function equals(a: DOMRect | null, b: DOMRect | null): boolean {
+  if (a == null || b == null) return false;
+
+  const rectProps: Array<keyof DOMRect> = ["x", "y", "width", "height", "top", "right", "bottom", "left"];
+  return rectProps.every((prop) => a[prop] === b[prop]);
+}
