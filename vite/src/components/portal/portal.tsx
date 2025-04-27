@@ -47,7 +47,6 @@ export function PortalComponent({ children, x, y, width, height, zIndex, ref }: 
     }
 
     return () => {
-      console.log("closing");
       if (containerWin && !containerWin.closed) {
         containerWin.close();
       }

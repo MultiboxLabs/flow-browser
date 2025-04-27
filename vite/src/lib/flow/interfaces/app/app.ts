@@ -17,4 +17,9 @@ export interface FlowAppAPI {
    * Gets the platform of the current device
    */
   getPlatform: () => string;
+
+  /**
+   * Writes text to the clipboard
+   */
+  writeTextToClipboard: (text: string) => void;
 }

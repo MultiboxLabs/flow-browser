@@ -296,6 +296,9 @@ const appAPI = {
   },
   getPlatform: () => {
     return process.platform;
+  },
+  writeTextToClipboard: (text: string) => {
+    return ipcRenderer.send("app:write-text-to-clipboard", text);
   }
 };
 

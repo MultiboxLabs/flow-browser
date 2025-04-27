@@ -6,21 +6,31 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Sometimes we cannot use `navigator.clipboard`, as this requires the webContents to be focused & active, which it might not be.
+export async function copyTextToClipboardFallback(text: string) {
+  flow.app.writeTextToClipboard(text);
+  return true;
+}
+
 export async function copyTextToClipboard(text: string, hasToast = true) {
-  return await navigator.clipboard
+  let writeSuccess = await navigator.clipboard
     .writeText(text)
-    .then(() => {
-      if (hasToast) {
-        toast.success("Copied to clipboard!");
-      }
-      return true;
-    })
-    .catch(() => {
-      if (hasToast) {
-        toast.error("Failed to copy to clipboard.");
-      }
-      return false;
-    });
+    .then(() => true)
+    .catch(() => false);
+
+  if (!writeSuccess) {
+    writeSuccess = await copyTextToClipboardFallback(text);
+  }
+
+  if (hasToast) {
+    if (writeSuccess) {
+      toast.success("Copied to clipboard!");
+    } else {
+      toast.error("Failed to copy to clipboard.");
+    }
+  }
+
+  return writeSuccess;
 }
 
 /**
