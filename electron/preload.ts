@@ -208,6 +208,12 @@ const interfaceAPI = {
   },
   onToggleSidebar: (callback: () => void) => {
     return listenOnIPCChannel("sidebar:on-toggle", callback);
+  },
+  setComponentWindowBounds: (componentId: string, bounds: Electron.Rectangle) => {
+    return ipcRenderer.send("interface:set-component-window-bounds", componentId, bounds);
+  },
+  setComponentWindowZIndex: (componentId: string, zIndex: number) => {
+    return ipcRenderer.send("interface:set-component-window-z-index", componentId, zIndex);
   }
 };
 

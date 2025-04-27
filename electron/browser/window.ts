@@ -10,6 +10,7 @@ import { BrowserWindow, nativeTheme, WebContents } from "electron";
 import "./close-preventer";
 import { WindowEventType } from "@/modules/windows";
 import { windowEvents } from "@/modules/windows";
+import { initializePortalComponentWindows } from "@/browser/components/portal-component-windows";
 
 type BrowserWindowType = "normal" | "popup";
 
@@ -74,6 +75,9 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       // Show after ready
       show: false
     });
+
+    // Hide the window buttons before the component is mounted
+    this.window.setWindowButtonVisibility(false);
 
     const windowOptions = options.window || {};
     const hasSizeOptions = "width" in windowOptions || "height" in windowOptions;
@@ -182,6 +186,8 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
         this.setCurrentSpace(space.id);
       }
     });
+
+    initializePortalComponentWindows(this);
   }
 
   setCurrentSpace(spaceId: string) {

@@ -1,24 +1,29 @@
-import { View } from "electron";
+import { View, WebContentsView } from "electron";
 
 export class ViewManager {
   private readonly parentView: View;
-  private readonly views: Map<View, number>;
+  private readonly views: Map<WebContentsView, number>;
 
   constructor(parentView: View) {
     this.parentView = parentView;
     this.views = new Map();
   }
 
-  addOrUpdateView(view: View, zIndex: number): void {
+  addOrUpdateView(view: WebContentsView, zIndex: number): void {
     this.views.set(view, zIndex);
+    view.webContents.on("destroyed", () => {
+      this.removeView(view, true);
+    });
     this.reorderViews();
   }
 
-  removeView(view: View): void {
+  removeView(view: WebContentsView, dontRemoveFromParent: boolean = false): void {
     if (this.views.has(view)) {
       try {
         // Attempt to remove from parent, might fail if already removed
-        this.parentView.removeChildView(view);
+        if (!dontRemoveFromParent) {
+          this.parentView.removeChildView(view);
+        }
       } catch (error) {
         // Log error but continue removing from internal map
         console.warn(`Failed to remove view ${view} from parent (might be expected if already removed):`, error);
@@ -33,7 +38,7 @@ export class ViewManager {
     }
   }
 
-  getViewZIndex(view: View): number | undefined {
+  getViewZIndex(view: WebContentsView): number | undefined {
     return this.views.get(view);
   }
 

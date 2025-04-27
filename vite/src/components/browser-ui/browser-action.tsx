@@ -3,12 +3,13 @@ import { useBrowserAction } from "@/components/providers/browser-action-provider
 import { useExtensions } from "@/components/providers/extensions-provider";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PopoverTrigger } from "@/components/ui/popover";
 import { SidebarMenu, SidebarMenuButton } from "@/components/ui/resizable-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { CogIcon, LayersIcon, PackageXIcon, PinIcon, PinOffIcon, PuzzleIcon } from "lucide-react";
 import { MouseEvent, useCallback, useMemo, useRef, useState } from "react";
+import { PortalPopover } from "@/components/portal/popover";
 
 interface BrowserActionListProps {
   partition?: string;
@@ -161,13 +162,13 @@ export function BrowserActionList({ alignmentX = "left", alignmentY = "bottom" }
 
   const spaceInjectedClasses = cn(isCurrentSpaceLight ? "" : "dark");
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <PortalPopover.Root open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <SidebarMenuButton className={cn(SIDEBAR_HOVER_COLOR, "text-black dark:text-white")}>
           <PuzzleIcon />
         </SidebarMenuButton>
       </PopoverTrigger>
-      <PopoverContent className={cn("w-56 p-2 select-none", spaceInjectedClasses)}>
+      <PortalPopover.Content className={cn("w-56 p-2 select-none", spaceInjectedClasses)}>
         <SidebarMenu>
           {!disabled &&
             actions.map((action) => (
@@ -197,7 +198,7 @@ export function BrowserActionList({ alignmentX = "left", alignmentY = "bottom" }
             <span className="font-semibold truncate">Manage Extensions</span>
           </SidebarMenuButton>
         </SidebarMenu>
-      </PopoverContent>
-    </Popover>
+      </PortalPopover.Content>
+    </PortalPopover.Root>
   );
 }

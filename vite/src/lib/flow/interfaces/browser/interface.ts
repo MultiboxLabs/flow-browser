@@ -1,4 +1,4 @@
-import { IPCListener } from "@/lib/flow/types";
+import { IPCListener, PageBounds } from "@/lib/flow/types";
 
 // API //
 export interface FlowInterfaceAPI {
@@ -20,4 +20,14 @@ export interface FlowInterfaceAPI {
    * Adds a callback to be called when the sidebar is toggled
    */
   onToggleSidebar: IPCListener<[void]>;
+
+  /**
+   * Sets the bounds of a component window
+   */
+  setComponentWindowBounds: (componentId: string, bounds: PageBounds) => void;
+
+  /**
+   * Sets the z-index of a component window
+   */
+  setComponentWindowZIndex: (componentId: string, zIndex: number) => void;
 }

@@ -44,7 +44,7 @@ export function SpaceSidebar({ space }: { space: Space }) {
         </SidebarGroupAction>
         <SidebarMenu>
           <NewTabButton />
-          <AnimatePresence initial={true}>
+          <AnimatePresence initial={false}>
             {tabGroups
               .map((tabGroup) => (
                 <SidebarTabGroups

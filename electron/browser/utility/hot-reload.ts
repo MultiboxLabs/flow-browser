@@ -39,7 +39,7 @@ let amountOfRequests = 0;
 const MAX_REQUESTS = 2048;
 
 function getRandomTimeout() {
-  const MIN_TIMEOUT = 100;
+  const MIN_TIMEOUT = 300;
   const MAX_TIMEOUT = 500;
   return Math.floor(Math.random() * (MAX_TIMEOUT - MIN_TIMEOUT + 1)) + MIN_TIMEOUT;
 }

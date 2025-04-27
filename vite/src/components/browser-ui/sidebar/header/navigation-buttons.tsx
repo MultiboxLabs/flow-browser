@@ -1,15 +1,13 @@
 import { NavigationEntryWithIndex, SidebarActionButton } from "@/components/browser-ui/sidebar/header/action-buttons";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuItem
-} from "@/components/ui/dropdown-menu";
 import { useRef, useState, useEffect } from "react";
 import { useTabs } from "@/components/providers/tabs-provider";
 import { SIDEBAR_HOVER_COLOR } from "@/components/browser-ui/browser-sidebar";
 import { ArrowLeftIcon, ArrowLeftIconHandle } from "@/components/icons/arrow-left";
 import { ArrowRightIcon, ArrowRightIconHandle } from "@/components/icons/arrow-right";
+import { PopoverTrigger } from "@/components/ui/popover";
+import { PortalPopover } from "@/components/portal/popover";
+import { cn } from "@/lib/utils";
+import { useSpaces } from "@/components/providers/spaces-provider";
 
 interface NavigationButtonProps {
   canNavigate: boolean;
@@ -39,6 +37,7 @@ function NavigationButton({
   const { focusedTab } = useTabs();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState<boolean>(false);
+  const { isCurrentSpaceLight } = useSpaces();
 
   const handleButtonClick = () => {
     if (canNavigate) {
@@ -67,9 +66,9 @@ function NavigationButton({
     );
   }
 
+  const spaceInjectedClasses = cn(isCurrentSpaceLight ? "" : "dark");
   return (
     <div className="relative">
-      {/* Regular button with mouse events */}
       <SidebarActionButton
         icon={icon}
         onClick={handleButtonClick}
@@ -80,26 +79,24 @@ function NavigationButton({
         onMouseUp={onMouseUp}
       />
 
-      {/* Dropdown for navigation history */}
-      <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger ref={triggerRef} className="absolute opacity-0 pointer-events-none" />
-
-        <DropdownMenuContent align="end">
+      <PortalPopover.Root open={open} onOpenChange={setOpen}>
+        <PopoverTrigger ref={triggerRef} className="absolute opacity-0 pointer-events-none" />
+        <PortalPopover.Content className={cn("w-56 p-2", spaceInjectedClasses)}>
           {navigationEntries.map((entry, index) => (
-            <DropdownMenuItem
+            <div
               key={index}
               onClick={() => {
                 if (!focusedTab?.id) return;
                 flow.navigation.goToNavigationEntry(focusedTab.id, entry.index);
                 setOpen(false);
               }}
-              className="max-w-[10rem] text-ellipsis truncate"
+              className="flex items-center px-2 py-1.5 text-sm rounded-sm cursor-pointer hover:bg-accent max-w-full text-ellipsis truncate"
             >
               {entry.title || entry.url}
-            </DropdownMenuItem>
+            </div>
           ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </PortalPopover.Content>
+      </PortalPopover.Root>
     </div>
   );
 }

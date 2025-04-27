@@ -3,6 +3,7 @@ import type { Space } from "../../lib/flow/interfaces/sessions/spaces";
 import { hexToOKLCHString } from "@/lib/colors";
 import { hex_is_light } from "@/lib/utils";
 import { WindowType } from "@/components/browser-ui/main";
+import { createPortal } from "react-dom";
 
 interface SpacesContextValue {
   spaces: Space[];
@@ -120,6 +121,20 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
     flow.omnibox.hide();
   }, [currentSpace]);
 
+  // Stylesheet Portal
+  const stylesheet = (
+    <style>
+      {currentSpace
+        ? `
+  :root {
+    --space-background-start: ${bgStart};
+    --space-background-end: ${bgEnd};
+  }
+`
+        : ""}
+    </style>
+  );
+
   return (
     <SpacesContext.Provider
       value={{
@@ -131,16 +146,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
         setCurrentSpace: handleSetCurrentSpace
       }}
     >
-      <style>
-        {currentSpace
-          ? `
-          :root {
-            --space-background-start: ${bgStart};
-            --space-background-end: ${bgEnd};
-          }
-        `
-          : ""}
-      </style>
+      {createPortal(stylesheet, document.head)}
       {children}
     </SpacesContext.Provider>
   );

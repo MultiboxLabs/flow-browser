@@ -155,7 +155,7 @@ export function NavigationControls() {
   };
 
   return (
-    <SidebarGroup>
+    <SidebarGroup className="px-1">
       <SidebarMenu className="flex flex-row justify-between">
         {/* Left Side Buttons */}
         <SidebarMenuItem className="flex flex-row gap-0.5">

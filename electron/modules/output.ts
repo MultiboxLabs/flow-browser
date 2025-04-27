@@ -10,7 +10,8 @@ const DEBUG_AREAS = {
   DATASTORE: false, // @/saving/datastore.ts
   PROFILES: false, // @/modules/profiles.ts
   SPACES: false, // @/sessions/spaces.ts
-  ICONS: false // @/modules/icons.ts
+  ICONS: false, // @/modules/icons.ts
+  PORTAL_COMPONENTS: true // @/browser/components/portal-component-windows.ts
 } as const;
 
 export type DEBUG_AREA = keyof typeof DEBUG_AREAS;
