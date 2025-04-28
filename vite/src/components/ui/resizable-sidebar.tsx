@@ -227,7 +227,7 @@ function Sidebar({
   return (
     // group peer text-sidebar-foreground hidden md:block
     <div
-      className={cn("group peer text-sidebar-foreground block", variant === "floating" && "h-screen w-screen")}
+      className={cn("group peer text-sidebar-foreground block")} //, variant === "floating" && "h-screen w-screen")}
       data-state={state}
       data-collapsible={state === "collapsed" ? collapsible : ""}
       data-variant={variant}
@@ -299,8 +299,9 @@ function SidebarRail({
   className,
   enableDrag = true,
   ref,
+  isRightSide = false,
   ...props
-}: React.ComponentProps<"button"> & { enableDrag?: boolean }) {
+}: React.ComponentProps<"button"> & { enableDrag?: boolean; isRightSide?: boolean }) {
   const { toggleSidebar, setWidth, state, width, setIsDraggingRail } = useSidebar();
 
   const { dragRef, handleMouseDown } = useSidebarResize({
@@ -311,7 +312,8 @@ function SidebarRail({
     isCollapsed: state === "collapsed",
     minResizeWidth: MIN_SIDEBAR_WIDTH,
     maxResizeWidth: MAX_SIDEBAR_WIDTH,
-    setIsDraggingRail
+    setIsDraggingRail,
+    isRightSide
   });
 
   //* Merge external ref with our dragRef

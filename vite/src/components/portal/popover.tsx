@@ -39,7 +39,7 @@ function PortalPopoverContent({ children, ...props }: React.ComponentProps<typeo
         <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
           <PortalComponent x={0} y={0} width={"100vw"} height={"100vh"} zIndex={4}>
             <PopoverContent {...props} portal={false}>
-              <PopoverArrow className="fill-popover h-2 w-4 outline-hidden" />
+              <PopoverArrow className="fill-popover h-2 w-4 outline-hidden stroke-border" />
               {children}
             </PopoverContent>
           </PortalComponent>

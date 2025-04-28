@@ -9,6 +9,7 @@ interface UseSidebarResizeProps {
   minResizeWidth?: string;
   maxResizeWidth?: string;
   setIsDraggingRail: (isDraggingRail: boolean) => void;
+  isRightSide?: boolean;
 }
 
 function parseWidth(width: string): { value: number; unit: "rem" | "px" } {
@@ -38,7 +39,8 @@ export function useSidebarResize({
   isCollapsed,
   minResizeWidth = "14rem",
   maxResizeWidth = "20rem",
-  setIsDraggingRail
+  setIsDraggingRail,
+  isRightSide = false
 }: UseSidebarResizeProps) {
   const dragRef = React.useRef<HTMLButtonElement>(null);
   const isDragging = React.useRef(false);
@@ -89,8 +91,8 @@ export function useSidebarResize({
         const minWidthPx = toPx(minResizeWidth);
         const maxWidthPx = toPx(maxResizeWidth);
 
-        // Calculate new width in pixels
-        const deltaWidth = e.clientX - startX.current;
+        // Calculate new width in pixels with right side inversion if needed
+        const deltaWidth = isRightSide ? startX.current - e.clientX : e.clientX - startX.current;
         const newWidthPx = startWidth.current + deltaWidth;
 
         // Auto-collapse if dragged below threshold
@@ -150,7 +152,17 @@ export function useSidebarResize({
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [onResize, onToggle, isCollapsed, currentWidth, minResizeWidth, maxResizeWidth, persistWidth, setIsDraggingRail]);
+  }, [
+    onResize,
+    onToggle,
+    isCollapsed,
+    currentWidth,
+    minResizeWidth,
+    maxResizeWidth,
+    persistWidth,
+    setIsDraggingRail,
+    isRightSide
+  ]);
 
   return {
     dragRef,

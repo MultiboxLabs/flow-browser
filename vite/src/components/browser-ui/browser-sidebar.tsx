@@ -8,7 +8,7 @@ import {
   SidebarRail,
   useSidebar
 } from "@/components/ui/resizable-sidebar";
-import { useEffect, useRef, Fragment, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { CollapseMode, SidebarVariant, SidebarSide } from "@/components/browser-ui/main";
 import { PlusIcon, SettingsIcon } from "lucide-react";
@@ -25,24 +25,149 @@ type BrowserSidebarProps = {
   collapseMode: CollapseMode;
   variant: SidebarVariant;
   side: SidebarSide;
+  setIsHoveringSidebar: (isHovering: boolean) => void;
+  setVariant: (variant: SidebarVariant) => void;
 };
 
 export const SIDEBAR_HOVER_COLOR =
   "hover:bg-black/10 active:bg-black/15 dark:hover:bg-white/10 dark:active:bg-white/15";
 
-export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarProps) {
+// Custom hook to handle sidebar animation mounting logic
+function useSidebarAnimation(shouldRenderContent: boolean, setVariant: (variant: SidebarVariant) => void) {
+  const [isWrapperMounted, setIsWrapperMounted] = useState(shouldRenderContent);
+
+  useEffect(() => {
+    if (shouldRenderContent) {
+      setIsWrapperMounted(true);
+    }
+  }, [shouldRenderContent]);
+
+  const handleExitComplete = useCallback(() => {
+    if (!shouldRenderContent) {
+      setIsWrapperMounted(false);
+      setVariant("sidebar");
+    }
+  }, [shouldRenderContent, setVariant]);
+
+  return { isWrapperMounted, handleExitComplete };
+}
+
+// Custom hook to handle sidebar hover state
+function useSidebarHover(setIsHoveringSidebar: (isHovering: boolean) => void) {
+  const isHoveringSidebarRef = useRef(false);
+
+  const handleMouseEnter = useCallback(() => {
+    isHoveringSidebarRef.current = true;
+    setTimeout(() => {
+      if (isHoveringSidebarRef.current) {
+        setIsHoveringSidebar(true);
+      }
+    }, 100);
+  }, [setIsHoveringSidebar]);
+
+  const handleMouseLeave = useCallback(() => {
+    isHoveringSidebarRef.current = false;
+    setTimeout(() => {
+      if (!isHoveringSidebarRef.current) {
+        setIsHoveringSidebar(false);
+      }
+    }, 100);
+  }, [setIsHoveringSidebar]);
+
+  return { handleMouseEnter, handleMouseLeave };
+}
+
+// Component for the sidebar footer content
+function SidebarFooterContent() {
+  return (
+    <SidebarMenu className="flex flex-row justify-between">
+      {/* Left Side Buttons */}
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          className={cn(SIDEBAR_HOVER_COLOR, "text-black dark:text-white")}
+          onClick={() => flow.windows.openSettingsWindow()}
+        >
+          <SettingsIcon />
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+
+      {/* Middle (Spaces) */}
+      <SidebarSpacesSwitcher />
+
+      {/* Right Side Buttons */}
+      <SidebarMenuItem>
+        <SidebarMenuButton disabled className={cn(SIDEBAR_HOVER_COLOR, "text-black dark:text-white")}>
+          <PlusIcon />
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
+
+// Component for the sidebar header content
+function SidebarHeaderContent({ open, themeClasses }: { open: boolean; themeClasses: string }) {
+  return (
+    <SidebarHeader className={cn(themeClasses, "pb-0 gap-0")}>
+      {open && <SidebarWindowControls />}
+      <NavigationControls />
+      <SidebarAddressBar />
+    </SidebarHeader>
+  );
+}
+
+// Component that renders the sidebar content
+function SidebarContent({
+  open,
+  side,
+  variant,
+  collapseMode,
+  themeClasses,
+  handleMouseEnter,
+  handleMouseLeave,
+  sidebarClassNames,
+  railClassNames
+}: {
+  open: boolean;
+  side: SidebarSide;
+  variant: SidebarVariant;
+  collapseMode: CollapseMode;
+  themeClasses: string;
+  handleMouseEnter: () => void;
+  handleMouseLeave: () => void;
+  sidebarClassNames: string;
+  railClassNames: string;
+}) {
+  return (
+    <Sidebar
+      side={side}
+      variant={variant}
+      collapsible={collapseMode}
+      className={sidebarClassNames}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <SidebarHeaderContent open={open} themeClasses={themeClasses} />
+      <ScrollableSidebarContent />
+      <SidebarFooter className={themeClasses}>{open && <SidebarFooterContent />}</SidebarFooter>
+      <SidebarRail className={railClassNames} />
+    </Sidebar>
+  );
+}
+
+export function BrowserSidebar({ collapseMode, variant, side, setIsHoveringSidebar, setVariant }: BrowserSidebarProps) {
   const { open, toggleSidebar, width } = useSidebar();
   const { isCurrentSpaceLight } = useSpaces();
 
-  // Determine if the core sidebar content (potentially animated) should be rendered
+  // Determine if the core sidebar content should be rendered
   const shouldRenderAnimatedContent = open || variant !== "floating";
-
-  // State to keep the outer wrapper (Portal or Fragment) mounted during exit animations,
-  // ensuring the component remains in the DOM for AnimatePresence to work correctly.
-  const [isWrapperMounted, setIsWrapperMounted] = useState(shouldRenderAnimatedContent);
 
   const themeClasses = cn(isCurrentSpaceLight ? "" : "dark");
 
+  // Use custom hooks for animation and hover state
+  const { isWrapperMounted, handleExitComplete } = useSidebarAnimation(shouldRenderAnimatedContent, setVariant);
+  const { handleMouseEnter, handleMouseLeave } = useSidebarHover(setIsHoveringSidebar);
+
+  // Handle sidebar toggle from external source
   const toggleSidebarRef = useRef(toggleSidebar);
   toggleSidebarRef.current = toggleSidebar;
 
@@ -55,111 +180,87 @@ export function BrowserSidebar({ collapseMode, variant, side }: BrowserSidebarPr
     };
   }, []);
 
-  // Update isWrapperMounted immediately if we need to show the component.
-  // This ensures the wrapper is mounted *before* the animation starts.
-  useEffect(() => {
-    if (shouldRenderAnimatedContent) {
-      setIsWrapperMounted(true);
-    }
-  }, [shouldRenderAnimatedContent]);
-
-  // Callback function triggered after the exit animation completes.
-  const handleExitComplete = () => {
-    // Only unmount the wrapper if the content is no longer supposed to be rendered.
-    // This prevents the wrapper from disappearing prematurely if the sidebar
-    // is quickly toggled open again during the exit animation.
-    if (!shouldRenderAnimatedContent) {
-      setIsWrapperMounted(false);
-    }
+  // Animation properties
+  const sideOffset = side === "left" ? `-${width}` : `${width}`;
+  const animationProps = {
+    initial: { x: sideOffset, originX: side === "left" ? 0 : 1 },
+    animate: { x: 0 },
+    exit: { x: sideOffset },
+    transition: { type: "spring", damping: 30, stiffness: 400 }
   };
 
-  // Define the wrapper component based on the variant.
-  // Use Portal for floating variant to render outside the normal DOM hierarchy.
-  // Use Fragment for other variants.
-  const WrapperComponent = variant === "floating" ? PortalComponent : Fragment;
-  // Define the motion component based on the variant.
-  // Use motion.div for floating variant to enable animations.
-  // Use Fragment for other variants (no animation needed).
-  const MotionComponent = variant === "floating" ? motion.div : Fragment;
-  const sideOffset = side === "left" ? -300 : 300;
+  // Style for floating variant
+  const floatingStyle =
+    variant === "floating"
+      ? {
+          position: "absolute" as const,
+          top: 0 as const,
+          left: 0 as const,
+          width: "100%" as const,
+          height: "100%" as const
+        }
+      : {};
 
-  return (
-    <>
-      {/* Only render the wrapper (and its children) if isWrapperMounted is true.
-          This state persists through the exit animation. */}
-      {isWrapperMounted && (
-        <WrapperComponent x={0} y={0} width={width} height="100%">
-          {/* Optional: Add a backdrop for floating variant */}
-          {/* {variant === "floating" && <div className="absolute inset-0 bg-black/10 backdrop-blur-sm" />} */}
-          <AnimatePresence onExitComplete={handleExitComplete}>
-            {/* Conditionally render the animated content based on the calculated state */}
-            {shouldRenderAnimatedContent && (
-              <MotionComponent
-                key="sidebar-motion" // Necessary for AnimatePresence to track the component
-                initial={{ x: sideOffset, originX: side === "left" ? 0 : 1 }}
-                animate={{ x: 0 }}
-                exit={{ x: sideOffset }}
-                transition={{ type: "spring", damping: 30, stiffness: 400 }}
-                // Apply position and dimensions only for the animated (floating) variant
-                style={
-                  variant === "floating" ? { position: "absolute", top: 0, left: 0, width: "100%", height: "100%" } : {}
-                }
-              >
-                <Sidebar
-                  side={side}
-                  variant={variant}
-                  collapsible={collapseMode}
-                  className={cn(
-                    "select-none",
-                    "!border-0",
-                    "*:bg-transparent",
-                    variant === "floating" && "!w-full !flex *:bg-space-background-start"
-                  )}
-                >
-                  <SidebarHeader className={cn(themeClasses, "pb-0 gap-0")}>
-                    {open && <SidebarWindowControls />}
-                    <NavigationControls />
-                    <SidebarAddressBar />
-                  </SidebarHeader>
-                  <ScrollableSidebarContent />
-                  <SidebarFooter className={cn(themeClasses)}>
-                    {open && (
-                      <SidebarMenu className="flex flex-row justify-between">
-                        {/* Left Side Buttons */}
-                        <SidebarMenuItem>
-                          <SidebarMenuButton
-                            className={cn(SIDEBAR_HOVER_COLOR, "text-black dark:text-white")}
-                            onClick={() => flow.windows.openSettingsWindow()}
-                          >
-                            <SettingsIcon />
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        {/* Middle (Spaces) */}
-                        <SidebarSpacesSwitcher />
-                        {/* Right Side Buttons */}
-                        <SidebarMenuItem>
-                          <SidebarMenuButton disabled className={cn(SIDEBAR_HOVER_COLOR, "text-black dark:text-white")}>
-                            <PlusIcon />
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      </SidebarMenu>
-                    )}
-                  </SidebarFooter>
-                  <SidebarRail
-                    className={cn(
-                      "dark",
-                      "w-1",
-                      variant === "sidebar" && (side === "left" ? "mr-4" : "ml-4"),
-                      variant === "floating" && (side === "left" ? "mr-6" : "ml-6"),
-                      "after:transition-all after:duration-300 after:ease-in-out after:w-1 after:rounded-full after:h-[95%] after:top-1/2 after:-translate-y-1/2"
-                    )}
-                  />
-                </Sidebar>
-              </MotionComponent>
-            )}
-          </AnimatePresence>
-        </WrapperComponent>
-      )}
-    </>
+  // Sidebar class names
+  const sidebarClassNames = cn(
+    "select-none",
+    "!border-0",
+    "*:bg-transparent",
+    variant === "floating" && "!w-full !flex *:bg-space-background-start"
   );
+
+  // Rail class names
+  const railClassNames = cn(
+    "dark",
+    "w-1",
+    variant === "sidebar" && (side === "left" ? "mr-4" : "ml-4"),
+    variant === "floating" && (side === "left" ? "mr-6" : "ml-6"),
+    "after:transition-all after:duration-300 after:ease-in-out after:w-1 after:rounded-full after:h-[95%] after:top-1/2 after:-translate-y-1/2"
+  );
+
+  if (!isWrapperMounted) {
+    return null;
+  }
+
+  // Create the sidebar content element
+  const sidebarContent = (
+    <AnimatePresence onExitComplete={handleExitComplete}>
+      {shouldRenderAnimatedContent && (
+        <motion.div
+          key="sidebar-motion"
+          {...(variant === "floating" ? animationProps : {})}
+          style={variant === "floating" ? floatingStyle : undefined}
+        >
+          <SidebarContent
+            open={open}
+            side={side}
+            variant={variant}
+            collapseMode={collapseMode}
+            themeClasses={themeClasses}
+            handleMouseEnter={handleMouseEnter}
+            handleMouseLeave={handleMouseLeave}
+            sidebarClassNames={sidebarClassNames}
+            railClassNames={railClassNames}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
+  // Render using Portal for floating variant, or directly for other variants
+  if (variant === "floating") {
+    return (
+      <PortalComponent
+        x={side === "left" ? 0 : "100vw"}
+        y={0}
+        width={width}
+        height="100%"
+        anchorX={side === "left" ? "left" : "right"}
+      >
+        {sidebarContent}
+      </PortalComponent>
+    );
+  }
+
+  return sidebarContent;
 }
