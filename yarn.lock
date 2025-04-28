@@ -1,4 +1,0 @@
-# DO NOT DELETE THIS.
-# Electron use this to check where the node_modules are hoisted at.
-# Don't ask me why, but it does not check for bun.lock.
-# https://github.com/electron/forge/issues/2306#issuecomment-1867298716
