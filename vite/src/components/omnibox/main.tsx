@@ -207,7 +207,7 @@ export function OmniboxMain() {
         <Command
           className={cn(
             "rounded-xl border backdrop-blur-xl overflow-hidden",
-            "border-[#e0e0e0] dark:border-[#383838] bg-white/95 dark:bg-[#1c1c1c]/95",
+            "border-[#e0e0e0] dark:border-[#383838] bg-white/65 dark:bg-[#1c1c1c]/65",
             "transition-all duration-150",
             "flex flex-col max-h-screen"
           )}

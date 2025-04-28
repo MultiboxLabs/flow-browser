@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from "r
 import { motion, AnimatePresence } from "motion/react";
 import { SidebarSide } from "@/components/browser-ui/main";
 import { cn } from "@/lib/utils";
+import { useSpaces } from "@/components/providers/spaces-provider";
 
 type ToastContextType = {
   showToast: (msg: string, duration?: number) => void;
@@ -32,6 +33,8 @@ function ToastContainer({
   sidebarSide: SidebarSide;
   removeToast: () => void;
 }) {
+  const { isCurrentSpaceLight } = useSpaces();
+
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -40,6 +43,7 @@ function ToastContainer({
     setIsVisible(true);
   }, [currentMessage]);
 
+  const spaceInjectedClasses = cn(isCurrentSpaceLight ? "" : "dark");
   return (
     <PortalComponent
       visible={isVisible}
@@ -49,7 +53,13 @@ function ToastContainer({
       height={"6%"}
       anchorX={sidebarSide === "left" ? "right" : "left"}
     >
-      <div className={cn("w-screen h-screen pt-4 select-none", sidebarSide === "left" ? "pr-4" : "pl-4")}>
+      <div
+        className={cn(
+          "w-screen h-screen pt-4 select-none",
+          sidebarSide === "left" ? "pr-4" : "pl-4",
+          spaceInjectedClasses
+        )}
+      >
         <AnimatePresence onExitComplete={() => setIsVisible(false)}>
           {currentMessage && (
             <motion.div
@@ -61,7 +71,7 @@ function ToastContainer({
               className="box-border border border-border bg-space-background-start rounded-lg w-full h-full flex items-center justify-center"
               onClick={removeToast}
             >
-              <span className="text-white text-sm font-bold">{currentMessage}</span>
+              <span className="text-black dark:text-white text-sm font-bold">{currentMessage}</span>
             </motion.div>
           )}
         </AnimatePresence>
