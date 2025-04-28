@@ -149,7 +149,7 @@ function SidebarContent({
       <SidebarHeaderContent open={open} themeClasses={themeClasses} />
       <ScrollableSidebarContent />
       <SidebarFooter className={themeClasses}>{open && <SidebarFooterContent />}</SidebarFooter>
-      <SidebarRail className={railClassNames} />
+      <SidebarRail className={railClassNames} isRightSide={side === "right"} />
     </Sidebar>
   );
 }
@@ -213,7 +213,7 @@ export function BrowserSidebar({ collapseMode, variant, side, setIsHoveringSideb
   const railClassNames = cn(
     "dark",
     "w-1",
-    variant === "sidebar" && (side === "left" ? "mr-4" : "ml-4"),
+    variant === "sidebar" && "mr-4",
     variant === "floating" && (side === "left" ? "mr-6" : "ml-6"),
     "after:transition-all after:duration-300 after:ease-in-out after:w-1 after:rounded-full after:h-[95%] after:top-1/2 after:-translate-y-1/2"
   );

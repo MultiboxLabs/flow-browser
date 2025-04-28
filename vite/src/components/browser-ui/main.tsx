@@ -82,7 +82,10 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
         <div
           className={cn(
             "dark flex-1 flex p-2.5 platform-win32:pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))] app-drag",
-            open && hasSidebar && variant === "sidebar" && (side === "left" ? "pl-0.5" : "pr-0.5"),
+            (open || (!open && sidebarCollapseMode === "icon")) &&
+              hasSidebar &&
+              variant === "sidebar" &&
+              (side === "left" ? "pl-0.5" : "pr-0.5"),
             type === "popup" && "pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))]"
           )}
         >
@@ -115,16 +118,18 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
           </div>
 
           {/* Sidebar Hover Detector */}
-          <SidebarHoverDetector
-            side={side}
-            started={() => {
-              if (!open && variant === "sidebar") {
-                setIsHoveringSidebar(true);
-                setVariant("floating");
-                setOpen(true);
-              }
-            }}
-          />
+          {
+            <SidebarHoverDetector
+              side={side}
+              started={() => {
+                if (!open && variant === "sidebar" && sidebarCollapseMode === "offcanvas") {
+                  setIsHoveringSidebar(true);
+                  setVariant("floating");
+                  setOpen(true);
+                }
+              }}
+            />
+          }
 
           {/* Content */}
           <BrowserContent />
