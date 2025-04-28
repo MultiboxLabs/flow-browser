@@ -55,10 +55,14 @@ function useSidebarAnimation(shouldRenderContent: boolean, setVariant: (variant:
 // Custom hook to handle sidebar hover state
 function useSidebarHover(setIsHoveringSidebar: (isHovering: boolean) => void) {
   const isHoveringSidebarRef = useRef(false);
+  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleMouseEnter = useCallback(() => {
     isHoveringSidebarRef.current = true;
-    setTimeout(() => {
+    timeoutIdRef.current = setTimeout(() => {
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+      }
       if (isHoveringSidebarRef.current) {
         setIsHoveringSidebar(true);
       }
@@ -67,7 +71,10 @@ function useSidebarHover(setIsHoveringSidebar: (isHovering: boolean) => void) {
 
   const handleMouseLeave = useCallback(() => {
     isHoveringSidebarRef.current = false;
-    setTimeout(() => {
+    timeoutIdRef.current = setTimeout(() => {
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+      }
       if (!isHoveringSidebarRef.current) {
         setIsHoveringSidebar(false);
       }
