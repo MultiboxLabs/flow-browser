@@ -47,6 +47,10 @@ export function useBoundingRect<T extends HTMLElement>(
     // The timeout will use lastRectRef.current which contains the latest values
   }, [ref, throttleMs]);
 
+  const throttledUpdate = useCallback(() => {
+    requestAnimationFrame(updateRect);
+  }, [updateRect]);
+
   useLayoutEffect(() => {
     const target = ref.current;
     if (target == null) return;
@@ -55,15 +59,11 @@ export function useBoundingRect<T extends HTMLElement>(
     updateRect();
 
     // Track resize changes
-    const resizeObserver = new ResizeObserver(() => {
-      requestAnimationFrame(updateRect);
-    });
+    const resizeObserver = new ResizeObserver(throttledUpdate);
     resizeObserver.observe(target);
 
     // Track DOM mutations that might affect position
-    const mutationObserver = new MutationObserver(() => {
-      requestAnimationFrame(updateRect);
-    });
+    const mutationObserver = new MutationObserver(throttledUpdate);
 
     mutationObserver.observe(target, {
       attributes: true,
@@ -81,25 +81,24 @@ export function useBoundingRect<T extends HTMLElement>(
       parent = parent.parentElement;
     }
 
-    // Also check on animation frames for smooth tracking during animations
-    let animationFrameId: number;
-    const checkOnAnimationFrame = () => {
-      updateRect();
-      animationFrameId = requestAnimationFrame(checkOnAnimationFrame);
-    };
-    animationFrameId = requestAnimationFrame(checkOnAnimationFrame);
+    // Track viewport changes
+    window.addEventListener("scroll", throttledUpdate, { capture: true, passive: true });
+    window.addEventListener("resize", throttledUpdate, { passive: true });
 
     return () => {
       resizeObserver.disconnect();
       mutationObserver.disconnect();
-      cancelAnimationFrame(animationFrameId);
 
       // Clear any pending timeouts
       if (pendingUpdateRef.current !== null) {
         clearTimeout(pendingUpdateRef.current);
       }
+
+      // Remove window listeners
+      window.removeEventListener("scroll", throttledUpdate, { capture: true });
+      window.removeEventListener("resize", throttledUpdate);
     };
-  }, [ref, updateRect]);
+  }, [ref, updateRect, throttledUpdate]);
 
   // Combine the portal offset (if it exists) with the rect
   const finalRect = useMemo(() => {

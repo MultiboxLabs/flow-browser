@@ -118,18 +118,16 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
           </div>
 
           {/* Sidebar Hover Detector */}
-          {
-            <SidebarHoverDetector
-              side={side}
-              started={() => {
-                if (!open && variant === "sidebar" && sidebarCollapseMode === "offcanvas") {
-                  setIsHoveringSidebar(true);
-                  setVariant("floating");
-                  setOpen(true);
-                }
-              }}
-            />
-          }
+          <SidebarHoverDetector
+            side={side}
+            started={() => {
+              if (!open && variant === "sidebar" && sidebarCollapseMode === "offcanvas") {
+                setIsHoveringSidebar(true);
+                setVariant("floating");
+                setOpen(true);
+              }
+            }}
+          />
 
           {/* Content */}
           <BrowserContent />
