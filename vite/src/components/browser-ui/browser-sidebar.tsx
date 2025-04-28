@@ -167,18 +167,18 @@ export function BrowserSidebar({ collapseMode, variant, side, setIsHoveringSideb
   const { isWrapperMounted, handleExitComplete } = useSidebarAnimation(shouldRenderAnimatedContent, setVariant);
   const { handleMouseEnter, handleMouseLeave } = useSidebarHover(setIsHoveringSidebar);
 
-  // Handle sidebar toggle from external source
-  const toggleSidebarRef = useRef(toggleSidebar);
-  toggleSidebarRef.current = toggleSidebar;
-
   useEffect(() => {
     const removeListener = flow.interface.onToggleSidebar(() => {
-      toggleSidebarRef.current();
+      if (variant === "floating") {
+        setVariant("sidebar");
+      } else {
+        toggleSidebar();
+      }
     });
     return () => {
       removeListener();
     };
-  }, []);
+  }, [toggleSidebar, variant, setVariant]);
 
   // Animation properties
   const sideOffset = side === "left" ? `-${width}` : `${width}`;
