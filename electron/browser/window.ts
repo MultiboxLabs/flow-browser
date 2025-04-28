@@ -75,7 +75,9 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     });
 
     // Hide the window buttons before the component is mounted
-    this.window.setWindowButtonVisibility(false);
+    if ("setWindowButtonVisibility" in this.window) {
+      this.window.setWindowButtonVisibility(false);
+    }
 
     const windowOptions = options.window || {};
     const hasSizeOptions = "width" in windowOptions || "height" in windowOptions;
