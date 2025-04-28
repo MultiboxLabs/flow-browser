@@ -1,4 +1,5 @@
-import { useState, useLayoutEffect, RefObject, useCallback, useRef } from "react";
+import { useState, useLayoutEffect, RefObject, useCallback, useRef, useMemo } from "react";
+import { usePortalContext } from "@/components/portal/portal";
 
 export interface UseBoundingRectOptions {
   throttleMs?: number;
@@ -9,6 +10,8 @@ export function useBoundingRect<T extends HTMLElement>(
   options: UseBoundingRectOptions = {}
 ): DOMRect | null {
   const { throttleMs = 0 } = options;
+
+  const { x: portalX, y: portalY } = usePortalContext();
   const [rect, setRect] = useState<DOMRect | null>(null);
   const lastUpdateTimeRef = useRef(0);
   const pendingUpdateRef = useRef<number | null>(null);
@@ -98,7 +101,19 @@ export function useBoundingRect<T extends HTMLElement>(
     };
   }, [ref, updateRect]);
 
-  return rect;
+  // Combine the portal offset (if it exists) with the rect
+  const finalRect = useMemo(() => {
+    if (rect == null) return null;
+
+    const x = rect.x + (portalX ?? 0);
+    const y = rect.y + (portalY ?? 0);
+
+    const width = rect.width;
+    const height = rect.height;
+
+    return new DOMRect(x, y, width, height);
+  }, [rect, portalX, portalY]);
+  return finalRect;
 }
 
 function equals(a: DOMRect | null, b: DOMRect | null): boolean {
