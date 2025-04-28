@@ -214,6 +214,9 @@ const interfaceAPI = {
   },
   setComponentWindowZIndex: (componentId: string, zIndex: number) => {
     return ipcRenderer.send("interface:set-component-window-z-index", componentId, zIndex);
+  },
+  setComponentWindowVisible: (componentId: string, visible: boolean) => {
+    return ipcRenderer.send("interface:set-component-window-visible", componentId, visible);
   }
 };
 

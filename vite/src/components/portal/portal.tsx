@@ -16,9 +16,10 @@ type PortalComponentProps = {
   width: string;
   height: string;
   zIndex?: number;
+  visible?: boolean;
   ref?: React.RefObject<HTMLElement | null>;
 };
-export function PortalComponent({ children, x, y, width, height, zIndex, ref }: PortalComponentProps) {
+export function PortalComponent({ children, x, y, width, height, zIndex, visible = true, ref }: PortalComponentProps) {
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const [componentId, setComponentId] = useState<string | null>(null);
   const parentRef = useRef<HTMLDivElement>(null);
@@ -80,6 +81,12 @@ export function PortalComponent({ children, x, y, width, height, zIndex, ref }: 
     const zIndexValue = zIndex ?? DEFAULT_Z_INDEX;
     flow.interface.setComponentWindowZIndex(componentId, zIndexValue);
   }, [componentId, zIndex]);
+
+  useEffect(() => {
+    if (!componentId) return;
+
+    flow.interface.setComponentWindowVisible(componentId, visible);
+  }, [componentId, visible]);
 
   return <div ref={parentRef}>{container && createPortal(children, container)}</div>;
 }

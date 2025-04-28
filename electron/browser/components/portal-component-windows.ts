@@ -69,9 +69,20 @@ export function initializePortalComponentWindows(tabbedWindow: TabbedBrowserWind
   };
   ipcMain.on("interface:set-component-window-z-index", setComponentWindowZIndex);
 
+  const setComponentWindowVisible = (event: IpcMainInvokeEvent, componentId: string, visible: boolean) => {
+    const componentView = componentViews[componentId];
+    if (componentView) {
+      debugPrint("PORTAL_COMPONENTS", "Set Visibility of Portal Window:", componentId, visible);
+      componentView.setVisible(visible);
+    }
+  };
+  ipcMain.on("interface:set-component-window-visible", setComponentWindowVisible);
+
   // Destroy the component windows
   const destroy = () => {
     ipcMain.off("interface:set-component-window-bounds", setComponentWindowBounds);
+    ipcMain.off("interface:set-component-window-z-index", setComponentWindowZIndex);
+    ipcMain.off("interface:set-component-window-visible", setComponentWindowVisible);
   };
   return destroy;
 }

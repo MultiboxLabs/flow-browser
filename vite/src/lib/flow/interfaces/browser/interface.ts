@@ -30,4 +30,9 @@ export interface FlowInterfaceAPI {
    * Sets the z-index of a component window
    */
   setComponentWindowZIndex: (componentId: string, zIndex: number) => void;
+
+  /**
+   * Sets the visibility of a component window
+   */
+  setComponentWindowVisible: (componentId: string, visible: boolean) => void;
 }
