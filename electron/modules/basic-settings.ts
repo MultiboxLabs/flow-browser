@@ -68,7 +68,7 @@ export const BasicSettings: BasicSetting[] = [
       },
       {
         id: "right",
-        name: "Right"
+        name: "Right (Experimental)"
       }
     ]
   },

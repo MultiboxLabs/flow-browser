@@ -207,7 +207,20 @@ export class Omnibox {
 export function setOmniboxBounds(parentWindow: BrowserWindow, bounds: Electron.Rectangle | null) {
   const omnibox = omniboxes.get(parentWindow);
   if (omnibox) {
-    omnibox.setBounds(bounds);
+    if (bounds) {
+      const windowBounds = parentWindow.getBounds();
+
+      const newBounds: Electron.Rectangle = {
+        x: Math.min(bounds.x, windowBounds.width - bounds.width),
+        y: Math.min(bounds.y, windowBounds.height - bounds.height),
+        width: bounds.width,
+        height: bounds.height
+      };
+
+      omnibox.setBounds(newBounds);
+    } else {
+      omnibox.setBounds(null);
+    }
   }
 }
 
