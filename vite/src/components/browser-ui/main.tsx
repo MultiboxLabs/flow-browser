@@ -12,6 +12,7 @@ import { TabDisabler } from "@/components/logic/tab-disabler";
 import { BrowserActionProvider } from "@/components/providers/browser-action-provider";
 import { ExtensionsProviderWithSpaces } from "@/components/providers/extensions-provider";
 import { SidebarHoverDetector } from "@/components/browser-ui/sidebar/hover-detector";
+import MinimalToastProvider from "@/components/providers/minimal-toast-provider";
 
 export type CollapseMode = "icon" | "offcanvas";
 export type SidebarVariant = "sidebar" | "floating";
@@ -73,7 +74,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
   const hasSidebar = type === "main";
 
   return (
-    <>
+    <MinimalToastProvider sidebarSide={side}>
       {dynamicTitle && <title>{`${dynamicTitle} | Flow`}</title>}
       {/* Sidebar on Left Side */}
       {hasSidebar && side === "left" && sidebar}
@@ -136,7 +137,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
 
       {/* Sidebar on Right Side */}
       {hasSidebar && side === "right" && sidebar}
-    </>
+    </MinimalToastProvider>
   );
 }
 

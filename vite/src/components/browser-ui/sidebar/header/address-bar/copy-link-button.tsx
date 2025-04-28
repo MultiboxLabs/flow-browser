@@ -1,5 +1,6 @@
 import { CheckIcon, CheckIconHandle } from "@/components/icons/check";
 import { LinkIcon } from "@/components/icons/link";
+import { useToast } from "@/components/providers/minimal-toast-provider";
 import { Button } from "@/components/ui/button";
 import { copyTextToClipboard } from "@/lib/utils";
 import { AnimatePresence, motion, usePresence } from "motion/react";
@@ -52,6 +53,8 @@ function CopyLinkIcon() {
 }
 
 export function AddressBarCopyLinkButton({ addressUrl }: { addressUrl: string }) {
+  const { showToast } = useToast();
+
   const [copied, setCopied] = useState(false);
   const copyUrl = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -63,6 +66,7 @@ export function AddressBarCopyLinkButton({ addressUrl }: { addressUrl: string })
         setTimeout(() => {
           setCopied(false);
         }, 3000);
+        showToast("Copied to clipboard!");
       }
     });
   };
