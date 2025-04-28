@@ -13,7 +13,6 @@ import PopupUIRoute from "./routes/popup-ui/route";
 import NewTabRoute from "./routes/new-tab/route";
 import SettingsRoute from "./routes/settings/route";
 import ErrorRoute from "./routes/error/route";
-import GlanceModalRoute from "./routes/glance-modal/route";
 import AboutRoute from "./routes/about/route";
 import GamesRoute from "./routes/games/route";
 import OmniboxRoute from "./routes/omnibox/route";
@@ -39,9 +38,6 @@ function Routes() {
       </Route>
       <Route protocol={flowProtocol} hostname="error">
         <ErrorRoute />
-      </Route>
-      <Route protocol={flowInternalProtocol} hostname="glance-modal">
-        <GlanceModalRoute />
       </Route>
       <Route protocol={flowProtocol} hostname="about">
         <AboutRoute />

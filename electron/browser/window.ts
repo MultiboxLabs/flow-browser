@@ -1,5 +1,4 @@
 import { Browser } from "@/browser/browser";
-import { GlanceModal } from "@/browser/components/glance-modal";
 import { Omnibox } from "@/browser/components/omnibox";
 import { ViewManager } from "@/browser/view-manager";
 import { PageBounds } from "@/ipc/browser/page";
@@ -32,7 +31,6 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
   public viewManager: ViewManager;
   public coreWebContents: WebContents[];
 
-  public glanceModal: GlanceModal;
   public omnibox: Omnibox;
 
   private browser: Browser;
@@ -164,10 +162,6 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
 
     this.viewManager = new ViewManager(this.window.contentView);
 
-    this.glanceModal = new GlanceModal();
-    this.viewManager.addOrUpdateView(this.glanceModal.view, 1);
-    this.coreWebContents.push(this.glanceModal.view.webContents);
-
     this.omnibox = new Omnibox(this.window);
     this.viewManager.addOrUpdateView(this.omnibox.view, 999);
     this.coreWebContents.push(this.omnibox.webContents);
@@ -232,7 +226,6 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     const windowDestroyed = this.window.isDestroyed();
     this.viewManager.destroy(windowDestroyed);
 
-    this.glanceModal.destroy();
     this.omnibox.destroy();
 
     if (!windowDestroyed) {

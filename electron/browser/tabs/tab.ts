@@ -824,9 +824,6 @@ export class Tab extends TypedEventEmitter<TabEvents> {
         zIndex = GLANCE_FRONT_ZINDEX;
       } else {
         zIndex = GLANCE_BACK_ZINDEX;
-        // Update glance modal bounds only if this tab is the back tab
-        // Avoids unnecessary updates if multiple back tabs exist (though unlikely)
-        this.window.glanceModal.setBounds(glanceBounds);
       }
     } else if (tabGroup.mode === "split") {
       newTabGroupMode = "split";
@@ -860,10 +857,6 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     if (newTabGroupMode !== lastTabGroupMode) {
       this.lastTabGroupMode = newTabGroupMode;
     }
-
-    // Manage glance modal visibility
-    const showGlanceModal = newTabGroupMode === "glance";
-    this.window.glanceModal.setVisible(showGlanceModal);
 
     // Apply the calculated bounds
     if (newBounds) {
