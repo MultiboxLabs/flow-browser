@@ -39,7 +39,7 @@ export const BasicSettings: BasicSetting[] = [
   {
     id: "sidebarCollapseMode",
     name: "Sidebar Collapse Mode",
-    showName: false,
+    showName: true,
     type: "enum",
     defaultValue: "icon",
     options: [
@@ -50,6 +50,25 @@ export const BasicSettings: BasicSetting[] = [
       {
         id: "offcanvas",
         name: "Off-Screen"
+      }
+    ]
+  },
+
+  // Sidebar Side
+  {
+    id: "sidebarSide",
+    name: "Sidebar Side",
+    showName: true,
+    type: "enum",
+    defaultValue: "left",
+    options: [
+      {
+        id: "left",
+        name: "Left"
+      },
+      {
+        id: "right",
+        name: "Right"
       }
     ]
   },
@@ -105,9 +124,9 @@ export const BasicSettingCards: BasicSettingCard[] = [
 
   // Sidebar Collapse Mode Card
   {
-    title: "Sidebar Collapse Mode",
-    subtitle: "Choose how the sidebar should collapse",
-    settings: ["sidebarCollapseMode"]
+    title: "Sidebar Settings",
+    subtitle: "Choose how the sidebar should behave",
+    settings: ["sidebarSide", "sidebarCollapseMode"]
   },
 
   // Archive Tab After Card

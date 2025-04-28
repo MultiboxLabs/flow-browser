@@ -27,7 +27,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
   const [variant, setVariant] = useState<SidebarVariant>("sidebar");
   const [isHoveringSidebar, setIsHoveringSidebar] = useState(false);
 
-  const side: SidebarSide = "left" as SidebarSide;
+  const side: SidebarSide = getSetting<SidebarSide>("sidebarSide") ?? "left";
 
   const sidebarCollapseMode = getSetting<CollapseMode>("sidebarCollapseMode");
 

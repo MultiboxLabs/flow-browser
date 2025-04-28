@@ -46,7 +46,7 @@ export function BasicSettingsCard({ card, transparent }: { card: BasicSettingCar
         <CardTitle>{card.title}</CardTitle>
         <CardDescription>{card.subtitle}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-2">
         {card.settings.map((settingId) => {
           const setting = settings.find((setting) => setting.id === settingId);
           if (!setting) return null;
