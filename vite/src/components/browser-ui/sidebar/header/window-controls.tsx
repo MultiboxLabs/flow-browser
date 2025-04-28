@@ -21,7 +21,7 @@ export function SidebarWindowControls() {
     return () => {
       flow.interface.setWindowButtonVisibility(false);
     };
-  });
+  }, []);
 
   return <div ref={titlebarRef} className="mb-2 mt-0.5 mx-1 h-2 w-full" />;
 }
