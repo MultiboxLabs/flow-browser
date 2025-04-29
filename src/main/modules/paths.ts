@@ -1,13 +1,9 @@
-import { is } from "@electron-toolkit/utils";
 import { app } from "electron";
 import path from "path";
 
 // Constants
-const ROOT_DIR = path.join(__dirname, "..");
-const RESOURCES_DIR = process.resourcesPath;
-
-// Development
-const DEV_SOURCE_DIR = path.join(ROOT_DIR, "..");
+const OUT_DIR = path.join(__dirname, "..");
+const ROOT_DIR = path.join(OUT_DIR, "..");
 
 // Paths
 interface Paths {
@@ -19,7 +15,7 @@ interface Paths {
 export const FLOW_DATA_DIR = app.getPath("userData");
 
 export const PATHS: Paths = {
-  PRELOAD: path.join(ROOT_DIR, "preload", "index.js"),
-  VITE_WEBUI: path.join(ROOT_DIR, "renderer"),
-  ASSETS: is.dev ? path.join(DEV_SOURCE_DIR, "assets") : path.join(RESOURCES_DIR, "assets")
+  PRELOAD: path.join(OUT_DIR, "preload", "index.js"),
+  VITE_WEBUI: path.join(OUT_DIR, "renderer"),
+  ASSETS: path.join(ROOT_DIR, "assets")
 };

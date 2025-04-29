@@ -78,10 +78,11 @@ function printHeader() {
 }
 
 function initializeApp() {
-  //   if (require("electron-squirrel-startup")) {
-  //     app.quit();
-  //     return;
-  //   }
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  if (require("electron-squirrel-startup")) {
+    app.quit();
+    return;
+  }
 
   const gotTheLock = app.requestSingleInstanceLock();
 

@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: react-ts
+appId: dev.iamevan.flow
+productName: Flow
 directories:
   buildResources: build
 files:
@@ -10,9 +10,9 @@ files:
   - "!{.env,.env.*,.npmrc,bun.lock}"
   - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
 asarUnpack:
-  - resources/**
+  - assets/**
 win:
-  executableName: react-ts
+  executableName: flow
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -20,11 +20,6 @@ nsis:
   createDesktopShortcut: always
 mac:
   entitlementsInherit: build/entitlements.mac.plist
-  extendInfo:
-    - NSCameraUsageDescription: Application requests access to the device's camera.
-    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
-    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
-    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
 dmg:
   artifactName: ${name}-${version}.${ext}
