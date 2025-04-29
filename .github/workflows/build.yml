@@ -4,9 +4,15 @@ permissions:
   contents: write
 
 on:
+  # Builds the app when a new tag is created
   push:
-    branches:
-      - evan/electron-vite-migration
+    tags:
+      - "v*"
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+run-name: Release ${{ github.ref_name }}
 
 jobs:
   release:
