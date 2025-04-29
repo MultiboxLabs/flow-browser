@@ -25,7 +25,7 @@ export default defineConfig({
     }
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: ["electron-chrome-extensions"] })],
     resolve: {
       alias: {
         ...mainAliases,
