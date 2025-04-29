@@ -12,14 +12,14 @@ interface ExtensionDetailsProps {
   onBack: () => void;
 }
 
-const ExtensionDetails: React.FC<ExtensionDetailsProps> = ({
+function ExtensionDetails({
   extension,
   isDeveloperMode,
   isProcessing,
   setExtensionEnabled,
   setExtensionPinned,
   onBack
-}) => {
+}: ExtensionDetailsProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
@@ -126,6 +126,6 @@ const ExtensionDetails: React.FC<ExtensionDetailsProps> = ({
       </div>
     </div>
   );
-};
+}
 
 export default ExtensionDetails;

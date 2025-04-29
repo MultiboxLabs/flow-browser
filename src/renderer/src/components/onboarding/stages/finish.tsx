@@ -38,7 +38,7 @@ export function OnboardingFinish({ advance }: { advance: OnboardingAdvanceCallba
         exit={{ opacity: 0, y: 20 }}
         transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
       >
-        <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">You're Ready!</h1>
+        <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">{"You're Ready!"}</h1>
         <p className="text-gray-400 text-xl">Your Flow Browser is now set up and ready to use.</p>
       </motion.div>
 

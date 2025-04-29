@@ -106,7 +106,7 @@ export function OnboardingCreateSpace({
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Create Your Space</h1>
-        <p className="text-gray-400 text-lg">Let's start by giving your space a name</p>
+        <p className="text-gray-400 text-lg">{"Let's start by giving your space a name"}</p>
       </motion.div>
 
       <motion.div
@@ -140,7 +140,7 @@ export function OnboardingCreateSpace({
             <AlertCircle className="h-10 w-10 text-amber-400 mb-3" />
             <div className="text-white text-lg font-medium mb-1">Main Profile Not Found</div>
             <div className="text-gray-400 max-w-md mb-4">
-              We couldn't find the main profile for space creation. You can create spaces later from settings.
+              {"We couldn't find the main profile for space creation. You can create spaces later from settings."}
             </div>
             <Button
               onClick={advance}
@@ -167,7 +167,7 @@ export function OnboardingCreateSpace({
           <div className="flex flex-col items-center justify-center h-56 text-center">
             <CheckCircle className="h-10 w-10 text-green-400 mb-3" />
             <div className="text-white text-lg font-medium mb-1">Space Created!</div>
-            <div className="text-gray-400 max-w-md mb-4">Now let's customize its appearance.</div>
+            <div className="text-gray-400 max-w-md mb-4">{"Now let's customize its appearance."}</div>
           </div>
         ) : (
           <div className="overflow-hidden backdrop-blur-md bg-white/5 border border-white/10 rounded-lg p-6 remove-app-drag">

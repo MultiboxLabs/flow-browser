@@ -117,7 +117,7 @@ export function OnboardingSpaceIcon({
           <div className="flex flex-col items-center justify-center h-40 text-center">
             <CheckCircle className="h-10 w-10 text-green-400 mb-2" />
             <div className="text-white text-lg font-medium mb-1">Icon Saved!</div>
-            <div className="text-gray-400 max-w-md mb-3">Let's continue with the next step.</div>
+            <div className="text-gray-400 max-w-md mb-3">{"Let's continue with the next step."}</div>
           </div>
         ) : (
           <div className="overflow-hidden backdrop-blur-md bg-white/5 border border-white/10 rounded-lg p-4 remove-app-drag">

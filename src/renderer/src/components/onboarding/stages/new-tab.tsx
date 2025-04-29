@@ -25,7 +25,7 @@ export function OnboardingNewTab({ advance }: { advance: OnboardingAdvanceCallba
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">New Tab Experience</h1>
-        <p className="text-gray-400 text-lg">Choose how you'd like new tabs to open in Flow Browser</p>
+        <p className="text-gray-400 text-lg">{"Choose how you'd like new tabs to open in Flow Browser"}</p>
       </motion.div>
 
       {/* Sidebar Collapse Mode Card */}

@@ -65,7 +65,7 @@ function BasicSettingsTab({ profile, editedProfile, handleNameChange }: BasicSet
     <Card>
       <CardHeader>
         <CardTitle className="text-xl">Basic Information</CardTitle>
-        <CardDescription>Manage your profile's basic settings</CardDescription>
+        <CardDescription>{"Manage your profile's basic settings"}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
@@ -179,7 +179,7 @@ function SpacesTab({ profile, spaces, onRefreshSpaces, navigateToSpace }: Spaces
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Create New Space</DialogTitle>
-              <DialogDescription>Enter a name for the new space in profile "{profile.name}".</DialogDescription>
+              <DialogDescription>{`Enter a name for the new space in profile "${profile.name}".`}</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
@@ -239,7 +239,7 @@ function DeleteConfirmDialog({ isOpen, onClose, profileName, isDeleting, onConfi
         <DialogHeader>
           <DialogTitle>Delete Profile</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete the profile "{profileName}"? This action cannot be undone.
+            {`Are you sure you want to delete the profile "${profileName}"? This action cannot be undone.`}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

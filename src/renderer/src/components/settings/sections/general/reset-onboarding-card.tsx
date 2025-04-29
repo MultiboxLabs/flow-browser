@@ -44,8 +44,7 @@ export function ResetOnboardingCard() {
             <DialogHeader>
               <DialogTitle>Reset Onboarding?</DialogTitle>
               <DialogDescription>
-                Are you sure? This will close the app. Your data won't be reset, but any unsaved website data may be
-                lost.
+                {`Are you sure? This will close the app. Your data won't be reset, but any unsaved website data may be lost.`}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>

@@ -15,6 +15,7 @@ type ShapeData = {
 };
 
 type ShapeProps = Pick<ShapeData, "type" | "initialX" | "initialY" | "color" | "size" | "blur" | "speed">;
+type Waypoint = { x: number; y: number };
 
 const Shape = ({ type, initialX, initialY, color, size, blur, speed }: ShapeProps) => {
   const [path, setPath] = useState<{ x: number[]; y: number[] }>({
@@ -26,7 +27,7 @@ const Shape = ({ type, initialX, initialY, color, size, blur, speed }: ShapeProp
   // Generate a complex path with many waypoints
   const generatePath = useCallback(
     (screenWidth: number, screenHeight: number) => {
-      const waypoints = [];
+      const waypoints: Waypoint[] = [];
       const numPoints = 15 + Math.floor(Math.random() * 10); // 15-24 waypoints
 
       for (let i = 0; i < numPoints; i++) {
@@ -285,7 +286,7 @@ export function OnboardingScreen({ children }: { children?: React.ReactNode }) {
   // Manage shapes - add new ones and remove old ones
   useEffect(() => {
     // Initial shapes
-    const initialShapes = [];
+    const initialShapes: ShapeData[] = [];
     for (let i = 0; i < targetShapeCount; i++) {
       initialShapes.push(createShape());
     }

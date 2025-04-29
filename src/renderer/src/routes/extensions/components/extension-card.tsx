@@ -26,12 +26,7 @@ interface ExtensionCardProps {
   onDetailsClick: (id: string) => void;
 }
 
-const ExtensionCard: React.FC<ExtensionCardProps> = ({
-  extension,
-  isProcessing,
-  setExtensionEnabled,
-  onDetailsClick
-}) => {
+function ExtensionCard({ extension, isProcessing, setExtensionEnabled, onDetailsClick }: ExtensionCardProps) {
   const [isRemoving, setIsRemoving] = useState(false);
 
   const onRemoveClick = async () => {
@@ -81,6 +76,6 @@ const ExtensionCard: React.FC<ExtensionCardProps> = ({
       </div>
     </motion.div>
   );
-};
+}
 
 export default ExtensionCard;

@@ -88,6 +88,7 @@ function PinnedAction({ action, activeTabId, partition, activate }: PinnedAction
         <PuzzleIcon className="size-4" />
       ) : (
         <svg className="size-4">
+          {/* eslint-disable-next-line react/no-unknown-property */}
           <image href={iconUrl} className="size-4 object-contain shrink-0" onError={() => setIsError(true)} />
         </svg>
       )}

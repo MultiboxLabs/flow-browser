@@ -23,7 +23,7 @@ interface GameCardProps {
 }
 
 // The new GameCard component
-const GameCard: React.FC<GameCardProps> = ({ game, isHovered, onMouseEnter, onMouseLeave }) => {
+function GameCard({ game, isHovered, onMouseEnter, onMouseLeave }: GameCardProps) {
   return (
     <motion.div
       key={game.url}
@@ -59,7 +59,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, isHovered, onMouseEnter, onMo
       </div>
     </motion.div>
   );
-};
+}
 
 function Page() {
   const [hoveredGame, setHoveredGame] = useState<string | null>(null);

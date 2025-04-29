@@ -158,14 +158,16 @@ export function ExternalAppsSettings() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">External Applications</h2>
-        <p className="text-muted-foreground">Manage websites and the protocols they're allowed to open automatically</p>
+        <p className="text-muted-foreground">
+          {"Manage websites and the protocols they're allowed to open automatically"}
+        </p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Protocol Permissions</CardTitle>
           <CardDescription>
-            Websites that you've allowed to open external applications via protocols automatically
+            {"Websites that you've allowed to open external applications via protocols automatically"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

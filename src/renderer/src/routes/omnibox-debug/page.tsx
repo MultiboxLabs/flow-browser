@@ -147,7 +147,7 @@ function Page() {
           }}
           className="text-xs whitespace-nowrap"
         >
-          Test "r"
+          {'Test "r"'}
         </Button>
         <Button
           variant="secondary"
@@ -235,7 +235,7 @@ function Page() {
                     transition={{ duration: 0.3 }}
                   >
                     <Search className="h-10 w-10 mb-3 text-muted-foreground/50" />
-                    No suggestions found for "{input}"
+                    {'No suggestions found for "{input}"'}
                   </motion.div>
                 ) : (
                   <motion.div
@@ -338,7 +338,7 @@ function Page() {
                             <div>
                               <span className="font-medium text-muted-foreground">Inline Completion:</span>
                               <p className="mt-1 font-mono bg-secondary/30 p-1 rounded inline-block">
-                                "{selectedSuggestion.inlineCompletion}"
+                                {'"{selectedSuggestion.inlineCompletion}"'}
                               </p>
                             </div>
                           )}

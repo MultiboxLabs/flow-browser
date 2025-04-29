@@ -35,6 +35,8 @@ function SettingsInput({ setting }: { setting: BasicSetting }) {
     const settingValue = getSetting<boolean>(setting.id);
     return <Switch checked={settingValue} onCheckedChange={handleSettingChange} />;
   }
+
+  return null;
 }
 
 export function BasicSettingsCard({ card, transparent }: { card: BasicSettingCard; transparent?: boolean }) {

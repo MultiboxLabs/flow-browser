@@ -117,7 +117,7 @@ export function OnboardingIcon({ advance }: { advance: OnboardingAdvanceCallback
             <AlertCircle className="h-10 w-10 text-amber-400 mb-3" />
             <div className="text-white text-lg font-medium mb-1">Icon Customization Not Supported</div>
             <div className="text-gray-400 max-w-md">
-              Your current operating system or environment doesn't support changing the application icon.
+              {"Your current operating system or environment doesn't support changing the application icon."}
             </div>
           </div>
         ) : (

@@ -56,6 +56,7 @@ function BrowserActionIcon({ action, activeTabId, tabInfo, partitionId }: Browse
 
   return (
     <svg>
+      {/* eslint-disable-next-line react/no-unknown-property */}
       <image href={iconUrl} className="size-4 object-contain shrink-0" onError={() => setIsError(true)} />
     </svg>
   );

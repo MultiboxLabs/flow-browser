@@ -29,7 +29,7 @@ export function DeleteConfirmDialog({ isOpen, onClose, spaceName, isDeleting, on
         <DialogHeader>
           <DialogTitle>Delete Space</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete the space "{spaceName}"? This action cannot be undone.
+            {`Are you sure you want to delete the space "${spaceName}"? This action cannot be undone.`}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

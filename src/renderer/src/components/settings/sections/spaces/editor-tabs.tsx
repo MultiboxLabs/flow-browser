@@ -32,7 +32,7 @@ export function BasicSettingsTab({ space, editedSpace, handleNameChange }: Basic
               Basic Information
             </CardTitle>
           </div>
-          <CardDescription>Manage your space's basic settings</CardDescription>
+          <CardDescription>{"Manage your space's basic settings"}</CardDescription>
         </CardHeader>
         <CardContent className="pt-6 space-y-6">
           <motion.div
@@ -131,7 +131,7 @@ export function ThemeSettingsTab({ editedSpace, updateEditedSpace }: ThemeSettin
               Theme Settings
             </CardTitle>
           </div>
-          <CardDescription>Configure your space's appearance preferences</CardDescription>
+          <CardDescription>{"Configure your space's appearance preferences"}</CardDescription>
         </CardHeader>
         <CardContent className="pt-6 space-y-8">
           <BackgroundGradientEditor editedSpace={editedSpace} updateEditedSpace={updateEditedSpace} />
