@@ -3,10 +3,11 @@
   "include": ["electron.vite.config.*", "src/main/**/*", "src/preload/**/*", "src/shared/**/*"],
   "compilerOptions": {
     "composite": true,
+    "moduleResolution": "bundler",
     "types": ["electron-vite/node"],
     "baseUrl": ".",
     "paths": {
-      "@renderer/*": [
+      "@/*": [
         "src/main/*"
       ],
       "~/*": ["src/shared/*"]

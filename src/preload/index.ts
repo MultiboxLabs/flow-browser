@@ -6,7 +6,10 @@ import { ProfileData } from "@/sessions/profiles";
 import { contextBridge, ipcRenderer } from "electron";
 import { injectBrowserAction } from "electron-chrome-extensions/browser-action";
 import { SpaceData } from "@/sessions/spaces";
+
+// SHARED TYPES //
 import type { SharedExtensionData } from "~/types/extensions";
+import { WindowTabsData } from "~/types/tabs";
 
 // API TYPES //
 import { FlowBrowserAPI } from "~/flow/interfaces/browser/browser";
@@ -172,7 +175,7 @@ const tabsAPI: FlowTabsAPI = {
   getData: async () => {
     return ipcRenderer.invoke("tabs:get-data");
   },
-  onDataUpdated: (callback: (data: any) => void) => {
+  onDataUpdated: (callback: (data: WindowTabsData) => void) => {
     return listenOnIPCChannel("tabs:on-data-changed", callback);
   },
   switchToTab: async (tabId: number) => {
