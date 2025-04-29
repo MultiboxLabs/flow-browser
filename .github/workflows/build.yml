@@ -1,4 +1,4 @@
-name: Build Electron app
+name: Build App
 
 permissions:
   contents: write
@@ -18,24 +18,39 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Install Node.js
-        uses: actions/setup-node@v3
+      - name: Install Node.js, NPM and Yarn
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Build Dependencies (Ubuntu only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak-builder elfutils dpkg fakeroot
+
+      - name: Setup Flatpak (Ubuntu only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
       - name: Install Dependencies
-        run: npm install
+        run: bun install --development --frozen-lockfile
 
-      - name: build-linux
+      - name: Build for Linux
         if: matrix.os == 'ubuntu-latest'
-        run: npm run build:linux
+        run: bun run build:linux
 
-      - name: build-mac
+      - name: Build for macOS
         if: matrix.os == 'macos-latest'
-        run: npm run build:mac
+        run: bun run build:mac
 
-      - name: build-win
+      - name: Build for Windows
         if: matrix.os == 'windows-latest'
-        run: npm run build:win
+        run: bun run build:win
