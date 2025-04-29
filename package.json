@@ -1,5 +1,6 @@
 {
   "name": "flow-browser",
+  "productName": "Flow",
   "version": "1.0.0",
   "description": "An experimental browser built on Electron.",
   "main": "./out/main/index.js",
