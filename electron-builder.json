@@ -54,10 +54,13 @@
     "artifactName": "${name}-${version}.${ext}"
   },
   "linux": {
-    "target": ["AppImage", "snap", "deb"],
+    "target": ["AppImage", "deb", "flatpak"],
     "category": "Utility"
   },
   "appImage": {
+    "artifactName": "${name}-${version}.${ext}"
+  },
+  "flatpak": {
     "artifactName": "${name}-${version}.${ext}"
   },
   "npmRebuild": false,

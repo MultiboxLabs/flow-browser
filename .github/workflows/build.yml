@@ -50,11 +50,6 @@ jobs:
         run: |
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-      - name: Setup Snapcraft (Ubuntu only)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo snap install snapcraft --classic
-
       - name: Install Dependencies
         run: bun install --development --frozen-lockfile
 
@@ -75,3 +70,18 @@ jobs:
         run: bun run build:win -p always
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          files: |
+            dist/*.exe
+            dist/*.zip
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.rpm
+            dist/*.tar.gz
+            dist/*.yml
+            dist/*.blockmap
+            dist/*.flatpak
