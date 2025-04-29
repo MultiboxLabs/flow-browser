@@ -5,18 +5,12 @@ permissions:
 
 on:
   push:
-    # Builds the app when a new tag is created
-    tags:
-      - "v*"
-
     # Builds the app when a new commit is pushed to the main branch
     branches:
       - evan/electron-vite-migration
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-
-run-name: Release ${{ github.ref_name }}
 
 jobs:
   release:
@@ -74,7 +68,7 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          files: |
+          path: |
             dist/*.exe
             dist/*.zip
             dist/*.dmg
