@@ -5,36 +5,36 @@ import { type WebContents, webContents } from "electron";
 import { menuCloseTab } from "./utility/menu/items/view";
 import { browser } from "@/index";
 
-const enabled = process.platform === "win32"
+const enabled = process.platform === "win32";
 
 const registeredWebContentIds: Set<number> = new Set();
 
 function newWebContents(webContents: WebContents) {
-    if (!enabled) return;
+  if (!enabled) return;
 
-    if (registeredWebContentIds.has(webContents.id)) return;
-    registeredWebContentIds.add(webContents.id);
+  if (registeredWebContentIds.has(webContents.id)) return;
+  registeredWebContentIds.add(webContents.id);
 
-    webContents.on("before-input-event", (event, input) => {
-        if (input.key === "w" && input.control) {
-            event.preventDefault();
+  webContents.on("before-input-event", (event, input) => {
+    if (input.key === "w" && input.control) {
+      event.preventDefault();
 
-            if (browser && input.type === "keyDown") {
-                menuCloseTab(browser);
-            }
-        }
-    });
+      if (browser && input.type === "keyDown") {
+        menuCloseTab(browser);
+      }
+    }
+  });
 }
 
 function scan() {
-    webContents.getAllWebContents().forEach((webContents) => {
-        newWebContents(webContents);
-    })
+  webContents.getAllWebContents().forEach((webContents) => {
+    newWebContents(webContents);
+  });
 }
 
 if (enabled) {
+  scan();
+  setInterval(() => {
     scan();
-    setInterval(() => {
-        scan();
-    }, 100);
+  }, 100);
 }

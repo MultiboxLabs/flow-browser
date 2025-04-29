@@ -70,7 +70,7 @@ export const createViewMenu = (browser: Browser): MenuItemConstructorOptions => 
       label: "Close Tab",
       accelerator: "CmdOrCtrl+W",
       click: () => {
-        menuCloseTab(browser)
+        menuCloseTab(browser);
       }
     },
     {
