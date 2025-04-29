@@ -9,6 +9,21 @@ files:
   - "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc,dev-app-update.yml,CHANGELOG.md,README.md}"
   - "!{.env,.env.*,.npmrc,bun.lock}"
   - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
+protocols:
+  - name: http URLs
+    schemes:
+      - http
+      - https
+fileAssociations:
+  - ext: html
+    description: HTML Document
+    role: Viewer
+  - ext: xhtml
+    description: XHTML Document
+    role: Viewer
+  - ext: pdf
+    description: PDF Document
+    role: Viewer
 asarUnpack:
   - assets/**
 win:
