@@ -1,10 +1,7 @@
 import { Browser } from "@/browser/browser";
 import { Tab } from "@/browser/tabs/tab";
 import { TabbedBrowserWindow } from "@/browser/window";
-import contextMenuModule from "electron-context-menu";
-
-// Such a hack, but it works
-const contextMenu = (contextMenuModule as unknown as { default: typeof contextMenuModule }).default;
+import contextMenu from "electron-context-menu";
 
 // Define types for navigation history
 interface NavigationHistory {
@@ -40,8 +37,6 @@ export function createTabContextMenu(
   spaceId: string
 ) {
   const webContents = tab.webContents;
-
-  console.log("Tab Context Menu", contextMenu);
 
   contextMenu({
     window: webContents,

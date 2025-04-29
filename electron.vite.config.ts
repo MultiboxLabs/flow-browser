@@ -17,7 +17,7 @@ const sharedAliases: Record<string, string> = {
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: ["electron-context-menu"] })],
     resolve: {
       alias: {
         ...mainAliases,
