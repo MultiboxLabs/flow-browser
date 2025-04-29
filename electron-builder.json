@@ -63,6 +63,6 @@
   "npmRebuild": false,
   "publish": {
     "provider": "github",
-    "owner": "flow-browser"
+    "owner": "multiboxlabs"
   }
 }
