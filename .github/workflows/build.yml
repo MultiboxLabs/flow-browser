@@ -46,11 +46,17 @@ jobs:
       - name: Build for Linux
         if: matrix.os == 'ubuntu-latest'
         run: bun run build:linux
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build for macOS
         if: matrix.os == 'macos-latest'
         run: bun run build:mac
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build for Windows
         if: matrix.os == 'windows-latest'
         run: bun run build:win
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
