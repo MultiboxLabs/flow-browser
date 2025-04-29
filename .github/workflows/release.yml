@@ -1,11 +1,13 @@
-name: Build App
+name: Release App
 
 permissions:
   contents: write
 
 on:
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+  # Builds the app when a new tag is created
+  push:
+    tags:
+      - "v*"
 
 jobs:
   release:
@@ -44,28 +46,18 @@ jobs:
 
       - name: Build for Linux
         if: matrix.os == 'ubuntu-latest'
-        run: bun run build:linux
+        run: bun run build:linux -p always
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build for macOS
         if: matrix.os == 'macos-latest'
-        run: bun run build:mac
+        run: bun run build:mac -p always
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build for Windows
         if: matrix.os == 'windows-latest'
-        run: bun run build:win
-
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.os }}
-          path: |
-            dist/*.exe
-            dist/*.zip
-            dist/*.dmg
-            dist/*.AppImage
-            dist/*.deb
-            dist/*.rpm
-            dist/*.tar.gz
-            dist/*.yml
-            dist/*.blockmap
-            dist/*.flatpak
+        run: bun run build:win -p always
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
