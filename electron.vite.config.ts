@@ -2,17 +2,42 @@ import { resolve } from "path";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import react from "@vitejs/plugin-react";
 
+const mainAliases: Record<string, string> = {
+  "@": resolve("src/main")
+};
+
+const rendererAliases: Record<string, string> = {
+  "@": resolve("src/renderer/src")
+};
+
+const sharedAliases: Record<string, string> = {
+  "~": resolve("src/shared")
+};
+
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
+    resolve: {
+      alias: {
+        ...mainAliases,
+        ...sharedAliases
+      }
+    }
   },
   preload: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
+    resolve: {
+      alias: {
+        ...mainAliases,
+        ...sharedAliases
+      }
+    }
   },
   renderer: {
     resolve: {
       alias: {
-        "@renderer": resolve("src/renderer/src")
+        ...rendererAliases,
+        ...sharedAliases
       }
     },
     plugins: [react()]
