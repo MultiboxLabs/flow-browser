@@ -59,7 +59,7 @@ export function initializePortalComponentWindows(tabbedWindow: TabbedBrowserWind
   });
 
   // Connections
-  const setComponentWindowBounds = (event: IpcMainEvent, componentId: string, bounds: Electron.Rectangle) => {
+  const setComponentWindowBounds = (_event: IpcMainEvent, componentId: string, bounds: Electron.Rectangle) => {
     const componentView = componentViews[componentId];
     if (componentView) {
       debugPrint("PORTAL_COMPONENTS", "Set Bounds of Portal Window:", componentId, bounds);
@@ -68,7 +68,7 @@ export function initializePortalComponentWindows(tabbedWindow: TabbedBrowserWind
   };
   ipcMain.on("interface:set-component-window-bounds", setComponentWindowBounds);
 
-  const setComponentWindowZIndex = (event: IpcMainEvent, componentId: string, zIndex: number) => {
+  const setComponentWindowZIndex = (_event: IpcMainEvent, componentId: string, zIndex: number) => {
     const componentView = componentViews[componentId];
     if (componentView) {
       debugPrint("PORTAL_COMPONENTS", "Set Z-Index of Portal Window:", componentId, zIndex);
@@ -77,7 +77,7 @@ export function initializePortalComponentWindows(tabbedWindow: TabbedBrowserWind
   };
   ipcMain.on("interface:set-component-window-z-index", setComponentWindowZIndex);
 
-  const setComponentWindowVisible = (event: IpcMainEvent, componentId: string, visible: boolean) => {
+  const setComponentWindowVisible = (_event: IpcMainEvent, componentId: string, visible: boolean) => {
     const componentView = componentViews[componentId];
     if (componentView) {
       debugPrint("PORTAL_COMPONENTS", "Set Visibility of Portal Window:", componentId, visible);

@@ -16,21 +16,21 @@ ipcMain.on("navigation:go-to", (event, url: string, tabId?: number) => {
   return true;
 });
 
-ipcMain.on("navigation:stop-loading-tab", (event, tabId: number) => {
+ipcMain.on("navigation:stop-loading-tab", (_event, tabId: number) => {
   const tab = browser?.getTabFromId(tabId);
   if (!tab) return;
 
   tab.webContents?.stop();
 });
 
-ipcMain.on("navigation:reload-tab", (event, tabId: number) => {
+ipcMain.on("navigation:reload-tab", (_event, tabId: number) => {
   const tab = browser?.getTabFromId(tabId);
   if (!tab) return;
 
   tab.webContents?.reload();
 });
 
-ipcMain.handle("navigation:get-tab-status", async (event, tabId: number) => {
+ipcMain.handle("navigation:get-tab-status", async (_event, tabId: number) => {
   const tab = browser?.getTabFromId(tabId);
   if (!tab) return null;
 
@@ -46,7 +46,7 @@ ipcMain.handle("navigation:get-tab-status", async (event, tabId: number) => {
   };
 });
 
-ipcMain.on("navigation:go-to-entry", (event, tabId: number, index: number) => {
+ipcMain.on("navigation:go-to-entry", (_event, tabId: number, index: number) => {
   const tab = browser?.getTabFromId(tabId);
   if (!tab) return;
 

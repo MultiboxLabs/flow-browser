@@ -8,17 +8,17 @@ ipcMain.handle("profiles:get-all", async () => {
   return await getProfiles();
 });
 
-ipcMain.handle("profiles:create", async (event, profileName: string) => {
+ipcMain.handle("profiles:create", async (_event, profileName: string) => {
   const profileId = generateID();
   return await createProfile(profileId, profileName);
 });
 
-ipcMain.handle("profiles:update", async (event, profileId: string, profileData: Partial<ProfileData>) => {
+ipcMain.handle("profiles:update", async (_event, profileId: string, profileData: Partial<ProfileData>) => {
   console.log("Updating profile:", profileId, profileData);
   return await updateProfile(profileId, profileData);
 });
 
-ipcMain.handle("profiles:delete", async (event, profileId: string) => {
+ipcMain.handle("profiles:delete", async (_event, profileId: string) => {
   return await deleteProfile(profileId);
 });
 

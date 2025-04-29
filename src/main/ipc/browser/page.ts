@@ -15,7 +15,7 @@ export type PageBoundsWithWindow = PageBounds & {
 ipcMain.on("page:set-bounds", async (event, bounds: PageBounds) => {
   const webContents = event.sender;
   const window = browser?.getWindowFromWebContents(webContents);
-  if (!window) return null;
+  if (!window) return;
 
   window.setPageBounds(bounds);
 });
