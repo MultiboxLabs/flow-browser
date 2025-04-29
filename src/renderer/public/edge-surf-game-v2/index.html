@@ -1,0 +1,29 @@
+<!-- Copyright (C) Microsoft Corporation. All rights reserved. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./js/load_time_data.js" type="module"></script>
+    <script src="./js/strings.m.js" type="module"></script>
+    <script src="./js/surf-trusted.js" type="module"></script>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" sizes="128x128" href="icons/icon-128.png" />
+    <link rel="apple-touch-icon" sizes="256x256" href="icons/icon-256.png" />
+    <link rel="manifest" href="appmanifest.webmanifest" />
+    <title>Edge Surf v2</title>
+  </head>
+
+  <body style="color: white; margin: 0px">
+    <iframe
+      title="Edge Surf 2 game iframe"
+      height="100%"
+      width="100%"
+      src="surf-iframe.html"
+      id="untrusted-iframe"
+      allow="clipboard-write"
+      style="border: 0px"
+    >
+    </iframe>
+    <script src="./register-sw.js"></script>
+  </body>
+</html>

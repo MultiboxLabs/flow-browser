@@ -1,34 +1,72 @@
-import Versions from "./components/Versions";
-import electronLogo from "./assets/electron.svg";
+import { RouterProvider } from "./router/provider";
+import { Route } from "./router/route";
+import { Toaster } from "sonner";
+import { PlatformProvider } from "@/components/main/platform";
 
-function App(): React.JSX.Element {
-  const ipcHandle = (): void => window.electron.ipcRenderer.send("ping");
+// Protocols //
+const flowProtocol = "flow:";
+const flowInternalProtocol = "flow-internal:";
 
+// Pages //
+import MainUIRoute from "./routes/main-ui/route";
+import PopupUIRoute from "./routes/popup-ui/route";
+import NewTabRoute from "./routes/new-tab/route";
+import SettingsRoute from "./routes/settings/route";
+import ErrorRoute from "./routes/error/route";
+import AboutRoute from "./routes/about/route";
+import GamesRoute from "./routes/games/route";
+import OmniboxRoute from "./routes/omnibox/route";
+import OmniboxDebugRoute from "./routes/omnibox-debug/route";
+import OnboardingRoute from "./routes/onboarding/route";
+import ExtensionsRoute from "./routes/extensions/route";
+
+// Routes //
+function Routes() {
   return (
-    <>
-      <img alt="logo" className="logo" src={electronLogo} />
-      <div className="creator">Powered by electron-vite</div>
-      <div className="text">
-        Build an Electron app with <span className="react">React</span>
-        &nbsp;and <span className="ts">TypeScript</span>
-      </div>
-      <p className="tip">
-        Please try pressing <code>F12</code> to open the devTool
-      </p>
-      <div className="actions">
-        <div className="action">
-          <a href="https://electron-vite.org/" target="_blank" rel="noreferrer">
-            Documentation
-          </a>
-        </div>
-        <div className="action">
-          <a target="_blank" rel="noreferrer" onClick={ipcHandle}>
-            Send IPC
-          </a>
-        </div>
-      </div>
-      <Versions></Versions>
-    </>
+    <RouterProvider>
+      <Route protocol={flowInternalProtocol} hostname="main-ui">
+        <MainUIRoute />
+      </Route>
+      <Route protocol={flowInternalProtocol} hostname="popup-ui">
+        <PopupUIRoute />
+      </Route>
+      <Route protocol={flowProtocol} hostname="new-tab">
+        <NewTabRoute />
+      </Route>
+      <Route protocol={flowInternalProtocol} hostname="settings">
+        <SettingsRoute />
+      </Route>
+      <Route protocol={flowProtocol} hostname="error">
+        <ErrorRoute />
+      </Route>
+      <Route protocol={flowProtocol} hostname="about">
+        <AboutRoute />
+      </Route>
+      <Route protocol={flowProtocol} hostname="games">
+        <GamesRoute />
+      </Route>
+      <Route protocol={flowInternalProtocol} hostname="omnibox">
+        <OmniboxRoute />
+      </Route>
+      <Route protocol={flowProtocol} hostname="omnibox">
+        <OmniboxDebugRoute />
+      </Route>
+      <Route protocol={flowInternalProtocol} hostname="onboarding">
+        <OnboardingRoute />
+      </Route>
+      <Route protocol={flowProtocol} hostname="extensions">
+        <ExtensionsRoute />
+      </Route>
+    </RouterProvider>
+  );
+}
+
+function App() {
+  return (
+    <PlatformProvider>
+      <Routes />
+      <Toaster richColors />
+    </PlatformProvider>
   );
 }
 
