@@ -1,5 +1,6 @@
 import { app, net } from "electron";
 import { FLAGS } from "@/modules/flags";
+import { is } from "@electron-toolkit/utils";
 
 /**
  * Sets a higher file descriptor limit for development hot reloading
@@ -13,25 +14,16 @@ export function setupHotReloadFileDescriptors() {
   }
 }
 
-let isDevServerRunning = false;
-
 /**
  * Checks if the development server is running at the specified port
- * @param port The port to check, defaults to 5173 (Vite's default port)
- * @returns Promise resolving to true if the server is running, false otherwise
+ * @returns True if the server is running, false otherwise
  */
-export async function isDevelopmentServerRunning(port: number = 5173): Promise<boolean> {
-  if (isDevServerRunning) return true;
+export function isDevelopmentServerRunning(): boolean {
+  if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+    return true;
+  }
 
-  return await fetch(`http://localhost:${port}`)
-    .then(() => {
-      isDevServerRunning = true;
-      return true;
-    })
-    .catch(() => {
-      isDevServerRunning = false;
-      return false;
-    });
+  return false;
 }
 
 // This is needed or electron will give out INSUFFICIENT_RESOURCES errors
@@ -48,11 +40,19 @@ function getRandomTimeout() {
  * Fetches a file from the development server
  * @param path The file path relative to the development server root
  * @param request The original request object to forward headers and other properties
- * @param port The port of the development server, defaults to 5173 (Vite's default port)
  * @returns The response from the development server
  */
-export async function fetchFromDevServer(path: string, request?: Request, port: number = 5173): Promise<Response> {
-  const url = new URL(`http://localhost:${port}/${path}`);
+export async function fetchFromDevServer(path: string, request?: Request): Promise<Response> {
+  const ELECTRON_RENDERER_URL = process.env["ELECTRON_RENDERER_URL"];
+  if (!ELECTRON_RENDERER_URL) {
+    throw new Error("ELECTRON_RENDERER_URL is not set");
+  }
+
+  const ELECTRON_RENDERER_BASE_URL = new URL(ELECTRON_RENDERER_URL);
+  ELECTRON_RENDERER_BASE_URL.pathname = "";
+  const ELECTRON_RENDERER_BASE_URL_STRING = ELECTRON_RENDERER_BASE_URL.toString();
+
+  const url = new URL(`${ELECTRON_RENDERER_BASE_URL_STRING}${path}`);
 
   if (request?.url) {
     // @ts-ignore: URL.parse should work, but tsc thinks it doesn't

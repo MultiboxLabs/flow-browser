@@ -86,8 +86,7 @@ async function serveStaticFile(
     setupHotReloadFileDescriptors();
 
     // Make sure the development server is running
-    const ping = await isDevelopmentServerRunning();
-
+    const ping = isDevelopmentServerRunning();
     if (ping) {
       return await fetchFromDevServer(transformedPath, request);
     }
@@ -153,7 +152,7 @@ function registerFlowProtocol(protocol: Protocol) {
     return await serveStaticFile(pathname, extraDir, undefined, request);
   };
 
-  const handleFaviconRequest = async (request: Request, url: URL) => {
+  const handleFaviconRequest = async (_request: Request, url: URL) => {
     const targetUrl = url.searchParams.get("url");
     if (!targetUrl) {
       return new Response("No URL provided", { status: 400 });
@@ -171,7 +170,7 @@ function registerFlowProtocol(protocol: Protocol) {
     });
   };
 
-  const handleAssetRequest = async (request: Request, url: URL) => {
+  const handleAssetRequest = async (_request: Request, url: URL) => {
     const assetPath = url.pathname;
 
     // Normalize the path to prevent directory traversal attacks
@@ -203,7 +202,7 @@ function registerFlowProtocol(protocol: Protocol) {
     }
   };
 
-  const handleExtensionIconRequest = async (request: Request, url: URL) => {
+  const handleExtensionIconRequest = async (_request: Request, url: URL) => {
     const extensionId = url.searchParams.get("id");
     const profileId = url.searchParams.get("profile");
 
