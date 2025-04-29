@@ -4,10 +4,14 @@ permissions:
   contents: write
 
 on:
-  # Builds the app when a new tag is created
   push:
+    # Builds the app when a new tag is created
     tags:
       - "v*"
+
+    # Builds the app when a new commit is pushed to the main branch
+    branches:
+      - evan/electron-vite-migration
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -51,18 +55,18 @@ jobs:
 
       - name: Build for Linux
         if: matrix.os == 'ubuntu-latest'
-        run: bun run build:linux
+        run: bun run build:linux -p always
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build for macOS
         if: matrix.os == 'macos-latest'
-        run: bun run build:mac
+        run: bun run build:mac -p always
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build for Windows
         if: matrix.os == 'windows-latest'
-        run: bun run build:win
+        run: bun run build:win -p always
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
