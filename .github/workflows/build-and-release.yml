@@ -1,4 +1,4 @@
-name: Release App
+name: Build & Release App
 
 permissions:
   contents: write
@@ -8,6 +8,8 @@ on:
   push:
     tags:
       - "v*"
+
+run-name: Release ${{ github.ref_name }}
 
 jobs:
   release:
