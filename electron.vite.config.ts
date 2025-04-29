@@ -1,6 +1,7 @@
 import { resolve } from "path";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 const mainAliases: Record<string, string> = {
   "@": resolve("src/main")
@@ -40,6 +41,6 @@ export default defineConfig({
         ...sharedAliases
       }
     },
-    plugins: [react()]
+    plugins: [react(), tailwindcss()]
   }
 });
