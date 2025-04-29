@@ -65,7 +65,7 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
     try {
       const result = await this.profileManager.loadProfile(profileId);
       return result;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -178,6 +178,7 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
   /**
    * Sends a message to all core WebContents
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public sendMessageToCoreWebContents(channel: string, ...args: any[]) {
     for (const window of this.getWindows()) {
       window.sendMessageToCoreWebContents(channel, ...args);

@@ -2,7 +2,6 @@ import { Tab } from "@/browser/tabs/tab";
 import { Rectangle } from "electron";
 import { performance } from "perf_hooks";
 
-const USE_IMMEDIATE = false;
 const FRAME_RATE = 60;
 const MS_PER_FRAME = 1000 / FRAME_RATE;
 const SPRING_STIFFNESS = 300;

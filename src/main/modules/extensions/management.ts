@@ -115,7 +115,7 @@ export async function getExtensionIcon(extensionPath: string): Promise<NativeIma
   } else if (iconSizes.length > 0) {
     const largestSize = iconSizes[0];
     const sizeKey = largestSize.toString();
-    bestIconPath = (manifest.icons as any)[sizeKey];
+    bestIconPath = (manifest.icons as Record<string, string>)[sizeKey];
     console.warn(
       `Using largest available icon size (${largestSize}px) for extension at ${extensionPath} as 128px icon is not available.`
     );

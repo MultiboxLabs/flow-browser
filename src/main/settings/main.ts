@@ -68,6 +68,7 @@ export const settings = {
       settings.show();
     }
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sendMessage: (channel: string, ...args: any[]) => {
     if (!settingsWindow) return;
 

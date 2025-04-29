@@ -1,6 +1,5 @@
 import { getFocusedWindow, WindowData, WindowType } from "@/modules/windows";
 import { Browser } from "@/browser/browser";
-import { getSpace } from "@/sessions/spaces";
 import { WebContents } from "electron";
 
 export const getFocusedWindowData = () => {

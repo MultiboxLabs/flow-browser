@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { FLAGS } from "./flags";
 
 const DEBUG_AREAS = {

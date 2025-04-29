@@ -42,7 +42,7 @@ export async function getAlwaysOpenExternal() {
         const requestingURL = Buffer.from(b64RequestingURL, "base64").toString("utf-8");
         const openingProtocol = Buffer.from(b64OpeningProtocol, "base64").toString("utf-8");
         return { requestingURL, openingProtocol };
-      } catch (error) {
+      } catch {
         return null;
       }
     })

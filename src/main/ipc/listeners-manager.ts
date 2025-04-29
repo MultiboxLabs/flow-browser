@@ -1,6 +1,8 @@
 // Manage listeners for IPC channels on the renderer process
 // Make sure messages are not wasted by sending to renderer processes that are not listening
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { TabbedBrowserWindow } from "@/browser/window";
 import { ipcMain, WebContents, WebContentsView } from "electron";
 

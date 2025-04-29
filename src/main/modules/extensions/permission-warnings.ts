@@ -250,6 +250,10 @@ const reversePermissionMapping: Record<string, string> = Object.entries(permissi
   {}
 );
 
+export function getReversePermissionMapping(): Record<string, string> {
+  return reversePermissionMapping;
+}
+
 // --- Define Rules (Translated from C++ array, preserving order) ---
 // Each rule: { messageId: string, required: string[], optional: string[] }
 // Uses manifest permission strings directly.
@@ -599,7 +603,6 @@ export function getPermissionWarnings(manifestPermissions: string[], hostPermiss
   // Replace specific host strings with placeholder permissions for rule matching.
   // This is a simplification of the C++ formatter logic.
   let hasSpecificHostReadWrite = false;
-  let hasSpecificHostReadOnly = false; // Assuming read-only isn't explicitly requested often.
   availablePermissions.forEach((perm) => {
     if (isSpecificHostPermission(perm) && perm !== "<all_urls>") {
       hasSpecificHostReadWrite = true;

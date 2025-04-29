@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export class Queue {
   private isRunning: boolean = false;
   private taskQueue: Array<{

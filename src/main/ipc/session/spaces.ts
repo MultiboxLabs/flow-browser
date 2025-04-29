@@ -1,4 +1,4 @@
-import { ipcMain, webContents } from "electron";
+import { ipcMain } from "electron";
 import {
   getSpaces,
   getSpacesFromProfile,
@@ -16,23 +16,23 @@ import { browser } from "@/index";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { sendMessageToListeners, sendMessageToListenersInWindow } from "@/ipc/listeners-manager";
 
-ipcMain.handle("spaces:get-all", async (event) => {
+ipcMain.handle("spaces:get-all", async () => {
   return await getSpaces();
 });
 
-ipcMain.handle("spaces:get-from-profile", async (event, profileId: string) => {
+ipcMain.handle("spaces:get-from-profile", async (_event, profileId: string) => {
   return await getSpacesFromProfile(profileId);
 });
 
-ipcMain.handle("spaces:create", async (event, profileId: string, spaceName: string) => {
+ipcMain.handle("spaces:create", async (_event, profileId: string, spaceName: string) => {
   return await createSpace(profileId, generateID(), spaceName);
 });
 
-ipcMain.handle("spaces:delete", async (event, profileId: string, spaceId: string) => {
+ipcMain.handle("spaces:delete", async (_event, profileId: string, spaceId: string) => {
   return await deleteSpace(profileId, spaceId);
 });
 
-ipcMain.handle("spaces:update", async (event, profileId: string, spaceId: string, spaceData: Partial<SpaceData>) => {
+ipcMain.handle("spaces:update", async (_event, profileId: string, spaceId: string, spaceData: Partial<SpaceData>) => {
   return await updateSpace(profileId, spaceId, spaceData);
 });
 
@@ -53,11 +53,11 @@ ipcMain.handle("spaces:get-using", async (event) => {
   return null;
 });
 
-ipcMain.handle("spaces:get-last-used", async (event) => {
+ipcMain.handle("spaces:get-last-used", async () => {
   return await getLastUsedSpace();
 });
 
-ipcMain.handle("spaces:reorder", async (event, orderMap: { profileId: string; spaceId: string; order: number }[]) => {
+ipcMain.handle("spaces:reorder", async (_event, orderMap: { profileId: string; spaceId: string; order: number }[]) => {
   return await reorderSpaces(orderMap);
 });
 

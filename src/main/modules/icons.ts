@@ -1,4 +1,4 @@
-import { app, ipcMain, NativeImage, nativeImage } from "electron";
+import { app, NativeImage, nativeImage } from "electron";
 import path from "path";
 import { PATHS } from "./paths";
 import fs from "fs";

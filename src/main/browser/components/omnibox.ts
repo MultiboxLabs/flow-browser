@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, Rectangle, WebContents, WebContentsView } from "electron";
+import { BrowserWindow, Rectangle, WebContents, WebContentsView } from "electron";
 import { debugPrint } from "@/modules/output";
 import { browser } from "@/index";
 

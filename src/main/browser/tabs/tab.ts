@@ -2,7 +2,7 @@ import { Browser } from "@/browser/browser";
 import { isRectangleEqual, TabBoundsController } from "@/browser/tabs/tab-bounds";
 import { TabGroupMode } from "~/types/tabs";
 import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
-import { NEW_TAB_URL, TabManager } from "@/browser/tabs/tab-manager";
+import { TabManager } from "@/browser/tabs/tab-manager";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { cacheFavicon } from "@/modules/favicons";
 import { FLAGS } from "@/modules/flags";
@@ -327,7 +327,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   }
 
   private setupEventListeners() {
-    const { webContents, window: tabbedWindow, browser, profileId, spaceId } = this;
+    const { webContents, window: tabbedWindow } = this;
 
     const window = tabbedWindow.window;
 
@@ -394,6 +394,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     ] as const;
 
     for (const eventName of updateEvents) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       webContents.on(eventName as any, () => {
         this.updateTabState();
       });
@@ -754,6 +755,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
               return false;
             }
           }
+          return null;
         };
 
         const enteredPiPPromise = this.webContents
@@ -806,7 +808,6 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     let newBounds: Rectangle | null = null;
     let newTabGroupMode: TabGroupMode | null = null;
 
-    let isGlanceFront = false;
     let zIndex = TAB_ZINDEX;
 
     if (!tabGroup) {
@@ -820,7 +821,6 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       newBounds = glanceBounds;
 
       if (isFront) {
-        isGlanceFront = true;
         zIndex = GLANCE_FRONT_ZINDEX;
       } else {
         zIndex = GLANCE_BACK_ZINDEX;

@@ -164,7 +164,7 @@ export class ProfileManager {
           }
           return [tab.webContents, tab.getWindow().window];
         },
-        selectTab: (tabWebContents, _window) => {
+        selectTab: (tabWebContents) => {
           const tab = tabManager.getTabByWebContents(tabWebContents);
           if (!tab) return;
 
@@ -175,7 +175,7 @@ export class ProfileManager {
           // Set the active tab
           tabManager.setActiveTab(tab);
         },
-        removeTab: (tabWebContents, window) => {
+        removeTab: (tabWebContents) => {
           const tab = tabManager.getTabByWebContents(tabWebContents);
           if (!tab) return;
 
@@ -293,6 +293,8 @@ export class ProfileManager {
           if (isDisabled) {
             return ExtensionInstallStatus.DISABLED;
           }
+          // go to default implementation
+          return undefined;
         }
       });
 

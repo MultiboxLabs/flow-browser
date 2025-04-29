@@ -1,5 +1,5 @@
 import path from "path";
-import { app, protocol as protocolModule, Protocol, session, Session, net, protocol } from "electron";
+import { app, protocol as protocolModule, Protocol, session, Session } from "electron";
 import { PATHS } from "@/modules/paths";
 import fsPromises from "fs/promises";
 import { getContentType } from "@/modules/utils";

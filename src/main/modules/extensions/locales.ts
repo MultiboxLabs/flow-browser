@@ -82,6 +82,14 @@ export async function transformStringToLocale(
     const locales = await getAllLocales(extensionPath);
     if (locales.length === 0) return str;
 
+    // Try to translate to target locale
+    if (targetLocale) {
+      const hasTargetLocale = locales.includes(targetLocale);
+      if (hasTargetLocale) {
+        return await translateString(extensionPath, targetLocale, str);
+      }
+    }
+
     // Try to translate to user locale
     const userLocale = app.getLocale();
     const hasUserLocale = locales.includes(userLocale);

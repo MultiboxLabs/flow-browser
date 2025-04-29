@@ -1,4 +1,4 @@
-import { app, Protocol, net } from "electron";
+import { app, net } from "electron";
 import { FLAGS } from "@/modules/flags";
 
 /**

@@ -721,7 +721,6 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
    * Helper method to remove an item ID from all activation history lists
    */
   private removeFromActivationHistory(itemId: number) {
-    let changed = false;
     for (const [key, history] of this.spaceActivationHistory.entries()) {
       const initialLength = history.length;
       // Filter out the itemId
@@ -732,7 +731,6 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
         } else {
           this.spaceActivationHistory.set(key, newHistory); // Update with filtered history
         }
-        changed = true; // Mark that a change occurred (optional)
       }
     }
     // Method doesn't need to return anything, just modifies the map

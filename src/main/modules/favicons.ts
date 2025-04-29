@@ -166,7 +166,7 @@ async function initDatabaseWithRetry() {
   try {
     debugPrint("FAVICONS", `Starting database initialization attempt ${retryCount + 1}/${maxRetries + 1}`);
     await initDatabase();
-  } catch (err) {
+  } catch {
     retryCount++;
     if (retryCount < maxRetries) {
       debugPrint("FAVICONS", `Retrying database initialization (attempt ${retryCount + 1}/${maxRetries + 1})...`);
@@ -276,7 +276,7 @@ async function fetchFavicon(faviconURL: string, session?: Session): Promise<Buff
       session: session
     });
 
-    let data: Buffer[] = [];
+    const data: Buffer[] = [];
 
     // Set up timeout
     const timeoutId = setTimeout(() => {

@@ -14,6 +14,7 @@ function getProfileDataStore(profileId: string) {
   return getDatastore("main", ["profiles", profileId]);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ProfileDataSchema = z.object({
   name: z.string(),
   createdAt: z.number()

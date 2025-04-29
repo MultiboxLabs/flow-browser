@@ -1,4 +1,4 @@
-import { app, WebContents, WebContentsView } from "electron";
+import { WebContents, WebContentsView } from "electron";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { BrowserEvents } from "@/browser/events";
@@ -31,20 +31,16 @@ export class WindowManager {
     type: BrowserWindowType = "normal",
     options: BrowserWindowCreationOptions = {}
   ): TabbedBrowserWindow {
-    try {
-      const window = new TabbedBrowserWindow(browser, type, options);
-      this.windows.set(window.id, window);
+    const window = new TabbedBrowserWindow(browser, type, options);
+    this.windows.set(window.id, window);
 
-      window.on("destroy", () => {
-        this.windows.delete(window.id);
-        this.eventEmitter.emit("window-destroyed", window);
-      });
+    window.on("destroy", () => {
+      this.windows.delete(window.id);
+      this.eventEmitter.emit("window-destroyed", window);
+    });
 
-      this.eventEmitter.emit("window-created", window);
-      return window;
-    } catch (error) {
-      throw error;
-    }
+    this.eventEmitter.emit("window-created", window);
+    return window;
   }
 
   /**

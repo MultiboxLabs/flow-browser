@@ -2,7 +2,7 @@ import fs from "fs/promises";
 import { DataStoreData, getDatastore } from "@/saving/datastore";
 import z from "zod";
 import { debugError } from "@/modules/output";
-import { getProfile, getProfiles, ProfileData } from "@/sessions/profiles";
+import { getProfile, getProfiles } from "@/sessions/profiles";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import path from "path";
 
@@ -15,6 +15,7 @@ function getSpaceDataStore(profileId: string, spaceId: string) {
   return getDatastore("main", ["profiles", profileId, "spaces", spaceId]);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const SpaceDataSchema = z.object({
   name: z.string(),
   profileId: z.string(),
@@ -168,7 +169,7 @@ export async function deleteSpace(profileId: string, spaceId: string) {
   }
 }
 
-export async function getSpacesFromProfile(profileId: string, prefetchedProfile?: ProfileData) {
+export async function getSpacesFromProfile(profileId: string) {
   try {
     // Get profile spaces from datastore
     const profileStore = getDatastore("main", ["profiles", profileId, "spaces"]);
@@ -233,7 +234,7 @@ export async function getSpaces() {
     const profiles = await getProfiles();
     const profileSpaces = await Promise.all(
       profiles.map(async (profile) => {
-        const profileSpaces = await getSpacesFromProfile(profile.id, profile);
+        const profileSpaces = await getSpacesFromProfile(profile.id);
         return profileSpaces;
       })
     );

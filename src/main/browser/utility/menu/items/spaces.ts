@@ -1,5 +1,4 @@
 import { app, MenuItemConstructorOptions, nativeImage, NativeImage } from "electron";
-import { Browser } from "@/browser/browser";
 import { getSpaces } from "@/sessions/spaces";
 import { getFocusedBrowserWindowData } from "../helpers";
 import { settings } from "@/settings/main";
@@ -70,7 +69,7 @@ async function createSvgFromIconPath(iconPath: string): Promise<NativeImage | nu
 
     // Make SVG white using a more robust approach
     // 1. Handle existing fill attributes on the SVG root
-    svgString = svgString.replace(/<svg([^>]*)>/, (match, attributes) => {
+    svgString = svgString.replace(/<svg([^>]*)>/, (_match, attributes) => {
       // Remove any existing fill attribute
       const cleanedAttributes = attributes.replace(/\s*fill="[^"]*"\s*/g, " ");
       return `<svg${cleanedAttributes} fill="white">`;
@@ -123,7 +122,7 @@ async function createSpaceMenuItem(
   index: number,
   currentSpaceId: string | null
 ): Promise<MenuItemConstructorOptions> {
-  let iconImage = null;
+  let iconImage: NativeImage | null = null;
 
   if (space.icon) {
     try {
@@ -153,7 +152,7 @@ async function createSpaceMenuItem(
 /**
  * Creates the Spaces menu for the application
  */
-export async function createSpacesMenu(_browser: Browser): Promise<MenuItemConstructorOptions> {
+export async function createSpacesMenu(): Promise<MenuItemConstructorOptions> {
   try {
     const spaces = await getSpaces();
 

@@ -12,15 +12,15 @@ ipcMain.on("settings:close", () => {
   settings.hide();
 });
 
-ipcMain.handle("settings:get-setting", (event, settingId: string) => {
+ipcMain.handle("settings:get-setting", (_event, settingId: string) => {
   return getSettingValueById(settingId);
 });
 
-ipcMain.handle("settings:set-setting", (event, settingId: string, value: unknown) => {
+ipcMain.handle("settings:set-setting", (_event, settingId: string, value: unknown) => {
   return setSettingValueById(settingId, value);
 });
 
-ipcMain.handle("settings:get-basic-settings", (event) => {
+ipcMain.handle("settings:get-basic-settings", () => {
   return {
     settings: BasicSettings,
     cards: BasicSettingCards

@@ -21,7 +21,7 @@ export const setupMenu = (browser: Browser) => {
       createFileMenu(browser),
       createEditMenu(browser),
       createViewMenu(browser),
-      await createSpacesMenu(browser),
+      await createSpacesMenu(),
       createArchiveMenu(browser),
       createWindowMenu()
     ];

@@ -9,7 +9,7 @@ import { app } from "electron";
 import { TabData } from "~/types/tabs";
 
 const TabsDataStore = getDatastore("tabs");
-const TabGroupsDataStore = getDatastore("tabgroups");
+// const TabGroupsDataStore = getDatastore("tabgroups");
 
 // TODO: Persist tab groups?
 

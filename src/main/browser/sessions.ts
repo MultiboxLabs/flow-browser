@@ -41,6 +41,7 @@ function registerCallbacksWithSession(session: Session) {
               if (externalURL) {
                 setAlwaysOpenExternal(requestingURL, externalURL);
               }
+            /* falls through */
             case 1:
               callback(true);
               break;

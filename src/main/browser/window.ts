@@ -198,6 +198,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     return this.currentSpaceId;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public sendMessageToCoreWebContents(channel: string, ...args: any[]) {
     for (const content of this.coreWebContents) {
       if (content.isDestroyed()) continue;

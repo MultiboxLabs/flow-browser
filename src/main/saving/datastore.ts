@@ -7,6 +7,7 @@ import path from "path";
 const DATASTORE_DIR = path.join(FLOW_DATA_DIR, "datastore");
 
 type Data = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 };
 
@@ -182,6 +183,7 @@ class DataStore {
    * @param keys - Array of keys to retrieve
    * @returns Promise resolving to an object with the requested keys and their values
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getKeys<K extends string>(keys: K[]): Promise<{ [key in K]: any }> {
     return this.getDataStoreNamespace((data) => {
       return keys.reduce(
@@ -189,6 +191,7 @@ class DataStore {
           acc[key] = data[key];
           return acc;
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         {} as { [key in K]: any }
       );
     });

@@ -76,6 +76,7 @@ export const onboarding = {
       onboarding.show();
     }
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sendMessage: (channel: string, ...args: any[]) => {
     if (!onboardingWindow) return;
 

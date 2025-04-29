@@ -1,9 +1,33 @@
 import { Browser } from "@/browser/browser";
 import { Tab } from "@/browser/tabs/tab";
 import { TabbedBrowserWindow } from "@/browser/window";
-
-// @ts-expect-error: Webpack will handle this :)
 import contextMenu from "electron-context-menu";
+
+// Define types for navigation history
+interface NavigationHistory {
+  canGoBack: () => boolean;
+  canGoForward: () => boolean;
+  goBack: () => void;
+  goForward: () => void;
+}
+
+// Define interface for menu actions
+type MenuItemFunction = (options: Record<string, unknown>) => Electron.MenuItemConstructorOptions;
+type InspectFunction = () => Electron.MenuItemConstructorOptions;
+
+interface MenuActions {
+  lookUpSelection: MenuItemFunction;
+  copyLink: MenuItemFunction;
+  cut: MenuItemFunction;
+  copy: MenuItemFunction;
+  paste: MenuItemFunction;
+  selectAll: MenuItemFunction;
+  inspect: InspectFunction;
+  copyImage: MenuItemFunction;
+  copyImageAddress: MenuItemFunction;
+  separator: InspectFunction;
+  [key: string]: MenuItemFunction | InspectFunction;
+}
 
 export function createTabContextMenu(
   browser: Browser,
@@ -16,14 +40,8 @@ export function createTabContextMenu(
 
   contextMenu({
     window: webContents,
-    menu(
-      defaultActions,
-      parameters,
-      _browserWindow,
-      dictionarySuggestions,
-      _event
-    ): Electron.MenuItemConstructorOptions[] {
-      const navigationHistory = webContents.navigationHistory;
+    menu(defaultActions, parameters, _browserWindow, dictionarySuggestions): Electron.MenuItemConstructorOptions[] {
+      const navigationHistory = webContents.navigationHistory as NavigationHistory;
       const canGoBack = navigationHistory.canGoBack();
       const canGoForward = navigationHistory.canGoForward();
       const lookUpSelection = defaultActions.lookUpSelection({});
@@ -38,14 +56,19 @@ export function createTabContextMenu(
 
       // Create all menu sections
       const openLinkItems = createOpenLinkItems(parameters, createNewTab, browser);
-      const linkItems = createLinkItems(defaultActions);
+      const linkItems = createLinkItems(defaultActions as MenuActions);
       const navigationItems = createNavigationItems(navigationHistory, webContents, canGoBack, canGoForward);
       const extensionItems = createExtensionItems(tab, parameters);
       const textHistoryItems = createTextHistoryItems(webContents);
-      const textEditItems = createTextEditItems(defaultActions, webContents);
-      const selectionItems = createSelectionItems(defaultActions, parameters, createNewTab, searchEngine);
-      const devItems = createDevItems(defaultActions);
-      const imageItems = createImageItems(parameters, createNewTab, defaultActions);
+      const textEditItems = createTextEditItems(defaultActions as MenuActions, webContents);
+      const selectionItems = createSelectionItems(
+        defaultActions as MenuActions,
+        parameters,
+        createNewTab,
+        searchEngine
+      );
+      const devItems = createDevItems(defaultActions as MenuActions);
+      const imageItems = createImageItems(parameters, createNewTab, defaultActions as MenuActions);
 
       // Assemble sections in correct order
       const sections: Electron.MenuItemConstructorOptions[][] = [];
@@ -92,7 +115,7 @@ export function createTabContextMenu(
       ]);
 
       // Combine all sections with separators
-      return combineSections(sections, defaultActions);
+      return combineSections(sections, defaultActions as MenuActions);
     }
   });
 }
@@ -119,14 +142,14 @@ function createOpenLinkItems(
   ];
 }
 
-function createLinkItems(defaultActions: any): Electron.MenuItemConstructorOptions[] {
+function createLinkItems(defaultActions: MenuActions): Electron.MenuItemConstructorOptions[] {
   const copyLinkItem = defaultActions.copyLink({});
   copyLinkItem.visible = true;
   return [copyLinkItem];
 }
 
 function createNavigationItems(
-  navigationHistory: any,
+  navigationHistory: NavigationHistory,
   webContents: Electron.WebContents,
   canGoBack: boolean,
   canGoForward: boolean
@@ -183,7 +206,7 @@ function createTextHistoryItems(webContents: Electron.WebContents): Electron.Men
 }
 
 function createTextEditItems(
-  defaultActions: any,
+  defaultActions: MenuActions,
   webContents: Electron.WebContents
 ): Electron.MenuItemConstructorOptions[] {
   return [
@@ -202,7 +225,7 @@ function createTextEditItems(
 }
 
 function createSelectionItems(
-  defaultActions: any,
+  defaultActions: MenuActions,
   parameters: Electron.ContextMenuParams,
   createNewTab: (url: string) => Promise<void>,
   searchEngine: string
@@ -220,14 +243,14 @@ function createSelectionItems(
   ];
 }
 
-function createDevItems(defaultActions: any): Electron.MenuItemConstructorOptions[] {
+function createDevItems(defaultActions: MenuActions): Electron.MenuItemConstructorOptions[] {
   return [defaultActions.inspect()];
 }
 
 function createImageItems(
   parameters: Electron.ContextMenuParams,
   createNewTab: (url: string) => Promise<void>,
-  defaultActions: any
+  defaultActions: MenuActions
 ): Electron.MenuItemConstructorOptions[] {
   return [
     {
@@ -243,7 +266,7 @@ function createImageItems(
 
 function combineSections(
   sections: Electron.MenuItemConstructorOptions[][],
-  defaultActions: any
+  defaultActions: MenuActions
 ): Electron.MenuItemConstructorOptions[] {
   const combinedSections: Electron.MenuItemConstructorOptions[] = [];
 

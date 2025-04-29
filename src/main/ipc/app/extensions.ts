@@ -1,5 +1,5 @@
 import { browser } from "@/index";
-import { sendMessageToListeners, sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
+import { sendMessageToListeners } from "@/ipc/listeners-manager";
 import { transformStringToLocale } from "@/modules/extensions/locales";
 import {
   ExtensionData,

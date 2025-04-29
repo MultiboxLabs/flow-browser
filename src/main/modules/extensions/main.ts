@@ -40,7 +40,9 @@ app.whenReady().then(() => {
     let session: Session | null = null;
     try {
       session = partitionSessionGrabber(partition);
-    } catch {}
+    } catch {
+      // Not found, return 404 below
+    }
 
     if (!session) {
       return new Response("Session not found", { status: 404 });
