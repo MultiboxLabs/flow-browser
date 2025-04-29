@@ -50,6 +50,11 @@ jobs:
         run: |
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
+      - name: Setup Snapcraft (Ubuntu only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo snap install snapcraft --classic
+
       - name: Install Dependencies
         run: bun install --development --frozen-lockfile
 
