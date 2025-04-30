@@ -6,6 +6,7 @@ import { hasCompletedOnboarding } from "@/saving/onboarding";
 import { onboarding } from "@/onboarding/main";
 import { createInitialWindow } from "@/saving/tabs";
 import { TabbedBrowserWindow } from "@/browser/window";
+import "@/modules/auto-update";
 
 export let browser: Browser | null = null;
 
@@ -16,10 +17,6 @@ function sleep(ms: number) {
 // Function to check if --new-window flag is present in command line arguments
 function shouldCreateNewWindow(args: string[]): boolean {
   return args.includes("--new-window");
-}
-
-function setupAutoUpdate() {
-  // TODO: Implement auto update
 }
 
 function setupWindowsUserTasks() {
@@ -115,9 +112,6 @@ function initializeApp() {
       handleOpenUrl(url);
     }
   });
-
-  // Setup auto update
-  setupAutoUpdate();
 
   // Setup platform specific features
   if (process.platform === "win32") {

@@ -16,6 +16,15 @@ export const ArchiveTabValueMap = {
 };
 
 export const BasicSettings: BasicSetting[] = [
+  // [GENERAL] Auto Update
+  {
+    id: "autoUpdate",
+    name: "Auto Update",
+    showName: true,
+    type: "boolean",
+    defaultValue: true
+  },
+
   // New Tab Mode
   {
     id: "newTabMode",
@@ -115,6 +124,13 @@ export const BasicSettings: BasicSetting[] = [
 ];
 
 export const BasicSettingCards: BasicSettingCard[] = [
+  // General Card
+  {
+    title: "General Settings",
+    subtitle: "General settings for the application",
+    settings: ["autoUpdate"]
+  },
+
   // New Tab Mode Card
   {
     title: "New Tab Mode",
@@ -134,6 +150,13 @@ export const BasicSettingCards: BasicSettingCard[] = [
     title: "Archive Tab After",
     subtitle: "Choose how long tabs should be archived",
     settings: ["archiveTabAfter"]
+  },
+
+  // Onboarding Card (Internal)
+  {
+    title: "INTERNAL_ONBOARDING",
+    subtitle: "",
+    settings: []
   },
 
   // Advanced Settings Card

@@ -1,9 +1,15 @@
 import { getDatastore } from "./datastore";
 import { fireOnSettingsChanged } from "@/ipc/window/settings";
 import { BasicSettings } from "@/modules/basic-settings";
+import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { BasicSetting, SettingType } from "~/types/settings";
 
 export const SettingsDataStore = getDatastore("settings");
+
+type SettingsEvents = {
+  "settings-changed": [];
+};
+export const settingsEmitter = new TypedEventEmitter<SettingsEvents>();
 
 // Settings: Current Icon //
 // Find in `@/modules/icons.ts`
@@ -30,9 +36,19 @@ async function cacheSetting(setting: BasicSetting) {
   }
 }
 
-for (const setting of BasicSettings) {
-  cacheSetting(setting);
-}
+// Cache Settings //
+const settingsCachedPromise = new Promise<void>((resolve) => {
+  const promises: Promise<void>[] = [];
+  for (const setting of BasicSettings) {
+    promises.push(cacheSetting(setting));
+  }
+
+  Promise.all(promises).then(() => {
+    resolve();
+  });
+});
+
+export const onSettingsCached = () => settingsCachedPromise;
 
 // Export: Get Setting //
 export function getSettingValueById(settingId: string): SettingType["defaultValue"] {
@@ -49,6 +65,7 @@ async function setSettingValue<T extends BasicSetting>(setting: T, value: unknow
     if (saveSuccess) {
       basicSettingsCurrentValues[setting.id] = value as T["defaultValue"];
       fireOnSettingsChanged();
+      settingsEmitter.emit("settings-changed");
       return true;
     }
   }

@@ -1,5 +1,4 @@
 import { BasicSettingsCards } from "@/components/settings/sections/general/basic-settings-cards";
-import { ResetOnboardingCard } from "@/components/settings/sections/general/reset-onboarding-card";
 
 export function GeneralSettings() {
   return (
@@ -10,7 +9,6 @@ export function GeneralSettings() {
       </div>
 
       <BasicSettingsCards />
-      <ResetOnboardingCard />
     </div>
   );
 }
