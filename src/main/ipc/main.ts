@@ -1,6 +1,7 @@
 // App APIs
 import "@/ipc/app/app";
 import "@/ipc/app/extensions";
+import "@/ipc/app/updates";
 
 // Browser APIs
 import "@/ipc/browser/browser";

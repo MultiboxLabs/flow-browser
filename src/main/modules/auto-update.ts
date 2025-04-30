@@ -1,8 +1,10 @@
+import { fireUpdateStatusChanged } from "@/ipc/app/updates";
 import { debugPrint } from "@/modules/output";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getSettingValueById, onSettingsCached, settingsEmitter } from "@/saving/settings";
 import { app } from "electron";
 import { autoUpdater, ProgressInfo, UpdateInfo } from "electron-updater";
+import { UpdateStatus } from "~/types/updates";
 
 const SUPPORTED_PLATFORMS: NodeJS.Platform[] = [
   "win32",
@@ -19,15 +21,16 @@ export const updateEmitter = new TypedEventEmitter<{
   "status-changed": [];
 }>();
 
-// TODO: use this function
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function isAutoUpdateSupported(platform: NodeJS.Platform): boolean {
+updateEmitter.on("status-changed", () => {
+  fireUpdateStatusChanged(getUpdateStatus());
+});
+
+export function isAutoUpdateSupported(platform: NodeJS.Platform): boolean {
   return SUPPORTED_PLATFORMS.includes(platform);
 }
 
-async function checkForUpdates() {
+export async function checkForUpdates() {
   const updateInfo = await autoUpdater.checkForUpdates();
-  console.log("Update Info", updateInfo);
   return updateInfo;
 }
 
@@ -57,7 +60,7 @@ function connectUpdaterListeners() {
   });
 }
 
-export function getUpdateStatus() {
+export function getUpdateStatus(): UpdateStatus {
   return {
     availableUpdate,
     downloadProgress,
@@ -68,6 +71,7 @@ export function getUpdateStatus() {
 export function downloadUpdate() {
   if (downloadProgress) return false;
   if (updateDownloaded) return false;
+  if (!isAutoUpdateSupported(process.platform)) return false;
 
   autoUpdater.downloadUpdate();
   return true;
@@ -83,7 +87,8 @@ export function installUpdate() {
 
 async function updateAutoUpdaterConfig() {
   const autoUpdate = getSettingValueById("autoUpdate") as boolean | undefined;
-  autoUpdater.autoDownload = autoUpdate === true;
+  const canAutoUpdate = isAutoUpdateSupported(process.platform);
+  autoUpdater.autoDownload = autoUpdate === true && canAutoUpdate;
 }
 
 onSettingsCached().then(() => {

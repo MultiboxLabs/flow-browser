@@ -13,123 +13,77 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { AlertCircle, ArrowUpCircle, CheckCircle2, Download, ExternalLink, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useAppUpdates } from "@/components/providers/app-updates-provider";
 
 const DOWNLOAD_PAGE = "https://github.com/multiboxlabs/flow-browser/";
 
-// Using string literals instead of a union type to avoid TypeScript comparison issues
-const UPDATE_STATUS = {
-  IDLE: "idle",
-  CHECKING: "checking",
-  DOWNLOADING: "downloading",
-  DOWNLOADED: "downloaded",
-  INSTALLING: "installing"
-} as const;
-
 interface UpdateState {
-  status: string;
-  progress: number;
   currentVersion: string;
-  availableVersion: string;
-  isPlatformSupported: boolean;
-  hasChecked: boolean;
-  updateAvailable: boolean;
   dialogOpen: boolean;
-  error: string | null;
 }
 
 export function UpdateCard() {
+  const {
+    updateStatus,
+    isCheckingForUpdates,
+    isDownloadingUpdate,
+    isInstallingUpdate,
+    isAutoUpdateSupported,
+    checkForUpdates,
+    downloadUpdate,
+    installUpdate
+  } = useAppUpdates();
+
   const [state, setState] = useState<UpdateState>({
-    status: UPDATE_STATUS.IDLE,
-    progress: 0,
     currentVersion: "1.0.0",
-    availableVersion: "",
-    isPlatformSupported: false,
-    hasChecked: false,
-    updateAvailable: false,
-    dialogOpen: false,
-    error: null
+    dialogOpen: false
   });
+
+  // Get app version
+  useEffect(() => {
+    const getAppInfo = async () => {
+      try {
+        const appInfo = await flow.app.getAppInfo();
+        setState((prev) => ({ ...prev, currentVersion: appInfo.app_version }));
+      } catch (error) {
+        console.error("Failed to get app info:", error);
+      }
+    };
+
+    getAppInfo();
+  }, []);
 
   // Auto-check for updates on component mount
   useEffect(() => {
     checkForUpdates();
-  }, []);
-
-  const checkForUpdates = async () => {
-    setState((prev) => ({ ...prev, status: UPDATE_STATUS.CHECKING }));
-
-    try {
-      // No-op for now, would call into flow.updates.check() or similar
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Simulate finding an update and platform check
-      setState((prev) => ({
-        ...prev,
-        status: UPDATE_STATUS.IDLE,
-        updateAvailable: true,
-        availableVersion: "1.1.0",
-        isPlatformSupported: false,
-        hasChecked: true
-      }));
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        status: UPDATE_STATUS.IDLE,
-        error: "Failed to check for updates",
-        hasChecked: true
-      }));
-      console.error("Failed to check for updates:", error);
-    }
-  };
+  }, [checkForUpdates]);
 
   const openDownloadPage = () => {
     flow.tabs.newTab(DOWNLOAD_PAGE, true);
   };
 
-  const downloadUpdate = async () => {
-    setState((prev) => ({ ...prev, status: UPDATE_STATUS.DOWNLOADING, progress: 0 }));
-
-    try {
-      // Simulate download progress
-      for (let i = 0; i <= 100; i += 10) {
-        setState((prev) => ({ ...prev, progress: i }));
-        await new Promise((resolve) => setTimeout(resolve, 300));
-      }
-      setState((prev) => ({ ...prev, status: UPDATE_STATUS.DOWNLOADED }));
-    } catch (error) {
-      setState((prev) => ({ ...prev, status: UPDATE_STATUS.IDLE, error: "Failed to download update" }));
-      console.error("Failed to download update:", error);
-    }
-  };
-
-  const installUpdate = async () => {
-    setState((prev) => ({ ...prev, status: UPDATE_STATUS.INSTALLING }));
-
-    try {
-      // No-op for now, would call into flow.updates.install() or similar
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setState((prev) => ({ ...prev, dialogOpen: false, status: UPDATE_STATUS.IDLE }));
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        status: UPDATE_STATUS.IDLE,
-        error: "Failed to install update"
-      }));
-      console.error("Failed to install update:", error);
-    }
+  const handleInstallUpdate = async () => {
+    await installUpdate();
+    setState((prev) => ({ ...prev, dialogOpen: false }));
   };
 
   const renderStatusIndicator = () => {
-    if (state.error) {
+    if (!updateStatus) return null;
+
+    // Check if there's an available update
+    const hasUpdate = updateStatus.availableUpdate !== null;
+
+    // Show error if download failed
+    if (updateStatus.downloadProgress && updateStatus.downloadProgress.percent === -1) {
       return (
         <div className="flex items-center gap-2 text-destructive">
           <AlertCircle className="h-4 w-4" />
-          <span className="text-sm">{state.error}</span>
+          <span className="text-sm">Download failed</span>
         </div>
       );
     }
 
-    if (state.updateAvailable) {
+    if (hasUpdate) {
       return (
         <Badge variant="outline" className="flex items-center gap-1 bg-primary/10 text-primary border-primary/20">
           <ArrowUpCircle className="h-3 w-3" />
@@ -138,7 +92,7 @@ export function UpdateCard() {
       );
     }
 
-    if (state.hasChecked && !state.updateAvailable) {
+    if (!hasUpdate) {
       return (
         <Badge variant="outline" className="flex items-center gap-1 bg-muted text-muted-foreground border-muted">
           <CheckCircle2 className="h-3 w-3" />
@@ -150,10 +104,11 @@ export function UpdateCard() {
     return null;
   };
 
-  const isChecking = state.status === UPDATE_STATUS.CHECKING;
-  const isDownloading = state.status === UPDATE_STATUS.DOWNLOADING;
-  const isDownloaded = state.status === UPDATE_STATUS.DOWNLOADED;
-  const isInstalling = state.status === UPDATE_STATUS.INSTALLING;
+  const isDownloaded = updateStatus?.updateDownloaded === true;
+  const updateProgress = updateStatus?.downloadProgress?.percent || 0;
+  const hasChecked = updateStatus !== null;
+  const hasUpdate = updateStatus?.availableUpdate !== null;
+  const availableVersion = updateStatus?.availableUpdate?.version || "";
 
   return (
     <Card className="overflow-hidden">
@@ -163,10 +118,10 @@ export function UpdateCard() {
             <CardTitle>Updates</CardTitle>
             <CardDescription className="flex items-center gap-2 mt-1">
               <span>v{state.currentVersion}</span>
-              {state.updateAvailable && (
+              {hasUpdate && (
                 <>
                   <span className="text-muted-foreground">→</span>
-                  <span className="text-primary font-medium">v{state.availableVersion}</span>
+                  <span className="text-primary font-medium">v{availableVersion}</span>
                 </>
               )}
             </CardDescription>
@@ -177,18 +132,18 @@ export function UpdateCard() {
 
       <CardContent className="space-y-3 pt-3">
         {/* Download progress indicator */}
-        {isDownloading && (
+        {isDownloadingUpdate && updateStatus?.downloadProgress && (
           <div className="space-y-1">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Downloading update...</span>
-              <span>{state.progress}%</span>
+              <span>{Math.round(updateProgress)}%</span>
             </div>
-            <Progress value={state.progress} className="w-full h-2" />
+            <Progress value={updateProgress} className="w-full h-2" />
           </div>
         )}
 
         {/* Platform not supported warning */}
-        {state.hasChecked && state.updateAvailable && !state.isPlatformSupported && (
+        {hasChecked && hasUpdate && !isAutoUpdateSupported && (
           <div className="rounded-md bg-destructive/15 border border-destructive/30 p-3">
             <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
@@ -205,9 +160,9 @@ export function UpdateCard() {
         {/* Action buttons */}
         <div className="space-y-2">
           {/* Initial check */}
-          {!state.hasChecked && (
-            <Button variant="default" className="w-full" disabled={isChecking} onClick={checkForUpdates}>
-              {isChecking ? (
+          {!hasChecked && (
+            <Button variant="default" className="w-full" disabled={isCheckingForUpdates} onClick={checkForUpdates}>
+              {isCheckingForUpdates ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   Checking...
@@ -219,7 +174,7 @@ export function UpdateCard() {
           )}
 
           {/* Update available but platform not supported */}
-          {state.updateAvailable && !state.isPlatformSupported && (
+          {hasUpdate && !isAutoUpdateSupported && (
             <Button
               variant="default"
               className="w-full flex items-center justify-center gap-2"
@@ -232,14 +187,14 @@ export function UpdateCard() {
           )}
 
           {/* Update available and can be auto-updated */}
-          {state.updateAvailable && state.isPlatformSupported && !isDownloaded && (
+          {hasUpdate && isAutoUpdateSupported && !isDownloaded && (
             <Button
               variant="default"
               className="w-full flex items-center justify-center gap-2"
-              disabled={isDownloading}
+              disabled={isDownloadingUpdate}
               onClick={downloadUpdate}
             >
-              {isDownloading ? (
+              {isDownloadingUpdate ? (
                 <>
                   <Download className="h-4 w-4 mr-2 animate-pulse" />
                   Downloading...
@@ -267,7 +222,7 @@ export function UpdateCard() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Install Update to v{state.availableVersion}?</DialogTitle>
+                  <DialogTitle>Install Update to v{availableVersion}?</DialogTitle>
                   <DialogDescription>
                     The app will close and restart to complete the update. Any unsaved changes may be lost.
                   </DialogDescription>
@@ -276,14 +231,18 @@ export function UpdateCard() {
                   <Button variant="outline" onClick={() => setState((prev) => ({ ...prev, dialogOpen: false }))}>
                     Later
                   </Button>
-                  <Button onClick={installUpdate} disabled={isInstalling} className="flex items-center gap-2">
-                    {isInstalling && (
+                  <Button
+                    onClick={handleInstallUpdate}
+                    disabled={isInstallingUpdate}
+                    className="flex items-center gap-2"
+                  >
+                    {isInstallingUpdate && (
                       <>
                         <RefreshCw className="h-4 w-4 animate-spin" />
                         Installing...
                       </>
                     )}
-                    {!isInstalling && "Install Now"}
+                    {!isInstallingUpdate && "Install Now"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -291,13 +250,8 @@ export function UpdateCard() {
           )}
 
           {/* Check again button */}
-          {state.hasChecked && !isChecking && !isInstalling && (
-            <Button
-              variant={state.updateAvailable ? "outline" : "default"}
-              size="sm"
-              className="w-full"
-              onClick={checkForUpdates}
-            >
+          {hasChecked && !isCheckingForUpdates && !isInstallingUpdate && (
+            <Button variant={hasUpdate ? "outline" : "default"} size="sm" className="w-full" onClick={checkForUpdates}>
               <RefreshCw className="h-3 w-3 mr-2" />
               Check Again
             </Button>

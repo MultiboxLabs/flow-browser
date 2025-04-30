@@ -2,10 +2,12 @@
 // make sure to keep it clean and organized.
 
 // IMPORTS //
-import { ProfileData } from "@/sessions/profiles";
 import { contextBridge, ipcRenderer } from "electron";
 import { injectBrowserAction } from "electron-chrome-extensions/browser-action";
-import { SpaceData } from "@/sessions/spaces";
+
+// TYPE IMPORTS //
+import type { ProfileData } from "@/sessions/profiles";
+import type { SpaceData } from "@/sessions/spaces";
 
 // SHARED TYPES //
 import type { SharedExtensionData } from "~/types/extensions";
@@ -28,6 +30,8 @@ import { FlowSettingsAPI } from "~/flow/interfaces/settings/settings";
 import { FlowWindowsAPI } from "~/flow/interfaces/app/windows";
 import { FlowExtensionsAPI } from "~/flow/interfaces/app/extensions";
 import { FlowTabsAPI } from "~/flow/interfaces/browser/tabs";
+import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
+import { UpdateStatus } from "~/types/updates";
 
 // API CHECKS //
 function isProtocol(protocol: string) {
@@ -426,12 +430,35 @@ const extensionsAPI: FlowExtensionsAPI = {
   }
 };
 
+// UPDATES API //
+const updatesAPI: FlowUpdatesAPI = {
+  isAutoUpdateSupported: async () => {
+    return ipcRenderer.invoke("updates:is-auto-update-supported");
+  },
+  getUpdateStatus: async () => {
+    return ipcRenderer.invoke("updates:get-update-status");
+  },
+  onUpdateStatusChanged: (callback: (updateStatus: UpdateStatus) => void) => {
+    return listenOnIPCChannel("updates:on-update-status-changed", callback);
+  },
+  checkForUpdates: async () => {
+    return ipcRenderer.invoke("updates:check-for-updates");
+  },
+  downloadUpdate: async () => {
+    return ipcRenderer.invoke("updates:download-update");
+  },
+  installUpdate: async () => {
+    return ipcRenderer.invoke("updates:install-update");
+  }
+};
+
 // EXPOSE FLOW API //
 contextBridge.exposeInMainWorld("flow", {
   // App APIs
   app: wrapAPI(appAPI, "app"),
   windows: wrapAPI(windowsAPI, "app"),
   extensions: wrapAPI(extensionsAPI, "app"),
+  updates: wrapAPI(updatesAPI, "app"),
 
   // Browser APIs
   browser: wrapAPI(browserAPI, "browser"),

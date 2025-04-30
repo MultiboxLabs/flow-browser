@@ -17,6 +17,7 @@ import { FlowSettingsAPI } from "~/flow/interfaces/settings/settings";
 import { FlowIconsAPI } from "~/flow/interfaces/settings/icons";
 import { FlowOpenExternalAPI } from "~/flow/interfaces/settings/openExternal";
 import { FlowOnboardingAPI } from "~/flow/interfaces/settings/onboarding";
+import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 
 declare global {
   /**
@@ -28,6 +29,7 @@ declare global {
     app: FlowAppAPI;
     windows: FlowWindowsAPI;
     extensions: FlowExtensionsAPI;
+    updates: FlowUpdatesAPI;
 
     // Browser APIs
     browser: FlowBrowserAPI;
