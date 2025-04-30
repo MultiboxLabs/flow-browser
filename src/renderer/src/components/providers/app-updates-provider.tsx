@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from "react";
 import { UpdateStatus } from "~/types/updates";
 
 interface AppUpdatesContextType {
@@ -21,7 +21,6 @@ const AppUpdatesContext = createContext<AppUpdatesContextType | null>(null);
 export function AppUpdatesProvider({ children }: AppUpdatesProviderProps) {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
-  const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
   const [isInstallingUpdate, setIsInstallingUpdate] = useState(false);
   const [isAutoUpdateSupported, setIsAutoUpdateSupported] = useState(false);
 
@@ -64,6 +63,11 @@ export function AppUpdatesProvider({ children }: AppUpdatesProviderProps) {
     };
   }, []);
 
+  // setIsDownloadingUpdate
+  const isDownloadingUpdate = useMemo(() => {
+    return !!updateStatus?.downloadProgress;
+  }, [updateStatus]);
+
   const checkForUpdates = useCallback(async () => {
     setIsCheckingForUpdates(true);
     try {
@@ -78,14 +82,11 @@ export function AppUpdatesProvider({ children }: AppUpdatesProviderProps) {
   }, []);
 
   const downloadUpdate = useCallback(async () => {
-    setIsDownloadingUpdate(true);
     try {
       const success = await flow.updates.downloadUpdate();
-      setIsDownloadingUpdate(false);
       return success;
     } catch (error) {
       console.error("Failed to download update:", error);
-      setIsDownloadingUpdate(false);
       return false;
     }
   }, []);
