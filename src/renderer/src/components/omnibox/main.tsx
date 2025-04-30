@@ -252,7 +252,7 @@ export function OmniboxMain() {
                     exit={{ opacity: 0 }}
                     className="px-3 py-6 text-center text-black/50 dark:text-white/50"
                   >
-                    {'No results found. Press Enter to search or navigate to "{input}".'}
+                    {`No results found. Press Enter to search or navigate to "${input}".`}
                   </motion.div>
                 )}
 
