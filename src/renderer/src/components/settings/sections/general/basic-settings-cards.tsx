@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { ResetOnboardingCard } from "@/components/settings/sections/general/reset-onboarding-card";
+import { UpdateCard } from "@/components/settings/sections/general/update-card";
 
 function SettingsInput({ setting }: { setting: BasicSetting }) {
   const { getSetting, setSetting } = useSettings();
@@ -44,7 +45,9 @@ export function BasicSettingsCard({ card, transparent }: { card: BasicSettingCar
   const { settings } = useSettings();
 
   // Internal Cards
-  if (card.title === "INTERNAL_ONBOARDING") {
+  if (card.title === "INTERNAL_UPDATE") {
+    return <UpdateCard />;
+  } else if (card.title === "INTERNAL_ONBOARDING") {
     return <ResetOnboardingCard />;
   }
 

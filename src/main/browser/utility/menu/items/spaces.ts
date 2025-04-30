@@ -1,4 +1,4 @@
-import { app, MenuItemConstructorOptions, nativeImage, NativeImage } from "electron";
+import { MenuItemConstructorOptions, nativeImage, NativeImage } from "electron";
 import { getSpaces } from "@/sessions/spaces";
 import { getFocusedBrowserWindowData } from "../helpers";
 import { settings } from "@/settings/main";
@@ -31,25 +31,14 @@ function getPhosphorIconPath(pascalName: string): string | null {
   if (!name) return null;
 
   try {
-    // Find the icon directly from node_modules in dev, or from app.asar in production
-    let iconPath: string;
-
-    // Use the packaged path if the app is packaged
-    if (app.isPackaged) {
-      const pkgPath = path.join(process.resourcesPath, "duotone", `${name}-duotone.svg`);
-      iconPath = pkgPath;
-    } else {
-      const devPath = path.join(
-        require.resolve("@phosphor-icons/core"),
-        "..",
-        "..",
-        "assets",
-        "duotone",
-        `${name}-duotone.svg`
-      );
-      iconPath = devPath;
-    }
-
+    const iconPath = path.join(
+      require.resolve("@phosphor-icons/core"),
+      "..",
+      "..",
+      "assets",
+      "duotone",
+      `${name}-duotone.svg`
+    );
     return iconPath;
   } catch (error) {
     console.error("Failed to resolve phosphor-icons path:", error);

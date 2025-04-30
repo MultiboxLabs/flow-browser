@@ -131,6 +131,13 @@ export const BasicSettingCards: BasicSettingCard[] = [
     settings: ["autoUpdate"]
   },
 
+  // Update Card (Internal)
+  {
+    title: "INTERNAL_UPDATE",
+    subtitle: "",
+    settings: []
+  },
+
   // New Tab Mode Card
   {
     title: "New Tab Mode",

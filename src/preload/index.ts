@@ -435,7 +435,9 @@ contextBridge.exposeInMainWorld("flow", {
 
   // Browser APIs
   browser: wrapAPI(browserAPI, "browser"),
-  tabs: wrapAPI(tabsAPI, "browser"),
+  tabs: wrapAPI(tabsAPI, "browser", {
+    newTab: "app"
+  }),
   page: wrapAPI(pageAPI, "browser"),
   navigation: wrapAPI(navigationAPI, "browser"),
   interface: wrapAPI(interfaceAPI, "browser"),

@@ -158,7 +158,7 @@ ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {
 
 ipcMain.handle("tabs:new-tab", async (event, url?: string, isForeground?: boolean, spaceId?: string) => {
   const webContents = event.sender;
-  const window = browser?.getWindowFromWebContents(webContents);
+  const window = browser?.getWindowFromWebContents(webContents) || browser?.getWindows()[0];
   if (!window) return;
 
   const tabManager = browser?.tabs;
