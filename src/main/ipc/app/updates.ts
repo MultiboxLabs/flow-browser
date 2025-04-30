@@ -18,11 +18,15 @@ ipcMain.handle("updates:get-update-status", () => {
 });
 
 ipcMain.handle("updates:check-for-updates", async () => {
-  const result = await checkForUpdates();
-  if (result?.isUpdateAvailable) {
-    return true;
+  try {
+    const result = await checkForUpdates();
+    if (result?.isUpdateAvailable) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
   }
-  return false;
 });
 
 ipcMain.handle("updates:download-update", () => {
