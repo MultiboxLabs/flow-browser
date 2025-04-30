@@ -55,7 +55,7 @@ export function isAutoUpdateSupported(platform: NodeJS.Platform): boolean {
   return SUPPORTED_PLATFORMS.includes(platform);
 }
 
-export async function checkForUpdates(): Promise<UpdateInfo | null> {
+export async function checkForUpdates(): Promise<UpdateCheckResult | null> {
   if (MOCK_DATA_ENABLED) {
     debugPrint("AUTO_UPDATER", "[MOCK] Checking for updates");
 
@@ -74,11 +74,15 @@ export async function checkForUpdates(): Promise<UpdateInfo | null> {
     availableUpdate = mockUpdateInfo;
     updateEmitter.emit("status-changed");
     debugPrint("AUTO_UPDATER", "[MOCK] Update Available", mockUpdateInfo);
-    return Promise.resolve(mockUpdateInfo);
+    return Promise.resolve({
+      isUpdateAvailable: true,
+      updateInfo: mockUpdateInfo,
+      versionInfo: mockUpdateInfo
+    });
   }
 
   const result: UpdateCheckResult | null = await autoUpdater.checkForUpdates();
-  return result ? result.updateInfo : null;
+  return result;
 }
 
 function connectUpdaterListeners() {
