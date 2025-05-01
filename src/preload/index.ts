@@ -329,6 +329,9 @@ const appAPI: FlowAppAPI = {
   },
   writeTextToClipboard: (text: string) => {
     return ipcRenderer.send("app:write-text-to-clipboard", text);
+  },
+  setDefaultBrowser: async () => {
+    return ipcRenderer.invoke("app:set-default-browser");
   }
 };
 

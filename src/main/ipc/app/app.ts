@@ -11,3 +11,14 @@ ipcMain.handle("app:get-info", async () => {
 ipcMain.on("app:write-text-to-clipboard", (_event, text: string) => {
   clipboard.writeText(text);
 });
+
+ipcMain.handle("app:set-default-browser", async () => {
+  const httpSucceed = app.setAsDefaultProtocolClient("http");
+  const httpsSucceed = app.setAsDefaultProtocolClient("https");
+
+  if (httpSucceed && httpsSucceed) {
+    return true;
+  }
+
+  return false;
+});

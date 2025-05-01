@@ -5,11 +5,15 @@ import { GlobeIcon, HeartIcon } from "lucide-react";
 export function SetAsDefaultBrowserSetting() {
   const isDefault: boolean = false;
 
+  const setDefaultBrowser = () => {
+    flow.app.setDefaultBrowser();
+  };
+
   return (
     <div className="flex flex-row items-center justify-between gap-2 h-10">
       <Label>Set as Default Browser</Label>
       {!isDefault && (
-        <Button variant="outline" className="h-fit py-1 px-3">
+        <Button variant="outline" className="h-fit py-1 px-3" onClick={setDefaultBrowser}>
           <GlobeIcon />
           Set to Flow
         </Button>

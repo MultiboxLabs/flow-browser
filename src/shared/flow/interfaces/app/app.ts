@@ -22,4 +22,9 @@ export interface FlowAppAPI {
    * Writes text to the clipboard
    */
   writeTextToClipboard: (text: string) => void;
+
+  /**
+   * Sets the default browser
+   */
+  setDefaultBrowser: () => Promise<void>;
 }
