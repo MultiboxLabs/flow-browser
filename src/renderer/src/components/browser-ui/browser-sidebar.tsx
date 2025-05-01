@@ -20,6 +20,7 @@ import { SidebarAddressBar } from "@/components/browser-ui/sidebar/header/addres
 import { PortalComponent } from "@/components/portal/portal";
 import { SidebarWindowControls } from "@/components/browser-ui/sidebar/header/window-controls";
 import { motion, AnimatePresence } from "motion/react";
+import { SidebarFooterUpdate } from "@/components/browser-ui/sidebar/footer/update";
 
 type BrowserSidebarProps = {
   collapseMode: CollapseMode;
@@ -87,27 +88,30 @@ function useSidebarHover(setIsHoveringSidebar: (isHovering: boolean) => void) {
 // Component for the sidebar footer content
 function SidebarFooterContent() {
   return (
-    <SidebarMenu className="flex flex-row justify-between">
-      {/* Left Side Buttons */}
-      <SidebarMenuItem>
-        <SidebarMenuButton
-          className={cn(SIDEBAR_HOVER_COLOR, "text-black dark:text-white")}
-          onClick={() => flow.windows.openSettingsWindow()}
-        >
-          <SettingsIcon />
-        </SidebarMenuButton>
-      </SidebarMenuItem>
+    <>
+      <SidebarFooterUpdate />
+      <SidebarMenu className="flex flex-row justify-between">
+        {/* Left Side Buttons */}
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            className={cn(SIDEBAR_HOVER_COLOR, "text-black dark:text-white")}
+            onClick={() => flow.windows.openSettingsWindow()}
+          >
+            <SettingsIcon />
+          </SidebarMenuButton>
+        </SidebarMenuItem>
 
-      {/* Middle (Spaces) */}
-      <SidebarSpacesSwitcher />
+        {/* Middle (Spaces) */}
+        <SidebarSpacesSwitcher />
 
-      {/* Right Side Buttons */}
-      <SidebarMenuItem>
-        <SidebarMenuButton disabled className={cn(SIDEBAR_HOVER_COLOR, "text-black dark:text-white")}>
-          <PlusIcon />
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-    </SidebarMenu>
+        {/* Right Side Buttons */}
+        <SidebarMenuItem>
+          <SidebarMenuButton disabled className={cn(SIDEBAR_HOVER_COLOR, "text-black dark:text-white")}>
+            <PlusIcon />
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </>
   );
 }
 

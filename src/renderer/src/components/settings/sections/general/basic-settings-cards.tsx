@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { ResetOnboardingCard } from "@/components/settings/sections/general/reset-onboarding-card";
 import { UpdateCard } from "@/components/settings/sections/general/update-card";
 
-function SettingsInput({ setting }: { setting: BasicSetting }) {
+export function SettingsInput({ setting }: { setting: BasicSetting }) {
   const { getSetting, setSetting } = useSettings();
 
   const handleSettingChange = (value: BasicSetting["defaultValue"]) => {

@@ -83,7 +83,7 @@ export function UpdateCard() {
       return <span className="text-sm text-primary">Update downloaded, ready to install</span>;
     }
     if (isDownloadingUpdate) {
-      return <span className="text-sm text-muted-foreground">Downloading update...</span>;
+      return <span className="text-sm text-muted-foreground">Downloading v{availableVersion}...</span>;
     }
     if (hasUpdate) {
       return <span className="text-sm text-primary">Update available: v{availableVersion}</span>;
@@ -178,7 +178,7 @@ export function UpdateCard() {
       return (
         <Button variant="outline" size="sm" disabled>
           <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-          Downloading...
+          Downloading v{availableVersion}...
         </Button>
       );
     }
@@ -190,7 +190,7 @@ export function UpdateCard() {
           <DialogTrigger asChild>
             <Button variant="default" size="sm" className="flex items-center justify-center gap-2">
               <ArrowUpCircle className="h-4 w-4 mr-1" />
-              Install Now
+              Install v{availableVersion}
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -211,7 +211,7 @@ export function UpdateCard() {
                     Installing...
                   </>
                 ) : (
-                  "Install Now"
+                  `Install v${availableVersion}`
                 )}
               </Button>
             </DialogFooter>
@@ -243,7 +243,7 @@ export function UpdateCard() {
         {isDownloadingUpdate && !downloadFailed && (
           <div className="space-y-1 pt-2">
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Downloading update...</span>
+              <span>Downloading v{availableVersion}...</span>
               <span>{Math.round(updateProgress)}%</span>
             </div>
             <Progress value={updateProgress} className="w-full h-2" />
@@ -254,7 +254,7 @@ export function UpdateCard() {
         {downloadFailed && (
           <div className="flex items-center gap-2 text-destructive pt-2">
             <AlertCircle className="h-4 w-4" />
-            <span className="text-sm">Download failed. Please try again.</span>
+            <span className="text-sm">Download of v{availableVersion} failed. Please try again.</span>
           </div>
         )}
 
@@ -268,7 +268,7 @@ export function UpdateCard() {
               </div>
             </div>
             <div className="mt-1 text-xs text-destructive/90 pl-6">
-              Please download and install the update manually from our website.
+              Please download and install v{availableVersion} manually from our website.
             </div>
           </div>
         )}

@@ -13,6 +13,7 @@ import { BrowserActionProvider } from "@/components/providers/browser-action-pro
 import { ExtensionsProviderWithSpaces } from "@/components/providers/extensions-provider";
 import { SidebarHoverDetector } from "@/components/browser-ui/sidebar/hover-detector";
 import MinimalToastProvider from "@/components/providers/minimal-toast-provider";
+import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
 
 export type CollapseMode = "icon" | "offcanvas";
 export type SidebarVariant = "sidebar" | "floating";
@@ -166,7 +167,9 @@ export function BrowserUI({ type }: { type: WindowType }) {
             <TabsProvider>
               <BrowserActionProvider>
                 <ExtensionsProviderWithSpaces>
-                  <InternalBrowserUI isReady={isReady} type={type} />
+                  <AppUpdatesProvider>
+                    <InternalBrowserUI isReady={isReady} type={type} />
+                  </AppUpdatesProvider>
                 </ExtensionsProviderWithSpaces>
               </BrowserActionProvider>
             </TabsProvider>

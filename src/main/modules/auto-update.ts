@@ -16,7 +16,7 @@ type MockUpdateData = {
   timeForUpdateCheck: number; // Milliseconds
 };
 
-const MOCK_DATA_ENABLED = false;
+const MOCK_DATA_ENABLED = true;
 
 const MOCK_DATA: MockUpdateData = {
   version: "1.0.1", // Example: Ensure this is different from current app version for testing
