@@ -128,7 +128,7 @@ export const BasicSettingCards: BasicSettingCard[] = [
   {
     title: "General Settings",
     subtitle: "General settings for the application",
-    settings: ["autoUpdate"]
+    settings: ["autoUpdate", "internal_setAsDefaultBrowser"]
   },
 
   // Update Card (Internal)

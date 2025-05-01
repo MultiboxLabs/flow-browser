@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { ResetOnboardingCard } from "@/components/settings/sections/general/reset-onboarding-card";
 import { UpdateCard } from "@/components/settings/sections/general/update-card";
+import { SetAsDefaultBrowserSetting } from "@/components/settings/sections/general/set-as-default-browser-setting";
 
 export function SettingsInput({ setting }: { setting: BasicSetting }) {
   const { getSetting, setSetting } = useSettings();
@@ -60,6 +61,10 @@ export function BasicSettingsCard({ card, transparent }: { card: BasicSettingCar
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
         {card.settings.map((settingId) => {
+          if (settingId === "internal_setAsDefaultBrowser") {
+            return <SetAsDefaultBrowserSetting key={settingId} />;
+          }
+
           const setting = settings.find((setting) => setting.id === settingId);
           if (!setting) return null;
 
