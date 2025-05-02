@@ -21,8 +21,23 @@
   ],
   "fileAssociations": [
     {
+      "ext": "htm",
+      "description": "HTM Document",
+      "role": "Viewer"
+    },
+    {
       "ext": "html",
       "description": "HTML Document",
+      "role": "Viewer"
+    },
+    {
+      "ext": "mhtml",
+      "description": "MHTML Document",
+      "role": "Viewer"
+    },
+    {
+      "ext": "shtml",
+      "description": "SHTML Document",
       "role": "Viewer"
     },
     {
