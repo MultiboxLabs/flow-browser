@@ -22,3 +22,10 @@ ipcMain.handle("app:set-default-browser", async () => {
 
   return false;
 });
+
+ipcMain.handle("app:get-default-browser", async () => {
+  const httpIsDefault = app.isDefaultProtocolClient("http");
+  const httpsIsDefault = app.isDefaultProtocolClient("https");
+
+  return httpIsDefault && httpsIsDefault;
+});

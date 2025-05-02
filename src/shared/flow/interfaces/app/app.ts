@@ -26,5 +26,10 @@ export interface FlowAppAPI {
   /**
    * Sets the default browser
    */
-  setDefaultBrowser: () => Promise<void>;
+  setDefaultBrowser: () => Promise<boolean>;
+
+  /**
+   * Gets the default browser
+   */
+  getDefaultBrowser: () => Promise<boolean>;
 }

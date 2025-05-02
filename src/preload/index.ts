@@ -332,6 +332,9 @@ const appAPI: FlowAppAPI = {
   },
   setDefaultBrowser: async () => {
     return ipcRenderer.invoke("app:set-default-browser");
+  },
+  getDefaultBrowser: async () => {
+    return ipcRenderer.invoke("app:get-default-browser");
   }
 };
 
