@@ -1,5 +1,6 @@
 import { MenuItemConstructorOptions } from "electron";
 import { settings } from "@/settings/main";
+import { isDefaultBrowser, setDefaultBrowser } from "@/modules/default-browser";
 
 export const createAppMenu = (): MenuItemConstructorOptions => ({
   role: "appMenu",
@@ -11,6 +12,15 @@ export const createAppMenu = (): MenuItemConstructorOptions => ({
       click: () => {
         settings.show();
       }
+    },
+    {
+      type: "checkbox",
+      label: "Set as Default Browser",
+      click: () => {
+        setDefaultBrowser();
+      },
+      checked: isDefaultBrowser(),
+      enabled: !isDefaultBrowser()
     },
     { role: "services" },
     { type: "separator" },

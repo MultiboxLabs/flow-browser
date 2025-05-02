@@ -1,3 +1,4 @@
+import { isDefaultBrowser, setDefaultBrowser } from "@/modules/default-browser";
 import { app, clipboard } from "electron";
 import { ipcMain } from "electron";
 
@@ -13,19 +14,9 @@ ipcMain.on("app:write-text-to-clipboard", (_event, text: string) => {
 });
 
 ipcMain.handle("app:set-default-browser", async () => {
-  const httpSucceed = app.setAsDefaultProtocolClient("http");
-  const httpsSucceed = app.setAsDefaultProtocolClient("https");
-
-  if (httpSucceed && httpsSucceed) {
-    return true;
-  }
-
-  return false;
+  return setDefaultBrowser();
 });
 
 ipcMain.handle("app:get-default-browser", async () => {
-  const httpIsDefault = app.isDefaultProtocolClient("http");
-  const httpsIsDefault = app.isDefaultProtocolClient("https");
-
-  return httpIsDefault && httpsIsDefault;
+  return isDefaultBrowser();
 });
