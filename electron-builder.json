@@ -15,14 +15,14 @@
   ],
   "protocols": [
     {
-      "name": "http URLs",
+      "name": "HyperText Transfer Protocol",
       "schemes": ["http", "https"]
     }
   ],
   "fileAssociations": [
     {
       "ext": "htm",
-      "description": "HTM Document",
+      "name": "HyperText Markup File",
       "role": "Viewer"
     },
     {
@@ -37,12 +37,17 @@
     },
     {
       "ext": "shtml",
-      "description": "SHTML Document",
+      "name": "HyperText Markup File",
       "role": "Viewer"
     },
     {
       "ext": "xhtml",
-      "description": "XHTML Document",
+      "name": "Extensible HyperText Markup File",
+      "role": "Viewer"
+    },
+    {
+      "ext": "xhtm",
+      "name": "Extensible HyperText Markup File",
       "role": "Viewer"
     },
     {
@@ -62,6 +67,7 @@
     "createDesktopShortcut": "always"
   },
   "mac": {
+    "category": "public.app-category.productivity",
     "entitlementsInherit": "build/entitlements.mac.plist",
     "notarize": false
   },
