@@ -38,6 +38,7 @@
     "ico-to-png": "^0.2.2",
     "knex": "^3.1.0",
     "mime-types": "^3.0.1",
+    "posthog-node": "^4.17.1",
     "sharp": "^0.34.1",
     "sharp-ico": "^0.1.5",
     "zod": "^3.24.3"

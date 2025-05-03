@@ -7,6 +7,7 @@ import { onboarding } from "@/onboarding/main";
 import { createInitialWindow } from "@/saving/tabs";
 import { TabbedBrowserWindow } from "@/browser/window";
 import "@/modules/auto-update";
+import "@/modules/posthog";
 
 export let browser: Browser | null = null;
 
