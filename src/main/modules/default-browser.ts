@@ -3,14 +3,10 @@ import { exec } from "child_process";
 import { app } from "electron";
 
 export function isDefaultBrowser() {
-  if (process.platform === "darwin") {
-    const httpIsDefault = app.isDefaultProtocolClient("http");
-    const httpsIsDefault = app.isDefaultProtocolClient("https");
+  const httpIsDefault = app.isDefaultProtocolClient("http");
+  const httpsIsDefault = app.isDefaultProtocolClient("https");
 
-    return httpIsDefault && httpsIsDefault;
-  }
-
-  return false;
+  return httpIsDefault && httpsIsDefault;
 }
 
 export function setDefaultBrowser() {
