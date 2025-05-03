@@ -3,6 +3,10 @@ import { exec } from "child_process";
 import { app } from "electron";
 
 export function isDefaultBrowser() {
+  if (process.platform === "win32") {
+    return false;
+  }
+
   const httpIsDefault = app.isDefaultProtocolClient("http");
   const httpsIsDefault = app.isDefaultProtocolClient("https");
 
