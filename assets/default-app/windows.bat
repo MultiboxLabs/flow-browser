@@ -1,0 +1,106 @@
+@echo off
+setlocal enabledelayedexpansion
+
+rem Generic script to register an application for the CURRENT USER.
+rem Based on scripts by Henry++ and Jelmer van Arnhem for Vieb/chrlauncher.
+rem No administrator rights required.
+
+rem --- Argument Parsing ---
+set "APP_PATH=%~1"
+set "APP_NAME_SHORT=%~2"
+set "APP_NAME=%~3"
+set "APP_DESCRIPTION=%~4"
+
+rem --- Input Validation ---
+if "%APP_PATH%"=="" goto :Usage
+if "%APP_NAME_SHORT%"=="" goto :Usage
+if "%APP_NAME%"=="" goto :Usage
+if "%APP_DESCRIPTION%"=="" goto :Usage
+
+rem Check if executable exists
+if not exist "%APP_PATH%" (
+    echo ERROR: Executable not found at "%APP_PATH%"
+    pause
+    goto :eof
+)
+
+rem --- Derived Variables ---
+set "APP_ICON=\"%APP_PATH%\",0"
+rem Command to open a file/url with the app (%1 will be the file/url)
+set "APP_ARGS=\"%APP_PATH%\" \"%%1\""
+rem Command to just open the app
+set "APP_OPEN_CMD=\"%APP_PATH%\""
+
+echo Registering "%APP_NAME%" for the current user...
+echo   Path: %APP_PATH%
+echo   Short Name: %APP_NAME_SHORT%
+
+rem --- Registry Modifications (HKEY_CURRENT_USER) ---
+
+rem Define handler for file types associated with this app
+reg add "HKCU\Software\Classes\%APP_NAME_SHORT%File" /v "" /t REG_SZ /d "%APP_NAME% File" /f >nul
+reg add "HKCU\Software\Classes\%APP_NAME_SHORT%File\DefaultIcon" /v "" /t REG_SZ /d "%APP_ICON%" /f >nul
+reg add "HKCU\Software\Classes\%APP_NAME_SHORT%File\shell\open\command" /v "" /t REG_SZ /d "%APP_ARGS%" /f >nul
+
+rem Define handler for URL protocols associated with this app (optional, but framework needed)
+reg add "HKCU\Software\Classes\%APP_NAME_SHORT%URL" /v "" /t REG_SZ /d "%APP_NAME% Protocol" /f >nul
+reg add "HKCU\Software\Classes\%APP_NAME_SHORT%URL" /v "EditFlags" /t REG_DWORD /d "2" /f >nul
+reg add "HKCU\Software\Classes\%APP_NAME_SHORT%URL" /v "FriendlyTypeName" /t REG_SZ /d "%APP_NAME% Protocol" /f >nul
+reg add "HKCU\Software\Classes\%APP_NAME_SHORT%URL" /v "URL Protocol" /t REG_SZ /d "" /f >nul
+reg add "HKCU\Software\Classes\%APP_NAME_SHORT%URL\DefaultIcon" /v "" /t REG_SZ /d "%APP_ICON%" /f >nul
+reg add "HKCU\Software\Classes\%APP_NAME_SHORT%URL\shell\open\command" /v "" /t REG_SZ /d "%APP_ARGS%" /f >nul
+
+rem Register the application with Windows Default Programs system
+reg add "HKCU\Software\RegisteredApplications" /v "%APP_NAME_SHORT%" /t REG_SZ /d "Software\Clients\StartMenuInternet\%APP_NAME_SHORT%\Capabilities" /f >nul
+
+rem Register as a potential Start Menu Internet client (even if not a browser, this structure is used)
+reg add "HKCU\Software\Clients\StartMenuInternet\%APP_NAME_SHORT%" /v "" /t REG_SZ /d "%APP_NAME%" /f >nul
+reg add "HKCU\Software\Clients\StartMenuInternet\%APP_NAME_SHORT%\DefaultIcon" /v "" /t REG_SZ /d "%APP_ICON%" /f >nul
+reg add "HKCU\Software\Clients\StartMenuInternet\%APP_NAME_SHORT%\shell\open\command" /v "" /t REG_SZ /d "%APP_OPEN_CMD%" /f >nul
+reg add "HKCU\Software\Clients\StartMenuInternet\%APP_NAME_SHORT%\InstallInfo" /v "IconsVisible" /t REG_DWORD /d "1" /f >nul
+
+rem Define the application's capabilities
+reg add "HKCU\Software\Clients\StartMenuInternet\%APP_NAME_SHORT%\Capabilities" /v "ApplicationIcon" /t REG_SZ /d "%APP_ICON%" /f >nul
+reg add "HKCU\Software\Clients\StartMenuInternet\%APP_NAME_SHORT%\Capabilities" /v "ApplicationName" /t REG_SZ /d "%APP_NAME%" /f >nul
+reg add "HKCU\Software\Clients\StartMenuInternet\%APP_NAME_SHORT%\Capabilities" /v "ApplicationDescription" /t REG_SZ /d "%APP_DESCRIPTION%" /f >nul
+
+rem --- IMPORTANT: Define Association Capabilities ---
+rem These keys tell Windows the app *can* handle file types and URLs.
+rem The *specific* types/protocols are NOT set here by default.
+rem The user must associate them via Default Apps settings.
+rem You *could* add specific lines below if needed for common types, e.g.:
+rem reg add "HKCU\Software\Clients\StartMenuInternet\%APP_NAME_SHORT%\Capabilities\FileAssociations" /v ".txt" /t REG_SZ /d "%APP_NAME_SHORT%File" /f >nul
+reg add "HKCU\Software\Clients\StartMenuInternet\%APP_NAME_SHORT%\Capabilities\FileAssociations" /f >nul
+reg add "HKCU\Software\Clients\StartMenuInternet\%APP_NAME_SHORT%\Capabilities\URLAssociations" /f >nul
+
+rem Add Start Menu capability link
+reg add "HKCU\Software\Clients\StartMenuInternet\%APP_NAME_SHORT%\Capabilities\StartMenu" /v "StartMenuInternet" /t REG_SZ /d "%APP_NAME_SHORT%" /f >nul
+
+
+echo Registration complete for "%APP_NAME%".
+echo Opening Default Apps settings...
+echo You may need to manually choose "%APP_NAME%" for specific file types or protocols.
+
+rem Try opening the modern Default Apps settings page (Win 10/11)
+start "" ms-settings:defaultapps
+
+rem Optional: Self-deletion - remove the 'rem' below if you want the script to delete itself
+rem (goto) 2>nul & del "%~f0"
+
+goto :eof
+
+:Usage
+echo ERROR: Missing arguments.
+echo.
+echo Usage: %~nx0 "C:\Path\To\YourApp.exe" AppShortName "Full Application Name" "Application Description"
+echo.
+echo Example:
+echo   %~nx0 "C:\Tools\MyEditor\editor.exe" myeditor "My Text Editor" "A simple editor for text files"
+echo.
+echo Notes:
+echo - Enclose arguments with spaces in double quotes.
+echo - The Short Name should not contain spaces.
+echo - This script registers the app for the CURRENT USER only.
+echo - No admin rights are needed.
+pause
+goto :eof

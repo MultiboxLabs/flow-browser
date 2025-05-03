@@ -14,7 +14,7 @@ ipcMain.on("app:write-text-to-clipboard", (_event, text: string) => {
 });
 
 ipcMain.handle("app:set-default-browser", async () => {
-  return setDefaultBrowser();
+  return await setDefaultBrowser();
 });
 
 ipcMain.handle("app:get-default-browser", async () => {
