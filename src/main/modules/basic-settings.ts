@@ -145,7 +145,7 @@ export const BasicSettingCards: BasicSettingCard[] = [
     settings: ["newTabMode"]
   },
 
-  // Sidebar Collapse Mode Card
+  // Sidebar Settings Card
   {
     title: "Sidebar Settings",
     subtitle: "Choose how the sidebar should behave",

@@ -4,7 +4,6 @@ export function OnboardingDragDisabler() {
   return (
     <div className="absolute flex flex-col top-0 w-screen h-screen">
       <div className="top-0 h-[calc(env(titlebar-area-y)+env(titlebar-area-height))] w-screen app-drag -z-10" />
-      <div className="bg-red-400 w-screen h-screen remove-app-drag -z-10" />
     </div>
   );
 }

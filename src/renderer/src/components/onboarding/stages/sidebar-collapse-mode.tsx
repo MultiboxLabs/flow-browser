@@ -6,7 +6,7 @@ import { OnboardingDragDisabler } from "@/components/onboarding/stages/onboardin
 import { useSettings } from "@/components/providers/settings-provider";
 
 export function OnboardingSidebarCollapseMode({ advance }: { advance: OnboardingAdvanceCallback }) {
-  const card = useSettings().cards.find((card) => card.title === "Sidebar Collapse Mode");
+  const card = useSettings().cards.find((card) => card.title === "Sidebar Settings");
 
   if (!card) {
     return null;
@@ -24,8 +24,8 @@ export function OnboardingSidebarCollapseMode({ advance }: { advance: Onboarding
         exit={{ opacity: 0, y: 20 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Sidebar Collapse Mode</h1>
-        <p className="text-gray-400 text-lg">{"Select how you'd like the sidebar to collapse"}</p>
+        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Sidebar Settings</h1>
+        <p className="text-gray-400 text-lg">{"Choose how the sidebar should behave"}</p>
       </motion.div>
 
       {/* Sidebar Collapse Mode Card */}
