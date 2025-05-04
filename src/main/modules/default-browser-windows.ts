@@ -5,9 +5,9 @@ import { app } from "electron"; // Assuming Electron context
 import { PATHS } from "@/modules/paths";
 
 // --- Configuration: Define your Application Details ---
-const APP_NAME_SHORT = "YourAppShortName"; // CHANGE THIS: e.g., "myapp", "myeditor" (no spaces!)
+const APP_NAME_SHORT = "flow"; // CHANGE THIS: e.g., "myapp", "myeditor" (no spaces!)
 const APP_NAME = app.getName(); // Or hardcode: "My Awesome App";
-const APP_DESCRIPTION = "A description of your application."; // CHANGE THIS if needed
+const APP_DESCRIPTION = "An experimental browser built on Electron."; // CHANGE THIS if needed
 
 // --- Association Data (from your JSON example) ---
 const associations = {
