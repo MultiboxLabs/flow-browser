@@ -62,7 +62,7 @@ export async function registerAppForCurrentUserOnWindows(): Promise<boolean> {
     // 4. Construct the execution command (NO -Verb Runas)
     //    Using Start-Process via PowerShell is generally robust for paths/args.
     //    -NoProfile and -ExecutionPolicy Bypass help avoid environment issues.
-    const command = `Powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '${tempFile}' -ArgumentList ${arg1}, ${arg2}, ${arg3}, ${arg4}"`;
+    const command = `Powershell -NoProfile -ExecutionPolicy Bypass -NoExit -Command "Start-Process -FilePath '${tempFile}' -ArgumentList ${arg1}, ${arg2}, ${arg3}, ${arg4}"`;
 
     console.log("Executing command:", command);
 
