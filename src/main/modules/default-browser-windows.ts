@@ -117,17 +117,18 @@ export async function registerAppForCurrentUserOnWindows(): Promise<boolean> {
     const arg4 = `"""${APP_DESCRIPTION}"""`;
 
     // 7. Construct the execution command (NO -Verb Runas)
-    const command = `Powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '${tempFile}' -ArgumentList ${arg1}, ${arg2}, ${arg3}, ${arg4}"`;
+    const command = `Powershell -NoProfile -ExecutionPolicy Bypass -Command "$result = Start-Process -FilePath '${tempFile}' -ArgumentList ${arg1}, ${arg2}, ${arg3}, ${arg4} -PassThru -Wait; Write-Host 'Process completed with exit code: ' $result.ExitCode; Write-Host 'Press any key to continue...';"`;
 
     console.log("Executing command:", command);
 
     // 8. Execute the command
-    exec(command, async (err) => {
+    exec(command, async (err, stdout) => {
       if (err) {
         console.error("Error executing registration script:", err.message);
         resolve(false);
       } else {
         console.log(`Registration script executed successfully for "${APP_NAME}". Check Default Apps settings.`);
+        console.log("Output:", stdout);
         resolve(true);
       }
 
