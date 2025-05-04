@@ -58,7 +58,8 @@
   ],
   "asarUnpack": ["assets/**"],
   "win": {
-    "executableName": "flow"
+    "executableName": "flow",
+    "verifyUpdateCodeSignature": false
   },
   "nsis": {
     "artifactName": "${name}-${version}-setup.${ext}",
