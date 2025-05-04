@@ -74,6 +74,61 @@ function printHeader() {
   console.log("");
 }
 
+function isValidOpenerUrl(url: string): boolean {
+  // Check if the URL is a valid URL
+  const urlObject = URL.parse(url);
+  if (!urlObject) {
+    return false;
+  }
+
+  const VALID_PROTOCOLS = ["http:", "https:"];
+  // Check if the URL has a valid protocol
+  if (!VALID_PROTOCOLS.includes(urlObject.protocol)) {
+    return false;
+  }
+
+  return true;
+}
+
+// Handle open links
+const handleOpenUrl = async (url: string) => {
+  if (!browser) return;
+
+  if (!app.isReady) {
+    await app.whenReady();
+  }
+
+  let window: TabbedBrowserWindow | null = null;
+
+  for (let i = 0; i < 5; i++) {
+    // Check if there is a focused window
+    const focusedWindow = browser.getFocusedWindow();
+    if (focusedWindow) {
+      window = focusedWindow;
+      break;
+    }
+
+    // Check for any window
+    const firstWindow = browser.getWindows()[0];
+    if (firstWindow) {
+      window = firstWindow;
+      break;
+    }
+
+    await sleep(50);
+  }
+
+  // If no window was found after 5 attempts, create a new one
+  // This is to make sure it doesn't create two windows on startup.
+  if (!window) {
+    window = await browser.createWindow();
+  }
+
+  const tab = await browser.tabs.createTab(window.id);
+  tab.loadURL(url);
+  browser.tabs.setActiveTab(tab);
+};
+
 function initializeApp() {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   if (require("electron-squirrel-startup")) {
@@ -94,6 +149,14 @@ function initializeApp() {
   // Initialize the Browser
   browser = new Browser();
 
+  // Hnadle command line arguments
+  const commandLine = process.argv.slice(1);
+  const targetUrl = commandLine.pop();
+  if (targetUrl && isValidOpenerUrl(targetUrl)) {
+    // Handle the URL if it is valid
+    handleOpenUrl(targetUrl);
+  }
+
   // Setup second instance handler
   app.on("second-instance", (_event, commandLine) => {
     if (!browser) return;
@@ -108,7 +171,8 @@ function initializeApp() {
     }
 
     const url = commandLine.pop();
-    if (url) {
+    if (url && isValidOpenerUrl(url)) {
+      // Handle the URL if it is valid
       handleOpenUrl(url);
     }
   });
@@ -149,45 +213,6 @@ function initializeApp() {
       }
     });
   });
-
-  // Handle open links
-  const handleOpenUrl = async (url: string) => {
-    if (!browser) return;
-
-    if (!app.isReady) {
-      await app.whenReady();
-    }
-
-    let window: TabbedBrowserWindow | null = null;
-
-    for (let i = 0; i < 5; i++) {
-      // Check if there is a focused window
-      const focusedWindow = browser.getFocusedWindow();
-      if (focusedWindow) {
-        window = focusedWindow;
-        break;
-      }
-
-      // Check for any window
-      const firstWindow = browser.getWindows()[0];
-      if (firstWindow) {
-        window = firstWindow;
-        break;
-      }
-
-      await sleep(50);
-    }
-
-    // If no window was found after 5 attempts, create a new one
-    // This is to make sure it doesn't create two windows on startup.
-    if (!window) {
-      window = await browser.createWindow();
-    }
-
-    const tab = await browser.tabs.createTab(window.id);
-    tab.loadURL(url);
-    browser.tabs.setActiveTab(tab);
-  };
 
   app.on("open-url", async (_event, url) => {
     handleOpenUrl(url);
