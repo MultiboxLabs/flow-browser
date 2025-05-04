@@ -1,75 +1,129 @@
 import path from "path";
-import { readFile, writeFile, unlink } from "fs/promises"; // Added unlink
+import { readFile, writeFile, unlink } from "fs/promises";
 import { exec } from "child_process";
-import { app } from "electron"; // Assuming you're in an Electron context
+import { app } from "electron"; // Assuming Electron context
 import { PATHS } from "@/modules/paths";
 
 // --- Configuration: Define your Application Details ---
-// Best Practice: Get APP_NAME and APP_DESCRIPTION from your package.json
-// or Electron's app module if possible (e.g., app.getName())
-const APP_NAME_SHORT = "flow"; // CHANGE THIS: e.g., "myapp", "myeditor" (no spaces!)
+const APP_NAME_SHORT = "YourAppShortName"; // CHANGE THIS: e.g., "myapp", "myeditor" (no spaces!)
 const APP_NAME = app.getName(); // Or hardcode: "My Awesome App";
-const APP_DESCRIPTION = "An experimental browser built on Electron."; // CHANGE THIS if needed
+const APP_DESCRIPTION = "A description of your application."; // CHANGE THIS if needed
+
+// --- Association Data (from your JSON example) ---
+const associations = {
+  protocols: [
+    {
+      name: "HyperText Transfer Protocol",
+      schemes: ["http", "https"]
+    }
+    // Add other protocols here if needed
+    // { name: "File Transfer Protocol", schemes: ["ftp"] }
+  ],
+  fileAssociations: [
+    { ext: "htm", name: "HyperText Markup File", role: "Viewer" },
+    { ext: "html", description: "HTML Document", role: "Viewer" },
+    { ext: "mhtml", description: "MHTML Document", role: "Viewer" },
+    { ext: "shtml", name: "HyperText Markup File", role: "Viewer" },
+    { ext: "xhtml", name: "Extensible HyperText Markup File", role: "Viewer" },
+    { ext: "xhtm", name: "Extensible HyperText Markup File", role: "Viewer" },
+    { ext: "pdf", description: "PDF Document", role: "Viewer" }
+    // Add other file types here if needed
+    // { ext: "txt", description: "Text Document", role: "Editor" }
+  ]
+};
 
 // --- Paths ---
-// Ensure PATHS.ASSETS points to the directory containing the *new* script
-// Make sure the new script is named "register_app_user.bat" in that directory
-const scriptPath = path.join(PATHS.ASSETS, "default-app", "register_app_user.bat");
-const appExecutablePath = process.execPath; // Path to your Electron app executable
-
-// Use the temp directory for the temporary script file
+// Path to the *template* batch script
+const scriptTemplatePath = path.join(
+  PATHS.ASSETS, // Your assets path
+  "default-app",
+  "register_app_user_template.bat"
+);
+const appExecutablePath = process.execPath;
 const tempDir = app.getPath("temp");
-const tempFile = path.join(tempDir, `register_${APP_NAME_SHORT}.bat`);
+// Temporary file for the *finalized* script
+const tempFile = path.join(tempDir, `register_${APP_NAME_SHORT}_final.bat`);
 
 // --- Function to Register ---
 export async function registerAppForCurrentUserOnWindows(): Promise<boolean> {
   console.log(`Attempting to register "${APP_NAME}" for the current user...`);
-  console.log(`Using script: ${scriptPath}`);
+  console.log(`Using script template: ${scriptTemplatePath}`);
   console.log(`App executable: ${appExecutablePath}`);
 
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve) => {
-    let scriptContents: Buffer | string;
+    let scriptTemplate: string;
     try {
-      // 1. Read the contents of the generic batch script
-      scriptContents = await readFile(scriptPath); // Read as buffer or specify utf-8
-      console.log(`Read script file: ${scriptPath}`);
+      // 1. Read the contents of the template batch script
+      scriptTemplate = await readFile(scriptTemplatePath, "utf-8");
+      console.log(`Read script template: ${scriptTemplatePath}`);
     } catch (readError) {
-      console.error(`Error reading script file at ${scriptPath}:`, readError);
+      console.error(`Error reading script template at ${scriptTemplatePath}:`, readError);
       resolve(false);
       return;
     }
 
+    // 2. Generate File Association registry commands
+    const fileAssocLines = associations.fileAssociations
+      .map(
+        (assoc) =>
+          // Note: Registry paths need double backslashes in JS strings
+          // The value name is the extension (e.g., ".html")
+          // The value data points to the handler we defined (%APP_NAME_SHORT%File)
+          `reg add "HKCU\\Software\\Clients\\StartMenuInternet\\%APP_NAME_SHORT%\\Capabilities\\FileAssociations" /v ".${assoc.ext}" /t REG_SZ /d "%APP_NAME_SHORT%File" /f >nul`
+      )
+      .join("\r\n"); // Use Windows line endings for batch scripts
+
+    // 3. Generate URL Association registry commands
+    const urlAssocLines = associations.protocols
+      .flatMap(
+        (
+          proto // Use flatMap to handle nested schemes array easily
+        ) =>
+          proto.schemes.map(
+            (scheme) =>
+              // The value name is the scheme (e.g., "http")
+              // The value data points to the handler we defined (%APP_NAME_SHORT%URL)
+              `reg add "HKCU\\Software\\Clients\\StartMenuInternet\\%APP_NAME_SHORT%\\Capabilities\\URLAssociations" /v "${scheme}" /t REG_SZ /d "%APP_NAME_SHORT%URL" /f >nul`
+          )
+      )
+      .join("\r\n"); // Use Windows line endings
+
+    // 4. Inject generated commands into the template
+    let finalScriptContents = scriptTemplate.replace(
+      "REM <<FILE_ASSOCIATIONS_PLACEHOLDER>>",
+      fileAssocLines || "rem No file associations defined." // Add fallback comment
+    );
+    finalScriptContents = finalScriptContents.replace(
+      "REM <<URL_ASSOCIATIONS_PLACEHOLDER>>",
+      urlAssocLines || "rem No URL associations defined." // Add fallback comment
+    );
+
+    // --- Write and Execute Final Script ---
     try {
-      // 2. Write the script contents to a temporary file
-      await writeFile(tempFile, scriptContents);
-      console.log(`Copied script to temporary file: ${tempFile}`);
+      // 5. Write the *finalized* script contents to the temporary file
+      await writeFile(tempFile, finalScriptContents, "utf-8");
+      console.log(`Generated final script to temporary file: ${tempFile}`);
     } catch (writeError) {
       console.error(`Error writing temporary script file to ${tempFile}:`, writeError);
       resolve(false);
       return;
     }
 
-    // 3. Prepare arguments for the batch script
-    //    Batch script uses %~1, %~2 etc which handle quotes, but PowerShell needs careful quoting.
-    //    Using single quotes for PowerShell's ArgumentList items ensures each is treated as one argument,
-    //    and triple quotes inside handle spaces within the argument for the batch script.
-    const arg1 = `"""${appExecutablePath}"""`; // Path to exe
-    const arg2 = `"${APP_NAME_SHORT}"`; // Short name (quotes optional if no spaces)
-    const arg3 = `"""${APP_NAME}"""`; // Full name
-    const arg4 = `"""${APP_DESCRIPTION}"""`; // Description
+    // 6. Prepare arguments for the batch script
+    const arg1 = `"""${appExecutablePath}"""`;
+    const arg2 = `"${APP_NAME_SHORT}"`;
+    const arg3 = `"""${APP_NAME}"""`;
+    const arg4 = `"""${APP_DESCRIPTION}"""`;
 
-    // 4. Construct the execution command (NO -Verb Runas)
-    //    Using Start-Process via PowerShell is generally robust for paths/args.
-    //    -NoProfile and -ExecutionPolicy Bypass help avoid environment issues.
-    const command = `Powershell -NoProfile -ExecutionPolicy Bypass -NoExit -Command "Start-Process -FilePath '${tempFile}' -ArgumentList ${arg1}, ${arg2}, ${arg3}, ${arg4}"`;
+    // 7. Construct the execution command (NO -Verb Runas)
+    const command = `Powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '${tempFile}' -ArgumentList ${arg1}, ${arg2}, ${arg3}, ${arg4}"`;
 
     console.log("Executing command:", command);
 
-    // 5. Execute the command
+    // 8. Execute the command
     exec(command, async (err) => {
       if (err) {
-        // Log the specific error from the exec call
         console.error("Error executing registration script:", err.message);
         resolve(false);
       } else {
@@ -77,7 +131,7 @@ export async function registerAppForCurrentUserOnWindows(): Promise<boolean> {
         resolve(true);
       }
 
-      // 6. Clean up the temporary file (optional but recommended)
+      // 9. Clean up the temporary file
       try {
         await unlink(tempFile);
         console.log(`Deleted temporary script file: ${tempFile}`);
@@ -87,3 +141,14 @@ export async function registerAppForCurrentUserOnWindows(): Promise<boolean> {
     });
   });
 }
+
+// --- Example Usage ---
+/*
+registerAppForCurrentUser().then(success => {
+  if (success) {
+    console.log("Application registration process completed successfully.");
+  } else {
+    console.error("Application registration process failed.");
+  }
+});
+*/
