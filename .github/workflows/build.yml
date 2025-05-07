@@ -40,7 +40,7 @@ jobs:
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
       - name: Install Dependencies
-        run: bun install --development
+        run: npm install --development
         env:
           SHARP_IGNORE_GLOBAL_LIBVIPS: 1
 
