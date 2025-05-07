@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
 import {
   Dialog,
@@ -28,12 +27,12 @@ export function ResetOnboardingCard() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Onboarding</CardTitle>
-        <CardDescription>Reset the onboarding walkthrough</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="remove-app-drag rounded-lg border p-6 bg-card">
+      <div className="mb-4">
+        <h3 className="text-xl font-semibold tracking-tight text-card-foreground">Onboarding</h3>
+        <p className="text-sm text-muted-foreground mt-1">Reset the onboarding walkthrough</p>
+      </div>
+      <div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="secondary" className="w-full" disabled={isResetting}>
@@ -57,7 +56,7 @@ export function ResetOnboardingCard() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
