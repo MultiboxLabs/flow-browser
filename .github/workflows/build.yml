@@ -40,7 +40,11 @@ jobs:
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
       - name: Install Dependencies
-        run: npm install --development
+        run: bun install --development --frozen-lockfile
+
+      - name: Install Fixed Sharp
+        if: matrix.os == 'ubuntu-latest'
+        run: npm install --os=linux --arch=x64 --include=optional sharp
         env:
           SHARP_IGNORE_GLOBAL_LIBVIPS: 1
 
