@@ -63,7 +63,6 @@ function ToastContainer({
         <AnimatePresence onExitComplete={() => setIsVisible(false)}>
           {currentMessage && (
             <motion.div
-              key={currentMessage}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
@@ -98,10 +97,20 @@ export function MinimalToastProvider({ children, sidebarSide }: ToastProviderPro
   const showToast = (msg: string, duration = 3000) => {
     removeToast();
 
-    setCurrentMessage(msg);
-    timeoutIdRef.current = setTimeout(() => {
-      removeToast();
-    }, duration);
+    const removeMessageFirst = !!currentMessage;
+
+    if (removeMessageFirst) {
+      setCurrentMessage(null);
+    }
+    setTimeout(
+      () => {
+        setCurrentMessage(msg);
+        timeoutIdRef.current = setTimeout(() => {
+          removeToast();
+        }, duration);
+      },
+      removeMessageFirst ? 100 : 0
+    );
   };
 
   return (
