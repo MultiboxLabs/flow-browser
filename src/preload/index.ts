@@ -32,6 +32,7 @@ import { FlowExtensionsAPI } from "~/flow/interfaces/app/extensions";
 import { FlowTabsAPI } from "~/flow/interfaces/browser/tabs";
 import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { UpdateStatus } from "~/types/updates";
+import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 
 // API CHECKS //
 function isProtocol(protocol: string) {
@@ -462,6 +463,16 @@ const updatesAPI: FlowUpdatesAPI = {
   }
 };
 
+// ACTIONS API //
+const actionsAPI: FlowActionsAPI = {
+  onCopyLink: (callback: () => void) => {
+    return listenOnIPCChannel("actions:on-copy-link", callback);
+  },
+  onIncomingAction: (callback: (action: string) => void) => {
+    return listenOnIPCChannel("actions:on-incoming", callback);
+  }
+};
+
 // EXPOSE FLOW API //
 contextBridge.exposeInMainWorld("flow", {
   // App APIs
@@ -469,6 +480,7 @@ contextBridge.exposeInMainWorld("flow", {
   windows: wrapAPI(windowsAPI, "app"),
   extensions: wrapAPI(extensionsAPI, "app"),
   updates: wrapAPI(updatesAPI, "app"),
+  actions: wrapAPI(actionsAPI, "app"),
 
   // Browser APIs
   browser: wrapAPI(browserAPI, "browser"),

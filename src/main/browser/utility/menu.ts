@@ -19,7 +19,7 @@ export const setupMenu = (browser: Browser) => {
     const template: Array<MenuItemConstructorOptions | MenuItem> = [
       ...(isMac ? [createAppMenu()] : []),
       createFileMenu(browser),
-      createEditMenu(browser),
+      createEditMenu(),
       createViewMenu(browser),
       await createSpacesMenu(),
       createArchiveMenu(browser),

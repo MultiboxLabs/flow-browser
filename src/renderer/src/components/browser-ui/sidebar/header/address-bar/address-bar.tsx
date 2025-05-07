@@ -60,7 +60,7 @@ function FakeAddressBar() {
       {/* Right Side */}
       <div className="ml-auto flex items-center gap-1">
         <PinnedBrowserActions />
-        {!isPlaceholder && <AddressBarCopyLinkButton addressUrl={addressUrl} />}
+        {!isPlaceholder && <AddressBarCopyLinkButton />}
       </div>
     </div>
   );

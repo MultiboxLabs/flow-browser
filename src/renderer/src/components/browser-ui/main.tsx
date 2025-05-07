@@ -14,6 +14,7 @@ import { ExtensionsProviderWithSpaces } from "@/components/providers/extensions-
 import { SidebarHoverDetector } from "@/components/browser-ui/sidebar/hover-detector";
 import MinimalToastProvider from "@/components/providers/minimal-toast-provider";
 import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
+import { ActionsProvider } from "@/components/providers/actions-provider";
 
 export type CollapseMode = "icon" | "offcanvas";
 export type SidebarVariant = "sidebar" | "floating";
@@ -76,68 +77,70 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
 
   return (
     <MinimalToastProvider sidebarSide={side}>
-      {dynamicTitle && <title>{`${dynamicTitle} | Flow`}</title>}
-      {/* Sidebar on Left Side */}
-      {hasSidebar && side === "left" && sidebar}
+      <ActionsProvider>
+        {dynamicTitle && <title>{`${dynamicTitle} | Flow`}</title>}
+        {/* Sidebar on Left Side */}
+        {hasSidebar && side === "left" && sidebar}
 
-      <SidebarInset className="bg-transparent">
-        <div
-          className={cn(
-            "dark flex-1 flex p-2 platform-win32:pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))] app-drag",
-            (open || (!open && sidebarCollapseMode === "icon")) &&
-              hasSidebar &&
-              variant === "sidebar" &&
-              (side === "left" ? "pl-0.5" : "pr-0.5"),
-            type === "popup" && "pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))]"
-          )}
-        >
-          {/* Topbar */}
-          <div className="absolute top-0 left-0 w-full h-2.5 flex justify-center items-center">
-            <AnimatePresence>
-              {isActiveTabLoading && (
-                <motion.div
-                  className="w-28 h-1 bg-gray-200/30 dark:bg-white/10 rounded-full overflow-hidden"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
+        <SidebarInset className="bg-transparent">
+          <div
+            className={cn(
+              "dark flex-1 flex p-2 platform-win32:pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))] app-drag",
+              (open || (!open && sidebarCollapseMode === "icon")) &&
+                hasSidebar &&
+                variant === "sidebar" &&
+                (side === "left" ? "pl-0.5" : "pr-0.5"),
+              type === "popup" && "pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))]"
+            )}
+          >
+            {/* Topbar */}
+            <div className="absolute top-0 left-0 w-full h-2.5 flex justify-center items-center">
+              <AnimatePresence>
+                {isActiveTabLoading && (
                   <motion.div
-                    className="h-full bg-gray-800/90 dark:bg-white/90 rounded-full"
-                    initial={{ x: "-100%" }}
-                    animate={{ x: "100%" }}
-                    transition={{
-                      duration: 1,
-                      ease: "easeInOut",
-                      repeat: Infinity,
-                      repeatType: "loop",
-                      repeatDelay: 0.1
-                    }}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    className="w-28 h-1 bg-gray-200/30 dark:bg-white/10 rounded-full overflow-hidden"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <motion.div
+                      className="h-full bg-gray-800/90 dark:bg-white/90 rounded-full"
+                      initial={{ x: "-100%" }}
+                      animate={{ x: "100%" }}
+                      transition={{
+                        duration: 1,
+                        ease: "easeInOut",
+                        repeat: Infinity,
+                        repeatType: "loop",
+                        repeatDelay: 0.1
+                      }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Sidebar Hover Detector */}
+            <SidebarHoverDetector
+              side={side}
+              started={() => {
+                if (!open && variant === "sidebar" && sidebarCollapseMode === "offcanvas") {
+                  setIsHoveringSidebar(true);
+                  setVariant("floating");
+                  setOpen(true);
+                }
+              }}
+            />
+
+            {/* Content */}
+            <BrowserContent />
           </div>
+        </SidebarInset>
 
-          {/* Sidebar Hover Detector */}
-          <SidebarHoverDetector
-            side={side}
-            started={() => {
-              if (!open && variant === "sidebar" && sidebarCollapseMode === "offcanvas") {
-                setIsHoveringSidebar(true);
-                setVariant("floating");
-                setOpen(true);
-              }
-            }}
-          />
-
-          {/* Content */}
-          <BrowserContent />
-        </div>
-      </SidebarInset>
-
-      {/* Sidebar on Right Side */}
-      {hasSidebar && side === "right" && sidebar}
+        {/* Sidebar on Right Side */}
+        {hasSidebar && side === "right" && sidebar}
+      </ActionsProvider>
     </MinimalToastProvider>
   );
 }

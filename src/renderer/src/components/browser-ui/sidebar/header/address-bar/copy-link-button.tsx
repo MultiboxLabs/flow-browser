@@ -1,8 +1,7 @@
 import { CheckIcon, CheckIconHandle } from "@/components/icons/check";
 import { LinkIcon } from "@/components/icons/link";
-import { useToast } from "@/components/providers/minimal-toast-provider";
+import { useActions } from "@/components/providers/actions-provider";
 import { Button } from "@/components/ui/button";
-import { copyTextToClipboard } from "@/lib/utils";
 import { AnimatePresence, motion, usePresence } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -52,23 +51,21 @@ function CopyLinkIcon() {
   );
 }
 
-export function AddressBarCopyLinkButton({ addressUrl }: { addressUrl: string }) {
-  const { showToast } = useToast();
+export function AddressBarCopyLinkButton() {
+  const { copyLink } = useActions();
 
   const [copied, setCopied] = useState(false);
   const copyUrl = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
 
     if (copied) return;
-    copyTextToClipboard(addressUrl, false).then((success) => {
-      if (success) {
-        setCopied(true);
-        setTimeout(() => {
-          setCopied(false);
-        }, 3000);
-        showToast("Copied to clipboard!");
-      }
-    });
+
+    copyLink();
+
+    setCopied(true);
+    setTimeout(() => {
+      setCopied(false);
+    }, 3000);
   };
 
   return (
