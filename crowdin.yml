@@ -8,6 +8,6 @@
   [
     {
       "source": "src/renderer/src/locales/en/*.json",
-      "translation": "src/renderer/src/locales/%two_letters_code%/*.json"
+      "translation": "src/renderer/src/locales/%two_letters_code%/%original_file_name%"
     }
   ]
