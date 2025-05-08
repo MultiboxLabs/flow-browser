@@ -13,7 +13,7 @@ i18n
     lng: "en", // default language
     fallbackLng: "en",
 
-    ns: ["browser-ui"],
+    ns: ["browser-ui", "settings"],
 
     interpolation: {
       escapeValue: false // react already safes from xss
