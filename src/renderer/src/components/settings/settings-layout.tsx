@@ -7,9 +7,10 @@ import { AboutSettings } from "@/components/settings/sections/about/section";
 import { ProfilesSettings } from "@/components/settings/sections/profiles/section";
 import { SpacesSettings } from "@/components/settings/sections/spaces/section";
 import { ExternalAppsSettings } from "@/components/settings/sections/external-apps/section";
+import { KeybindsSettings } from "@/components/settings/sections/keybinds/section";
 import { SettingsProvider } from "@/components/providers/settings-provider";
 import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
-import { Globe, DockIcon, UsersIcon, OrbitIcon, BlocksIcon, Info } from "lucide-react";
+import { Globe, DockIcon, UsersIcon, OrbitIcon, BlocksIcon, Info, KeyboardIcon } from "lucide-react";
 
 export function SettingsLayout() {
   const [activeSection, setActiveSection] = useState("general");
@@ -22,6 +23,7 @@ export function SettingsLayout() {
     { id: "profiles", label: "Profiles", icon: <UsersIcon className="h-4 w-4 mr-2" /> },
     { id: "spaces", label: "Spaces", icon: <OrbitIcon className="h-4 w-4 mr-2" /> },
     { id: "external-apps", label: "External Apps", icon: <BlocksIcon className="h-4 w-4 mr-2" /> },
+    { id: "keybinds", label: "Keybinds", icon: <KeyboardIcon className="h-4 w-4 mr-2" /> },
     { id: "about", label: "About", icon: <Info className="h-4 w-4 mr-2" /> }
   ];
 
@@ -51,6 +53,8 @@ export function SettingsLayout() {
         return <SpacesSettings initialSelectedProfile={selectedProfileId} initialSelectedSpace={selectedSpaceId} />;
       case "external-apps":
         return <ExternalAppsSettings />;
+      case "keybinds":
+        return <KeybindsSettings />;
       default:
         return <GeneralSettings />;
     }
