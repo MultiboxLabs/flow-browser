@@ -8,6 +8,7 @@ import { createInitialWindow } from "@/saving/tabs";
 import { TabbedBrowserWindow } from "@/browser/window";
 import "@/modules/auto-update";
 import "@/modules/posthog";
+import { debugPrint } from "@/modules/output";
 
 export let browser: Browser | null = null;
 
@@ -131,13 +132,8 @@ const handleOpenUrl = async (url: string) => {
 };
 
 function initializeApp() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  if (require("electron-squirrel-startup")) {
-    app.quit();
-    return;
-  }
-
   const gotTheLock = app.requestSingleInstanceLock();
+  debugPrint("INITIALIZATION", "gotTheLock", gotTheLock);
 
   if (!gotTheLock) {
     app.quit();
@@ -149,8 +145,9 @@ function initializeApp() {
 
   // Initialize the Browser
   browser = new Browser();
+  debugPrint("INITIALIZATION", "browser object created");
 
-  // Hnadle command line arguments
+  // Handle command line arguments
   const commandLine = process.argv.slice(1);
   const targetUrl = commandLine.pop();
   if (targetUrl && isValidOpenerUrl(targetUrl)) {
@@ -177,20 +174,26 @@ function initializeApp() {
       handleOpenUrl(url);
     }
   });
+  debugPrint("INITIALIZATION", "second instance handler initialized");
 
   // Setup platform specific features
   if (process.platform === "win32") {
     setupWindowsUserTasks();
+    debugPrint("INITIALIZATION", "setup windows user tasks");
   } else if (process.platform === "darwin") {
     setupMacOSDock(browser);
   }
 
   // Open onboarding / create initial window
+  debugPrint("INITIALIZATION", "grabbing hasCompletedOnboarding()");
   hasCompletedOnboarding().then((completed) => {
+    debugPrint("INITIALIZATION", "grabbed hasCompletedOnboarding()", completed);
     if (!completed) {
       onboarding.show();
+      debugPrint("INITIALIZATION", "show onboarding window");
     } else {
       createInitialWindow();
+      debugPrint("INITIALIZATION", "show browser window");
     }
   });
 

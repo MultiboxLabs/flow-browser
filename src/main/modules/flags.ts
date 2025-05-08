@@ -23,7 +23,7 @@ export const FLAGS: Flags = {
   ERROR_PAGE_LOAD_MODE: "replace",
 
   // Debug: Prints & Errors
-  SHOW_DEBUG_PRINTS: !app.isPackaged,
+  SHOW_DEBUG_PRINTS: true,
   SHOW_DEBUG_ERRORS: true,
   SHOW_DEBUG_DEVTOOLS: !app.isPackaged,
 

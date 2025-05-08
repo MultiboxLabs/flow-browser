@@ -2,12 +2,14 @@ import { BrowserWindow, nativeTheme } from "electron";
 import { registerWindow, WindowType } from "@/modules/windows";
 import { FLAGS } from "@/modules/flags";
 import { defaultSessionReady } from "@/browser/utility/protocols";
+import { debugPrint } from "@/modules/output";
 
 let onboardingWindow: BrowserWindow | null = null;
 
 async function createOnboardingWindow() {
   // wait for the default session to be ready so it can use flow-internal protocol
   await defaultSessionReady;
+  debugPrint("INITIALIZATION", "default session ready");
 
   // create the window
   const window = new BrowserWindow({
