@@ -3,6 +3,7 @@
 import { BlocksIcon, DockIcon, Globe, Info, OrbitIcon, UsersIcon } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "motion/react";
+import { useTranslation } from "react-i18next";
 
 interface SettingsTopbarProps {
   activeSection: string;
@@ -10,20 +11,22 @@ interface SettingsTopbarProps {
 }
 
 export function SettingsTopbar({ activeSection, setActiveSection }: SettingsTopbarProps) {
+  const { t } = useTranslation("settings");
+
   const sections = [
-    { id: "general", label: "General", icon: <Globe className="h-4 w-4 mr-2" /> },
-    { id: "icons", label: "Icon", icon: <DockIcon className="h-4 w-4 mr-2" /> },
-    { id: "profiles", label: "Profiles", icon: <UsersIcon className="h-4 w-4 mr-2" /> },
-    { id: "spaces", label: "Spaces", icon: <OrbitIcon className="h-4 w-4 mr-2" /> },
-    { id: "external-apps", label: "External Apps", icon: <BlocksIcon className="h-4 w-4 mr-2" /> },
-    { id: "about", label: "About", icon: <Info className="h-4 w-4 mr-2" /> }
+    { id: "general", label: t("General"), icon: <Globe className="h-4 w-4 mr-2" /> },
+    { id: "icons", label: t("Icon"), icon: <DockIcon className="h-4 w-4 mr-2" /> },
+    { id: "profiles", label: t("Profiles"), icon: <UsersIcon className="h-4 w-4 mr-2" /> },
+    { id: "spaces", label: t("Spaces"), icon: <OrbitIcon className="h-4 w-4 mr-2" /> },
+    { id: "external-apps", label: t("External Apps"), icon: <BlocksIcon className="h-4 w-4 mr-2" /> },
+    { id: "about", label: t("About"), icon: <Info className="h-4 w-4 mr-2" /> }
   ];
 
   return (
     <>
       <div className="w-full border-b bg-background px-4 app-drag">
         <div className="flex items-center justify-center h-10">
-          <span className="font-bold">Flow Settings</span>
+          <span className="font-bold">{t("Flow Settings")}</span>
         </div>
       </div>
       <div className="w-full border-b bg-background px-4 h-10">
