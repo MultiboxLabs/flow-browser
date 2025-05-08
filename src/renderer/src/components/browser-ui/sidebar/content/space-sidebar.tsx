@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SidebarGroup, SidebarMenu, useSidebar } from "@/components/ui/resizable-sidebar";
 import { Space } from "~/flow/interfaces/sessions/spaces";
 import { cn, hex_is_light } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useMemo, useRef } from "react";
 import { DropIndicator as BaseDropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/list-item";
@@ -38,6 +39,7 @@ export function DropIndicator({ isSpaceLight }: { isSpaceLight: boolean }) {
 
 function SidebarSectionDivider({ hasTabs, handleCloseAllTabs }: { hasTabs: boolean; handleCloseAllTabs: () => void }) {
   const { open } = useSidebar();
+  const { t } = useTranslation();
 
   if (!hasTabs) return null;
 
@@ -62,7 +64,7 @@ function SidebarSectionDivider({ hasTabs, handleCloseAllTabs }: { hasTabs: boole
           size="sm"
           onClick={handleCloseAllTabs}
         >
-          <span className="text-xs font-semibold">Clear</span>
+          <span className="text-xs font-semibold">{t("Clear")}</span>
         </Button>
       )}
     </motion.div>
