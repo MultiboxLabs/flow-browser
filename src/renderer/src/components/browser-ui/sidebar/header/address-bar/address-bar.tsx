@@ -6,8 +6,10 @@ import { simplifyUrl } from "@/lib/url";
 import { cn } from "@/lib/utils";
 import { SearchIcon } from "lucide-react";
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 function FakeAddressBar() {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const { addressUrl, focusedTab } = useTabs();
 
@@ -34,7 +36,7 @@ function FakeAddressBar() {
   const simplifiedUrl = simplifyUrl(addressUrl);
   const isPlaceholder = !simplifiedUrl;
 
-  const value = isPlaceholder ? "Search or type URL" : simplifiedUrl;
+  const value = isPlaceholder ? t("Search or type URL") : simplifiedUrl;
 
   return (
     <div

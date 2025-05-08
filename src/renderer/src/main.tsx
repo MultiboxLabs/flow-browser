@@ -2,6 +2,7 @@ import { Fragment, StrictMode as ReactStrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App";
+import "@/lib/i18n";
 
 const STRICT_MODE_ENABLED = true;
 
