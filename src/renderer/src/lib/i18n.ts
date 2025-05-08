@@ -1,5 +1,5 @@
 import i18n from "i18next";
-import { initReactI18next } from "react-i18next";
+import { initReactI18next, useTranslation } from "react-i18next";
 import resourcesToBackend from "i18next-resources-to-backend";
 
 // Tell vite to load all locale files
@@ -24,5 +24,13 @@ i18n
 flow.app.getAppInfo().then((appInfo) => {
   i18n.changeLanguage(appInfo.locale);
 });
+
+export function useBrowserUITranslations() {
+  return useTranslation("browser-ui");
+}
+
+export function useSettingsTranslations() {
+  return useTranslation("settings");
+}
 
 export default i18n;

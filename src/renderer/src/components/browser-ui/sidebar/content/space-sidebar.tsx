@@ -9,10 +9,10 @@ import { cn, hex_is_light } from "@/lib/utils";
 import { Trash2Icon } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useCallback } from "react";
-import { useTranslation } from "react-i18next";
+import { useBrowserUITranslations } from "@/lib/i18n";
 
 export function SpaceSidebar({ space }: { space: Space }) {
-  const { t } = useTranslation();
+  const { t } = useBrowserUITranslations();
   const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabs();
 
   const tabGroups = getTabGroups(space.id);
