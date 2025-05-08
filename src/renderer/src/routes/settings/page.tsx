@@ -1,13 +1,13 @@
 import { ThemeProvider } from "@/components/main/theme";
 import { SettingsLayout } from "@/components/settings/settings-layout";
-import { useTranslation } from "react-i18next";
+import { useSettingsTranslations } from "@/lib/i18n";
 
 function Page() {
   return <SettingsLayout />;
 }
 
 function App() {
-  const { t } = useTranslation("settings");
+  const { t } = useSettingsTranslations();
 
   return (
     <ThemeProvider>

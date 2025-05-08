@@ -1,9 +1,9 @@
 "use client";
 
-import { useTranslation } from "react-i18next";
+import { useSettingsTranslations } from "@/lib/i18n";
 
 export function SettingsTitlebar() {
-  const { t } = useTranslation("settings");
+  const { t } = useSettingsTranslations();
 
   return (
     <div className="w-full h-10 border-b bg-muted/60 px-4 flex items-center app-drag">

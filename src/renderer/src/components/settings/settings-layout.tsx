@@ -12,10 +12,10 @@ import { SettingsProvider } from "@/components/providers/settings-provider";
 import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
 import { Globe, DockIcon, UsersIcon, OrbitIcon, BlocksIcon, Info, KeyboardIcon } from "lucide-react";
 import { ShortcutsProvider } from "@/components/providers/shortcuts-provider";
-import { useTranslation } from "react-i18next";
+import { useSettingsTranslations } from "@/lib/i18n";
 
 export function SettingsLayout() {
-  const { t } = useTranslation("settings");
+  const { t } = useSettingsTranslations();
 
   const [activeSection, setActiveSection] = useState("general");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
