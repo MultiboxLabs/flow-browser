@@ -6,7 +6,7 @@ permissions:
 
 on:
   push:
-    branches: [main, evan/translations]
+    branches: [main]
 
 jobs:
   synchronize-with-crowdin:
