@@ -17,7 +17,7 @@ async function createOnboardingWindow() {
     height: 700,
     resizable: false,
     center: true,
-    show: false,
+    show: true,
     frame: false,
     titleBarStyle: "hidden",
     titleBarOverlay: {
@@ -44,25 +44,23 @@ async function createOnboardingWindow() {
       });
     }, 0);
   }
-
-  window.hide();
-  return await new Promise((resolve) => {
-    window.once("ready-to-show", () => {
-      resolve(window);
-    });
-  });
 }
 
 export const onboarding = {
   show: async () => {
     if (!onboardingWindow) {
+      debugPrint("INITIALIZATION", "onboarding window creating...");
       await createOnboardingWindow();
+      debugPrint("INITIALIZATION", "onboarding window created");
     }
 
     if (!onboardingWindow) return;
+    debugPrint("INITIALIZATION", "showing onboarding window");
 
     onboardingWindow.show();
     onboardingWindow.focus();
+
+    debugPrint("INITIALIZATION", "showed onboarding window");
   },
   hide: () => {
     if (!onboardingWindow) return;
