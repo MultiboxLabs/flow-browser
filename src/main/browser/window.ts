@@ -69,10 +69,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       vibrancy: "fullscreen-ui", // on MacOS
       backgroundMaterial: "none", // on Windows (Disabled as it interferes with rounded corners)
       roundedCorners: true,
-      ...(options.window || {}),
-
-      // Show after ready
-      show: false
+      ...(options.window || {})
     });
 
     // Hide the window buttons before the component is mounted
@@ -119,7 +116,6 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       }
     });
 
-    this.window.hide();
     this.window.once("ready-to-show", () => {
       this.window.show();
       this.window.focus();
