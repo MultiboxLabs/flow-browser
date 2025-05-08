@@ -2,14 +2,14 @@ import { AddressBarCopyLinkButton } from "@/components/browser-ui/sidebar/header
 import { PinnedBrowserActions } from "@/components/browser-ui/sidebar/header/address-bar/pinned-browser-actions";
 import { useTabs } from "@/components/providers/tabs-provider";
 import { SidebarGroup, useSidebar } from "@/components/ui/resizable-sidebar";
+import { useBrowserUITranslations } from "@/lib/i18n";
 import { simplifyUrl } from "@/lib/url";
 import { cn } from "@/lib/utils";
 import { SearchIcon } from "lucide-react";
 import { useRef } from "react";
-import { useTranslation } from "react-i18next";
 
 function FakeAddressBar() {
-  const { t } = useTranslation();
+  const { t } = useBrowserUITranslations();
   const inputRef = useRef<HTMLInputElement>(null);
   const { addressUrl, focusedTab } = useTabs();
 

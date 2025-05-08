@@ -3,7 +3,7 @@
 import { BlocksIcon, DockIcon, Globe, Info, OrbitIcon, UsersIcon } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "motion/react";
-import { useTranslation } from "react-i18next";
+import { useSettingsTranslations } from "@/lib/i18n";
 
 interface SettingsTopbarProps {
   activeSection: string;
@@ -11,7 +11,7 @@ interface SettingsTopbarProps {
 }
 
 export function SettingsTopbar({ activeSection, setActiveSection }: SettingsTopbarProps) {
-  const { t } = useTranslation("settings");
+  const { t } = useSettingsTranslations();
 
   const sections = [
     { id: "general", label: t("General"), icon: <Globe className="h-4 w-4 mr-2" /> },
