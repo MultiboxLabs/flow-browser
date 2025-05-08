@@ -192,7 +192,6 @@ export function OmniboxMain() {
     return `calc(${windowHeight}px - ${inputHeight + instructionsHeight + padding}px)`;
   };
 
-  const transparent = openIn === "new_tab";
   return (
     <div
       className="flex flex-col justify-start items-center min-h-screen max-h-screen w-full overflow-hidden"
@@ -209,7 +208,7 @@ export function OmniboxMain() {
           className={cn(
             "rounded-xl border backdrop-blur-xl overflow-hidden",
             "border-[#e0e0e0] dark:border-[#383838]",
-            transparent ? "bg-white/80 dark:bg-[#1c1c1c]/80" : "bg-white/95 dark:bg-[#1c1c1c]/95",
+            "bg-white/80 dark:bg-[#1c1c1c]/80",
             "transition-all duration-150",
             "flex flex-col max-h-screen"
           )}
