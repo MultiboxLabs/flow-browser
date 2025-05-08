@@ -8,6 +8,7 @@ function Page() {
 function App() {
   return (
     <ThemeProvider>
+      <title>Flow Settings</title>
       <Page />
     </ThemeProvider>
   );
