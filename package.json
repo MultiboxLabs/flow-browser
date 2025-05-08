@@ -36,10 +36,13 @@
     "electron-context-menu": "^4.0.5",
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.6.2",
+    "i18next": "^25.1.2",
+    "i18next-resources-to-backend": "^1.2.1",
     "ico-to-png": "^0.2.2",
     "knex": "^3.1.0",
     "mime-types": "^3.0.1",
     "posthog-node": "^4.17.1",
+    "react-i18next": "^15.5.1",
     "sharp": "^0.34.1",
     "sharp-ico": "^0.1.5",
     "zod": "^3.24.3"
