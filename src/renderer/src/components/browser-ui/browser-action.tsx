@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { CogIcon, LayersIcon, PackageXIcon, PinIcon, PinOffIcon, PuzzleIcon } from "lucide-react";
 import { MouseEvent, useCallback, useMemo, useRef, useState } from "react";
 import { PortalPopover } from "@/components/portal/popover";
-import { useTranslation } from "react-i18next";
+import { useBrowserUITranslations } from "@/lib/i18n";
 
 interface BrowserActionListProps {
   partition?: string;
@@ -145,7 +145,7 @@ function BrowserAction({ action, alignment, partition, activeTabId }: BrowserAct
 }
 
 export function BrowserActionList({ alignmentX = "left", alignmentY = "bottom" }: BrowserActionListProps) {
-  const { t } = useTranslation();
+  const { t } = useBrowserUITranslations();
   const { isCurrentSpaceLight } = useSpaces();
   const { actions, activeTabId, partition } = useBrowserAction();
   const [open, setOpen] = useState(false);

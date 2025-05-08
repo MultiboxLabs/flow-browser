@@ -4,12 +4,12 @@ import { SidebarMenuButton } from "@/components/ui/resizable-sidebar";
 import { PlusIcon } from "lucide-react";
 import { SIDEBAR_HOVER_COLOR } from "@/components/browser-ui/browser-sidebar";
 import { cn } from "@/lib/utils";
-import { useTranslation } from "react-i18next";
+import { useBrowserUITranslations } from "@/lib/i18n";
 
 const MotionSidebarMenuButton = motion(SidebarMenuButton);
 
 export function NewTabButton() {
-  const { t } = useTranslation();
+  const { t } = useBrowserUITranslations();
   const [isPressed, setIsPressed] = useState(false);
 
   const handleMouseDown = () => {
