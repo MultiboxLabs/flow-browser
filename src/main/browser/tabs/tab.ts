@@ -395,6 +395,14 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       }
     });
 
+    // Handle devtools open url
+    webContents.on("devtools-open-url", (_event, url) => {
+      this.tabManager.createTab(this.window.id, this.profileId, undefined).then((tab) => {
+        tab.loadURL(url);
+        this.tabManager.setActiveTab(tab);
+      });
+    });
+
     // Handle content state changes
     const updateEvents = [
       "audio-state-changed", // audible
