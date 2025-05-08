@@ -9,8 +9,10 @@ import { cn, hex_is_light } from "@/lib/utils";
 import { Trash2Icon } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 export function SpaceSidebar({ space }: { space: Space }) {
+  const { t } = useTranslation();
   const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabs();
 
   const tabGroups = getTabGroups(space.id);
@@ -38,7 +40,7 @@ export function SpaceSidebar({ space }: { space: Space }) {
     <div className={cn(isSpaceLight ? "" : "dark")}>
       <SpaceTitle space={space} />
       <SidebarGroup>
-        <SidebarGroupLabel className="font-medium text-black dark:text-white">Tabs</SidebarGroupLabel>
+        <SidebarGroupLabel className="font-medium text-black dark:text-white">{t("Tabs")}</SidebarGroupLabel>
         <SidebarGroupAction onClick={handleCloseAllTabs} className={cn(SIDEBAR_HOVER_COLOR, "size-6")}>
           <Trash2Icon className="size-1.5 m-1 text-black dark:text-white" />
         </SidebarGroupAction>

@@ -11,6 +11,7 @@ export interface FlowAppAPI {
     electron_version: string;
     os: string;
     update_channel: "Stable" | "Beta" | "Alpha" | "Development";
+    locale: string;
   }>;
 
   /**
