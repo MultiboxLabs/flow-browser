@@ -3,7 +3,7 @@ import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { browser } from "@/index";
 import { getSpace } from "@/sessions/spaces";
-import { ipcMain } from "electron";
+import { clipboard, ipcMain, Menu, MenuItem } from "electron";
 import { TabData, TabGroupData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
 
 export function getTabData(tab: Tab): TabData {
@@ -213,4 +213,67 @@ ipcMain.handle("tabs:disable-picture-in-picture", async (event) => {
 
   const disabled = browser.tabs.disablePictureInPicture(tab.id);
   return disabled;
+});
+
+ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
+  const webContents = event.sender;
+  const tabbedWindow = browser?.getWindowFromWebContents(webContents);
+  if (!tabbedWindow) return;
+
+  const tabManager = browser?.tabs;
+  if (!tabManager) return;
+
+  const tab = tabManager.getTabById(tabId);
+  if (!tab) return;
+
+  const isTabVisible = tab.visible;
+  const hasURL = !!tab.url;
+
+  const contextMenu = new Menu();
+
+  contextMenu.append(
+    new MenuItem({
+      label: "Copy URL",
+      enabled: hasURL,
+      click: () => {
+        const url = tab.url;
+        if (!url) return;
+        clipboard.writeText(url);
+      }
+    })
+  );
+
+  contextMenu.append(
+    new MenuItem({
+      type: "separator"
+    })
+  );
+
+  contextMenu.append(
+    new MenuItem({
+      label: isTabVisible ? "Cannot put active tab to sleep" : tab.asleep ? "Wake Tab" : "Put Tab to Sleep",
+      enabled: !isTabVisible,
+      click: () => {
+        if (tab.asleep) {
+          tab.wakeUp();
+          tabManager.setActiveTab(tab);
+        } else {
+          tab.putToSleep();
+        }
+      }
+    })
+  );
+
+  contextMenu.append(
+    new MenuItem({
+      label: "Close Tab",
+      click: () => {
+        tab.destroy();
+      }
+    })
+  );
+
+  contextMenu.popup({
+    window: tabbedWindow.window
+  });
 });

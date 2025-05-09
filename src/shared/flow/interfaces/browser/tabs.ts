@@ -36,6 +36,12 @@ export interface FlowTabsAPI {
   closeTab: (tabId: number) => Promise<boolean>;
 
   /**
+   * Show the context menu for a tab
+   * @param tabId The id of the tab to show the context menu for
+   */
+  showContextMenu: (tabId: number) => void;
+
+  /**
    * Disable Picture in Picture mode for a tab
    */
   disablePictureInPicture: () => Promise<boolean>;

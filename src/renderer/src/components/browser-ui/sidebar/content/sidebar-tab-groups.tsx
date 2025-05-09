@@ -61,14 +61,21 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
     return isFocused ? "bg-white dark:bg-white/10" : "";
   };
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    flow.tabs.showContextMenu(tab.id);
+  };
+
   return (
     <MotionSidebarMenuButton
       key={tab.id}
       onClick={handleClick}
+      onContextMenu={handleContextMenu}
       className={cn(
         "hover:!bg-gray-200/60 dark:hover:!bg-white/5", // Simplified hover color
         getTabStyle(),
-        "text-gray-900 dark:text-gray-200"
+        "text-gray-900 dark:text-gray-200",
+        "transition-colors"
       )}
       initial={{ opacity: 0, x: -10 }}
       animate={{

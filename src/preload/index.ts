@@ -192,6 +192,10 @@ const tabsAPI: FlowTabsAPI = {
     return ipcRenderer.invoke("tabs:close-tab", tabId);
   },
 
+  showContextMenu: async (tabId: number) => {
+    return ipcRenderer.send("tabs:show-context-menu", tabId);
+  },
+
   // Special Exception: This is allowed on every tab, but very tightly secured.
   // It will only work if the tab is currently in Picture-in-Picture mode.
   disablePictureInPicture: async () => {
