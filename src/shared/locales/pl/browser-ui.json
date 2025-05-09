@@ -1,8 +1,8 @@
 {
-  "Tabs": "Tabs",
-  "New Tab": "New Tab",
-  "Search or type URL": "Search or type URL",
-  "No Active Tab": "No Active Tab",
-  "No Extensions Available": "No Extensions Available",
-  "Manage Extensions": "Manage Extensions"
+  "Tabs": "Karty",
+  "New Tab": "Nowa karta",
+  "Search or type URL": "Wyszukaj lub wpisz URL",
+  "No Active Tab": "Brak aktywnej karty",
+  "No Extensions Available": "Brak dostępnych rozszerzeń",
+  "Manage Extensions": "Zarządzaj rozszerzeniami"
 }
