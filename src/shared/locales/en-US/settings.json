@@ -8,5 +8,17 @@
   "About": "About",
   "Manage your browser's general settings": "Manage your browser's general settings",
   "Browser Icon": "Browser Icon",
-  "Select an icon for your browser application": "Select an icon for your browser application"
+  "protocol": "protocol",
+  "protocols": "protocols",
+  "Select an icon for your browser application": "Select an icon for your browser application",
+  "External Applications": "External Applications",
+  "Manage websites and the protocols they're allowed to open automatically": "Manage websites and the protocols they're allowed to open automatically",
+  "Websites that you've allowed to open external applications via protocols automatically": "Websites that you've allowed to open external applications via protocols automatically",
+  "Protocol Permissions": "Protocol Permissions",
+  "Search websites or protocols...": "Search websites or protocols...",
+  "No matching permissions found": "No matching permissions found",
+  "No permissions configured": "No permissions configured",
+  "Note: When you revoke a permission, the website will need to request permission again the next time it tries to open that protocol.": "Note: When you revoke a permission, the website will need to request permission again the next time it tries to open that protocol.",
+  "Confirm Revocation": "Confirm Revocation",
+  "Are you sure you want to revoke permission for {{websiteUrl}} to open {{protocol}}?": "Are you sure you want to revoke permission for {{websiteUrl}} to open {{protocol}}?"
 }
