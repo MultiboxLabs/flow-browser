@@ -13,7 +13,7 @@ i18n
     lng: "en", // default language
     fallbackLng: "en",
 
-    ns: ["browser-ui", "settings"],
+    ns: ["browser-ui", "settings", "icons"],
 
     interpolation: {
       escapeValue: false // react already safes from xss
@@ -31,6 +31,10 @@ export function useBrowserUITranslations() {
 
 export function useSettingsTranslations() {
   return useTranslation("settings");
+}
+
+export function useIconsTranslations() {
+  return useTranslation("icons");
 }
 
 export default i18n;
