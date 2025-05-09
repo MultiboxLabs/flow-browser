@@ -3,6 +3,7 @@ import { Check, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "motion/react";
 import { toast } from "sonner";
+import { useIconsTranslations, useSettingsTranslations } from "@/lib/i18n";
 
 interface IconOption {
   id: string;
@@ -13,6 +14,9 @@ interface IconOption {
 }
 
 export function IconSettings() {
+  const { t } = useSettingsTranslations();
+  const { t: tIcons } = useIconsTranslations();
+
   const [selectedIcon, setSelectedIcon] = useState<string>("");
   const [iconOptions, setIconOptions] = useState<IconOption[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -89,8 +93,8 @@ export function IconSettings() {
     <div className="h-full flex flex-col">
       <Card className="flex-1">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Browser Icon</CardTitle>
-          <CardDescription className="text-sm">Select an icon for your browser application</CardDescription>
+          <CardTitle className="text-lg">{t("Browser Icon")}</CardTitle>
+          <CardDescription className="text-sm">{t("Select an icon for your browser application")}</CardDescription>
         </CardHeader>
         <CardContent>
           {!isSupported ? (
@@ -131,7 +135,7 @@ export function IconSettings() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col justify-center">
-                      <h3 className="font-medium text-base truncate">{icon.name}</h3>
+                      <h3 className="font-medium text-base truncate">{tIcons(icon.name)}</h3>
                       {icon.author && <p className="text-xs text-muted-foreground truncate">by {icon.author}</p>}
                     </div>
                   </div>
