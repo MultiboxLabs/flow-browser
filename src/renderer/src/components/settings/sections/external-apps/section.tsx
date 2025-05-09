@@ -15,6 +15,7 @@ import {
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { ExternalAppPermission } from "@/lib/flow/interfaces/settings/openExternal";
 import { toast } from "sonner";
+import { useSettingsTranslations } from "@/lib/i18n";
 
 function PermissionItem({
   websiteUrl,
@@ -25,6 +26,7 @@ function PermissionItem({
   protocols: string[];
   onRevoke: (url: string, protocol: string) => void;
 }) {
+  const { t: tSettings } = useSettingsTranslations();
   const [expanded, setExpanded] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{ isOpen: boolean; protocol: string }>({
     isOpen: false,
@@ -48,7 +50,7 @@ function PermissionItem({
         </div>
         <div className="flex items-center">
           <span className="text-xs px-2 py-1 rounded-full bg-muted mr-2">
-            {protocols.length} protocol{protocols.length > 1 ? "s" : ""}
+            {protocols.length} {protocols.length > 1 ? tSettings("protocols") : tSettings("protocol")}
           </span>
         </div>
       </div>
@@ -84,9 +86,12 @@ function PermissionItem({
       <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, isOpen: open })}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Confirm Revocation</DialogTitle>
+            <DialogTitle>{tSettings("Confirm Revocation")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to revoke permission for {websiteUrl} to open {confirmDialog.protocol}?
+              {tSettings("Are you sure you want to revoke permission for {{websiteUrl}} to open {{protocol}}?", {
+                websiteUrl,
+                protocol: confirmDialog.protocol
+              })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -110,6 +115,7 @@ function PermissionItem({
 }
 
 export function ExternalAppsSettings() {
+  const { t: tSettings } = useSettingsTranslations();
   const [searchQuery, setSearchQuery] = useState("");
   const [permissions, setPermissions] = useState<ExternalAppPermission[]>([]);
 
@@ -157,17 +163,19 @@ export function ExternalAppsSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">External Applications</h2>
+        <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">
+          {tSettings("External Applications")}
+        </h2>
         <p className="text-muted-foreground">
-          {"Manage websites and the protocols they're allowed to open automatically"}
+          {tSettings("Manage websites and the protocols they're allowed to open automatically")}
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Protocol Permissions</CardTitle>
+          <CardTitle>{tSettings("Protocol Permissions")}</CardTitle>
           <CardDescription>
-            {"Websites that you've allowed to open external applications via protocols automatically"}
+            {tSettings("Websites that you've allowed to open external applications via protocols automatically")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -175,7 +183,7 @@ export function ExternalAppsSettings() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search websites or protocols..."
+              placeholder={tSettings("Search websites or protocols...")}
               className="pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -184,7 +192,7 @@ export function ExternalAppsSettings() {
 
           {filteredWebsites.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {searchQuery ? "No matching permissions found" : "No permissions configured"}
+              {searchQuery ? tSettings("No matching permissions found") : tSettings("No permissions configured")}
             </div>
           ) : (
             <div className="space-y-2">
@@ -201,8 +209,9 @@ export function ExternalAppsSettings() {
 
           <div className="border-t pt-4 text-xs text-muted-foreground">
             <p>
-              Note: When you revoke a permission, the website will need to request permission again the next time it
-              tries to open that protocol.
+              {tSettings(
+                "Note: When you revoke a permission, the website will need to request permission again the next time it tries to open that protocol."
+              )}
             </p>
           </div>
         </CardContent>
