@@ -7,11 +7,11 @@ function Page() {
 }
 
 function App() {
-  const { t } = useSettingsTranslations();
+  const { t: tSettings } = useSettingsTranslations();
 
   return (
     <ThemeProvider>
-      <title>{t("Flow Settings")}</title>
+      <title>{tSettings("Flow Settings")}</title>
       <Page />
     </ThemeProvider>
   );
