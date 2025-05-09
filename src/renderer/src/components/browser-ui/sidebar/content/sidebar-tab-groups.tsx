@@ -85,6 +85,7 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
         !isFocused && "hover:bg-black/5 hover:dark:bg-white/10",
         !isFocused && "active:bg-black/10 active:dark:bg-white/20",
         isFocused && "bg-white dark:bg-white/25",
+        isFocused && "active:bg-white active:dark:bg-white/25",
         "text-gray-900 dark:text-gray-200",
         "transition-colors"
       )}
