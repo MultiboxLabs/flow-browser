@@ -42,6 +42,10 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Left mouse button
+    if (e.button === 0) {
+      handleClick();
+    }
     // Middle mouse button
     if (e.button === 1) {
       handleCloseTab(e);
@@ -57,23 +61,30 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
     // In the future this would call: flow.tabs.toggleMute(tab.id);
   };
 
-  const getTabStyle = () => {
-    return isFocused ? "bg-white dark:bg-white/10" : "";
-  };
-
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     flow.tabs.showContextMenu(tab.id);
   };
 
+  useEffect(() => {
+    const handleMouseUp = () => {
+      setIsPressed(false);
+    };
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
   return (
     <MotionSidebarMenuButton
       key={tab.id}
-      onClick={handleClick}
       onContextMenu={handleContextMenu}
       className={cn(
-        "hover:!bg-gray-200/60 dark:hover:!bg-white/5", // Simplified hover color
-        getTabStyle(),
+        "bg-transparent active:bg-transparent",
+        !isFocused && "hover:bg-black/5 hover:dark:bg-white/10",
+        !isFocused && "active:bg-black/10 active:dark:bg-white/20",
+        isFocused && "bg-white dark:bg-white/25",
         "text-gray-900 dark:text-gray-200",
         "transition-colors"
       )}
@@ -81,7 +92,7 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
       animate={{
         opacity: 1,
         x: 0,
-        scale: isPressed ? 0.975 : 1
+        scale: isPressed ? 0.985 : 1
       }}
       exit={{ opacity: 0, x: -10 }}
       onMouseDown={handleMouseDown}
