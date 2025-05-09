@@ -39,7 +39,7 @@ export function DropIndicator({ isSpaceLight }: { isSpaceLight: boolean }) {
 
 function SidebarSectionDivider({ hasTabs, handleCloseAllTabs }: { hasTabs: boolean; handleCloseAllTabs: () => void }) {
   const { open } = useSidebar();
-  const { t } = useBrowserUITranslations();
+  const { t: tBrowserUI } = useBrowserUITranslations();
 
   if (!hasTabs) return null;
 
@@ -64,7 +64,7 @@ function SidebarSectionDivider({ hasTabs, handleCloseAllTabs }: { hasTabs: boole
           size="sm"
           onClick={handleCloseAllTabs}
         >
-          <span className="text-xs font-semibold">{t("Clear")}</span>
+          <span className="text-xs font-semibold">{tBrowserUI("Clear")}</span>
         </Button>
       )}
     </motion.div>

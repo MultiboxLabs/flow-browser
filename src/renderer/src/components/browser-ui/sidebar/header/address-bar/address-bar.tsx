@@ -9,7 +9,7 @@ import { SearchIcon } from "lucide-react";
 import { useRef } from "react";
 
 function FakeAddressBar({ className }: { className?: string }) {
-  const { t } = useBrowserUITranslations();
+  const { t: tBrowserUI } = useBrowserUITranslations();
   const inputRef = useRef<HTMLInputElement>(null);
   const { addressUrl, focusedTab } = useTabs();
 
@@ -36,7 +36,7 @@ function FakeAddressBar({ className }: { className?: string }) {
   const simplifiedUrl = simplifyUrl(addressUrl);
   const isPlaceholder = !simplifiedUrl;
 
-  const value = isPlaceholder ? t("Search or type URL") : simplifiedUrl;
+  const value = isPlaceholder ? tBrowserUI("Search or type URL") : simplifiedUrl;
 
   return (
     <div

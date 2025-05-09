@@ -14,7 +14,7 @@ interface IconOption {
 }
 
 export function IconSettings() {
-  const { t } = useSettingsTranslations();
+  const { t: tSettings } = useSettingsTranslations();
   const { t: tIcons } = useIconsTranslations();
 
   const [selectedIcon, setSelectedIcon] = useState<string>("");
@@ -93,8 +93,10 @@ export function IconSettings() {
     <div className="h-full flex flex-col">
       <Card className="flex-1">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">{t("Browser Icon")}</CardTitle>
-          <CardDescription className="text-sm">{t("Select an icon for your browser application")}</CardDescription>
+          <CardTitle className="text-lg">{tSettings("Browser Icon")}</CardTitle>
+          <CardDescription className="text-sm">
+            {tSettings("Select an icon for your browser application")}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {!isSupported ? (

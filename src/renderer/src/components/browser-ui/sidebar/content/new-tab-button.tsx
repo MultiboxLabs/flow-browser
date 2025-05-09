@@ -9,7 +9,7 @@ import { useBrowserUITranslations } from "@/lib/i18n";
 const MotionSidebarMenuButton = motion(SidebarMenuButton);
 
 export function NewTabButton() {
-  const { t } = useBrowserUITranslations();
+  const { t: tBrowserUI } = useBrowserUITranslations();
   const [isPressed, setIsPressed] = useState(false);
 
   const handleMouseDown = () => {
@@ -34,7 +34,7 @@ export function NewTabButton() {
       className={cn(SIDEBAR_HOVER_COLOR, "text-black/50 dark:text-muted-foreground")}
     >
       <PlusIcon className="size-4" strokeWidth={3} />
-      <span className="font-medium">{t("New Tab")}</span>
+      <span className="font-medium">{tBrowserUI("New Tab")}</span>
     </MotionSidebarMenuButton>
   );
 }
