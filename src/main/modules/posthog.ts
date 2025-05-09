@@ -44,7 +44,8 @@ function getAppInfoForPosthog() {
   return {
     version: app.getVersion(),
     platform: process.platform,
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
+    locale: app.getLocale()
   };
 }
 
