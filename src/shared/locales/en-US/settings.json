@@ -29,5 +29,15 @@
   "Failed to revoke permission.": "Failed to revoke permission.",
   "An error occurred while revoking permission.": "An error occurred while revoking permission.",
   "Could not load permissions.": "Could not load permissions.",
-  "Revoke": "Revoke"
+  "Revoke": "Revoke",
+  "Information about your browser": "Information about your browser",
+  "Browser Information": "Browser Information",
+  "Details about your browser": "Details about your browser",
+  "Browser Name": "Browser Name",
+  "Version": "Version",
+  "Build": "Build",
+  "Engine": "Engine",
+  "OS": "OS",
+  "Update Channel": "Update Channel",
+  "Could not load browser information.": "Could not load browser information."
 }
