@@ -192,7 +192,7 @@ const tabsAPI: FlowTabsAPI = {
     return ipcRenderer.invoke("tabs:close-tab", tabId);
   },
 
-  showContextMenu: async (tabId: number) => {
+  showContextMenu: (tabId: number) => {
     return ipcRenderer.send("tabs:show-context-menu", tabId);
   },
 
