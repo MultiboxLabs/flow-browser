@@ -140,14 +140,15 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
               </motion.div>
             )}
             {/* Close tab button */}
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+            <motion.div whileTap={{ scale: 0.95 }}>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handleCloseTab}
-                className="size-5 bg-transparent hover:!bg-white dark:hover:!bg-white/10 text-gray-600 dark:text-gray-400"
+                className="size-5 bg-transparent rounded-sm hover:bg-black/10 dark:hover:bg-white/10"
+                onMouseDown={(event) => event.stopPropagation()}
               >
-                <XIcon className="size-4" />
+                <XIcon className="size-4 text-muted-foreground dark:text-white" />
               </Button>
             </motion.div>
           </div>
