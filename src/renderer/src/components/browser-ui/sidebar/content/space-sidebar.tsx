@@ -12,7 +12,7 @@ import { useCallback } from "react";
 import { useBrowserUITranslations } from "@/lib/i18n";
 
 export function SpaceSidebar({ space }: { space: Space }) {
-  const { t } = useBrowserUITranslations();
+  const { t: tBrowserUI } = useBrowserUITranslations();
   const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabs();
 
   const tabGroups = getTabGroups(space.id);
@@ -40,7 +40,7 @@ export function SpaceSidebar({ space }: { space: Space }) {
     <div className={cn(isSpaceLight ? "" : "dark")}>
       <SpaceTitle space={space} />
       <SidebarGroup>
-        <SidebarGroupLabel className="font-medium text-black dark:text-white">{t("Tabs")}</SidebarGroupLabel>
+        <SidebarGroupLabel className="font-medium text-black dark:text-white">{tBrowserUI("Tabs")}</SidebarGroupLabel>
         <SidebarGroupAction onClick={handleCloseAllTabs} className={cn(SIDEBAR_HOVER_COLOR, "size-6")}>
           <Trash2Icon className="size-1.5 m-1 text-black dark:text-white" />
         </SidebarGroupAction>

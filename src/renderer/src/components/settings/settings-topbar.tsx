@@ -11,22 +11,22 @@ interface SettingsTopbarProps {
 }
 
 export function SettingsTopbar({ activeSection, setActiveSection }: SettingsTopbarProps) {
-  const { t } = useSettingsTranslations();
+  const { t: tSettings } = useSettingsTranslations();
 
   const sections = [
-    { id: "general", label: t("General"), icon: <Globe className="h-4 w-4 mr-2" /> },
-    { id: "icons", label: t("Icon"), icon: <DockIcon className="h-4 w-4 mr-2" /> },
-    { id: "profiles", label: t("Profiles"), icon: <UsersIcon className="h-4 w-4 mr-2" /> },
-    { id: "spaces", label: t("Spaces"), icon: <OrbitIcon className="h-4 w-4 mr-2" /> },
-    { id: "external-apps", label: t("External Apps"), icon: <BlocksIcon className="h-4 w-4 mr-2" /> },
-    { id: "about", label: t("About"), icon: <Info className="h-4 w-4 mr-2" /> }
+    { id: "general", label: tSettings("General"), icon: <Globe className="h-4 w-4 mr-2" /> },
+    { id: "icons", label: tSettings("Icon"), icon: <DockIcon className="h-4 w-4 mr-2" /> },
+    { id: "profiles", label: tSettings("Profiles"), icon: <UsersIcon className="h-4 w-4 mr-2" /> },
+    { id: "spaces", label: tSettings("Spaces"), icon: <OrbitIcon className="h-4 w-4 mr-2" /> },
+    { id: "external-apps", label: tSettings("External Apps"), icon: <BlocksIcon className="h-4 w-4 mr-2" /> },
+    { id: "about", label: tSettings("About"), icon: <Info className="h-4 w-4 mr-2" /> }
   ];
 
   return (
     <>
       <div className="w-full border-b bg-background px-4 app-drag">
         <div className="flex items-center justify-center h-10">
-          <span className="font-bold">{t("Flow Settings")}</span>
+          <span className="font-bold">{tSettings("Flow Settings")}</span>
         </div>
       </div>
       <div className="w-full border-b bg-background px-4 h-10">
