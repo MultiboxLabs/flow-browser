@@ -15,6 +15,9 @@ i18n
 
     ns: ["browser-ui", "settings", "icons"],
 
+    keySeparator: false, // turn off nested key splitting
+    nsSeparator: false, // turn off namespace splitting
+
     interpolation: {
       escapeValue: false // react already safes from xss
     }
