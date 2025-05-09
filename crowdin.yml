@@ -5,4 +5,4 @@
 "preserve_hierarchy": true
 
 "files":
-  [{ "source": "src/shared/locales/en/*.json", "translation": "src/shared/locales/%locale%/%original_file_name%" }]
+  [{ "source": "src/shared/locales/en-US/*.json", "translation": "src/shared/locales/%locale%/%original_file_name%" }]
