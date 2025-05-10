@@ -25,6 +25,33 @@ export const BasicSettings: BasicSetting[] = [
     defaultValue: true
   },
 
+  // [GENERAL] Content Blocking
+  {
+    id: "contentBlocker",
+    name: "Content Blocker (Built-In Adblocker)",
+    showName: true,
+    type: "enum",
+    defaultValue: "disabled",
+    options: [
+      {
+        id: "disabled",
+        name: "Disabled"
+      },
+      {
+        id: "adsOnly",
+        name: "Block Ads"
+      },
+      {
+        id: "adsAndTrackers",
+        name: "Block Ads & Trackers"
+      },
+      {
+        id: "all",
+        name: "Block All (Cookie Notices, etc...)"
+      }
+    ]
+  },
+
   // New Tab Mode
   {
     id: "newTabMode",
@@ -128,7 +155,7 @@ export const BasicSettingCards: BasicSettingCard[] = [
   {
     title: "General Settings",
     subtitle: "General settings for the application",
-    settings: ["autoUpdate", "internal_setAsDefaultBrowser"]
+    settings: ["autoUpdate", "contentBlocker", "internal_setAsDefaultBrowser"]
   },
 
   // Update Card (Internal)

@@ -8,6 +8,7 @@ import { createInitialWindow } from "@/saving/tabs";
 import { TabbedBrowserWindow } from "@/browser/window";
 import "@/modules/auto-update";
 import "@/modules/posthog";
+import "@/modules/content-blocker";
 import { debugPrint } from "@/modules/output";
 
 export let browser: Browser | null = null;
