@@ -89,8 +89,6 @@ class ContentBlocker {
     if (!browser) return;
 
     const contentBlocker = getSettingValueById("contentBlocker") as string | undefined;
-    if (!contentBlocker) return;
-
     const profiles = browser.getLoadedProfiles();
 
     switch (contentBlocker) {
