@@ -11,7 +11,8 @@ import type { SpaceData } from "@/sessions/spaces";
 
 // SHARED TYPES //
 import type { SharedExtensionData } from "~/types/extensions";
-import { WindowTabsData } from "~/types/tabs";
+import type { WindowTabsData } from "~/types/tabs";
+import type { UpdateStatus } from "~/types/updates";
 
 // API TYPES //
 import { FlowBrowserAPI } from "~/flow/interfaces/browser/browser";
@@ -31,8 +32,8 @@ import { FlowWindowsAPI } from "~/flow/interfaces/app/windows";
 import { FlowExtensionsAPI } from "~/flow/interfaces/app/extensions";
 import { FlowTabsAPI } from "~/flow/interfaces/browser/tabs";
 import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
-import { UpdateStatus } from "~/types/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
+import { FlowKeybindsAPI } from "~/flow/interfaces/app/keybinds";
 
 // API CHECKS //
 function isProtocol(protocol: string) {
@@ -473,6 +474,13 @@ const actionsAPI: FlowActionsAPI = {
   }
 };
 
+// KEYBINDS API //
+const keybindsAPI: FlowKeybindsAPI = {
+  ping: () => {
+    return Promise.resolve(true);
+  }
+};
+
 // EXPOSE FLOW API //
 contextBridge.exposeInMainWorld("flow", {
   // App APIs
@@ -481,6 +489,7 @@ contextBridge.exposeInMainWorld("flow", {
   extensions: wrapAPI(extensionsAPI, "app"),
   updates: wrapAPI(updatesAPI, "app"),
   actions: wrapAPI(actionsAPI, "app"),
+  keybinds: wrapAPI(keybindsAPI, "app"),
 
   // Browser APIs
   browser: wrapAPI(browserAPI, "browser"),
