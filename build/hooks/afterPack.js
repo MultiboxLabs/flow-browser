@@ -1,4 +1,4 @@
-import { signAppWithVMP } from "./castlabs-evs.js";
+import { signAppWithVMP } from "./components/castlabs-evs.js";
 
 const vmpSignPlatforms = ["darwin"];
 
