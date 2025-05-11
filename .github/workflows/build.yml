@@ -48,7 +48,9 @@ jobs:
         run: bun install --development --frozen-lockfile
 
       - name: Install Castlabs EVS
-        run: python3 -m pip install --upgrade castlabs-evs
+        run: |
+          brew install pipx
+          pipx install castlabs-evs
 
       - name: Login to Castlabs EVS
         continue-on-error: true
