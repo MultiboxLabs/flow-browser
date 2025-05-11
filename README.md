@@ -58,6 +58,7 @@ Choose the file you need and [download from GitHub Releases](https://github.com/
 - **Persist Tabs**: Allow you to persist tabs between restarts.
 - **Native Adblocker**: A native adblocker that blocks ads and trackers.
 - **Sleep Tabs**: Allow you to put tabs to sleep to save resources.
+- **Widevine Support**: Allow you to watch DRM protected content.
 
 ## Upcoming Features
 
@@ -68,7 +69,6 @@ Choose the file you need and [download from GitHub Releases](https://github.com/
 - **Pinned Tabs**: Allow you to pin tabs in spaces.
 - **Custom Search Engines**: Allow you to add custom search engines.
 - **Preview Tabs**: Allow you to preview tabs before switching to them.
-- **Widevine Support**: Allow you to watch DRM protected content.
 
 ## Feedback / Feature Requests / Bugs
 
