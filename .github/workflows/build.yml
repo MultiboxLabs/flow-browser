@@ -41,7 +41,7 @@ jobs:
 
       - name: Install Electron
         run: |
-          bun remove electron
+          bun remove electron --lockfile-only
           bun install https://github.com/castlabs/electron-releases#v35.3.0+wvcus
 
       - name: Install Dependencies
