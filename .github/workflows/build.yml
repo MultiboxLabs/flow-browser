@@ -42,15 +42,13 @@ jobs:
       - name: Install Electron
         run: |
           bun remove electron --lockfile-only
-          bun install https://github.com/castlabs/electron-releases#v35.3.0+wvcus
+          bun install -d https://github.com/castlabs/electron-releases#v35.3.0+wvcus
 
       - name: Install Dependencies
         run: bun install --development --frozen-lockfile
 
       - name: Install Castlabs EVS
-        run: |
-          brew install pipx
-          pipx install castlabs-evs
+        run: python3 -m pip install --upgrade castlabs-evs --break-system-packages
 
       - name: Login to Castlabs EVS
         continue-on-error: true
