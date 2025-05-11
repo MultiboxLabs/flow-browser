@@ -90,5 +90,6 @@
     "provider": "github",
     "owner": "multiboxlabs",
     "releaseType": "prerelease"
-  }
+  },
+  "electronDist": "node_modules/electron/dist"
 }

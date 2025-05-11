@@ -1,6 +1,6 @@
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { TabbedBrowserWindow } from "@/browser/window";
-import { app, WebContents } from "electron";
+import { app, components, WebContents } from "electron";
 import { BrowserEvents } from "@/browser/events";
 import { ProfileManager, LoadedProfile } from "@/browser/profile-manager";
 import { WindowManager, BrowserWindowType, BrowserWindowCreationOptions } from "@/browser/window-manager";
@@ -85,7 +85,13 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
     type: BrowserWindowType = "normal",
     options: BrowserWindowCreationOptions = {}
   ): Promise<TabbedBrowserWindow> {
+    // Wait for app to be ready
     await app.whenReady();
+
+    // Wait for WidevineCDM to be ready
+    await components.whenReady();
+
+    // Create the window
     return this.createWindowInternal(type, options);
   }
 
