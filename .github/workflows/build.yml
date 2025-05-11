@@ -39,18 +39,8 @@ jobs:
         run: |
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-      - name: Test Git clone --bare directly
-        run: |
-          echo "Attempting git clone --bare https://github.com/castlabs/electron-releases.git electron-releases.git"
-          git clone --bare https://github.com/castlabs/electron-releases.git electron-releases.git
-          if [ $? -eq 0 ]; then
-            echo "git clone --bare successful"
-            # Optionally, try to resolve the commit from this bare repo
-            (cd electron-releases.git && git log --format=%H -1 c3d0eae09e098fbf33873ecbb95a8ca0fb5e48f5 && echo "Commit found in bare repo") || echo "Commit not found or error resolving in bare repo"
-          else
-            echo "git clone --bare failed with exit code $?"
-          fi
-          rm -rf electron-releases.git
+      - name: Install Electron
+        run: bun install https://github.com/castlabs/electron-releases#v35.3.0+wvcus
 
       - name: Install Dependencies
         run: bun install --development --frozen-lockfile
