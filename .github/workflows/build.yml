@@ -39,7 +39,7 @@ jobs:
         run: |
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-      - name: Install Electron
+      - name: Install Electron (Workaround for Bun issue)
         run: |
           bun remove electron --lockfile-only
           bun install -d https://github.com/castlabs/electron-releases#v35.3.0+wvcus
@@ -48,11 +48,22 @@ jobs:
         run: bun install --development --frozen-lockfile
 
       - name: Install Castlabs EVS
+        if: matrix.os == 'macos-latest' || matrix.os == 'windows-latest'
         run: python3 -m pip install --upgrade castlabs-evs --break-system-packages
 
-      - name: Login to Castlabs EVS
+      - name: Login to Castlabs EVS (macOS)
+        if: matrix.os == 'macos-latest'
         continue-on-error: true
         run: python3 -m castlabs_evs.account --no-ask reauth -A $ACCOUNT_NAME -P $PASSWD
+        env:
+          ACCOUNT_NAME: ${{ secrets.CASTLABS_EVS_ACCOUNT_NAME }}
+          PASSWD: ${{ secrets.CASTLABS_EVS_PASSWORD }}
+
+      - name: Login to Castlabs EVS (Windows)
+        if: matrix.os == 'windows-latest'
+        continue-on-error: true
+        shell: cmd
+        run: python3 -m castlabs_evs.account --no-ask reauth -A "%ACCOUNT_NAME%" -P "%PASSWD%"
         env:
           ACCOUNT_NAME: ${{ secrets.CASTLABS_EVS_ACCOUNT_NAME }}
           PASSWD: ${{ secrets.CASTLABS_EVS_PASSWORD }}

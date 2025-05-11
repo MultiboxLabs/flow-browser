@@ -10,7 +10,9 @@ export async function handler(context) {
 
   // macOS needs to VMP-sign the app before signing it with Apple
   if (vmpSignPlatforms.includes(process.platform)) {
-    await signAppWithVMP(context.appOutDir);
+    await signAppWithVMP(context.appOutDir)
+      .then(() => true)
+      .catch(() => false);
   }
 
   // Footer

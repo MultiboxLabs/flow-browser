@@ -8,9 +8,11 @@ export async function handler(context) {
   console.log("\n---------");
   console.log("Executing afterSign hook");
 
-  // Windows needs to VMP-sign the app after signing it with Apple
+  // Windows needs to VMP-sign the app after signing it with Windows
   if (vmpSignPlatforms.includes(process.platform)) {
-    await signAppWithVMP(context.appOutDir);
+    await signAppWithVMP(context.appOutDir)
+      .then(() => true)
+      .catch(() => false);
   }
 
   // Footer
