@@ -16,7 +16,7 @@ type Flags = {
 export const FLAGS: Flags = {
   // Disabled, because it causes cloudflare turnstile to flag us.
   // It also causes Google to flag us as a bot, which stops us from logging in to Google.
-  SCRUBBED_USER_AGENT: false,
+  SCRUBBED_USER_AGENT: true,
 
   // Replace - Use window.location.replace to load the error page.
   // Load - Add the page to the history stack by loading it normally.
