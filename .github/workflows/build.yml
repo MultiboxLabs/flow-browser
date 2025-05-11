@@ -53,11 +53,7 @@ jobs:
           rm -rf electron-releases.git
 
       - name: Install Dependencies
-        run: |
-          git config --global url.https://github.com/.insteadOf git://github.com/
-          bun install --development --frozen-lockfile
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        run: bun install --development --frozen-lockfile
 
       - name: Install Castlabs EVS
         run: python3 -m pip install --upgrade castlabs-evs
