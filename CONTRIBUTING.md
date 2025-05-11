@@ -70,10 +70,10 @@ The build output will be in the `./dist` directory.
 - **Build Tools**: Electron Builder, electron-vite, Vite, TypeScript
 - **Runtime**: Electron 35 (Chromium)
 
-## Widewine VMP Signing (Advanced)
+## Widevine VMP Signing (Advanced)
 
-This build pipeline contains Widewine Signing Capabilities. However, you will have to create an account in order to enable it.
+This build pipeline contains Widevine VMP Signing Capabilities. However, you will have to create an account in order to enable it.
 
 Create an Account: https://github.com/castlabs/electron-releases/wiki/EVS#creating-an-evs-account
 
-Once logged in, the app will be automatically VMP-signed, and you can enjoy Widewine Protected Content!
+Once logged in, the app will be automatically VMP-signed, and you can enjoy Widevine Protected Content!

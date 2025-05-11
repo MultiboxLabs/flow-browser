@@ -68,7 +68,7 @@ Choose the file you need and [download from GitHub Releases](https://github.com/
 - **Pinned Tabs**: Allow you to pin tabs in spaces.
 - **Custom Search Engines**: Allow you to add custom search engines.
 - **Preview Tabs**: Allow you to preview tabs before switching to them.
-- **Widewine Support**: Allow you to watch DRM protected content.
+- **Widevine Support**: Allow you to watch DRM protected content.
 
 ## Feedback / Feature Requests / Bugs
 
