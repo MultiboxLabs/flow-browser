@@ -39,12 +39,18 @@ jobs:
         run: |
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-      - name: Test Git clone directly
+      - name: Test Git clone --bare directly
         run: |
-          git clone --depth 1 https://github.com/castlabs/electron-releases.git temp-electron-repo
-          cd temp-electron-repo
-          git checkout c3d0eae09e098fbf33873ecbb95a8ca0fb5e48f5
-          echo "Direct git clone and checkout successful"
+          echo "Attempting git clone --bare https://github.com/castlabs/electron-releases.git electron-releases.git"
+          git clone --bare https://github.com/castlabs/electron-releases.git electron-releases.git
+          if [ $? -eq 0 ]; then
+            echo "git clone --bare successful"
+            # Optionally, try to resolve the commit from this bare repo
+            (cd electron-releases.git && git log --format=%H -1 c3d0eae09e098fbf33873ecbb95a8ca0fb5e48f5 && echo "Commit found in bare repo") || echo "Commit not found or error resolving in bare repo"
+          else
+            echo "git clone --bare failed with exit code $?"
+          fi
+          rm -rf electron-releases.git
 
       - name: Install Dependencies
         run: |
