@@ -74,7 +74,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "electron": "https://github.com/castlabs/electron-releases#v35.3.0+wvcus",
+    "electron": "github:castlabs/electron-releases#v35.3.0+wvcus",
     "electron-builder": "^26.0.12",
     "electron-vite": "^3.1.0",
     "eslint": "^9.24.0",

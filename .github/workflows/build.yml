@@ -39,11 +39,6 @@ jobs:
         run: |
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-      - name: Install Electron (Workaround for Bun issue)
-        run: |
-          bun remove electron --lockfile-only
-          bun install -d https://github.com/castlabs/electron-releases#v35.3.0+wvcus
-
       - name: Install Dependencies
         run: bun install --development --frozen-lockfile
 

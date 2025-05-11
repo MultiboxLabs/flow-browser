@@ -51,13 +51,13 @@
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "cmdk": "^1.1.1",
+        "electron": "github:castlabs/electron-releases#v35.3.0+wvcus",
         "electron-builder": "^26.0.12",
         "electron-vite": "^3.1.0",
         "eslint": "^9.24.0",
         "eslint-plugin-react": "^7.37.5",
         "eslint-plugin-react-hooks": "^5.2.0",
         "eslint-plugin-react-refresh": "^0.4.19",
-        "electron": "https://github.com/castlabs/electron-releases#v35.3.0+wvcus",
         "lucide-react": "^0.503.0",
         "motion": "^12.7.4",
         "prettier": "^3.5.3",
@@ -808,7 +808,7 @@
 
     "ejs": ["ejs@3.1.10", "", { "dependencies": { "jake": "^10.8.5" }, "bin": { "ejs": "bin/cli.js" } }, "sha512-UeJmFfOrAQS8OJWPZ4qtgHyWExa088/MtK5UEyoJGFH67cDEXkZSviOiKRCZ4Xij0zxI3JECgYs3oKx+AizQBA=="],
 
-    "electron": ["electron@git+https://github.com/castlabs/electron-releases#c3d0eae09e098fbf33873ecbb95a8ca0fb5e48f5", { "dependencies": { "@electron/get": "^2.0.0", "@types/node": "^22.7.7", "extract-zip": "^2.0.1" }, "bin": { "electron": "cli.js" } }, "c3d0eae09e098fbf33873ecbb95a8ca0fb5e48f5"],
+    "electron": ["electron@git+ssh://github.com/castlabs/electron-releases#c3d0eae09e098fbf33873ecbb95a8ca0fb5e48f5", { "dependencies": { "@electron/get": "^2.0.0", "@types/node": "^22.7.7", "extract-zip": "^2.0.1" }, "bin": { "electron": "cli.js" } }, "c3d0eae09e098fbf33873ecbb95a8ca0fb5e48f5"],
 
     "electron-builder": ["electron-builder@26.0.12", "", { "dependencies": { "app-builder-lib": "26.0.12", "builder-util": "26.0.11", "builder-util-runtime": "9.3.1", "chalk": "^4.1.2", "dmg-builder": "26.0.12", "fs-extra": "^10.1.0", "is-ci": "^3.0.0", "lazy-val": "^1.0.5", "simple-update-notifier": "2.0.0", "yargs": "^17.6.2" }, "bin": { "electron-builder": "cli.js", "install-app-deps": "install-app-deps.js" } }, "sha512-cD1kz5g2sgPTMFHjLxfMjUK5JABq3//J4jPswi93tOPFz6btzXYtK5NrDt717NRbukCUDOrrvmYVOWERlqoiXA=="],
 
