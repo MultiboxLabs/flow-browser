@@ -89,7 +89,11 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
     await app.whenReady();
 
     // Wait for WidevineCDM to be ready
-    await components.whenReady();
+    // Could fail, but we don't care
+    await components
+      .whenReady()
+      .then(() => true)
+      .catch(() => false);
 
     // Create the window
     return this.createWindowInternal(type, options);
