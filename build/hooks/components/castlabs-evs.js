@@ -8,7 +8,7 @@ async function signAppWithVMP() {
   let signPath = null;
   if (process.platform === "darwin") {
     signPath = "./dist/mac-arm64";
-  } else if (process.platform === "linux") {
+  } else if (process.platform === "win32") {
     // TODO: figure this out
   }
 
