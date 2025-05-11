@@ -4,12 +4,13 @@
 import process from "process";
 import { spawn } from "child_process";
 
-async function signAppWithVMP() {
+/** @type {(appOutDir: string) => Promise<void>} */
+async function signAppWithVMP(appOutDir) {
   let signPath = null;
   if (process.platform === "darwin") {
-    signPath = "./dist/mac-arm64";
+    signPath = appOutDir;
   } else if (process.platform === "win32") {
-    // TODO: figure this out
+    signPath = appOutDir;
   }
 
   if (signPath) {
