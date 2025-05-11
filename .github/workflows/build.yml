@@ -39,8 +39,19 @@ jobs:
         run: |
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
+      - name: Test Git clone directly
+        run: |
+          git clone --depth 1 https://github.com/castlabs/electron-releases.git temp-electron-repo
+          cd temp-electron-repo
+          git checkout c3d0eae09e098fbf33873ecbb95a8ca0fb5e48f5
+          echo "Direct git clone and checkout successful"
+
       - name: Install Dependencies
-        run: bun install --development --frozen-lockfile
+        run: |
+          git config --global url.https://github.com/.insteadOf git://github.com/
+          bun install --development --frozen-lockfile
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 
       - name: Install Castlabs EVS
         run: python3 -m pip install --upgrade castlabs-evs
