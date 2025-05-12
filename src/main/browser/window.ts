@@ -38,6 +38,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
   public readonly type: BrowserWindowType;
   private pageBounds: PageBounds;
   private currentSpaceId: string | null = null;
+  private windowButtonVisibility: boolean = true;
 
   private isDestroyed: boolean = false;
 
@@ -73,8 +74,8 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     });
 
     // Hide the window buttons before the component is mounted
-    if ("setWindowButtonVisibility" in this.window && type === "normal") {
-      this.window.setWindowButtonVisibility(false);
+    if (type === "normal") {
+      this.setWindowButtonVisibility(false);
     }
 
     const windowOptions = options.window || {};
@@ -87,10 +88,12 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
 
     this.window.on("enter-full-screen", () => {
       this.emit("enter-full-screen");
+      this._updateWindowButtonVisibility();
     });
 
     this.window.on("leave-full-screen", () => {
       this.emit("leave-full-screen");
+      this._updateWindowButtonVisibility();
     });
 
     // Focus on the focused tab
@@ -248,5 +251,24 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
 
   getPageBounds() {
     return this.pageBounds;
+  }
+
+  private _updateWindowButtonVisibility() {
+    if ("setWindowButtonVisibility" in this.window) {
+      if (this.window.fullScreen) {
+        this.window.setWindowButtonVisibility(true);
+      } else {
+        this.window.setWindowButtonVisibility(this.windowButtonVisibility);
+      }
+    }
+  }
+
+  setWindowButtonVisibility(visible: boolean) {
+    this.windowButtonVisibility = visible;
+    this._updateWindowButtonVisibility();
+  }
+
+  getWindowButtonVisibility() {
+    return this.windowButtonVisibility;
   }
 }
