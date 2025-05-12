@@ -60,10 +60,17 @@ export function hex_is_light(color: string) {
 /**
  * Crafts an active favicon URL.
  * @param tabId - The ID of the tab to craft the active favicon URL for.
+ * @param faviconURL - The URL of the favicon to craft the active favicon URL for.
  * @returns The active favicon URL.
  */
-export function craftActiveFaviconURL(tabId: number) {
+export function craftActiveFaviconURL(tabId: number, faviconURL: string | null) {
   const urlObj = new URL("flow-internal://active-favicon");
+
+  // Tab ID is used to identify the tab and grab the favicon
   urlObj.searchParams.set("tabId", tabId.toString());
+
+  // Favicon URL is only used to invalidate the cache when the favicon URL changes
+  urlObj.searchParams.set("faviconURL", faviconURL ?? "");
+
   return urlObj.toString();
 }

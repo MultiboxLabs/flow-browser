@@ -112,7 +112,7 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
             <div className="w-4 h-4 flex-shrink-0">
               {!noFavicon && (
                 <img
-                  src={craftActiveFaviconURL(tab.id)}
+                  src={craftActiveFaviconURL(tab.id, tab.faviconURL)}
                   //src={tab.faviconURL || undefined}
                   alt={tab.title}
                   className="size-full rounded-sm"

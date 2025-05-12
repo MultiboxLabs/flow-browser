@@ -116,35 +116,63 @@ async function serveStaticFile(
   }
 }
 
+const activeTabFaviconCache = new Map<number, [string, Response]>();
+
+// Remove cached favicons that are no longer active
+setInterval(() => {
+  for (const [tabId, [cachedFaviconURL]] of activeTabFaviconCache.entries()) {
+    const tab = browser?.getTabFromId(tabId);
+    if (!tab || tab.isDestroyed || tab.faviconURL !== cachedFaviconURL) {
+      activeTabFaviconCache.delete(tabId);
+    }
+  }
+}, 1000);
+
 function registerFlowInternalProtocol(protocol: Protocol) {
   const handleActiveFaviconRequest = async (_request: Request, url: URL) => {
+    // Get the tab ID
     const tabId = url.searchParams.get("tabId");
     if (!tabId) {
       return new Response("No tab ID provided", { status: 400 });
     }
 
+    // Parse the tab ID
     const tabIdInt = parseInt(tabId);
     if (isNaN(tabIdInt)) {
       return new Response("Invalid tab ID", { status: 400 });
     }
 
+    // Get the tab
     const tab = browser?.getTabFromId(tabIdInt);
     if (!tab) {
       return new Response("No tab found", { status: 404 });
     }
 
+    // Get the favicon URL
     const faviconURL = tab.faviconURL;
     if (!faviconURL) {
       return new Response("No favicon found", { status: 404 });
     }
 
+    // Get the profile
     const profile = tab.loadedProfile;
     if (!profile) {
       return new Response("No profile found", { status: 404 });
     }
 
+    // Check if the favicon is already cached
+    const cachedFaviconData = activeTabFaviconCache.get(tabIdInt);
+    if (cachedFaviconData) {
+      const [cachedFaviconURL, faviconResponse] = cachedFaviconData;
+      if (cachedFaviconURL === faviconURL) {
+        return faviconResponse.clone();
+      }
+    }
+
+    // Fetch the favicon from the profile
     const faviconResponse = await profile.session.fetch(faviconURL);
-    return faviconResponse;
+    activeTabFaviconCache.set(tabIdInt, [faviconURL, faviconResponse]);
+    return faviconResponse.clone();
   };
 
   const handleDomainRequest = async (request: Request, url: URL) => {
