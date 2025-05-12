@@ -110,9 +110,9 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
         {/* Normal layout */}
         <>
           {/* Left side */}
-          <div className={cn("flex flex-row items-center gap-1.5 flex-1", open && "min-w-0 mr-1")}>
+          <div className={cn("flex flex-row items-center flex-1", open && "min-w-0 mr-1")}>
             {/* Favicon */}
-            <div className="w-4 h-4 flex-shrink-0">
+            <div className="w-4 h-4 flex-shrink-0 mr-1">
               {!noFavicon && (
                 <img
                   src={craftActiveFaviconURL(tab.id, tab.faviconURL)}
@@ -127,15 +127,19 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
               {noFavicon && <div className="size-full bg-gray-300 dark:bg-gray-300/30 rounded-sm" />}
             </div>
             {/* Audio indicator */}
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
               {(isPlayingAudio || isMuted) && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8, width: 0 }}
                   animate={{ opacity: 1, scale: 1, width: "auto" }}
-                  exit={{ opacity: 0, scale: 0.8, width: 0 }}
-                  transition={{ duration: 0.2 }}
+                  exit={{ opacity: 0, scale: 0.8, width: 0, marginLeft: 0, marginRight: 0 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 500,
+                    damping: 30
+                  }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex items-center justify-center"
+                  className="flex items-center justify-center overflow-hidden ml-0.5"
                 >
                   <Button
                     variant="ghost"
@@ -150,7 +154,7 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
               )}
             </AnimatePresence>
             {/* Title */}
-            <span className="truncate min-w-0 flex-1 font-medium">{tab.title}</span>
+            <span className="ml-1 truncate min-w-0 flex-1 font-medium">{tab.title}</span>
           </div>
           {/* Right side */}
           <div className={cn("flex flex-row items-center gap-0.5", open && "flex-shrink-0")}>
