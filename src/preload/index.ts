@@ -204,8 +204,8 @@ const tabsAPI: FlowTabsAPI = {
 
   // Special Exception: This is allowed on every tab, but very tightly secured.
   // It will only work if the tab is currently in Picture-in-Picture mode.
-  disablePictureInPicture: async () => {
-    return ipcRenderer.invoke("tabs:disable-picture-in-picture");
+  disablePictureInPicture: async (goBackToTab: boolean) => {
+    return ipcRenderer.invoke("tabs:disable-picture-in-picture", goBackToTab);
   }
 };
 

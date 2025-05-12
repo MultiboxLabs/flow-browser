@@ -43,6 +43,7 @@ export interface FlowTabsAPI {
 
   /**
    * Disable Picture in Picture mode for a tab
+   * @param goBackToTab Whether to go back to the tab after Picture in Picture mode is disabled
    */
-  disablePictureInPicture: () => Promise<boolean>;
+  disablePictureInPicture: (goBackToTab: boolean) => Promise<boolean>;
 }

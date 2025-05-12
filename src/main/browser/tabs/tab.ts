@@ -768,7 +768,13 @@ export class Tab extends TypedEventEmitter<TabEvents> {
               await video.requestPictureInPicture();
 
               const onLeavePiP = () => {
-                flow.tabs.disablePictureInPicture();
+                // little hack to check if they clicked back to tab or closed PiP
+                //  when going back to tab, the video will continue playing
+                //  when closing PiP, the video will pause
+                setTimeout(() => {
+                  const goBackToTab = !video.paused && !video.ended;
+                  flow.tabs.disablePictureInPicture(goBackToTab);
+                }, 50);
                 video.removeEventListener("leavepictureinpicture", onLeavePiP);
               };
 

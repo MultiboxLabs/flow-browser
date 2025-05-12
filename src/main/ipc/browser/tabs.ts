@@ -203,7 +203,7 @@ ipcMain.handle("tabs:close-tab", async (event, tabId: number) => {
   return true;
 });
 
-ipcMain.handle("tabs:disable-picture-in-picture", async (event) => {
+ipcMain.handle("tabs:disable-picture-in-picture", async (event, goBackToTab: boolean) => {
   if (!browser) return false;
 
   const sender = event.sender;
@@ -211,7 +211,7 @@ ipcMain.handle("tabs:disable-picture-in-picture", async (event) => {
   const tab = browser.tabs.getTabByWebContents(sender);
   if (!tab) return false;
 
-  const disabled = browser.tabs.disablePictureInPicture(tab.id);
+  const disabled = browser.tabs.disablePictureInPicture(tab.id, goBackToTab);
   return disabled;
 });
 
