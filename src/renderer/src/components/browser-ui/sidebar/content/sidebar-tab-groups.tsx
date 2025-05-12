@@ -3,7 +3,7 @@ import { SidebarMenuButton, useSidebar } from "@/components/ui/resizable-sidebar
 import { cn, craftActiveFaviconURL } from "@/lib/utils";
 import { XIcon, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useState } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { TabGroup } from "@/components/providers/tabs-provider";
 import { TabData } from "~/types/tabs";
 
@@ -76,6 +76,8 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
     };
   }, []);
 
+  const VolumeIcon = isMuted ? VolumeX : Volume2;
+
   return (
     <MotionSidebarMenuButton
       key={tab.id}
@@ -108,7 +110,8 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
         {/* Normal layout */}
         <>
           {/* Left side */}
-          <div className={cn("flex flex-row items-center gap-2 flex-1", open && "min-w-0 overflow-hidden mr-1")}>
+          <div className={cn("flex flex-row items-center gap-1.5 flex-1", open && "min-w-0 mr-1")}>
+            {/* Favicon */}
             <div className="w-4 h-4 flex-shrink-0">
               {!noFavicon && (
                 <img
@@ -123,24 +126,34 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
               )}
               {noFavicon && <div className="size-full bg-gray-300 dark:bg-gray-300/30 rounded-sm" />}
             </div>
+            {/* Audio indicator */}
+            <AnimatePresence>
+              {(isPlayingAudio || isMuted) && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8, width: 0 }}
+                  animate={{ opacity: 1, scale: 1, width: "auto" }}
+                  exit={{ opacity: 0, scale: 0.8, width: 0 }}
+                  transition={{ duration: 0.2 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center justify-center"
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleToggleMute}
+                    className="size-5 bg-transparent rounded-sm hover:bg-black/10 dark:hover:bg-white/10"
+                    onMouseDown={(event) => event.stopPropagation()}
+                  >
+                    <VolumeIcon className={cn("size-4", "text-muted-foreground/60 dark:text-white/50")} />
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {/* Title */}
             <span className="truncate min-w-0 flex-1 font-medium">{tab.title}</span>
           </div>
           {/* Right side */}
-          <div className={cn("flex flex-row items-center gap-2 rounded-md aspect-square", open && "flex-shrink-0")}>
-            {/* Audio indicator */}
-            {(isPlayingAudio || isMuted) && (
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleToggleMute}
-                  className="size-5 bg-transparent hover:!bg-white dark:hover:!bg-white/10 text-gray-600 dark:text-gray-400"
-                  title={isMuted ? "Unmute tab" : "Mute tab"}
-                >
-                  {isMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-                </Button>
-              </motion.div>
-            )}
+          <div className={cn("flex flex-row items-center gap-0.5", open && "flex-shrink-0")}>
             {/* Close tab button */}
             <motion.div whileTap={{ scale: 0.95 }}>
               <Button
