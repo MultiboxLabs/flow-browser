@@ -94,7 +94,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
             )}
           >
             {/* Topbar */}
-            <div className="absolute top-0 left-0 w-full h-2.5 flex justify-center items-center">
+            <div className="absolute top-0 left-0 w-full h-2 flex justify-center items-center">
               <AnimatePresence>
                 {isActiveTabLoading && (
                   <motion.div
