@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { SidebarMenuButton, useSidebar } from "@/components/ui/resizable-sidebar";
-import { cn } from "@/lib/utils";
+import { cn, craftActiveFaviconURL } from "@/lib/utils";
 import { XIcon, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
@@ -109,19 +109,20 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
         <>
           {/* Left side */}
           <div className={cn("flex flex-row items-center gap-2 flex-1", open && "min-w-0 overflow-hidden mr-1")}>
-            <motion.div className="w-4 h-4 flex-shrink-0" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+            <div className="w-4 h-4 flex-shrink-0">
               {!noFavicon && (
                 <img
-                  src={tab.faviconURL || undefined}
+                  src={craftActiveFaviconURL(tab.id)}
+                  //src={tab.faviconURL || undefined}
                   alt={tab.title}
-                  className="size-full"
+                  className="size-full rounded-sm"
                   onError={() => setIsError(true)}
                   onClick={handleClick}
                   onMouseDown={handleMouseDown}
                 />
               )}
-              {noFavicon && <div className="size-full bg-gray-300 dark:bg-gray-500/30 rounded-sm" />}
-            </motion.div>
+              {noFavicon && <div className="size-full bg-gray-300 dark:bg-gray-300/30 rounded-sm" />}
+            </div>
             <span className="truncate min-w-0 flex-1 font-medium">{tab.title}</span>
           </div>
           {/* Right side */}

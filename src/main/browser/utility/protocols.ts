@@ -117,6 +117,36 @@ async function serveStaticFile(
 }
 
 function registerFlowInternalProtocol(protocol: Protocol) {
+  const handleActiveFaviconRequest = async (_request: Request, url: URL) => {
+    const tabId = url.searchParams.get("tabId");
+    if (!tabId) {
+      return new Response("No tab ID provided", { status: 400 });
+    }
+
+    const tabIdInt = parseInt(tabId);
+    if (isNaN(tabIdInt)) {
+      return new Response("Invalid tab ID", { status: 400 });
+    }
+
+    const tab = browser?.getTabFromId(tabIdInt);
+    if (!tab) {
+      return new Response("No tab found", { status: 404 });
+    }
+
+    const faviconURL = tab.faviconURL;
+    if (!faviconURL) {
+      return new Response("No favicon found", { status: 404 });
+    }
+
+    const profile = tab.loadedProfile;
+    if (!profile) {
+      return new Response("No profile found", { status: 404 });
+    }
+
+    const faviconResponse = await profile.session.fetch(faviconURL);
+    return faviconResponse;
+  };
+
   const handleDomainRequest = async (request: Request, url: URL) => {
     const hostname = url.hostname;
     const pathname = url.pathname;
@@ -133,6 +163,11 @@ function registerFlowInternalProtocol(protocol: Protocol) {
   protocol.handle("flow-internal", async (request) => {
     const urlString = request.url;
     const url = new URL(urlString);
+
+    // flow-internal://active-favicon/:path
+    if (url.host === "active-favicon") {
+      return await handleActiveFaviconRequest(request, url);
+    }
 
     // flow-internal://:path
     return await handleDomainRequest(request, url);

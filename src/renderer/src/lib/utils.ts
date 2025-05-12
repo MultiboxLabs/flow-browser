@@ -56,3 +56,14 @@ export function hex_is_light(color: string) {
   const brightness = (c_r * 299 + c_g * 587 + c_b * 114) / 1000;
   return brightness > 155;
 }
+
+/**
+ * Crafts an active favicon URL.
+ * @param tabId - The ID of the tab to craft the active favicon URL for.
+ * @returns The active favicon URL.
+ */
+export function craftActiveFaviconURL(tabId: number) {
+  const urlObj = new URL("flow-internal://active-favicon");
+  urlObj.searchParams.set("tabId", tabId.toString());
+  return urlObj.toString();
+}
