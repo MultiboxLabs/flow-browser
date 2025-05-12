@@ -44,7 +44,7 @@ function isLocation(protocol: string, hostname: string) {
   return location.protocol === protocol && location.hostname === hostname;
 }
 
-type Permission = "app" | "browser" | "session" | "settings";
+type Permission = "all" | "app" | "browser" | "session" | "settings";
 
 function hasPermission(permission: Permission) {
   const isFlowProtocol = isProtocol("flow:");
@@ -67,6 +67,8 @@ function hasPermission(permission: Permission) {
   const isExtensions = isLocation("flow:", "extensions");
 
   switch (permission) {
+    case "all":
+      return true;
     case "app":
       return isInternalProtocols || isExtensions;
     case "browser":
@@ -187,15 +189,17 @@ const tabsAPI: FlowTabsAPI = {
   switchToTab: async (tabId: number) => {
     return ipcRenderer.invoke("tabs:switch-to-tab", tabId);
   },
-  newTab: async (url?: string, isForeground?: boolean, spaceId?: string) => {
-    return ipcRenderer.invoke("tabs:new-tab", url, isForeground, spaceId);
-  },
   closeTab: async (tabId: number) => {
     return ipcRenderer.invoke("tabs:close-tab", tabId);
   },
 
   showContextMenu: (tabId: number) => {
     return ipcRenderer.send("tabs:show-context-menu", tabId);
+  },
+
+  // Special Exception: This is allowed for all internal protocols.
+  newTab: async (url?: string, isForeground?: boolean, spaceId?: string) => {
+    return ipcRenderer.invoke("tabs:new-tab", url, isForeground, spaceId);
   },
 
   // Special Exception: This is allowed on every tab, but very tightly secured.
@@ -494,7 +498,8 @@ contextBridge.exposeInMainWorld("flow", {
   // Browser APIs
   browser: wrapAPI(browserAPI, "browser"),
   tabs: wrapAPI(tabsAPI, "browser", {
-    newTab: "app"
+    newTab: "app",
+    disablePictureInPicture: "all"
   }),
   page: wrapAPI(pageAPI, "browser"),
   navigation: wrapAPI(navigationAPI, "browser"),

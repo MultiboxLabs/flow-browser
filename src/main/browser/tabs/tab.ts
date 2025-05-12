@@ -756,7 +756,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
         });
       } else {
         // This function must be self-contained: it runs in the actual tab's context
-        const enterPiP = async function (tabId: number) {
+        const enterPiP = async function () {
           const videos = Array.from(document.querySelectorAll("video")).filter(
             (video) => !video.paused && !video.ended && video.readyState > 2
           );
@@ -768,8 +768,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
               await video.requestPictureInPicture();
 
               const onLeavePiP = () => {
-                // @ts-expect-error: Flow APIs will be available
-                flow.tabs.disablePictureInPicture(tabId);
+                flow.tabs.disablePictureInPicture();
                 video.removeEventListener("leavepictureinpicture", onLeavePiP);
               };
 
@@ -784,7 +783,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
         };
 
         const enteredPiPPromise = this.webContents
-          .executeJavaScript(`(${enterPiP})(${this.id})`, true)
+          .executeJavaScript(`(${enterPiP})()`, true)
           .then((res) => {
             return res === true;
           })

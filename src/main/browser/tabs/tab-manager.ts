@@ -4,6 +4,7 @@ import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
 import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
 import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
 import { windowTabsChanged } from "@/ipc/browser/tabs";
+import { setWindowSpace } from "@/ipc/session/spaces";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { shouldArchiveTab } from "@/saving/tabs";
 import { getLastUsedSpace, getLastUsedSpaceFromProfile } from "@/sessions/spaces";
@@ -231,7 +232,17 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     const tab = this.getTabById(tabId);
     if (tab && tab.isPictureInPicture) {
       tab.updateStateProperty("isPictureInPicture", false);
+
+      // Set the space for the window
+      const win = tab.getWindow();
+      setWindowSpace(win, tab.spaceId);
+
+      // Focus window
+      win.window.focus();
+
+      // Set active tab
       this.setActiveTab(tab);
+
       return true;
     }
     return false;
