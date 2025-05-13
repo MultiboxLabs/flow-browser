@@ -66,7 +66,7 @@ const typedShortcuts = [
   {
     id: "browser.toggleSidebar",
     name: "Toggle Sidebar",
-    shortcut: "CommandOrControl+B",
+    shortcut: "CommandOrControl+S",
     category: "Browser"
   }
 ] as const satisfies ShortcutAction[];

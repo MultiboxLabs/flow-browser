@@ -58,10 +58,10 @@ export function ShortcutsSettings() {
         const success = await setShortcut(actionId, tempRawShortcut);
         if (success) {
           toast.success("Shortcut updated successfully.");
+          handleCancelEdit();
         } else {
           toast.error("Failed to update shortcut.");
         }
-        handleCancelEdit();
       } catch (error) {
         console.error("Error saving shortcut:", error);
         toast.error("An error occurred while saving the shortcut.");
@@ -79,6 +79,8 @@ export function ShortcutsSettings() {
           if (editingActionId === action.id) {
             setTempRawShortcut(newShortcut);
             setShortcutInputValue(formatShortcutForDisplay(newShortcut));
+            // Close the editor after reset
+            handleCancelEdit();
           }
         } else {
           toast.error(`Could not reset shortcut for "${action.name}".`);
@@ -88,7 +90,7 @@ export function ShortcutsSettings() {
         toast.error("An error occurred while resetting the shortcut.");
       }
     },
-    [editingActionId, formatShortcutForDisplay, resetShortcut]
+    [editingActionId, formatShortcutForDisplay, resetShortcut, handleCancelEdit]
   );
 
   const performResetAllKeybinds = useCallback(async () => {
