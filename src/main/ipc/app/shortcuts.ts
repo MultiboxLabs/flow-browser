@@ -12,7 +12,6 @@ ipcMain.handle("shortcuts:set", (_event, actionId: string, shortcut: string) => 
   const success = updateModifiedShortcut(actionId, {
     newShortcut: shortcut
   });
-  sendMessageToListeners("shortcuts:on-changed", getShortcuts());
   return success;
 });
 

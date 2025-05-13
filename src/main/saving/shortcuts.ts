@@ -54,9 +54,16 @@ export async function updateModifiedShortcut(id: string, rawModifiedShortcutData
   }
 
   const modifiedShortcutData = parseResult.data;
-  modifiedShortcuts.set(id, modifiedShortcutData);
 
-  await ShortcutsDataStore.set(id, modifiedShortcutData);
+  const success = await ShortcutsDataStore.set(id, modifiedShortcutData)
+    .then(() => true)
+    .catch(() => false);
+
+  if (!success) {
+    return false;
+  }
+
+  modifiedShortcuts.set(id, modifiedShortcutData);
   shortcutsEmitter.emit("shortcuts-changed");
   return true;
 }
@@ -67,8 +74,14 @@ export async function resetModifiedShortcut(id: string) {
     return false;
   }
 
+  const removed = await ShortcutsDataStore.remove(id)
+    .then((removed) => removed)
+    .catch(() => false);
+  if (!removed) {
+    return false;
+  }
+
   modifiedShortcuts.delete(id);
-  await ShortcutsDataStore.remove(id);
   shortcutsEmitter.emit("shortcuts-changed");
   return true;
 }
