@@ -1,6 +1,7 @@
 import { MenuItemConstructorOptions } from "electron";
 import { getFocusedWindowData } from "../helpers";
 import { fireCopyLinkAction } from "@/ipc/app/actions";
+import { getCurrentShortcut } from "@/modules/shortcuts";
 
 export const createEditMenu = (): MenuItemConstructorOptions => ({
   label: "Edit",
@@ -12,7 +13,7 @@ export const createEditMenu = (): MenuItemConstructorOptions => ({
     { role: "copy" },
     {
       label: "Copy URL",
-      accelerator: "CmdOrCtrl+Shift+C",
+      accelerator: getCurrentShortcut("tab.copyUrl"),
       click: () => {
         const winData = getFocusedWindowData();
         if (!winData) return;

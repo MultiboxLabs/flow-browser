@@ -11,6 +11,7 @@ import { createWindowMenu } from "./menu/items/window";
 import { createSpacesMenu } from "@/browser/utility/menu/items/spaces";
 import { spacesEmitter } from "@/sessions/spaces";
 import { windowEvents, WindowEventType } from "@/modules/windows";
+import { shortcutsEmitter } from "@/saving/shortcuts";
 
 export const setupMenu = (browser: Browser) => {
   const craftMenu = async () => {
@@ -32,6 +33,7 @@ export const setupMenu = (browser: Browser) => {
 
   craftMenu();
   spacesEmitter.on("changed", craftMenu);
+  shortcutsEmitter.on("shortcuts-changed", craftMenu);
   windowEvents.on(WindowEventType.FOCUSED, craftMenu);
 
   return craftMenu;

@@ -4,8 +4,7 @@ import { hideOmnibox, isOmniboxOpen } from "@/browser/components/omnibox";
 import { WindowType } from "@/modules/windows";
 import { getFocusedBrowserWindowData, getFocusedWindowData, getTab, getTabWcFromFocusedWindow } from "../helpers";
 import { toggleSidebar } from "@/ipc/browser/interface";
-
-const isMac = process.platform === "darwin";
+import { getCurrentShortcut } from "@/modules/shortcuts";
 
 export function menuCloseTab(browser: Browser) {
   const winData = getFocusedWindowData();
@@ -38,7 +37,7 @@ export const createViewMenu = (browser: Browser): MenuItemConstructorOptions => 
   submenu: [
     {
       label: "Toggle Sidebar",
-      accelerator: "CmdOrCtrl+B",
+      accelerator: getCurrentShortcut("browser.toggleSidebar"),
       click: () => {
         const winData = getFocusedBrowserWindowData();
         if (!winData) return;
@@ -50,7 +49,7 @@ export const createViewMenu = (browser: Browser): MenuItemConstructorOptions => 
     { type: "separator" },
     {
       label: "Reload",
-      accelerator: "CmdOrCtrl+R",
+      accelerator: getCurrentShortcut("tab.reload"),
       click: () => {
         const tabWc = getTabWcFromFocusedWindow(browser);
         if (!tabWc) return;
@@ -59,7 +58,7 @@ export const createViewMenu = (browser: Browser): MenuItemConstructorOptions => 
     },
     {
       label: "Force Reload",
-      accelerator: "Shift+CmdOrCtrl+R",
+      accelerator: getCurrentShortcut("tab.forceReload"),
       click: () => {
         const tabWc = getTabWcFromFocusedWindow(browser);
         if (!tabWc) return;
@@ -68,14 +67,14 @@ export const createViewMenu = (browser: Browser): MenuItemConstructorOptions => 
     },
     {
       label: "Close Tab",
-      accelerator: "CmdOrCtrl+W",
+      accelerator: getCurrentShortcut("tab.close"),
       click: () => {
         menuCloseTab(browser);
       }
     },
     {
       label: "Toggle Developer Tools",
-      accelerator: isMac ? "Alt+Command+I" : "Ctrl+Shift+I",
+      accelerator: getCurrentShortcut("tab.toggleDevTools"),
       click: () => {
         const tabWc = getTabWcFromFocusedWindow(browser);
         if (!tabWc) return;

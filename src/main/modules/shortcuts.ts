@@ -1,7 +1,7 @@
 import { getAllModifiedShortcuts } from "@/saving/shortcuts";
 import { ShortcutAction } from "~/types/shortcuts";
 
-export const shortcuts: ShortcutAction[] = [
+const typedShortcuts = [
   // Tabs
   {
     id: "tabs.new",
@@ -38,7 +38,7 @@ export const shortcuts: ShortcutAction[] = [
   {
     id: "tab.toggleDevTools",
     name: "Toggle DevTools",
-    shortcut: "CommandOrControl+Shift+I",
+    shortcut: "F12",
     category: "Tab"
   },
 
@@ -69,7 +69,11 @@ export const shortcuts: ShortcutAction[] = [
     shortcut: "CommandOrControl+B",
     category: "Browser"
   }
-];
+] as const satisfies ShortcutAction[];
+
+type ShortcutId = (typeof typedShortcuts)[number]["id"];
+
+const shortcuts: ShortcutAction[] = typedShortcuts;
 
 export function getShortcuts() {
   const modifiedShortcutsData = getAllModifiedShortcuts();
@@ -79,9 +83,23 @@ export function getShortcuts() {
     return {
       ...shortcut,
       originalShortcut: shortcut.shortcut,
-      newShortcut: modifiedShortcutData?.newShortcut || shortcut.shortcut
+      shortcut: modifiedShortcutData?.newShortcut || shortcut.shortcut
     };
   });
 
   return updatedShortcuts;
+}
+
+export function getShortcut(id: string) {
+  return getShortcuts().find((shortcut) => shortcut.id === id);
+}
+
+export function getShortcutByTypedId(id: ShortcutId) {
+  return getShortcut(id);
+}
+
+export function getCurrentShortcut(id: ShortcutId) {
+  const shortcut = getShortcutByTypedId(id);
+  if (!shortcut) return undefined;
+  return shortcut.shortcut;
 }

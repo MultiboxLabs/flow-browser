@@ -2,13 +2,14 @@ import { MenuItemConstructorOptions } from "electron";
 import { Browser } from "@/browser/browser";
 import { getFocusedBrowserWindowData } from "../helpers";
 import { openNewTab } from "@/ipc/app/new-tab";
+import { getCurrentShortcut } from "@/modules/shortcuts";
 
 export const createFileMenu = (browser: Browser): MenuItemConstructorOptions => ({
   label: "File",
   submenu: [
     {
       label: "New Tab",
-      accelerator: "CmdOrCtrl+T",
+      accelerator: getCurrentShortcut("tabs.new"),
       click: () => {
         const winData = getFocusedBrowserWindowData();
         if (!winData) return;
@@ -21,7 +22,7 @@ export const createFileMenu = (browser: Browser): MenuItemConstructorOptions => 
     },
     {
       label: "New Window",
-      accelerator: "CmdOrCtrl+N",
+      accelerator: getCurrentShortcut("browser.newWindow"),
       click: () => {
         browser.createWindow();
       }
