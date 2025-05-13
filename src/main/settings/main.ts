@@ -35,10 +35,6 @@ async function createSettingsWindow() {
   registerWindow(WindowType.SETTINGS, "settings", window);
   settingsWindow = window;
 
-  window.webContents.openDevTools({
-    mode: "detach"
-  });
-
   return await new Promise((resolve) => {
     window.once("ready-to-show", () => {
       resolve(window);
