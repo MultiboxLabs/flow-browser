@@ -10,7 +10,7 @@ interface ModifiedShortcutsSectionProps {
   shortcutInputValue: string;
   isRecording: boolean;
   inputRef: React.RefObject<HTMLDivElement | null>;
-  formatShortcutForDisplay: (shortcut: string) => string;
+  formatShortcutForDisplay: (shortcut: string | null) => string;
   onEditClick: (action: ShortcutAction) => void;
   onSaveEdit: (actionId: string) => void;
   onCancelEdit: () => void;

@@ -16,7 +16,7 @@ interface ShortcutItemProps {
   onReset: () => void;
   onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void;
   inputRef: React.RefObject<HTMLDivElement | null>;
-  formatShortcutForDisplay: (shortcut: string) => string;
+  formatShortcutForDisplay: (shortcut: string | null) => string;
   isModified: boolean;
   animationDelay?: number;
 }

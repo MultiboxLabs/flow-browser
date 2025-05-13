@@ -32,8 +32,13 @@ export function ShortcutsSettings() {
   const handleEditClick = useCallback(
     (action: ShortcutAction) => {
       setEditingActionId(action.id);
-      setTempRawShortcut(action.shortcut);
-      setShortcutInputValue(formatShortcutForDisplay(action.shortcut));
+      if (typeof action.shortcut === "string") {
+        setTempRawShortcut(action.shortcut);
+        setShortcutInputValue(formatShortcutForDisplay(action.shortcut));
+      } else {
+        setTempRawShortcut("");
+        setShortcutInputValue("None");
+      }
       setIsRecording(false);
       setTimeout(() => inputRef.current?.focus(), 0);
     },
@@ -73,13 +78,12 @@ export function ShortcutsSettings() {
   const handleResetIndividualKeybind = useCallback(
     async (action: ShortcutAction) => {
       try {
-        const newShortcut = await resetShortcut(action.id);
-        if (newShortcut !== null) {
+        const success = await resetShortcut(action.id);
+        if (success) {
           toast.success(`Shortcut for "${action.name}" reset to default.`);
           if (editingActionId === action.id) {
-            setTempRawShortcut(newShortcut);
-            setShortcutInputValue(formatShortcutForDisplay(newShortcut));
-            // Close the editor after reset
+            // The original shortcut will be restored after shortcuts are refreshed
+            // Just close the editor for now
             handleCancelEdit();
           }
         } else {
@@ -90,7 +94,7 @@ export function ShortcutsSettings() {
         toast.error("An error occurred while resetting the shortcut.");
       }
     },
-    [editingActionId, formatShortcutForDisplay, resetShortcut, handleCancelEdit]
+    [editingActionId, resetShortcut, handleCancelEdit]
   );
 
   const performResetAllKeybinds = useCallback(async () => {

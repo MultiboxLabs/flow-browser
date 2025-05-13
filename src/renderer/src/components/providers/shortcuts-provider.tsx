@@ -5,9 +5,9 @@ interface ShortcutsContextValue {
   shortcuts: ShortcutAction[];
   isLoading: boolean;
   setShortcut: (actionId: string, shortcut: string) => Promise<boolean>;
-  resetShortcut: (actionId: string) => Promise<string | null>;
+  resetShortcut: (actionId: string) => Promise<boolean>;
   resetAllShortcuts: () => Promise<void>;
-  formatShortcutForDisplay: (shortcut: string) => string;
+  formatShortcutForDisplay: (shortcut: string | null) => string;
 }
 
 const ShortcutsContext = createContext<ShortcutsContextValue | null>(null);
@@ -29,7 +29,7 @@ export const ShortcutsProvider = ({ children }: ShortcutsProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Format shortcut for display
-  const formatShortcutForDisplay = useCallback((shortcut: string): string => {
+  const formatShortcutForDisplay = useCallback((shortcut: string | null): string => {
     if (!shortcut) return "None";
     return shortcut
       .replace(/\+/g, " + ")
@@ -80,14 +80,16 @@ export const ShortcutsProvider = ({ children }: ShortcutsProviderProps) => {
   );
 
   const resetShortcut = useCallback(
-    async (actionId: string): Promise<string | null> => {
+    async (actionId: string): Promise<boolean> => {
       try {
-        const newShortcut = await flow.shortcuts.resetShortcut(actionId);
-        fetchShortcuts(); // Refresh shortcut data
-        return newShortcut;
+        const success = await flow.shortcuts.resetShortcut(actionId);
+        if (success) {
+          fetchShortcuts(); // Refresh shortcut data
+        }
+        return success;
       } catch (error) {
         console.error("Error resetting shortcut:", error);
-        return null;
+        return false;
       }
     },
     [fetchShortcuts]

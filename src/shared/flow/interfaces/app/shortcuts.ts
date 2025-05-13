@@ -18,7 +18,7 @@ export interface FlowShortcutsAPI {
   /**
    * Reset a shortcut
    */
-  resetShortcut: (actionId: string) => Promise<string | null>;
+  resetShortcut: (actionId: string) => Promise<boolean>;
 
   /**
    * Listen for shortcuts updates
