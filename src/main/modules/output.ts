@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { FLAGS } from "./flags";
+import "@/modules/logs";
 
 const DEBUG_AREAS = {
   INITIALIZATION: true, // @/main/index.ts
