@@ -22,13 +22,13 @@ export function SettingsLayout() {
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
 
   const sections = [
-    { id: "general", label: tSettings("General"), icon: <Globe className="h-4 w-4 mr-2" /> },
-    { id: "icons", label: tSettings("Icon"), icon: <DockIcon className="h-4 w-4 mr-2" /> },
-    { id: "profiles", label: tSettings("Profiles"), icon: <UsersIcon className="h-4 w-4 mr-2" /> },
-    { id: "spaces", label: tSettings("Spaces"), icon: <OrbitIcon className="h-4 w-4 mr-2" /> },
-    { id: "external-apps", label: tSettings("External Apps"), icon: <BlocksIcon className="h-4 w-4 mr-2" /> },
-    { id: "shortcuts", label: tSettings("Shortcuts"), icon: <KeyboardIcon className="h-4 w-4 mr-2" /> },
-    { id: "about", label: tSettings("About"), icon: <Info className="h-4 w-4 mr-2" /> }
+    { id: "general", label: tSettings("sections.general"), icon: <Globe className="h-4 w-4 mr-2" /> },
+    { id: "icons", label: tSettings("sections.icon"), icon: <DockIcon className="h-4 w-4 mr-2" /> },
+    { id: "profiles", label: tSettings("sections.profiles"), icon: <UsersIcon className="h-4 w-4 mr-2" /> },
+    { id: "spaces", label: tSettings("sections.spaces"), icon: <OrbitIcon className="h-4 w-4 mr-2" /> },
+    { id: "external-apps", label: tSettings("sections.external-apps"), icon: <BlocksIcon className="h-4 w-4 mr-2" /> },
+    { id: "shortcuts", label: tSettings("sections.shortcuts"), icon: <KeyboardIcon className="h-4 w-4 mr-2" /> },
+    { id: "about", label: tSettings("sections.about"), icon: <Info className="h-4 w-4 mr-2" /> }
   ];
 
   const navigateToSpaces = (profileId: string) => {

@@ -9,7 +9,7 @@ export function AboutSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">{tSettings("About")}</h2>
+        <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">{tSettings("sections.about")}</h2>
         <p className="text-muted-foreground">{tSettings("Information about your browser")}</p>
       </div>
 
