@@ -1,102 +1,33 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CommandIcon, Edit3Icon, Loader2, RotateCcwIcon, SearchIcon, SaveIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ShortcutAction } from "~/types/shortcuts";
+import { useShortcuts } from "@/components/providers/shortcuts-provider";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 
-// Mock types for now - replace with actual types from your API/system
-interface KeybindAction {
-  id: string; // e.g., "tabs.newTab", "navigation.goBack"
-  name: string; // e.g., "Open New Tab", "Go Back"
-  shortcut: string; // e.g., "CommandOrControl+T", "Alt+Left"
-  category: string; // e.g., "Tabs", "Navigation"
-  isSystem?: boolean; // If it's a system-level shortcut that might not be editable
-  originalShortcut?: string; // To store the initial default shortcut
-}
-
-// Helper to format shortcut for display
-const formatShortcutForDisplay = (shortcut: string): string => {
-  if (!shortcut) return "None";
-  return shortcut
-    .replace(/\+/g, " + ")
-    .replace("CommandOrControl", "⌘/Ctrl")
-    .replace("ArrowUp", "↑")
-    .replace("ArrowDown", "↓")
-    .replace("ArrowLeft", "←")
-    .replace("ArrowRight", "→");
-};
-
-// Placeholder for API functions - replace with actual flow.keybinds calls
-const mockKeybindsApi = {
-  getKeybinds: async (): Promise<KeybindAction[]> => {
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    const baseKeybinds: Omit<KeybindAction, "originalShortcut">[] = [
-      { id: "tabs.new", name: "New Tab", shortcut: "CommandOrControl+T", category: "Tabs" },
-      { id: "tabs.close", name: "Close Tab", shortcut: "CommandOrControl+W", category: "Tabs" },
-      { id: "navigation.back", name: "Go Back", shortcut: "Alt+ArrowLeft", category: "Navigation" },
-      { id: "navigation.forward", name: "Go Forward", shortcut: "Alt+ArrowRight", category: "Navigation" },
-      { id: "window.zoomIn", name: "Zoom In", shortcut: "CommandOrControl+Plus", category: "Window" },
-      { id: "window.zoomOut", name: "Zoom Out", shortcut: "CommandOrControl+-+", category: "Window" },
-      {
-        id: "app.settings",
-        name: "Open Settings",
-        shortcut: "CommandOrControl+,",
-        category: "Application",
-        isSystem: true
-      }
-    ];
-    return baseKeybinds
-      .map((kb) => ({ ...kb, originalShortcut: kb.shortcut }))
-      .sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
-  },
-  setKeybind: async (actionId: string, shortcut: string): Promise<boolean> => {
-    console.log(`API: Setting keybind for ${actionId} to ${shortcut}`);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    // Simulate success/failure
-    return Math.random() > 0.1;
-  },
-  resetKeybind: async (actionId: string, originalShortcut?: string): Promise<string | null> => {
-    // Returns new default shortcut or null
-    console.log(`API: Resetting keybind for ${actionId} to ${originalShortcut}`);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    const allKeybinds = await mockKeybindsApi.getKeybinds();
-    const foundKeybind = allKeybinds.find((k) => k.id === actionId);
-    return foundKeybind?.originalShortcut || null;
-  }
-};
-
-export function KeybindsSettings() {
-  const [keybinds, setKeybinds] = useState<KeybindAction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export function ShortcutsSettings() {
+  const { shortcuts, isLoading, setShortcut, resetShortcut, resetAllShortcuts, formatShortcutForDisplay } =
+    useShortcuts();
   const [searchTerm, setSearchTerm] = useState("");
   const [editingActionId, setEditingActionId] = useState<string | null>(null);
   const [shortcutInputValue, setShortcutInputValue] = useState(""); // Formatted for display in input
   const [tempRawShortcut, setTempRawShortcut] = useState(""); // Raw keys, e.g., "Meta+Shift+K"
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const shortcutInputRef = useRef<HTMLDivElement>(null);
 
-  const fetchKeybinds = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const fetchedKeybinds = await mockKeybindsApi.getKeybinds();
-      setKeybinds(fetchedKeybinds);
-    } catch (error) {
-      console.error("Failed to fetch keybinds:", error);
-      toast.error("Could not load keybinds.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchKeybinds();
-  }, [fetchKeybinds]);
-
-  const handleEditClick = (action: KeybindAction) => {
-    if (action.isSystem) return;
+  const handleEditClick = (action: ShortcutAction) => {
     setEditingActionId(action.id);
     setTempRawShortcut(action.shortcut);
     setShortcutInputValue(formatShortcutForDisplay(action.shortcut));
@@ -110,31 +41,45 @@ export function KeybindsSettings() {
   };
 
   const handleSaveEdit = async (actionId: string) => {
-    console.log("Save (no-op): Would save", tempRawShortcut, "for", actionId);
-    // Actual save logic would be:
-    // const success = await mockKeybindsApi.setKeybind(actionId, tempRawShortcut);
-    // if (success) { ... update keybinds state ... toast.success }
-    // else { toast.error }
-    toast.info(`Save action for "${tempRawShortcut}" (no-op). Check console.`);
-    const currentAction = keybinds.find((kb) => kb.id === actionId);
-    if (currentAction) {
-      setKeybinds(keybinds.map((kb) => (kb.id === actionId ? { ...kb, shortcut: tempRawShortcut } : kb)));
+    try {
+      const success = await setShortcut(actionId, tempRawShortcut);
+      if (success) {
+        toast.success("Shortcut updated successfully.");
+      } else {
+        toast.error("Failed to update shortcut.");
+      }
+      handleCancelEdit(); // Clear editing state
+    } catch (error) {
+      console.error("Error saving shortcut:", error);
+      toast.error("An error occurred while saving the shortcut.");
     }
-    handleCancelEdit(); // Clear editing state
   };
 
-  const handleResetIndividualKeybind = async (action: KeybindAction) => {
-    if (action.isSystem) return;
-    const newShortcut = await mockKeybindsApi.resetKeybind(action.id, action.originalShortcut);
-    if (newShortcut !== null) {
-      setKeybinds(keybinds.map((kb) => (kb.id === action.id ? { ...kb, shortcut: newShortcut } : kb)));
-      toast.success(`Shortcut for "${action.name}" reset to default.`);
-      if (editingActionId === action.id) {
-        setTempRawShortcut(newShortcut);
-        setShortcutInputValue(formatShortcutForDisplay(newShortcut));
+  const handleResetIndividualKeybind = async (action: ShortcutAction) => {
+    try {
+      const newShortcut = await resetShortcut(action.id);
+      if (newShortcut !== null) {
+        toast.success(`Shortcut for "${action.name}" reset to default.`);
+        if (editingActionId === action.id) {
+          setTempRawShortcut(newShortcut);
+          setShortcutInputValue(formatShortcutForDisplay(newShortcut));
+        }
+      } else {
+        toast.error(`Could not reset shortcut for "${action.name}".`);
       }
-    } else {
-      toast.error(`Could not reset shortcut for "${action.name}".`);
+    } catch (error) {
+      console.error("Error resetting shortcut:", error);
+      toast.error("An error occurred while resetting the shortcut.");
+    }
+  };
+
+  const performResetAllKeybinds = async () => {
+    try {
+      await resetAllShortcuts();
+      toast.success("All shortcuts have been reset to their defaults.");
+    } catch (error) {
+      console.error("Failed to reset all keybinds:", error);
+      toast.error("Could not reset all shortcuts.");
     }
   };
 
@@ -217,7 +162,7 @@ export function KeybindsSettings() {
     }
   };
 
-  const groupedKeybinds = keybinds
+  const groupedKeybinds = shortcuts
     .filter(
       (kb) =>
         kb.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -232,16 +177,14 @@ export function KeybindsSettings() {
         acc[kb.category].push(kb);
         return acc;
       },
-      {} as Record<string, KeybindAction[]>
+      {} as Record<string, ShortcutAction[]>
     );
 
   return (
     <div className="space-y-6 remove-app-drag">
       <div>
         <h2 className="text-2xl font-semibold text-card-foreground">Keyboard Shortcuts</h2>
-        <p className="text-muted-foreground">
-          Customize shortcuts. Press Esc to cancel, Enter to save (currently no-op).
-        </p>
+        <p className="text-muted-foreground">Customize Flow keyboard shortcuts to improve your workflow.</p>
       </div>
 
       <div className="rounded-lg border bg-card text-card-foreground p-6 space-y-6">
@@ -257,19 +200,10 @@ export function KeybindsSettings() {
             />
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                /* TODO: Reset all */ toast.info("Reset All clicked (no-op)");
-              }}
-            >
+            <Button variant="outline" onClick={() => setIsResetDialogOpen(true)} disabled={isLoading}>
               <RotateCcwIcon className="h-4 w-4 mr-2" />
               Reset All Defaults
             </Button>
-            {/* <Button>
-              <PlusCircleIcon className="h-4 w-4 mr-2" />
-              Add Custom Shortcut
-            </Button> */}
           </div>
         </div>
 
@@ -319,7 +253,7 @@ export function KeybindsSettings() {
                             size="icon"
                             className="h-8 w-8"
                             onClick={() => handleSaveEdit(kb.id)}
-                            title="Save (no-op)"
+                            title="Save"
                           >
                             <SaveIcon className="h-4 w-4" />
                           </Button>
@@ -352,19 +286,15 @@ export function KeybindsSettings() {
                           >
                             {formatShortcutForDisplay(kb.shortcut)}
                           </span>
-                          {kb.isSystem ? (
-                            <span className="text-xs text-muted-foreground italic">(System)</span>
-                          ) : (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => handleEditClick(kb)}
-                              title="Edit Shortcut"
-                            >
-                              <Edit3Icon className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => handleEditClick(kb)}
+                            title="Edit Shortcut"
+                          >
+                            <Edit3Icon className="h-4 w-4" />
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -375,6 +305,32 @@ export function KeybindsSettings() {
           </div>
         )}
       </div>
+
+      {/* Reset All Confirmation Dialog */}
+      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Reset All Shortcuts</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to reset all shortcuts to their default values? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsResetDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setIsResetDialogOpen(false);
+                performResetAllKeybinds();
+              }}
+            >
+              Reset All
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

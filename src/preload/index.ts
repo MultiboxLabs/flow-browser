@@ -33,7 +33,7 @@ import { FlowExtensionsAPI } from "~/flow/interfaces/app/extensions";
 import { FlowTabsAPI } from "~/flow/interfaces/browser/tabs";
 import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
-import { FlowKeybindsAPI } from "~/flow/interfaces/app/keybinds";
+import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
 
 // API CHECKS //
 function isProtocol(protocol: string) {
@@ -478,22 +478,31 @@ const actionsAPI: FlowActionsAPI = {
   }
 };
 
-// KEYBINDS API //
-const keybindsAPI: FlowKeybindsAPI = {
-  ping: () => {
-    return Promise.resolve(true);
+// SHORTCUTS API //
+const shortcutsAPI: FlowShortcutsAPI = {
+  getShortcuts: async () => {
+    return ipcRenderer.invoke("shortcuts:get-all");
+  },
+  setShortcut: async (actionId: string, shortcut: string) => {
+    return ipcRenderer.invoke("shortcuts:set", actionId, shortcut);
+  },
+  resetShortcut: async (actionId: string) => {
+    return ipcRenderer.invoke("shortcuts:reset", actionId);
+  },
+  onShortcutsUpdated: (callback: (shortcuts: ShortcutsData) => void) => {
+    return listenOnIPCChannel("shortcuts:on-updated", callback);
   }
 };
 
 // EXPOSE FLOW API //
-contextBridge.exposeInMainWorld("flow", {
+const flowAPI: typeof flow = {
   // App APIs
   app: wrapAPI(appAPI, "app"),
   windows: wrapAPI(windowsAPI, "app"),
   extensions: wrapAPI(extensionsAPI, "app"),
   updates: wrapAPI(updatesAPI, "app"),
   actions: wrapAPI(actionsAPI, "app"),
-  keybinds: wrapAPI(keybindsAPI, "app"),
+  shortcuts: wrapAPI(shortcutsAPI, "app"),
 
   // Browser APIs
   browser: wrapAPI(browserAPI, "browser"),
@@ -520,4 +529,5 @@ contextBridge.exposeInMainWorld("flow", {
   icons: wrapAPI(iconsAPI, "settings"),
   openExternal: wrapAPI(openExternalAPI, "settings"),
   onboarding: wrapAPI(onboardingAPI, "settings")
-});
+};
+contextBridge.exposeInMainWorld("flow", flowAPI);

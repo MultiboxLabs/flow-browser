@@ -19,7 +19,7 @@ import { FlowOpenExternalAPI } from "~/flow/interfaces/settings/openExternal";
 import { FlowOnboardingAPI } from "~/flow/interfaces/settings/onboarding";
 import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
-import { FlowKeybindsAPI } from "~/flow/interfaces/app/keybinds";
+import { FlowShortcutsAPI } from "~/flow/interfaces/app/shortcuts";
 
 declare global {
   /**
@@ -33,7 +33,7 @@ declare global {
     extensions: FlowExtensionsAPI;
     updates: FlowUpdatesAPI;
     actions: FlowActionsAPI;
-    keybinds: FlowKeybindsAPI;
+    shortcuts: FlowShortcutsAPI;
 
     // Browser APIs
     browser: FlowBrowserAPI;

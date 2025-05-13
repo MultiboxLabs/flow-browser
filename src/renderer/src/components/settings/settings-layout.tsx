@@ -7,10 +7,11 @@ import { AboutSettings } from "@/components/settings/sections/about/section";
 import { ProfilesSettings } from "@/components/settings/sections/profiles/section";
 import { SpacesSettings } from "@/components/settings/sections/spaces/section";
 import { ExternalAppsSettings } from "@/components/settings/sections/external-apps/section";
-import { KeybindsSettings } from "@/components/settings/sections/keybinds/section";
+import { ShortcutsSettings } from "@/components/settings/sections/shortcuts/section";
 import { SettingsProvider } from "@/components/providers/settings-provider";
 import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
 import { Globe, DockIcon, UsersIcon, OrbitIcon, BlocksIcon, Info, KeyboardIcon } from "lucide-react";
+import { ShortcutsProvider } from "@/components/providers/shortcuts-provider";
 
 export function SettingsLayout() {
   const [activeSection, setActiveSection] = useState("general");
@@ -23,7 +24,7 @@ export function SettingsLayout() {
     { id: "profiles", label: "Profiles", icon: <UsersIcon className="h-4 w-4 mr-2" /> },
     { id: "spaces", label: "Spaces", icon: <OrbitIcon className="h-4 w-4 mr-2" /> },
     { id: "external-apps", label: "External Apps", icon: <BlocksIcon className="h-4 w-4 mr-2" /> },
-    { id: "keybinds", label: "Keybinds", icon: <KeyboardIcon className="h-4 w-4 mr-2" /> },
+    { id: "shortcuts", label: "Shortcuts", icon: <KeyboardIcon className="h-4 w-4 mr-2" /> },
     { id: "about", label: "About", icon: <Info className="h-4 w-4 mr-2" /> }
   ];
 
@@ -53,8 +54,8 @@ export function SettingsLayout() {
         return <SpacesSettings initialSelectedProfile={selectedProfileId} initialSelectedSpace={selectedSpaceId} />;
       case "external-apps":
         return <ExternalAppsSettings />;
-      case "keybinds":
-        return <KeybindsSettings />;
+      case "shortcuts":
+        return <ShortcutsSettings />;
       default:
         return <GeneralSettings />;
     }
@@ -62,19 +63,21 @@ export function SettingsLayout() {
 
   return (
     <AppUpdatesProvider>
-      <SettingsProvider>
-        <div className="select-none flex flex-col h-screen bg-background text-gray-600 dark:text-gray-300">
-          <SettingsTitlebar />
-          <div className="flex flex-1 overflow-hidden">
-            <SettingsSidebar activeSection={activeSection} setActiveSection={setActiveSection} sections={sections} />
-            <main className="flex-1 flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-auto p-6 md:p-8">
-                <div className="mx-auto max-w-4xl">{ActiveSectionComponent}</div>
-              </div>
-            </main>
+      <ShortcutsProvider>
+        <SettingsProvider>
+          <div className="select-none flex flex-col h-screen bg-background text-gray-600 dark:text-gray-300">
+            <SettingsTitlebar />
+            <div className="flex flex-1 overflow-hidden">
+              <SettingsSidebar activeSection={activeSection} setActiveSection={setActiveSection} sections={sections} />
+              <main className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex-1 overflow-auto p-6 md:p-8">
+                  <div className="mx-auto max-w-4xl">{ActiveSectionComponent}</div>
+                </div>
+              </main>
+            </div>
           </div>
-        </div>
-      </SettingsProvider>
+        </SettingsProvider>
+      </ShortcutsProvider>
     </AppUpdatesProvider>
   );
 }
