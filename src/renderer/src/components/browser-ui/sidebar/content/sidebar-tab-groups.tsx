@@ -17,49 +17,49 @@ import { DropIndicator } from "@/components/browser-ui/sidebar/content/space-sid
 const MotionSidebarMenuButton = motion(SidebarMenuButton);
 
 export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolean }) {
-  const [cachedFaviconUrl, setCachedFaviconUrl] = useState<string | null>(tab.faviconURL);
-  const [isError, setIsError] = useState(false);
-  const [isPressed, setIsPressed] = useState(false);
-  const noFavicon = !cachedFaviconUrl || isError;
+const [cachedFaviconUrl, setCachedFaviconUrl] = useState<string | null>(tab.faviconURL);
+const [isError, setIsError] = useState(false);
+const [isPressed, setIsPressed] = useState(false);
+const noFavicon = !cachedFaviconUrl || isError;
 
-  const isMuted = tab.muted;
-  const isPlayingAudio = tab.audible;
+const isMuted = tab.muted;
+const isPlayingAudio = tab.audible;
 
-  const { open } = useSidebar();
+const { open } = useSidebar();
 
-  useEffect(() => {
-    if (tab.faviconURL) {
-      setCachedFaviconUrl(tab.faviconURL);
-    } else {
-      setCachedFaviconUrl(null);
-    }
-    // Reset error state when favicon url changes
-    setIsError(false);
-  }, [tab.faviconURL]);
+useEffect(() => {
+if (tab.faviconURL) {
+setCachedFaviconUrl(tab.faviconURL);
+} else {
+setCachedFaviconUrl(null);
+}
+// Reset error state when favicon url changes
+setIsError(false);
+}, [tab.faviconURL]);
 
-  const handleClick = () => {
-    if (!tab.id) return;
-    flow.tabs.switchToTab(tab.id);
-  };
+const handleClick = () => {
+if (!tab.id) return;
+flow.tabs.switchToTab(tab.id);
+};
 
-  const handleCloseTab = (e: React.MouseEvent) => {
-    if (!tab.id) return;
-    e.preventDefault();
-    flow.tabs.closeTab(tab.id);
-  };
+const handleCloseTab = (e: React.MouseEvent) => {
+if (!tab.id) return;
+e.preventDefault();
+flow.tabs.closeTab(tab.id);
+};
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    // Left mouse button
-    if (e.button === 0) {
-      handleClick();
-    }
-    // Middle mouse button
-    if (e.button === 1) {
-      handleCloseTab(e);
-    }
+const handleMouseDown = (e: React.MouseEvent) => {
+// Left mouse button
+if (e.button === 0) {
+handleClick();
+}
+// Middle mouse button
+if (e.button === 1) {
+handleCloseTab(e);
+}
 
-    setIsPressed(true);
-  };
+setIsPressed(true);
+};
 
   const handleToggleMute = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -68,22 +68,22 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
     flow.tabs.setTabMuted(tab.id, newMutedState);
   };
 
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    flow.tabs.showContextMenu(tab.id);
-  };
+const handleContextMenu = (e: React.MouseEvent) => {
+e.preventDefault();
+flow.tabs.showContextMenu(tab.id);
+};
 
-  useEffect(() => {
-    const handleMouseUp = () => {
-      setIsPressed(false);
-    };
-    window.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, []);
+useEffect(() => {
+const handleMouseUp = () => {
+setIsPressed(false);
+};
+window.addEventListener("mouseup", handleMouseUp);
+return () => {
+window.removeEventListener("mouseup", handleMouseUp);
+};
+}, []);
 
-  const VolumeIcon = isMuted ? VolumeX : Volume2;
+const VolumeIcon = isMuted ? VolumeX : Volume2;
 
   return (
     <MotionSidebarMenuButton
