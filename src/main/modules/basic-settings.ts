@@ -15,6 +15,23 @@ export const ArchiveTabValueMap = {
   never: Infinity
 };
 
+/**
+ * Maps sleep tab duration settings to their equivalent values in seconds.
+ * 'never' is mapped to Infinity.
+ */
+export const SleepTabValueMap = {
+  "5m": 5 * 60,
+  "10m": 10 * 60,
+  "30m": 30 * 60,
+  "1h": 60 * 60,
+  "2h": 2 * 60 * 60,
+  "4h": 4 * 60 * 60,
+  "8h": 8 * 60 * 60,
+  "12h": 12 * 60 * 60,
+  "24h": 24 * 60 * 60,
+  never: Infinity
+};
+
 export const BasicSettings: BasicSetting[] = [
   // [GENERAL] Auto Update
   {
@@ -140,6 +157,57 @@ export const BasicSettings: BasicSetting[] = [
     ]
   },
 
+  // Sleep Tab After
+  {
+    id: "sleepTabAfter",
+    name: "Sleep Tab After",
+    showName: false,
+    type: "enum",
+    defaultValue: "never",
+    options: [
+      {
+        id: "5m",
+        name: "5 Minutes"
+      },
+      {
+        id: "10m",
+        name: "10 Minutes"
+      },
+      {
+        id: "30m",
+        name: "30 Minutes"
+      },
+      {
+        id: "1h",
+        name: "1 Hour"
+      },
+      {
+        id: "2h",
+        name: "2 Hours"
+      },
+      {
+        id: "4h",
+        name: "4 Hours"
+      },
+      {
+        id: "8h",
+        name: "8 Hours"
+      },
+      {
+        id: "12h",
+        name: "12 Hours"
+      },
+      {
+        id: "24h",
+        name: "24 Hours"
+      },
+      {
+        id: "never",
+        name: "Never"
+      }
+    ]
+  },
+
   // [ADVANCED] Enable mv2 extensions
   {
     id: "enableMv2Extensions",
@@ -184,6 +252,13 @@ export const BasicSettingCards: BasicSettingCard[] = [
     title: "Archive Tab After",
     subtitle: "Choose how long tabs should be archived",
     settings: ["archiveTabAfter"]
+  },
+
+  // Sleep Tab After Card
+  {
+    title: "Sleep Tab After",
+    subtitle: "Choose how long tabs should be put to sleep",
+    settings: ["sleepTabAfter"]
   },
 
   // Onboarding Card (Internal)
