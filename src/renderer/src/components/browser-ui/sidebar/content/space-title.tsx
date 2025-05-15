@@ -8,7 +8,7 @@ export function SpaceTitle({ space }: { space: Space }) {
   if (!open) return null;
 
   return (
-    <SidebarGroup>
+    <SidebarGroup className="py-0.5">
       <SidebarMenuButton className="!opacity-100" disabled>
         <SpaceIcon fallbackId={undefined} id={space.icon} strokeWidth={2.5} className="text-black dark:text-white" />
         <span className="font-bold text-black dark:text-white">{space.name}</span>
