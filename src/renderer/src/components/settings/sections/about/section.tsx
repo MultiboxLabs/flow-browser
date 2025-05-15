@@ -10,7 +10,7 @@ export function AboutSettings() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">{tSettings("sections.about")}</h2>
-        <p className="text-muted-foreground">{tSettings("Information about your browser")}</p>
+        <p className="text-muted-foreground">{tSettings("sections.about.description")}</p>
       </div>
 
       <BrowserInfoCard />

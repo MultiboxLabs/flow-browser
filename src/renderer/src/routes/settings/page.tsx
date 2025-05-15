@@ -11,7 +11,7 @@ function App() {
 
   return (
     <ThemeProvider>
-      <title>{tSettings("Flow Settings")}</title>
+      <title>{tSettings("title")}</title>
       <Page />
     </ThemeProvider>
   );
