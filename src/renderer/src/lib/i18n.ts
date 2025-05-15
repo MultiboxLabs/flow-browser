@@ -60,4 +60,8 @@ export function useIconsTranslations() {
   return useTranslation("icons");
 }
 
+export function usePagesTranslations() {
+  return useTranslation("pages");
+}
+
 export default i18n;
