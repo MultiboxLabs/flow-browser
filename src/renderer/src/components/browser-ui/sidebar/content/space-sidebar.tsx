@@ -1,14 +1,50 @@
-import { SIDEBAR_HOVER_COLOR } from "@/components/browser-ui/browser-sidebar";
 import { NewTabButton } from "@/components/browser-ui/sidebar/content/new-tab-button";
 import { SidebarTabGroups } from "@/components/browser-ui/sidebar/content/sidebar-tab-groups";
 import { SpaceTitle } from "@/components/browser-ui/sidebar/content/space-title";
 import { useTabs } from "@/components/providers/tabs-provider";
-import { SidebarGroup, SidebarGroupAction, SidebarGroupLabel, SidebarMenu } from "@/components/ui/resizable-sidebar";
+import { Button } from "@/components/ui/button";
+import { SidebarGroup, SidebarMenu } from "@/components/ui/resizable-sidebar";
 import { Space } from "@/lib/flow/interfaces/sessions/spaces";
 import { cn, hex_is_light } from "@/lib/utils";
-import { Trash2Icon } from "lucide-react";
 import { AnimatePresence, Reorder } from "motion/react";
 import { useCallback, useMemo, useRef, useState } from "react";
+
+function SidebarSectionDivider({
+  showClearButton,
+  handleCloseAllTabs
+}: {
+  showClearButton: boolean;
+  handleCloseAllTabs: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-row",
+        "items-center justify-between",
+        "mx-1 my-2",
+        "h-1 gap-1",
+        "mt-0" // mt-0 is temporary, just for right now before pinned tabs releases
+      )}
+    >
+      <div className={cn("h-[1px] flex-grow", "bg-black/10 dark:bg-white/25")} />
+      {showClearButton && (
+        <Button
+          className={cn(
+            "h-1 !p-1 rounded-sm",
+            "text-black/50 dark:text-white/50",
+            "hover:text-black/80 dark:hover:text-white/80",
+            "hover:bg-transparent hover:dark:bg-transparent"
+          )}
+          variant="ghost"
+          size="sm"
+          onClick={handleCloseAllTabs}
+        >
+          <span className="text-xs font-semibold">Clear</span>
+        </Button>
+      )}
+    </div>
+  );
+}
 
 export function SpaceSidebar({ space }: { space: Space }) {
   const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabs();
@@ -48,44 +84,45 @@ export function SpaceSidebar({ space }: { space: Space }) {
 
   const [draggingTabGroup, setDraggingTabGroup] = useState<number | null>(null);
 
+  const showClearButton = tabGroups.length > 0;
+
   return (
     <div className={cn(isSpaceLight ? "" : "dark", "h-full")} ref={sidebarRef}>
       <SpaceTitle space={space} />
       <SidebarGroup>
-        <SidebarGroupLabel className="font-medium text-black dark:text-white">Tabs</SidebarGroupLabel>
-        <SidebarGroupAction onClick={handleCloseAllTabs} className={cn(SIDEBAR_HOVER_COLOR, "size-6")}>
-          <Trash2Icon className="size-1.5 m-1 text-black dark:text-white" />
-        </SidebarGroupAction>
         <SidebarMenu>
+          <SidebarSectionDivider showClearButton={showClearButton} handleCloseAllTabs={handleCloseAllTabs} />
           <NewTabButton />
-          <AnimatePresence initial={false}>
-            <Reorder.Group
-              as="div"
-              layout
-              onReorder={handleReorder}
-              values={sortedTabGroups.map((tabGroup) => tabGroup.id)}
-              axis="y"
-            >
-              {sortedTabGroups.map((tabGroup) => (
-                <Reorder.Item
-                  key={tabGroup.id}
-                  value={tabGroup.id}
-                  dragConstraints={sidebarRef}
-                  dragElastic={0}
-                  dragSnapToOrigin={true}
-                  onDragStart={() => setDraggingTabGroup(tabGroup.id)}
-                  onDragEnd={() => setDraggingTabGroup(null)}
-                >
-                  <SidebarTabGroups
-                    tabGroup={tabGroup}
-                    isActive={activeTabGroup?.id === tabGroup.id || false}
-                    isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
-                    isDragging={draggingTabGroup === tabGroup.id}
-                  />
-                </Reorder.Item>
-              ))}
-            </Reorder.Group>
-          </AnimatePresence>
+          <Reorder.Group
+            as="div"
+            layout
+            onReorder={handleReorder}
+            values={sortedTabGroups.map((tabGroup) => tabGroup.id)}
+            axis="y"
+          >
+            <div className="flex flex-col justify-between gap-0.5">
+              <AnimatePresence initial={false}>
+                {sortedTabGroups.map((tabGroup) => (
+                  <Reorder.Item
+                    key={tabGroup.id}
+                    value={tabGroup.id}
+                    dragConstraints={sidebarRef}
+                    dragElastic={0}
+                    dragSnapToOrigin={true}
+                    onDragStart={() => setDraggingTabGroup(tabGroup.id)}
+                    onDragEnd={() => setDraggingTabGroup(null)}
+                  >
+                    <SidebarTabGroups
+                      tabGroup={tabGroup}
+                      isActive={activeTabGroup?.id === tabGroup.id || false}
+                      isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
+                      isDragging={draggingTabGroup === tabGroup.id}
+                    />
+                  </Reorder.Item>
+                ))}
+              </AnimatePresence>
+            </div>
+          </Reorder.Group>
         </SidebarMenu>
       </SidebarGroup>
     </div>
