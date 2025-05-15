@@ -184,16 +184,18 @@ export function SidebarTabGroups({
   tabGroup: TabGroup;
   isActive: boolean; // isActive might still be needed depending on parent component logic
   isFocused: boolean;
+  isDragging: boolean;
 }) {
   const { tabs, focusedTab } = tabGroup;
 
   return (
     <motion.div
+      dragSnapToOrigin={true}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       layout
-      className="space-y-0.5" // Removed split mode specific padding and background
+      className={cn("space-y-0.5")}
     >
       {tabs.map((tab) => (
         <SidebarTab key={tab.id} tab={tab} isFocused={isFocused && focusedTab?.id === tab.id} />

@@ -7,8 +7,8 @@ import { SidebarGroup, SidebarGroupAction, SidebarGroupLabel, SidebarMenu } from
 import { Space } from "@/lib/flow/interfaces/sessions/spaces";
 import { cn, hex_is_light } from "@/lib/utils";
 import { Trash2Icon } from "lucide-react";
-import { AnimatePresence } from "motion/react";
-import { useCallback } from "react";
+import { AnimatePresence, Reorder } from "motion/react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 export function SpaceSidebar({ space }: { space: Space }) {
   const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabs();
@@ -34,8 +34,22 @@ export function SpaceSidebar({ space }: { space: Space }) {
     }
   }, [tabGroups, activeTabGroup]);
 
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
+  const [tabGroupsOrder, setTabGroupsOrder] = useState<number[]>([]);
+  const handleReorder = (newOrder: number[]) => {
+    console.log("newOrder", newOrder);
+    setTabGroupsOrder(newOrder);
+  };
+
+  const sortedTabGroups = useMemo(() => {
+    return tabGroups.sort((a, b) => tabGroupsOrder.indexOf(a.id) - tabGroupsOrder.indexOf(b.id));
+  }, [tabGroups, tabGroupsOrder]);
+
+  const [draggingTabGroup, setDraggingTabGroup] = useState<number | null>(null);
+
   return (
-    <div className={cn(isSpaceLight ? "" : "dark")}>
+    <div className={cn(isSpaceLight ? "" : "dark", "h-full")} ref={sidebarRef}>
       <SpaceTitle space={space} />
       <SidebarGroup>
         <SidebarGroupLabel className="font-medium text-black dark:text-white">Tabs</SidebarGroupLabel>
@@ -45,16 +59,32 @@ export function SpaceSidebar({ space }: { space: Space }) {
         <SidebarMenu>
           <NewTabButton />
           <AnimatePresence initial={false}>
-            {tabGroups
-              .map((tabGroup) => (
-                <SidebarTabGroups
+            <Reorder.Group
+              as="div"
+              layout
+              onReorder={handleReorder}
+              values={sortedTabGroups.map((tabGroup) => tabGroup.id)}
+              axis="y"
+            >
+              {sortedTabGroups.map((tabGroup) => (
+                <Reorder.Item
                   key={tabGroup.id}
-                  tabGroup={tabGroup}
-                  isActive={activeTabGroup?.id === tabGroup.id || false}
-                  isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
-                />
-              ))
-              .reverse()}
+                  value={tabGroup.id}
+                  dragConstraints={sidebarRef}
+                  dragElastic={0}
+                  dragSnapToOrigin={true}
+                  onDragStart={() => setDraggingTabGroup(tabGroup.id)}
+                  onDragEnd={() => setDraggingTabGroup(null)}
+                >
+                  <SidebarTabGroups
+                    tabGroup={tabGroup}
+                    isActive={activeTabGroup?.id === tabGroup.id || false}
+                    isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
+                    isDragging={draggingTabGroup === tabGroup.id}
+                  />
+                </Reorder.Item>
+              ))}
+            </Reorder.Group>
           </AnimatePresence>
         </SidebarMenu>
       </SidebarGroup>
