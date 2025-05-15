@@ -2,6 +2,9 @@ import i18n from "i18next";
 import { initReactI18next, useTranslation } from "react-i18next";
 import resourcesToBackend from "i18next-resources-to-backend";
 
+// Config
+const I18N_DEBUG_ENABLED = false;
+
 // Tell vite to load all locale files
 import.meta.glob("~/locales/*/*.json");
 
@@ -20,8 +23,25 @@ i18n
 
     interpolation: {
       escapeValue: false // react already safes from xss
-    }
+    },
+    postProcess: I18N_DEBUG_ENABLED ? ["debugger"] : [],
+    debug: I18N_DEBUG_ENABLED
   });
+
+// Custom post processor for debugging
+const debugProcessor = {
+  type: "postProcessor" as const, // Add type assertion
+  name: "debugger",
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  process(value: string, _key: string, _options: unknown, _translator: unknown) {
+    if (I18N_DEBUG_ENABLED) {
+      return "a";
+    }
+    return value;
+  }
+};
+
+i18n.use(debugProcessor); // Register the post processor
 
 // Set the language to the user's locale
 flow.app.getAppInfo().then((appInfo) => {
