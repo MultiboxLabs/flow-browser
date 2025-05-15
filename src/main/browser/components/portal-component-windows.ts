@@ -33,6 +33,7 @@ export function initializePortalComponentWindows(tabbedWindow: TabbedBrowserWind
         });
         const webContents = componentView.webContents;
 
+        componentView.setVisible(false);
         tabbedWindow.viewManager.addOrUpdateView(componentView, DEFAULT_Z_INDEX);
 
         debugPrint("PORTAL_COMPONENTS", "Created Portal Window:", componentId);
@@ -81,7 +82,9 @@ export function initializePortalComponentWindows(tabbedWindow: TabbedBrowserWind
     const componentView = componentViews[componentId];
     if (componentView) {
       debugPrint("PORTAL_COMPONENTS", "Set Visibility of Portal Window:", componentId, visible);
-      componentView.setVisible(visible);
+      setTimeout(() => {
+        componentView.setVisible(true);
+      }, 50);
     }
   };
   ipcMain.on("interface:set-component-window-visible", setComponentWindowVisible);
