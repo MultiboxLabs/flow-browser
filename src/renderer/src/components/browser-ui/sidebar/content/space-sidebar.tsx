@@ -9,20 +9,14 @@ import { cn, hex_is_light } from "@/lib/utils";
 import { AnimatePresence, Reorder, motion } from "motion/react";
 import { useCallback, useMemo, useRef, useState } from "react";
 
-const ENABLE_SECTION_DEVIDER = false;
+const ENABLE_SECTION_DEVIDER = true;
 
 function SidebarSectionDivider({ hasTabs, handleCloseAllTabs }: { hasTabs: boolean; handleCloseAllTabs: () => void }) {
   if (!hasTabs) return null;
 
   return (
     <motion.div
-      className={cn(
-        "flex flex-row",
-        "items-center justify-between",
-        "mx-1 my-2",
-        "h-1 gap-1",
-        "mt-0" // mt-0 is temporary, just for right now before pinned tabs releases
-      )}
+      className={cn("flex flex-row", "items-center justify-between", "mx-1 my-3", "h-1 gap-1")}
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
