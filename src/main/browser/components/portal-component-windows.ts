@@ -82,9 +82,13 @@ export function initializePortalComponentWindows(tabbedWindow: TabbedBrowserWind
     const componentView = componentViews[componentId];
     if (componentView) {
       debugPrint("PORTAL_COMPONENTS", "Set Visibility of Portal Window:", componentId, visible);
-      setTimeout(() => {
-        componentView.setVisible(true);
-      }, 50);
+      if (visible) {
+        setTimeout(() => {
+          componentView.setVisible(true);
+        }, 50);
+      } else {
+        componentView.setVisible(false);
+      }
     }
   };
   ipcMain.on("interface:set-component-window-visible", setComponentWindowVisible);
