@@ -6,7 +6,7 @@ import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
 import { windowTabsChanged } from "@/ipc/browser/tabs";
 import { setWindowSpace } from "@/ipc/session/spaces";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { shouldArchiveTab } from "@/saving/tabs";
+import { shouldArchiveTab, shouldSleepTab } from "@/saving/tabs";
 import { getLastUsedSpace, getLastUsedSpaceFromProfile } from "@/sessions/spaces";
 import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
@@ -82,6 +82,9 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
       for (const tab of this.tabs.values()) {
         if (!tab.visible && shouldArchiveTab(tab.lastActiveAt)) {
           tab.destroy();
+        }
+        if (!tab.visible && !tab.asleep && shouldSleepTab(tab.lastActiveAt)) {
+          tab.putToSleep();
         }
       }
     }, ARCHIVE_CHECK_INTERVAL_MS);

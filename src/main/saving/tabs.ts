@@ -2,7 +2,7 @@ import { Browser } from "@/browser/browser";
 import { SLEEP_MODE_URL, Tab } from "@/browser/tabs/tab";
 import { browser } from "@/index";
 import { getTabData } from "@/ipc/browser/tabs";
-import { ArchiveTabValueMap } from "@/modules/basic-settings";
+import { ArchiveTabValueMap, SleepTabValueMap } from "@/modules/basic-settings";
 import { getDatastore } from "@/saving/datastore";
 import { getSettingValueById } from "@/saving/settings";
 import { app } from "electron";
@@ -59,6 +59,17 @@ export function shouldArchiveTab(lastActiveAt: number) {
   const now = Math.floor(Date.now() / 1000);
   const diff = now - lastActiveAt;
   return diff > archiveTabAfterSeconds;
+}
+
+export function shouldSleepTab(lastActiveAt: number) {
+  const sleepTabAfter = getSettingValueById("sleepTabAfter");
+  const sleepTabAfterSeconds = SleepTabValueMap[sleepTabAfter as keyof typeof SleepTabValueMap];
+
+  if (typeof sleepTabAfterSeconds !== "number") return false;
+
+  const now = Math.floor(Date.now() / 1000);
+  const diff = now - lastActiveAt;
+  return diff > sleepTabAfterSeconds;
 }
 
 export async function loadTabsFromStorage() {
