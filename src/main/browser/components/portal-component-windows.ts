@@ -83,6 +83,8 @@ export function initializePortalComponentWindows(tabbedWindow: TabbedBrowserWind
     if (componentView) {
       debugPrint("PORTAL_COMPONENTS", "Set Visibility of Portal Window:", componentId, visible);
       if (visible) {
+        // A hack to fix browser flick on extension view opening
+        // TODO: Find a better solution
         setTimeout(() => {
           componentView.setVisible(true);
         }, 50);
