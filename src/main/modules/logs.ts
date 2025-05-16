@@ -35,13 +35,14 @@ function newStdoutWrite(
   encodingOrCallback?: BufferEncoding | Callback,
   callback?: Callback
 ) {
+  let decoloredChunk = chunk;
   if (typeof chunk === "string") {
     // remove ANSI escape codes
     // eslint-disable-next-line no-control-regex
-    chunk = chunk.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
+    decoloredChunk = chunk.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
   }
 
-  logStream.write(chunk);
+  logStream.write(decoloredChunk);
 
   // @ts-expect-error: This is a workaround to log to the log file
   return originalStdoutWrite.call(process.stdout, chunk, encodingOrCallback, callback);

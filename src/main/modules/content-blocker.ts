@@ -1,3 +1,4 @@
+import { createBetterSession } from "@/browser/utility/web-requests";
 import { browser } from "@/index";
 import { debugPrint } from "@/modules/output";
 import { getSettingValueById, onSettingsCached, settingsEmitter } from "@/saving/settings";
@@ -5,6 +6,8 @@ import { ElectronBlocker } from "@ghostery/adblocker-electron";
 import { Session } from "electron";
 
 type BlockerInstanceType = "all" | "adsAndTrackers" | "adsOnly";
+
+const SESSION_KEY = "content-blocker";
 
 /**
  * ContentBlocker class manages ad and tracking content blocking functionality
@@ -57,7 +60,7 @@ class ContentBlocker {
 
     const blocker = await this.blockerInstancePromise;
     for (const session of this.blockedSessions) {
-      blocker.disableBlockingInSession(session);
+      blocker.disableBlockingInSession(createBetterSession(session, SESSION_KEY));
     }
 
     this.blockedSessions = [];
@@ -79,7 +82,7 @@ class ContentBlocker {
     this.blockedSessions.push(session);
 
     // enable blocking in session
-    blocker.enableBlockingInSession(session);
+    blocker.enableBlockingInSession(createBetterSession(session, SESSION_KEY));
   }
 
   /**

@@ -17,7 +17,10 @@ const DEBUG_AREAS = {
   ICONS: false, // @/modules/icons.ts
   PORTAL_COMPONENTS: false, // @/browser/components/portal-component-windows.ts
   AUTO_UPDATER: false, // @/modules/auto-update.ts
-  CONTENT_BLOCKER: false // @/modules/content-blocker.ts
+  CONTENT_BLOCKER: false, // @/modules/content-blocker.ts
+  WEB_REQUESTS_INTERCEPTION: false, // @/browser/utility/web-requests.ts
+  WEB_REQUESTS: true, // @/browser/utility/web-requests.ts
+  MATCH_PATTERN: false // @/browser/utility/match-pattern.ts
 } as const;
 
 export type DEBUG_AREA = keyof typeof DEBUG_AREAS;
