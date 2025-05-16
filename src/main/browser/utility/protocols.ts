@@ -350,10 +350,14 @@ function registerFlowExternalProtocol(protocol: Protocol) {
 }
 
 function setupInterceptRules(session: Session) {
+  // TODO: use createBetterWebRequest()
+  const bypassCorsWebRequest = session.webRequest; //createBetterWebRequest(session.webRequest, "bypass-cors");
+  const betterPdfViewerWebRequest = session.webRequest; //createBetterWebRequest(session.webRequest, "better-pdf-viewer");
+
   // Bypass CORS for flow and flow-internal protocols
   const WHITELISTED_PROTOCOLS = ["flow:", "flow-internal:"];
 
-  session.webRequest.onHeadersReceived((details, callback) => {
+  bypassCorsWebRequest.onHeadersReceived((details, callback) => {
     const currentUrl = details.webContents?.getURL();
     const protocol = URL.parse(currentUrl ?? "")?.protocol;
 
@@ -378,7 +382,7 @@ function setupInterceptRules(session: Session) {
   });
 
   // Redirect to better PDF viewer
-  session.webRequest.onBeforeRequest((details, callback) => {
+  betterPdfViewerWebRequest.onBeforeRequest((details, callback) => {
     const url = details.url;
     const urlObject = URL.parse(url);
     if (!urlObject) {
@@ -398,7 +402,7 @@ function setupInterceptRules(session: Session) {
     callback({});
   });
 
-  session.webRequest.onBeforeSendHeaders((details, callback) => {
+  betterPdfViewerWebRequest.onBeforeSendHeaders((details, callback) => {
     const url = details.url;
     const urlObject = URL.parse(url);
     if (!urlObject) {
