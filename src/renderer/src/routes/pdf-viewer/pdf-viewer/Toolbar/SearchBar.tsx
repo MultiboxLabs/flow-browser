@@ -1,5 +1,5 @@
 import type { TUsePDFSlickStore } from "@pdfslick/react";
-import { MutableRefObject, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { VscSearch, VscChevronLeft, VscChevronRight } from "react-icons/vsc";
 import Splitter from "./Splitter";
 
@@ -16,7 +16,7 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
   const [entireWord, setEntireWord] = useState(false);
   const [term, setTerms] = useState("");
 
-  const searchRef = useRef() as MutableRefObject<HTMLInputElement>;
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const handleEscape = (e: KeyboardEvent) => {
     let handled = false;
@@ -44,10 +44,11 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
 
   useEffect(() => {
     if (isOpen) {
-      searchRef.current.focus();
+      searchRef.current?.focus();
     } else {
       pdfSlick?.eventBus.dispatch("findbarclose", {});
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   return (
@@ -81,7 +82,7 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
                     query,
                     caseSensitive,
                     highlightAll,
-                    entireWord,
+                    entireWord
                   });
 
                   setTerms(query);
@@ -96,7 +97,7 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
                       caseSensitive,
                       highlightAll,
                       entireWord,
-                      findPrevious: e.shiftKey,
+                      findPrevious: e.shiftKey
                     });
                   }
                 }}
@@ -111,7 +112,7 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
                     caseSensitive,
                     highlightAll,
                     entireWord,
-                    findPrevious: true,
+                    findPrevious: true
                   });
                 }}
               >
@@ -126,7 +127,7 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
                     query: term,
                     caseSensitive,
                     highlightAll,
-                    entireWord,
+                    entireWord
                   });
                 }}
               >
@@ -146,7 +147,7 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
                     query: term,
                     caseSensitive,
                     highlightAll: newHighlightAll,
-                    entireWord,
+                    entireWord
                   });
 
                   setHighlightAll(newHighlightAll);
@@ -166,7 +167,7 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
                     query: term,
                     caseSensitive: newCaseSensitive,
                     highlightAll,
-                    entireWord,
+                    entireWord
                   });
 
                   setCaseSensitive(newCaseSensitive);
@@ -186,7 +187,7 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
                     query: term,
                     caseSensitive,
                     highlightAll,
-                    entireWord: newEntireWord,
+                    entireWord: newEntireWord
                   });
 
                   setEntireWord(newEntireWord);

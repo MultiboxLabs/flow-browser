@@ -15,17 +15,11 @@ const InkMenu = ({ usePDFSlickStore }: InkMenuProps) => {
   const isInkMode = annotationEditorMode === AnnotationEditorType.INK;
 
   return (
-    <div
-      className={`flex items-center rounded-sm group ${
-        isInkMode ? "bg-blue-100" : "hover:bg-slate-200/50"
-      }`}
-    >
+    <div className={`flex items-center rounded-sm group ${isInkMode ? "bg-blue-100" : "hover:bg-slate-200/50"}`}>
       <button
         className={` enabled:hover:text-black text-slate-600 p-1 disabled:text-slate-300 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent`}
         onClick={() => {
-          const mode = isInkMode
-            ? AnnotationEditorType.NONE
-            : AnnotationEditorType.INK;
+          const mode = isInkMode ? AnnotationEditorType.NONE : AnnotationEditorType.INK;
           pdfSlick?.setAnnotationEditorMode(mode);
         }}
       >
@@ -52,9 +46,7 @@ const InkMenu = ({ usePDFSlickStore }: InkMenuProps) => {
         >
           <Menu.Items className="absolute right-0 z-30 mt-2 origin-top-right rounded-sm text-left bg-white divide-y divide-slate-200 shadow-lg ring-1 ring-black/5 focus:outline-none">
             <div className="flex flex-col space-y-1 p-2">
-              <div className="text-sm font-medium text-gray-900 py-1">
-                Color
-              </div>
+              <div className="text-sm font-medium text-gray-900 py-1">Color</div>
               {colorStrengths.map((s) => (
                 <div className="flex space-x-1" key={s}>
                   {colorNames.map((name) => (
@@ -62,17 +54,15 @@ const InkMenu = ({ usePDFSlickStore }: InkMenuProps) => {
                       key={`${name}-${s}`}
                       className="p-2 block rounded-full origin-center border border-transparent hover:scale-125 hover:border-blue-300"
                       style={{
-                        backgroundColor: colors[name][s],
+                        backgroundColor: colors[name][s]
                       }}
                       onClick={() => {
-                        pdfSlick?.setAnnotationEditorMode(
-                          AnnotationEditorType.INK
-                        );
+                        pdfSlick?.setAnnotationEditorMode(AnnotationEditorType.INK);
                         pdfSlick?.setAnnotationEditorParams([
                           {
                             type: AnnotationEditorParamsType.INK_COLOR,
-                            value: colors[name][s],
-                          },
+                            value: colors[name][s]
+                          }
                         ]);
                       }}
                     />
@@ -83,10 +73,7 @@ const InkMenu = ({ usePDFSlickStore }: InkMenuProps) => {
 
             <div className="p-2 flex flex-col">
               <div className="py-1 flex space-x-2 items-center">
-                <label
-                  htmlFor="innkThickness"
-                  className="text-sm w-20 font-medium text-gray-900"
-                >
+                <label htmlFor="innkThickness" className="text-sm w-20 font-medium text-gray-900">
                   Thickness
                 </label>
                 <div className="w-full flex flex-1 items-center">
@@ -100,8 +87,8 @@ const InkMenu = ({ usePDFSlickStore }: InkMenuProps) => {
                       pdfSlick?.setAnnotationEditorParams([
                         {
                           type: AnnotationEditorParamsType.INK_THICKNESS,
-                          value: +e.target.value,
-                        },
+                          value: +e.target.value
+                        }
                       ]);
                     }}
                   />
@@ -109,10 +96,7 @@ const InkMenu = ({ usePDFSlickStore }: InkMenuProps) => {
               </div>
 
               <div className="py-1 flex space-x-2 items-center">
-                <label
-                  htmlFor="inkOpacity"
-                  className="text-sm w-20 font-medium text-gray-900"
-                >
+                <label htmlFor="inkOpacity" className="text-sm w-20 font-medium text-gray-900">
                   Opacity
                 </label>
                 <div className="w-full flex flex-1 items-center">
@@ -126,8 +110,8 @@ const InkMenu = ({ usePDFSlickStore }: InkMenuProps) => {
                       pdfSlick?.setAnnotationEditorParams([
                         {
                           type: AnnotationEditorParamsType.INK_OPACITY,
-                          value: +e.target.value,
-                        },
+                          value: +e.target.value
+                        }
                       ]);
                     }}
                   />

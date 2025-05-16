@@ -34,7 +34,7 @@ const Thumbnails = ({ usePDFSlickStore, thumbsRef, show }: ThumbnailsProps) => {
             "grid-cols-1": cols === 1,
             "grid-cols-2": cols === 2,
             "grid-cols-3": cols === 3,
-            "grid-cols-4": cols > 3,
+            "grid-cols-4": cols > 3
           })}
         >
           {({ pageNumber, width, height, src, pageLabel, loaded }) => (
@@ -46,8 +46,7 @@ const Thumbnails = ({ usePDFSlickStore, thumbsRef, show }: ThumbnailsProps) => {
                     className={clsx(
                       "p-0.5",
                       {
-                        "bg-blue-400 shadow":
-                          loaded && pageNumber === currentPage,
+                        "bg-blue-400 shadow": loaded && pageNumber === currentPage
                       },
                       { "bg-transparent": pageNumber !== currentPage },
                       { "bg-transparent": !loaded }
@@ -55,25 +54,21 @@ const Thumbnails = ({ usePDFSlickStore, thumbsRef, show }: ThumbnailsProps) => {
                   >
                     <div
                       className={clsx("box-border relative border", {
-                        "border-slate-300 border-solid bg-slate-400/5 shadow-sm":
-                          !loaded,
+                        "border-slate-300 border-solid bg-slate-400/5 shadow-sm": !loaded,
                         "border-slate-300 border-solid hover:border-blue-400 shadow hover:shadow":
                           loaded && pageNumber !== currentPage,
-                        "border-transparent border-solid shadow-md":
-                          loaded && pageNumber === currentPage,
+                        "border-transparent border-solid shadow-md": loaded && pageNumber === currentPage
                       })}
                       style={{
                         width: `${width + 2}px`,
-                        height: `${height + 2}px`,
+                        height: `${height + 2}px`
                       }}
                     >
                       {src && <img src={src} width={width} height={height} />}
                     </div>
                   </button>
                 </div>
-                <div className="text-center text-xs text-slate-500 py-2">
-                  {pageLabel ?? pageNumber}
-                </div>
+                <div className="text-center text-xs text-slate-500 py-2">{pageLabel ?? pageNumber}</div>
               </div>
             </div>
           )}

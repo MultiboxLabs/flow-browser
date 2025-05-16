@@ -7,7 +7,7 @@ const presets = new Map([
   ["auto", "Auto"],
   ["page-actual", "Actual Size"],
   ["page-fit", "Page Fit"],
-  ["page-width", "Page Width"],
+  ["page-width", "Page Width"]
 ]);
 
 const zoomVals = new Map([
@@ -16,7 +16,7 @@ const zoomVals = new Map([
   [1, "100%"],
   [1.25, "125%"],
   [1.5, "150%"],
-  [2, "200%"],
+  [2, "200%"]
 ]);
 
 type ZoomSelectorProps = {
@@ -45,14 +45,8 @@ const ZoomSelector = ({ usePDFSlickStore }: ZoomSelectorProps) => {
         >
           <span className="sr-only">Open zoom options</span>
           <div className="flex px-1">
-            <span
-              className={`flex-1 px-1 ${
-                pdfSlick ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              {scaleValue && presets.has(scaleValue)
-                ? presets.get(scaleValue)
-                : `${~~(scale * 100)}%`}
+            <span className={`flex-1 px-1 ${pdfSlick ? "opacity-100" : "opacity-0"}`}>
+              {scaleValue && presets.has(scaleValue) ? presets.get(scaleValue) : `${~~(scale * 100)}%`}
             </span>
 
             <div className="w-4 h-4">
@@ -73,7 +67,7 @@ const ZoomSelector = ({ usePDFSlickStore }: ZoomSelectorProps) => {
             <div className="py-1">
               {Array.from(presets.entries()).map(([value, label]) => (
                 <Menu.Item key={label}>
-                  {({ active, close }) => (
+                  {({ active }) => (
                     <button
                       onClick={() => {
                         pdfSlick!.currentScaleValue = value;

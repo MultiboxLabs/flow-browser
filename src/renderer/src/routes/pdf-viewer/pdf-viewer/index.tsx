@@ -7,7 +7,7 @@ type PDFViewerAppProps = {
   pdfFilePath: string;
 };
 
-export default function PDFViewerApp({ pdfFilePath }: PDFViewerAppProps) {
+export function PDFViewerApp({ pdfFilePath }: PDFViewerAppProps) {
   const [isThumbsbarOpen, setIsThumbsbarOpen] = useState(false);
   const [loadedPerc, setLoadedPerc] = useState(0);
   const { isDocumentLoaded, viewerRef, thumbsRef, usePDFSlickStore, PDFSlickViewer } = usePDFSlick(pdfFilePath, {

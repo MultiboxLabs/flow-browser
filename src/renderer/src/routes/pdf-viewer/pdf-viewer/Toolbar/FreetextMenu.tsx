@@ -16,17 +16,11 @@ const FreetextMenu = ({ usePDFSlickStore }: FreetextMenuProps) => {
   const isFreetextMode = annotationEditorMode === AnnotationEditorType.FREETEXT;
 
   return (
-    <div
-      className={`flex items-center group rounded-sm ${
-        isFreetextMode ? "bg-blue-100" : "hover:bg-slate-200/50"
-      }`}
-    >
+    <div className={`flex items-center group rounded-sm ${isFreetextMode ? "bg-blue-100" : "hover:bg-slate-200/50"}`}>
       <button
         className={`enabled:hover:text-black text-slate-600 p-0.5 disabled:text-slate-300 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent`}
         onClick={() => {
-          const mode = isFreetextMode
-            ? AnnotationEditorType.NONE
-            : AnnotationEditorType.FREETEXT;
+          const mode = isFreetextMode ? AnnotationEditorType.NONE : AnnotationEditorType.FREETEXT;
           pdfSlick?.setAnnotationEditorMode(mode);
         }}
       >
@@ -53,9 +47,7 @@ const FreetextMenu = ({ usePDFSlickStore }: FreetextMenuProps) => {
         >
           <Menu.Items className="absolute right-0 z-30 mt-1 origin-top-right rounded-sm text-left bg-white divide-y divide-slate-200 shadow-lg ring-1 ring-black/5 focus:outline-none">
             <div className="flex flex-col space-y-0.5 p-2">
-              <div className="text-sm font-medium text-gray-900 py-1">
-                Color
-              </div>
+              <div className="text-sm font-medium text-gray-900 py-1">Color</div>
               {colorStrengths.map((s) => (
                 <div className="flex space-x-0.5" key={s}>
                   {colorNames.map((name) => (
@@ -64,17 +56,15 @@ const FreetextMenu = ({ usePDFSlickStore }: FreetextMenuProps) => {
                       key={`${name}-${s}`}
                       className="p-2 rounded-full border border-slate-200 hover:border-slate-400 hover:shadow-sm focus:ring-blue-500"
                       style={{
-                        backgroundColor: colors[name][s],
+                        backgroundColor: colors[name][s]
                       }}
                       onClick={() => {
-                        pdfSlick?.setAnnotationEditorMode(
-                          AnnotationEditorType.FREETEXT
-                        );
+                        pdfSlick?.setAnnotationEditorMode(AnnotationEditorType.FREETEXT);
                         pdfSlick?.setAnnotationEditorParams([
                           {
                             type: AnnotationEditorParamsType.FREETEXT_COLOR,
-                            value: colors[name][s],
-                          },
+                            value: colors[name][s]
+                          }
                         ]);
                       }}
                     />
@@ -86,10 +76,7 @@ const FreetextMenu = ({ usePDFSlickStore }: FreetextMenuProps) => {
 
             <div className="p-2 flex flex-col">
               <div className="py-1 flex space-x-2 items-center">
-                <label
-                  htmlFor="innkThickness"
-                  className="text-sm w-20 font-medium text-gray-900"
-                >
+                <label htmlFor="innkThickness" className="text-sm w-20 font-medium text-gray-900">
                   Font Size
                 </label>
                 <div className="w-full flex flex-1 items-center">
@@ -103,8 +90,8 @@ const FreetextMenu = ({ usePDFSlickStore }: FreetextMenuProps) => {
                       pdfSlick?.setAnnotationEditorParams([
                         {
                           type: AnnotationEditorParamsType.FREETEXT_SIZE,
-                          value: +e.target.value,
-                        },
+                          value: +e.target.value
+                        }
                       ]);
                     }}
                   />

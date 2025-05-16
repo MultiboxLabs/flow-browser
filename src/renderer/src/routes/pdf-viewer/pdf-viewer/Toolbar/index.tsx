@@ -1,10 +1,4 @@
-import {
-  ChangeEvent,
-  MutableRefObject,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   VscChevronDown,
@@ -12,8 +6,7 @@ import {
   VscLayoutSidebarLeft,
   VscLayoutSidebarLeftOff,
   VscDesktopDownload,
-  VscDiffAdded,
-  VscSearch,
+  VscDiffAdded
 } from "react-icons/vsc";
 import type { TUsePDFSlickStore } from "@pdfslick/react";
 import ZoomSelector from "./ZoomSelector";
@@ -31,13 +24,9 @@ type TToolbarProps = {
   setIsThumbsbarOpen: (s: boolean) => void;
 };
 
-const Toolbar = ({
-  usePDFSlickStore,
-  isThumbsbarOpen,
-  setIsThumbsbarOpen,
-}: TToolbarProps) => {
-  const pageNumberRef = useRef() as MutableRefObject<HTMLInputElement>;
-  const openPdfFileRef = useRef() as MutableRefObject<HTMLInputElement>;
+const Toolbar = ({ usePDFSlickStore, isThumbsbarOpen, setIsThumbsbarOpen }: TToolbarProps) => {
+  const pageNumberRef = useRef<HTMLInputElement>(null);
+  const openPdfFileRef = useRef<HTMLInputElement>(null);
 
   const numPages = usePDFSlickStore((s) => s.numPages);
   const pageNumber = usePDFSlickStore((s) => s.pageNumber);
@@ -45,8 +34,7 @@ const Toolbar = ({
 
   const [wantedPageNumber, setWantedPageNumber] = useState<number | string>(1);
 
-  const updatePageNumber = ({ pageNumber }: any) =>
-    setWantedPageNumber(pageNumber);
+  const updatePageNumber = ({ pageNumber }: { pageNumber: number }) => setWantedPageNumber(pageNumber);
 
   const handleOpenPdfFile = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -104,11 +92,7 @@ const Toolbar = ({
               onSubmit={(e) => {
                 e.preventDefault();
                 const newPageNumber = parseInt(wantedPageNumber + "");
-                if (
-                  Number.isInteger(newPageNumber) &&
-                  newPageNumber > 0 &&
-                  newPageNumber <= numPages
-                ) {
+                if (Number.isInteger(newPageNumber) && newPageNumber > 0 && newPageNumber <= numPages) {
                   pdfSlick?.linkService.goToPage(newPageNumber);
                 } else {
                   setWantedPageNumber(pageNumber);
@@ -120,7 +104,7 @@ const Toolbar = ({
                 type="text"
                 value={wantedPageNumber}
                 className="block w-12 text-right rounded-sm border border-slate-300 focus:shadow focus:border-blue-400 focus:ring-0 outline-none text-xs p-1 px-1.5 placeholder:text-gray-300 focus:placeholder:text-gray-400 placeholder:italic"
-                onFocus={() => pageNumberRef.current.select()}
+                onFocus={() => pageNumberRef.current?.select()}
                 onChange={(e) => {
                   setWantedPageNumber(e.currentTarget.value);
                 }}
@@ -128,15 +112,11 @@ const Toolbar = ({
                   switch (e.key) {
                     case "Down": // IE/Edge specific value
                     case "ArrowDown":
-                      pdfSlick?.linkService.goToPage(
-                        Math.max(1, (pageNumber ?? 0) - 1)
-                      );
+                      pdfSlick?.linkService.goToPage(Math.max(1, (pageNumber ?? 0) - 1));
                       break;
                     case "Up": // IE/Edge specific value
                     case "ArrowUp":
-                      pdfSlick?.linkService.goToPage(
-                        Math.min(numPages ?? 0, (pageNumber ?? 0) + 1)
-                      );
+                      pdfSlick?.linkService.goToPage(Math.min(numPages ?? 0, (pageNumber ?? 0) + 1));
                       break;
                     default:
                       return;
@@ -163,7 +143,7 @@ const Toolbar = ({
               className={clsx(
                 "enabled:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
               )}
-              onClick={() => openPdfFileRef.current.click()}
+              onClick={() => openPdfFileRef.current?.click()}
             >
               <VscDiffAdded className="w-4 h-4" />
               <Tooltip position="bottom">

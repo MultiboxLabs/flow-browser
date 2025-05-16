@@ -1,10 +1,5 @@
-import { FC } from "react";
 import clsx from "clsx";
-import {
-  PDFSlick,
-  type TPDFDocumentOutline,
-  type TUsePDFSlickStore,
-} from "@pdfslick/react";
+import { PDFSlick, type TPDFDocumentOutline, type TUsePDFSlickStore } from "@pdfslick/react";
 import { VscTriangleRight } from "react-icons/vsc";
 
 type OutlineProps = {
@@ -12,11 +7,15 @@ type OutlineProps = {
   show: boolean;
 };
 
-const renderOutlineItems: FC<{
+const renderOutlineItems = ({
+  outline,
+  pdfSlick,
+  level = 0
+}: {
   outline: TPDFDocumentOutline | null;
   pdfSlick: PDFSlick | null;
   level?: number;
-}> = ({ outline, pdfSlick, level = 0 }) => {
+}) => {
   return (
     <ul className="w-full">
       {(outline ?? []).map((item, ix) => (
@@ -50,7 +49,7 @@ const renderOutlineItems: FC<{
               renderOutlineItems({
                 outline: item.items,
                 pdfSlick,
-                level: level + 1,
+                level: level + 1
               })}
           </div>
         </li>
@@ -64,9 +63,7 @@ const Outline = ({ usePDFSlickStore, show }: OutlineProps) => {
   const pdfSlick = usePDFSlickStore((s) => s.pdfSlick);
 
   return (
-    <div
-      className={clsx("overflow-auto absolute inset-0", { invisible: !show })}
-    >
+    <div className={clsx("overflow-auto absolute inset-0", { invisible: !show })}>
       <div className="p-2 pl-0.5 text-slate-700 text-sm">
         {renderOutlineItems({ outline: documentOutline, pdfSlick })}
       </div>

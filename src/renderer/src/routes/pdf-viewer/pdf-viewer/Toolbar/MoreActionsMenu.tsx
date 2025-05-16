@@ -1,10 +1,4 @@
-import {
-  ChangeEvent,
-  Fragment,
-  MutableRefObject,
-  useRef,
-  useState,
-} from "react";
+import { ChangeEvent, Fragment, useRef, useState } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import {
   VscKebabVertical,
@@ -20,13 +14,9 @@ import {
   VscDesktopDownload,
   VscDiffAdded,
   VscExport,
-  VscPlay,
+  VscPlay
 } from "react-icons/vsc";
-import {
-  ScrollMode,
-  SpreadMode,
-  type TUsePDFSlickStore,
-} from "@pdfslick/react";
+import { ScrollMode, SpreadMode, type TUsePDFSlickStore } from "@pdfslick/react";
 import { shallow } from "zustand/shallow";
 import clsx from "clsx";
 import DocumentInfoModal from "./DocumentInfoModal";
@@ -37,23 +27,16 @@ type MoreActionsMenuProps = {
 
 const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const openPdfFileRef = useRef() as MutableRefObject<HTMLInputElement>;
+  const openPdfFileRef = useRef<HTMLInputElement>(null);
 
-  const {
-    pdfSlick,
-    pagesRotation,
-    pageNumber,
-    numPages,
-    scrollMode,
-    spreadMode,
-  } = usePDFSlickStore(
+  const { pdfSlick, pagesRotation, pageNumber, numPages, scrollMode, spreadMode } = usePDFSlickStore(
     (s) => ({
       pdfSlick: s.pdfSlick,
       pagesRotation: s.pagesRotation,
       pageNumber: s.pageNumber,
       numPages: s.numPages,
       scrollMode: s.scrollMode,
-      spreadMode: s.spreadMode,
+      spreadMode: s.spreadMode
     }),
     shallow
   );
@@ -114,7 +97,7 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
                       "w-full items-center flex space-x-2 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",
                       {
                         "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
+                        "text-gray-700": !active
                       }
                     )}
                   >
@@ -128,12 +111,12 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
               <Menu.Item>
                 {({ active }) => (
                   <button
-                    onClick={() => openPdfFileRef.current.click()}
+                    onClick={() => openPdfFileRef.current?.click()}
                     className={clsx(
                       "w-full items-center flex space-x-2 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",
                       {
                         "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
+                        "text-gray-700": !active
                       }
                     )}
                   >
@@ -150,7 +133,7 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
                       "w-full items-center flex space-x-2 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",
                       {
                         "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
+                        "text-gray-700": !active
                       }
                     )}
                   >
@@ -167,14 +150,11 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
                       "w-full items-center flex space-x-1.5 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",
                       {
                         "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
+                        "text-gray-700": !active
                       }
                     )}
                   >
-                    <svg
-                      viewBox="0 0 20 20"
-                      className="w-5 h-5 fill-current -ml-0.5"
-                    >
+                    <svg viewBox="0 0 20 20" className="w-5 h-5 fill-current -ml-0.5">
                       <path
                         d="M5 4.5C5 3.67 5.67 3 6.5 3h7c.83 0 1.5.67 1.5 1.5V5h.5A2.5 2.5 0 0118 7.5v5c0 .83-.67 1.5-1.5 1.5H15v1.5c0 .83-.67 1.5-1.5 1.5h-7A1.5 1.5 0 015 15.5V14H3.5A1.5 1.5 0 012 12.5v-5A2.5 2.5 0 014.5 5H5v-.5zM6 5h8v-.5a.5.5 0 00-.5-.5h-7a.5.5 0 00-.5.5V5zm-1 8v-1.5c0-.83.67-1.5 1.5-1.5h7c.83 0 1.5.67 1.5 1.5V13h1.5a.5.5 0 00.5-.5v-5c0-.83-.67-1.5-1.5-1.5h-11C3.67 6 3 6.67 3 7.5v5c0 .28.22.5.5.5H5zm1.5-2a.5.5 0 00-.5.5v4c0 .28.22.5.5.5h7a.5.5 0 00.5-.5v-4a.5.5 0 00-.5-.5h-7z"
                         fillRule="nonzero"
@@ -196,7 +176,7 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
                       "w-full items-center flex space-x-2 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",
                       {
                         "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
+                        "text-gray-700": !active
                       }
                     )}
                   >
@@ -214,7 +194,7 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
                       "w-full items-center flex space-x-2 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",
                       {
                         "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
+                        "text-gray-700": !active
                       }
                     )}
                   >
@@ -233,13 +213,10 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
                       e.preventDefault();
                       pdfSlick?.setRotation(pagesRotation + 90);
                     }}
-                    className={clsx(
-                      "w-full flex space-x-2 box-border text-left px-2 py-1.5 text-xs",
-                      {
-                        "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
-                      }
-                    )}
+                    className={clsx("w-full flex space-x-2 box-border text-left px-2 py-1.5 text-xs", {
+                      "bg-slate-100 text-gray-900": active,
+                      "text-gray-700": !active
+                    })}
                   >
                     <VscRefresh className="w-4 h-4" />
                     <span>Rotate Clockwise</span>
@@ -253,13 +230,10 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
                       e.preventDefault();
                       pdfSlick?.setRotation(pagesRotation - 90);
                     }}
-                    className={clsx(
-                      "w-full flex space-x-2 box-border text-left px-2 py-1.5 text-xs",
-                      {
-                        "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
-                      }
-                    )}
+                    className={clsx("w-full flex space-x-2 box-border text-left px-2 py-1.5 text-xs", {
+                      "bg-slate-100 text-gray-900": active,
+                      "text-gray-700": !active
+                    })}
                   >
                     <VscRefresh className="w-4 h-4 -scale-x-100 scale-y-100" />
                     <span>Rotate Counterclockwise</span>
@@ -277,15 +251,13 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
                       "w-full items-center flex space-x-2 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",
                       {
                         "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
+                        "text-gray-700": !active
                       }
                     )}
                   >
                     <VscFilePdf className="w-4 h-4" />
                     <span className="flex-1">Page Scrolling</span>
-                    {scrollMode === ScrollMode.PAGE && (
-                      <VscCheck className="w-3" />
-                    )}
+                    {scrollMode === ScrollMode.PAGE && <VscCheck className="w-3" />}
                   </button>
                 )}
               </Menu.Item>
@@ -297,37 +269,31 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
                       "w-full items-center flex space-x-2 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",
                       {
                         "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
+                        "text-gray-700": !active
                       }
                     )}
                   >
                     <VscArrowBoth className="w-4 h-4 rotate-90" />
                     <span className="flex-1">Vertical Scrolling</span>
-                    {scrollMode === ScrollMode.VERTICAL && (
-                      <VscCheck className="w-3" />
-                    )}
+                    {scrollMode === ScrollMode.VERTICAL && <VscCheck className="w-3" />}
                   </button>
                 )}
               </Menu.Item>
               <Menu.Item>
                 {({ active }) => (
                   <button
-                    onClick={() =>
-                      pdfSlick?.setScrollMode(ScrollMode.HORIZONTAL)
-                    }
+                    onClick={() => pdfSlick?.setScrollMode(ScrollMode.HORIZONTAL)}
                     className={clsx(
                       "w-full items-center flex space-x-2 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",
                       {
                         "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
+                        "text-gray-700": !active
                       }
                     )}
                   >
                     <VscArrowBoth className="w-4 h-4" />
                     <span className="flex-1">Horizontal Scrolling</span>
-                    {scrollMode === ScrollMode.HORIZONTAL && (
-                      <VscCheck className="w-3" />
-                    )}
+                    {scrollMode === ScrollMode.HORIZONTAL && <VscCheck className="w-3" />}
                   </button>
                 )}
               </Menu.Item>
@@ -339,15 +305,13 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
                       "w-full items-center flex space-x-2 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",
                       {
                         "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
+                        "text-gray-700": !active
                       }
                     )}
                   >
                     <VscExtensions className="w-4 h-4" />
                     <span className="flex-1">Wrapped Scrolling</span>
-                    {scrollMode === ScrollMode.WRAPPED && (
-                      <VscCheck className="w-3" />
-                    )}
+                    {scrollMode === ScrollMode.WRAPPED && <VscCheck className="w-3" />}
                   </button>
                 )}
               </Menu.Item>
@@ -362,15 +326,13 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
                       "w-full items-center flex space-x-2 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",
                       {
                         "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
+                        "text-gray-700": !active
                       }
                     )}
                   >
                     <VscFile className="w-4 h-4" />
                     <span className="flex-1">No Spreads</span>
-                    {spreadMode === SpreadMode.NONE && (
-                      <VscCheck className="w-3" />
-                    )}
+                    {spreadMode === SpreadMode.NONE && <VscCheck className="w-3" />}
                   </button>
                 )}
               </Menu.Item>
@@ -382,15 +344,13 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
                       "w-full items-center flex space-x-2 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",
                       {
                         "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
+                        "text-gray-700": !active
                       }
                     )}
                   >
                     <VscFiles className="w-4 h-4" />
                     <span className="flex-1">Odd Spreads</span>
-                    {spreadMode === SpreadMode.ODD && (
-                      <VscCheck className="w-3" />
-                    )}
+                    {spreadMode === SpreadMode.ODD && <VscCheck className="w-3" />}
                   </button>
                 )}
               </Menu.Item>
@@ -402,15 +362,13 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
                       "w-full items-center flex space-x-2 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",
                       {
                         "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
+                        "text-gray-700": !active
                       }
                     )}
                   >
                     <VscCopy className="w-4 h-4" />
                     <span className="flex-1">Even Spreads</span>
-                    {spreadMode === SpreadMode.EVEN && (
-                      <VscCheck className="w-3" />
-                    )}
+                    {spreadMode === SpreadMode.EVEN && <VscCheck className="w-3" />}
                   </button>
                 )}
               </Menu.Item>
@@ -426,7 +384,7 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
                       "w-full items-center flex space-x-2 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",
                       {
                         "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active,
+                        "text-gray-700": !active
                       }
                     )}
                   >

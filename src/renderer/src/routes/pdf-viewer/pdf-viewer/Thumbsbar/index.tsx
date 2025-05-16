@@ -1,4 +1,4 @@
-import { MutableRefObject, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import type { TUsePDFSlickStore } from "@pdfslick/react";
 import { select } from "d3-selection";
@@ -14,17 +14,11 @@ type ThumbsbarProps = {
   thumbsRef: (instance: HTMLElement | null) => void;
 };
 
-const Thumbsbar = ({
-  usePDFSlickStore,
-  isThumbsbarOpen,
-  thumbsRef,
-}: ThumbsbarProps) => {
-  const [tab, setTab] = useState<"thumbnails" | "outline" | "attachments">(
-    "thumbnails"
-  );
+const Thumbsbar = ({ usePDFSlickStore, isThumbsbarOpen, thumbsRef }: ThumbsbarProps) => {
+  const [tab, setTab] = useState<"thumbnails" | "outline" | "attachments">("thumbnails");
 
-  const containerRef = useRef() as MutableRefObject<HTMLDivElement>;
-  const resizerRef = useRef() as MutableRefObject<HTMLDivElement>;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const resizerRef = useRef<HTMLDivElement>(null);
   const [isResizing, setIsResizing] = useState(false);
   const [width, setWidth] = useState(233);
 
@@ -32,8 +26,8 @@ const Thumbsbar = ({
     let newWidth = 0;
 
     const dragResize = drag<HTMLDivElement, unknown>()
-      .on("start", (e) => {
-        newWidth = containerRef.current.clientWidth;
+      .on("start", () => {
+        newWidth = containerRef.current?.clientWidth ?? 0;
         setIsResizing(true);
       })
       .on("drag", (e) => {
@@ -41,10 +35,11 @@ const Thumbsbar = ({
         const width = Math.min(620, Math.max(233, newWidth));
         setWidth(width);
       })
-      .on("end", (e) => {
+      .on("end", () => {
         setIsResizing(false);
       });
 
+    // @ts-expect-error: i dont care
     select(resizerRef.current).call(dragResize);
   }, []);
 
@@ -57,11 +52,11 @@ const Thumbsbar = ({
           {
             visible: isThumbsbarOpen,
             "invisible border-r-0 overflow-hidden": !isThumbsbarOpen,
-            "transition-all": !isResizing,
+            "transition-all": !isResizing
           }
         )}
         style={{
-          width: `${isThumbsbarOpen ? width : 0}px`,
+          width: `${isThumbsbarOpen ? width : 0}px`
         }}
       >
         <ButtonsBar {...{ tab, setTab, isThumbsbarOpen, usePDFSlickStore }} />
@@ -69,14 +64,11 @@ const Thumbsbar = ({
         <div
           className={clsx("flex-1 relative", {
             "translate-x-0 visible opacity-100": isThumbsbarOpen,
-            "transition-[visibility,opacity] delay-150 duration-300 ease-out":
-              isThumbsbarOpen,
-            "-translate-x-full invisible opacity-0": !isThumbsbarOpen,
+            "transition-[visibility,opacity] delay-150 duration-300 ease-out": isThumbsbarOpen,
+            "-translate-x-full invisible opacity-0": !isThumbsbarOpen
           })}
         >
-          <Thumbnails
-            {...{ show: tab === "thumbnails", thumbsRef, usePDFSlickStore }}
-          />
+          <Thumbnails {...{ show: tab === "thumbnails", thumbsRef, usePDFSlickStore }} />
           <Outline {...{ show: tab === "outline", usePDFSlickStore }} />
           <Attachments {...{ show: tab === "attachments", usePDFSlickStore }} />
         </div>
@@ -88,7 +80,7 @@ const Thumbsbar = ({
               "absolute -left-px top-0 h-full z-10 w-1 transition-all duration-150 ease-in hover:delay-150 hover:duration-150",
               {
                 "bg-blue-400": isResizing,
-                "bg-transparent hover:bg-blue-400": !isResizing,
+                "bg-transparent hover:bg-blue-400": !isResizing
               }
             )}
           />
