@@ -247,18 +247,11 @@ export const BasicSettingCards: BasicSettingCard[] = [
     settings: ["sidebarSide", "sidebarCollapseMode"]
   },
 
-  // Archive Tab After Card
+  // Performance Settings Card
   {
-    title: "Archive Tab After",
-    subtitle: "Choose how long tabs should be archived",
-    settings: ["archiveTabAfter"]
-  },
-
-  // Sleep Tab After Card
-  {
-    title: "Sleep Tab After",
-    subtitle: "Choose how long tabs should be put to sleep",
-    settings: ["sleepTabAfter"]
+    title: "Performance Settings",
+    subtitle: "Settings to improve performance",
+    settings: ["archiveTabAfter", "sleepTabAfter"]
   },
 
   // Onboarding Card (Internal)
