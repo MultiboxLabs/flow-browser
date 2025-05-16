@@ -1,4 +1,4 @@
-import { ChangeEvent, Fragment, useRef, useState } from "react";
+import { Fragment, useState } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import {
   VscKebabVertical,
@@ -12,7 +12,6 @@ import {
   VscCheck,
   VscInfo,
   VscDesktopDownload,
-  VscDiffAdded,
   VscExport,
   VscPlay
 } from "react-icons/vsc";
@@ -27,7 +26,6 @@ type MoreActionsMenuProps = {
 
 const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const openPdfFileRef = useRef<HTMLInputElement>(null);
 
   const { pdfSlick, pagesRotation, pageNumber, numPages, scrollMode, spreadMode } = usePDFSlickStore(
     (s) => ({
@@ -41,14 +39,6 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
     shallow
   );
 
-  function handleOpenPdfFile(e: ChangeEvent<HTMLInputElement>) {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const url = URL.createObjectURL(file);
-      pdfSlick?.loadDocument(url, { filename: file.name });
-    }
-  }
-
   function closeModal() {
     setIsOpen(false);
   }
@@ -59,17 +49,6 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
 
   return (
     <>
-      <div className="absolute overflow-hidden w-0 h-0">
-        <input
-          id="openPdfFileAction"
-          ref={openPdfFileRef}
-          tabIndex={-1}
-          type="file"
-          accept=".pdf,application/pdf"
-          onChange={handleOpenPdfFile}
-          className="absolute -top-[10000px]"
-        />
-      </div>
       <Menu as="span" className="">
         <Menu.Button
           disabled={!pdfSlick}
@@ -108,23 +87,6 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
               </Menu.Item>
             </div>
             <div className="py-1">
-              <Menu.Item>
-                {({ active }) => (
-                  <button
-                    onClick={() => openPdfFileRef.current?.click()}
-                    className={clsx(
-                      "w-full items-center flex space-x-2 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",
-                      {
-                        "bg-slate-100 text-gray-900": active,
-                        "text-gray-700": !active
-                      }
-                    )}
-                  >
-                    <VscDiffAdded className="w-4 h-4" />
-                    <span>Open PDF File...</span>
-                  </button>
-                )}
-              </Menu.Item>
               <Menu.Item>
                 {({ active }) => (
                   <button

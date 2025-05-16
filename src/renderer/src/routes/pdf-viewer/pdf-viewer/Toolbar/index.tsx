@@ -1,12 +1,11 @@
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   VscChevronDown,
   VscChevronUp,
   VscLayoutSidebarLeft,
   VscLayoutSidebarLeftOff,
-  VscDesktopDownload,
-  VscDiffAdded
+  VscDesktopDownload
 } from "react-icons/vsc";
 import type { TUsePDFSlickStore } from "@pdfslick/react";
 import ZoomSelector from "./ZoomSelector";
@@ -26,7 +25,6 @@ type TToolbarProps = {
 
 const Toolbar = ({ usePDFSlickStore, isThumbsbarOpen, setIsThumbsbarOpen }: TToolbarProps) => {
   const pageNumberRef = useRef<HTMLInputElement>(null);
-  const openPdfFileRef = useRef<HTMLInputElement>(null);
 
   const numPages = usePDFSlickStore((s) => s.numPages);
   const pageNumber = usePDFSlickStore((s) => s.pageNumber);
@@ -35,14 +33,6 @@ const Toolbar = ({ usePDFSlickStore, isThumbsbarOpen, setIsThumbsbarOpen }: TToo
   const [wantedPageNumber, setWantedPageNumber] = useState<number | string>(1);
 
   const updatePageNumber = ({ pageNumber }: { pageNumber: number }) => setWantedPageNumber(pageNumber);
-
-  const handleOpenPdfFile = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const url = URL.createObjectURL(file);
-      pdfSlick?.loadDocument(url, { filename: file.name });
-    }
-  };
 
   useEffect(() => {
     updatePageNumber({ pageNumber });
@@ -143,18 +133,6 @@ const Toolbar = ({ usePDFSlickStore, isThumbsbarOpen, setIsThumbsbarOpen }: TToo
               className={clsx(
                 "enabled:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
               )}
-              onClick={() => openPdfFileRef.current?.click()}
-            >
-              <VscDiffAdded className="w-4 h-4" />
-              <Tooltip position="bottom">
-                <p className="whitespace-nowrap">Open PDF File</p>
-              </Tooltip>
-            </button>
-
-            <button
-              className={clsx(
-                "enabled:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
-              )}
               onClick={() => pdfSlick?.downloadOrSave()}
             >
               <VscDesktopDownload className="w-4 h-4" />
@@ -169,17 +147,6 @@ const Toolbar = ({ usePDFSlickStore, isThumbsbarOpen, setIsThumbsbarOpen }: TToo
 
           <MoreActionsMenu {...{ usePDFSlickStore }} />
         </div>
-      </div>
-      <div className="absolute -top-10 overflow-hidden w-0 h-0">
-        <input
-          id="openPdfFile"
-          ref={openPdfFileRef}
-          tabIndex={-1}
-          type="file"
-          accept=".pdf,application/pdf"
-          onChange={handleOpenPdfFile}
-          className="absolute -top-[10000px]"
-        />
       </div>
     </>
   );
