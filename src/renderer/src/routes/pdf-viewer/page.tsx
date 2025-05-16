@@ -14,13 +14,10 @@ function Page() {
     return null;
   }
 
-  const urlObject = URL.parse(url);
-  urlObject?.searchParams.set("noflowredirect", "true");
-
   return (
     <>
       <title>{url}</title>
-      <PDFViewerApp pdfFilePath={urlObject?.toString() ?? url} />
+      <PDFViewerApp pdfFilePath={url} />
     </>
   );
 }

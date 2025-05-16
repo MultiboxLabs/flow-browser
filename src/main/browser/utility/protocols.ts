@@ -382,33 +382,33 @@ function setupInterceptRules(session: Session) {
   });
 
   // Redirect to better PDF viewer
-  betterPdfViewerWebRequest.onBeforeRequest((details, callback) => {
-    const url = details.url;
-    const urlObject = URL.parse(url);
-    if (!urlObject) {
-      return callback({});
-    }
-    if (urlObject.searchParams.get("noflowredirect")) {
-      return callback({});
-    }
+  betterPdfViewerWebRequest.onBeforeRequest(
+    {
+      urls: ["<all_urls>"],
+      types: ["mainFrame", "subFrame"]
+    },
+    (details, callback) => {
+      const url = details.url;
+      const urlObject = URL.parse(url);
+      if (!urlObject) {
+        return callback({});
+      }
 
-    const { pathname } = urlObject;
-    if (pathname.endsWith(".pdf")) {
-      const viewerURL = new URL("flow://pdf-viewer");
-      viewerURL.searchParams.set("url", url);
-      return callback({ redirectURL: viewerURL.toString() });
-    }
+      const { pathname } = urlObject;
+      if (pathname.toLowerCase().endsWith(".pdf")) {
+        const viewerURL = new URL("flow://pdf-viewer");
+        viewerURL.searchParams.set("url", url);
+        return callback({ redirectURL: viewerURL.toString() });
+      }
 
-    callback({});
-  });
+      callback({});
+    }
+  );
 
   betterPdfViewerWebRequest.onBeforeSendHeaders((details, callback) => {
     const url = details.url;
     const urlObject = URL.parse(url);
     if (!urlObject) {
-      return callback({});
-    }
-    if (!urlObject.searchParams.get("noflowredirect")) {
       return callback({});
     }
 
