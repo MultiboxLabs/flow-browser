@@ -44,12 +44,11 @@ const FLOW_PROTOCOL_ALLOWED_DOMAINS: AllowedDomains = {
   "new-tab": true,
   games: true,
   omnibox: true,
-  extensions: true
+  extensions: true,
+  "pdf-viewer": true
 };
 
 const FLOW_EXTERNAL_ALLOWED_DOMAINS: AllowedDomains = {
-  "pdf-viewer.flow": true,
-
   // Dino Game - Taken from https://github.com/yell0wsuit/chrome-dino-enhanced
   "dino.chrome.game": "chrome-dino-game",
 
@@ -391,12 +390,26 @@ function setupInterceptRules(session: Session) {
 
     const { pathname } = urlObject;
     if (pathname.endsWith(".pdf")) {
-      const viewerURL = new URL("flow-external://pdf-viewer.flow");
+      const viewerURL = new URL("flow://pdf-viewer");
       viewerURL.searchParams.set("url", url);
       return callback({ redirectURL: viewerURL.toString() });
     }
 
     callback({});
+  });
+
+  session.webRequest.onBeforeSendHeaders((details, callback) => {
+    const url = details.url;
+    const urlObject = URL.parse(url);
+    if (!urlObject) {
+      return callback({});
+    }
+    if (!urlObject.searchParams.get("noflowredirect")) {
+      return callback({});
+    }
+
+    const newHeaders = { ...details.requestHeaders, Origin: urlObject.origin };
+    callback({ requestHeaders: newHeaders });
   });
 }
 

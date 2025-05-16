@@ -8,7 +8,6 @@ import { WindowHistoryAdapter } from "use-query-params/adapters/window";
 // Protocols //
 const flowProtocol = "flow:";
 const flowInternalProtocol = "flow-internal:";
-const flowExternalProtocol = "flow-external:";
 
 // Pages //
 import MainUIRoute from "./routes/main-ui/route";
@@ -61,7 +60,7 @@ function Routes() {
       <Route protocol={flowProtocol} hostname="extensions">
         <ExtensionsRoute />
       </Route>
-      <Route protocol={flowExternalProtocol} hostname="pdf-viewer.flow">
+      <Route protocol={flowProtocol} hostname="pdf-viewer">
         <PDFViewerRoute />
       </Route>
     </RouterProvider>

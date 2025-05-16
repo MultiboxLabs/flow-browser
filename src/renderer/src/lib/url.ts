@@ -66,7 +66,7 @@ export function parseAddressBarInput(input: string): string {
 export function transformUrl(url: string): string | null {
   const urlObject = URL.parse(url);
 
-  // Error Page
+  // Error Page (flow://error)
   if (urlObject && urlObject.protocol === "flow:" && urlObject.hostname === "error") {
     const erroredURL = urlObject.searchParams.get("url");
     if (erroredURL) {
@@ -76,9 +76,14 @@ export function transformUrl(url: string): string | null {
     }
   }
 
-  // New Tab Page
+  // New Tab Page (flow://new-tab)
   if (urlObject && urlObject.protocol === "flow:" && urlObject.hostname === "new-tab") {
     return "";
+  }
+
+  // PDF Viewer (flow://pdf-viewer)
+  if (urlObject && urlObject.protocol === "flow:" && urlObject.hostname === "pdf-viewer") {
+    return urlObject.searchParams.get("url") ?? "";
   }
 
   // Other Protocols
