@@ -2,10 +2,13 @@ import { RouterProvider } from "./router/provider";
 import { Route } from "./router/route";
 import { Toaster } from "sonner";
 import { PlatformProvider } from "@/components/main/platform";
+import { QueryParamProvider } from "use-query-params";
+import { WindowHistoryAdapter } from "use-query-params/adapters/window";
 
 // Protocols //
 const flowProtocol = "flow:";
 const flowInternalProtocol = "flow-internal:";
+const flowExternalProtocol = "flow-external:";
 
 // Pages //
 import MainUIRoute from "./routes/main-ui/route";
@@ -19,6 +22,7 @@ import OmniboxRoute from "./routes/omnibox/route";
 import OmniboxDebugRoute from "./routes/omnibox-debug/route";
 import OnboardingRoute from "./routes/onboarding/route";
 import ExtensionsRoute from "./routes/extensions/route";
+import PDFViewerRoute from "./routes/pdf-viewer/route";
 
 // Routes //
 function Routes() {
@@ -57,16 +61,21 @@ function Routes() {
       <Route protocol={flowProtocol} hostname="extensions">
         <ExtensionsRoute />
       </Route>
+      <Route protocol={flowExternalProtocol} hostname="pdf-viewer.flow">
+        <PDFViewerRoute />
+      </Route>
     </RouterProvider>
   );
 }
 
 function App() {
   return (
-    <PlatformProvider>
-      <Routes />
-      <Toaster richColors />
-    </PlatformProvider>
+    <QueryParamProvider adapter={WindowHistoryAdapter}>
+      <PlatformProvider>
+        <Routes />
+        <Toaster richColors />
+      </PlatformProvider>
+    </QueryParamProvider>
   );
 }
 

@@ -1,4 +1,4 @@
-import { registerProtocolsWithSession } from "@/browser/utility/protocols";
+import { registerPreloadScript, registerProtocolsWithSession } from "@/browser/utility/protocols";
 import { debugPrint } from "@/modules/output";
 import { setAlwaysOpenExternal, shouldAlwaysOpenExternal } from "@/saving/open-external";
 import { getProfilePath } from "@/sessions/profiles";
@@ -64,6 +64,7 @@ function createSession(profileId: string) {
 
   registerProtocolsWithSession(profileSession);
   registerCallbacksWithSession(profileSession);
+  registerPreloadScript(profileSession);
 
   return profileSession;
 }

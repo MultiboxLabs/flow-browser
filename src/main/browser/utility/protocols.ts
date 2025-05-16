@@ -48,6 +48,8 @@ const FLOW_PROTOCOL_ALLOWED_DOMAINS: AllowedDomains = {
 };
 
 const FLOW_EXTERNAL_ALLOWED_DOMAINS: AllowedDomains = {
+  "pdf-viewer.flow": true,
+
   // Dino Game - Taken from https://github.com/yell0wsuit/chrome-dino-enhanced
   "dino.chrome.game": "chrome-dino-game",
 
@@ -348,8 +350,8 @@ function registerFlowExternalProtocol(protocol: Protocol) {
   });
 }
 
-// Bypass CORS for flow and flow-internal protocols
-function bypassCORS(session: Session) {
+function setupInterceptRules(session: Session) {
+  // Bypass CORS for flow and flow-internal protocols
   const WHITELISTED_PROTOCOLS = ["flow:", "flow-internal:"];
 
   session.webRequest.onHeadersReceived((details, callback) => {
@@ -375,6 +377,35 @@ function bypassCORS(session: Session) {
 
     callback({});
   });
+
+  // Redirect to better PDF viewer
+  session.webRequest.onBeforeRequest((details, callback) => {
+    const url = details.url;
+    const urlObject = URL.parse(url);
+    if (!urlObject) {
+      return callback({});
+    }
+    if (urlObject.searchParams.get("noflowredirect")) {
+      return callback({});
+    }
+
+    const { pathname } = urlObject;
+    if (pathname.endsWith(".pdf")) {
+      const viewerURL = new URL("flow-external://pdf-viewer.flow");
+      viewerURL.searchParams.set("url", url);
+      return callback({ redirectURL: viewerURL.toString() });
+    }
+
+    callback({});
+  });
+}
+
+export function registerPreloadScript(session: Session) {
+  session.registerPreloadScript({
+    id: "flow-preload",
+    type: "frame",
+    filePath: PATHS.PRELOAD
+  });
 }
 
 export function registerProtocolsWithSession(session: Session) {
@@ -382,7 +413,7 @@ export function registerProtocolsWithSession(session: Session) {
   registerFlowProtocol(protocol);
   registerFlowExternalProtocol(protocol);
 
-  bypassCORS(session);
+  setupInterceptRules(session);
 }
 
 export const defaultSessionReady = app.whenReady().then(async () => {
@@ -391,13 +422,8 @@ export const defaultSessionReady = app.whenReady().then(async () => {
   registerProtocolsWithSession(defaultSession);
   registerFlowInternalProtocol(defaultSession.protocol);
 
-  defaultSession.registerPreloadScript({
-    id: "flow-preload",
-    type: "frame",
-    filePath: PATHS.PRELOAD
-  });
-
-  bypassCORS(defaultSession);
+  setupInterceptRules(defaultSession);
+  registerPreloadScript(defaultSession);
 
   // wait for 50 ms before returning
   return await sleep(50);

@@ -334,9 +334,6 @@ const appAPI: FlowAppAPI = {
       update_channel: updateChannel
     };
   },
-  getPlatform: () => {
-    return process.platform;
-  },
   writeTextToClipboard: (text: string) => {
     return ipcRenderer.send("app:write-text-to-clipboard", text);
   },
@@ -345,6 +342,11 @@ const appAPI: FlowAppAPI = {
   },
   getDefaultBrowser: async () => {
     return ipcRenderer.invoke("app:get-default-browser");
+  },
+
+  // Special Exception: This is allowed for all pages everywhere.
+  getPlatform: () => {
+    return process.platform;
   }
 };
 
@@ -497,7 +499,9 @@ const shortcutsAPI: FlowShortcutsAPI = {
 // EXPOSE FLOW API //
 const flowAPI: typeof flow = {
   // App APIs
-  app: wrapAPI(appAPI, "app"),
+  app: wrapAPI(appAPI, "app", {
+    getPlatform: "all"
+  }),
   windows: wrapAPI(windowsAPI, "app"),
   extensions: wrapAPI(extensionsAPI, "app"),
   updates: wrapAPI(updatesAPI, "app"),

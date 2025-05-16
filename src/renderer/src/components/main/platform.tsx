@@ -5,15 +5,22 @@ export type Platform = "platform-win32" | "platform-darwin" | "platform-linux" |
 export function PlatformProvider({ children }: { children: React.ReactNode }) {
   const [platform, setPlatform] = useState<Platform>("platform-unknown");
   useEffect(() => {
-    const foundPlatform = flow.app.getPlatform();
+    // Wrapped in try-catch so it still works when `flow` is not available
+    // Because of electron preload scripts not running in iframes
+    // https://www.google.com/search?q=electron+preload+not+working+in+iframe
+    try {
+      const foundPlatform = flow.app.getPlatform();
 
-    if (foundPlatform === "win32") {
-      setPlatform("platform-win32");
-    } else if (foundPlatform === "darwin") {
-      setPlatform("platform-darwin");
-    } else if (foundPlatform === "linux") {
-      setPlatform("platform-linux");
-    } else {
+      if (foundPlatform === "win32") {
+        setPlatform("platform-win32");
+      } else if (foundPlatform === "darwin") {
+        setPlatform("platform-darwin");
+      } else if (foundPlatform === "linux") {
+        setPlatform("platform-linux");
+      } else {
+        setPlatform("platform-unknown");
+      }
+    } catch {
       setPlatform("platform-unknown");
     }
   }, []);

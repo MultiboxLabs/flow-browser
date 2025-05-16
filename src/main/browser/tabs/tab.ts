@@ -6,7 +6,7 @@ import { TabManager } from "@/browser/tabs/tab-manager";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { cacheFavicon } from "@/modules/favicons";
 import { FLAGS } from "@/modules/flags";
-import { PATHS } from "@/modules/paths";
+// import { PATHS } from "@/modules/paths";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { NavigationEntry, Rectangle, Session, WebContents, WebContentsView, WebPreferences } from "electron";
 import { createTabContextMenu } from "@/browser/tabs/tab-context-menu";
@@ -94,10 +94,10 @@ function createWebContentsView(
     scrollBounce: true,
     safeDialogs: true,
     navigateOnDragDrop: true,
-    transparent: true,
+    transparent: true
 
-    // Provide access to 'flow' globals
-    preload: PATHS.PRELOAD
+    // Provide access to 'flow' globals (replaced by implementation in protocols.ts)
+    // preload: PATHS.PRELOAD
   };
 
   const webContentsView = new WebContentsView({
