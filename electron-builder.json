@@ -77,7 +77,8 @@
   },
   "linux": {
     "target": ["AppImage", "deb", "flatpak"],
-    "category": "Utility"
+    "category": "Utility",
+    "asarUnpack": ["**/node_modules/sharp/**"]
   },
   "appImage": {
     "artifactName": "${name}-${version}.${ext}"
