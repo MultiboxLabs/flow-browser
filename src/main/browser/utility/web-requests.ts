@@ -160,7 +160,7 @@ class UnifiedWebRequest {
     this.webRequest.onBeforeSendHeaders(async (details, callback) => {
       logInterception("onBeforeSendHeaders", details);
 
-      let currentRequestHeaders = details.requestHeaders;
+      let currentRequestHeaders: Record<string, string> = details.requestHeaders;
       let requestHeadersChanged = false;
 
       for (const [listener, filter] of this.onBeforeSendHeadersListeners.values()) {
@@ -187,8 +187,12 @@ class UnifiedWebRequest {
           });
           return;
         } else if (response.requestHeaders) {
-          // idk why this is Record<string, string | string[]>, hopefully it's not a problem
-          currentRequestHeaders = response.requestHeaders as Record<string, string>;
+          const newRequestHeaders: Record<string, string> = {};
+          for (const [key, value] of Object.entries(response.requestHeaders)) {
+            newRequestHeaders[key] = Array.isArray(value) ? value[0] : value;
+          }
+
+          currentRequestHeaders = newRequestHeaders;
           requestHeadersChanged = true;
         }
       }
@@ -262,7 +266,12 @@ class UnifiedWebRequest {
           });
           return;
         } else if (response.responseHeaders) {
-          currentResponseHeaders = response.responseHeaders as Record<string, string[]>;
+          const newResponseHeaders: Record<string, string[]> = {};
+          for (const [key, value] of Object.entries(response.responseHeaders)) {
+            newResponseHeaders[key] = Array.isArray(value) ? value : [value as string];
+          }
+
+          currentResponseHeaders = newResponseHeaders;
           responseHeadersChanged = true;
         } else if (response.statusLine !== undefined) {
           currentStatusLine = response.statusLine;
