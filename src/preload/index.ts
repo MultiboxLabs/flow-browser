@@ -319,6 +319,7 @@ const appAPI: FlowAppAPI = {
     const appInfo: {
       version: string;
       packaged: boolean;
+      locale: string;
     } = await ipcRenderer.invoke("app:get-info");
     const appVersion = appInfo.version;
     const updateChannel: "Stable" | "Beta" | "Alpha" | "Development" = appInfo.packaged ? "Stable" : "Development";
@@ -331,7 +332,8 @@ const appAPI: FlowAppAPI = {
       chrome_version: process.versions.chrome,
       electron_version: process.versions.electron,
       os: os,
-      update_channel: updateChannel
+      update_channel: updateChannel,
+      locale: appInfo.locale
     };
   },
   getPlatform: () => {

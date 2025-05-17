@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { CogIcon, LayersIcon, PackageXIcon, PinIcon, PinOffIcon, PuzzleIcon } from "lucide-react";
 import { MouseEvent, useCallback, useMemo, useRef, useState } from "react";
 import { PortalPopover } from "@/components/portal/popover";
+import { useBrowserUITranslations } from "@/lib/i18n";
 
 interface BrowserActionListProps {
   partition?: string;
@@ -144,6 +145,7 @@ function BrowserAction({ action, alignment, partition, activeTabId }: BrowserAct
 }
 
 export function BrowserActionList({ alignmentX = "left", alignmentY = "bottom" }: BrowserActionListProps) {
+  const { t: tBrowserUI } = useBrowserUITranslations();
   const { isCurrentSpaceLight } = useSpaces();
   const { actions, activeTabId, partition } = useBrowserAction();
   const [open, setOpen] = useState(false);
@@ -184,19 +186,19 @@ export function BrowserActionList({ alignmentX = "left", alignmentY = "bottom" }
           {noActiveTab && (
             <SidebarMenuButton disabled>
               <LayersIcon />
-              No Active Tab
+              {tBrowserUI("No Active Tab")}
             </SidebarMenuButton>
           )}
           {!noActiveTab && noActions && (
             <SidebarMenuButton disabled>
               <PackageXIcon />
-              No Extensions Available
+              {tBrowserUI("No Extensions Available")}
             </SidebarMenuButton>
           )}
           <Separator />
           <SidebarMenuButton onClick={openExtensionsPage}>
             <CogIcon />
-            <span className="font-semibold truncate">Manage Extensions</span>
+            <span className="font-semibold truncate">{tBrowserUI("Manage Extensions")}</span>
           </SidebarMenuButton>
         </SidebarMenu>
       </PortalPopover.Content>

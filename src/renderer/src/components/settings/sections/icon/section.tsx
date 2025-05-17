@@ -3,6 +3,7 @@ import { Check, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "motion/react";
 import { toast } from "sonner";
+import { useIconsTranslations, useSettingsTranslations } from "@/lib/i18n";
 
 interface IconOption {
   id: string;
@@ -13,6 +14,9 @@ interface IconOption {
 }
 
 export function IconSettings() {
+  const { t: tSettings } = useSettingsTranslations();
+  const { t: tIcons } = useIconsTranslations();
+
   const [selectedIcon, setSelectedIcon] = useState<string>("");
   const [iconOptions, setIconOptions] = useState<IconOption[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -89,17 +93,17 @@ export function IconSettings() {
     <div className="h-full flex flex-col">
       <Card className="flex-1">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Browser Icon</CardTitle>
-          <CardDescription className="text-sm">Select an icon for your browser application</CardDescription>
+          <CardTitle className="text-lg">{tSettings("settings.icon.title")}</CardTitle>
+          <CardDescription className="text-sm">{tSettings("settings.icon.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           {!isSupported ? (
             <div className="flex items-center justify-center h-40">
-              <div className="text-muted-foreground">Icon customization is not supported on this platform.</div>
+              <div className="text-muted-foreground">{tSettings("settings.icon.unsupported")}</div>
             </div>
           ) : isLoading ? (
             <div className="flex items-center justify-center h-40">
-              <div className="animate-pulse text-muted-foreground">Loading icons...</div>
+              <div className="animate-pulse text-muted-foreground">{tSettings("settings.icon.loading")}</div>
             </div>
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
@@ -131,7 +135,7 @@ export function IconSettings() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col justify-center">
-                      <h3 className="font-medium text-base truncate">{icon.name}</h3>
+                      <h3 className="font-medium text-base truncate">{tIcons(icon.name)}</h3>
                       {icon.author && <p className="text-xs text-muted-foreground truncate">by {icon.author}</p>}
                     </div>
                   </div>
@@ -159,7 +163,7 @@ export function IconSettings() {
                   {icon.current && selectedIcon !== icon.id && !isUpdating && (
                     <div className="absolute top-1 right-1">
                       <span className="text-[10px] text-blue-500 font-medium bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded-full">
-                        CURRENT
+                        {tSettings("settings.icon.current")}
                       </span>
                     </div>
                   )}
