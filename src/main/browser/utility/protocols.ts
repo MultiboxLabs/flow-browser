@@ -10,6 +10,7 @@ import { getExtensionIcon } from "@/modules/extensions/management";
 import { browser } from "@/index";
 import { sleep } from "@/browser/utility/utils";
 import { getSettingValueById } from "@/saving/settings";
+import { createBetterWebRequest } from "@/browser/utility/web-requests";
 
 protocolModule.registerSchemesAsPrivileged([
   {
@@ -351,9 +352,8 @@ function registerFlowExternalProtocol(protocol: Protocol) {
 }
 
 function setupInterceptRules(session: Session) {
-  // TODO: use createBetterWebRequest()
-  const bypassCorsWebRequest = session.webRequest; //createBetterWebRequest(session.webRequest, "bypass-cors");
-  const betterPdfViewerWebRequest = session.webRequest; //createBetterWebRequest(session.webRequest, "better-pdf-viewer");
+  const bypassCorsWebRequest = createBetterWebRequest(session.webRequest, "bypass-cors");
+  const betterPdfViewerWebRequest = createBetterWebRequest(session.webRequest, "better-pdf-viewer");
 
   // Bypass CORS for flow and flow-internal protocols
   const WHITELISTED_PROTOCOLS = ["flow:", "flow-internal:"];
