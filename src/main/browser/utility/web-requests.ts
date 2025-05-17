@@ -644,11 +644,31 @@ export function getUnifiedWebRequest(webRequest: WebRequest): UnifiedWebRequest 
   return unifiedWebRequest;
 }
 
-export function createBetterWebRequest(webRequest: WebRequest, id?: string): WebRequest {
-  const unifiedWebRequest = getUnifiedWebRequest(webRequest);
+// Use WeakMaps to generate unique identifiers for objects
+const objectIds = new WeakMap<object, string>();
+let nextObjectId = 0;
 
-  // Create a unique ID for this fake web request instance
+function getObjectId(obj: object): string {
+  if (!objectIds.has(obj)) {
+    objectIds.set(obj, (nextObjectId++).toString());
+  }
+  return objectIds.get(obj)!;
+}
+
+// Cache for betterWebRequest instances
+const betterWebRequestCache = new Map<string, WebRequest>();
+
+export function createBetterWebRequest(webRequest: WebRequest, id?: string): WebRequest {
   const actualId = id ?? crypto.randomUUID();
+  const webRequestId = getObjectId(webRequest);
+  const cacheKey = `${webRequestId}_${actualId}`;
+
+  // Check if we already have a cached instance
+  if (betterWebRequestCache.has(cacheKey)) {
+    return betterWebRequestCache.get(cacheKey)!;
+  }
+
+  const unifiedWebRequest = getUnifiedWebRequest(webRequest);
 
   // Fix ESLint 'any' type warnings by using explicit type unions
   type ListenerOrFilter<L> = WebRequestFilter | L | null;
@@ -739,15 +759,30 @@ export function createBetterWebRequest(webRequest: WebRequest, id?: string): Web
     } as WebRequest["onSendHeaders"]
   };
 
+  // Store in cache
+  betterWebRequestCache.set(cacheKey, betterWebRequest);
+
   return betterWebRequest;
 }
 
+// Cache for betterSession instances
+const betterSessionCache = new Map<string, Session>();
+
 export function createBetterSession(session: Session, id?: string): Session {
+  const actualId = id ?? crypto.randomUUID();
+  const sessionId = getObjectId(session);
+  const cacheKey = `${sessionId}_${actualId}`;
+
+  // Check if we already have a cached instance
+  if (betterSessionCache.has(cacheKey)) {
+    return betterSessionCache.get(cacheKey)!;
+  }
+
   const webRequest = session.webRequest;
-  const betterWebRequest = createBetterWebRequest(webRequest, id);
+  const betterWebRequest = createBetterWebRequest(webRequest, actualId);
 
   // Create a proxy to intercept property access
-  return new Proxy(session, {
+  const betterSession = new Proxy(session, {
     get(target, prop, receiver) {
       // When webRequest is accessed, return our enhanced version
       if (prop === "webRequest") {
@@ -766,4 +801,9 @@ export function createBetterSession(session: Session, id?: string): Session {
       return value;
     }
   });
+
+  // Store in cache
+  betterSessionCache.set(cacheKey, betterSession);
+
+  return betterSession;
 }
