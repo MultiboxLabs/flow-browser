@@ -208,6 +208,15 @@ export const BasicSettings: BasicSetting[] = [
     ]
   },
 
+  // [EXPERIMENTAL] Enable Flow PDF Viewer
+  {
+    id: "enableFlowPdfViewer",
+    name: "Enable Flow PDF Viewer",
+    showName: true,
+    type: "boolean",
+    defaultValue: false
+  },
+
   // [ADVANCED] Enable mv2 extensions
   {
     id: "enableMv2Extensions",
@@ -259,6 +268,13 @@ export const BasicSettingCards: BasicSettingCard[] = [
     title: "INTERNAL_ONBOARDING",
     subtitle: "",
     settings: []
+  },
+
+  // Experimental Settings Card
+  {
+    title: "Experimental Settings",
+    subtitle: "Experimental settings for Flow",
+    settings: ["enableFlowPdfViewer"]
   },
 
   // Advanced Settings Card

@@ -9,6 +9,7 @@ import { isDevelopmentServerRunning, setupHotReloadFileDescriptors, fetchFromDev
 import { getExtensionIcon } from "@/modules/extensions/management";
 import { browser } from "@/index";
 import { sleep } from "@/browser/utility/utils";
+import { getSettingValueById } from "@/saving/settings";
 
 protocolModule.registerSchemesAsPrivileged([
   {
@@ -395,7 +396,7 @@ function setupInterceptRules(session: Session) {
       }
 
       const { pathname } = urlObject;
-      if (pathname.toLowerCase().endsWith(".pdf")) {
+      if (pathname.toLowerCase().endsWith(".pdf") && getSettingValueById("enableFlowPdfViewer") === true) {
         const viewerURL = new URL("flow://pdf-viewer");
         viewerURL.searchParams.set("url", url);
         return callback({ redirectURL: viewerURL.toString() });
