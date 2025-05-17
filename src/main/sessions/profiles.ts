@@ -5,7 +5,7 @@ import { DataStoreData, getDatastore } from "@/saving/datastore";
 import z from "zod";
 import { debugError } from "@/modules/output";
 import { getSpacesFromProfile, deleteSpace, createSpace } from "./spaces";
-import { generateID } from "@/browser/utility/utils";
+import { generateID } from "@/modules/utils";
 
 const PROFILES_DIR = path.join(FLOW_DATA_DIR, "Profiles");
 

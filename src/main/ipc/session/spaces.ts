@@ -11,7 +11,7 @@ import {
   reorderSpaces,
   spacesEmitter
 } from "@/sessions/spaces";
-import { generateID } from "@/browser/utility/utils";
+import { generateID } from "@/modules/utils";
 import { browser } from "@/index";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { sendMessageToListeners, sendMessageToListenersInWindow } from "@/ipc/listeners-manager";

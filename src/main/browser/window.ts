@@ -10,7 +10,7 @@ import "./close-preventer";
 import { WindowEventType } from "@/modules/windows";
 import { windowEvents } from "@/modules/windows";
 import { initializePortalComponentWindows } from "@/browser/components/portal-component-windows";
-import { defaultSessionReady } from "@/browser/utility/protocols";
+import { defaultSessionReady } from "@/browser/sessions";
 
 type BrowserWindowType = "normal" | "popup";
 

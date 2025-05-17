@@ -1,5 +1,5 @@
 import path from "path";
-import { app, protocol as protocolModule, Protocol, session, Session } from "electron";
+import { app, protocol as protocolModule, Protocol, Session } from "electron";
 import { PATHS } from "@/modules/paths";
 import fsPromises from "fs/promises";
 import { getContentType } from "@/modules/utils";
@@ -8,9 +8,7 @@ import { FLAGS } from "@/modules/flags";
 import { isDevelopmentServerRunning, setupHotReloadFileDescriptors, fetchFromDevServer } from "./hot-reload";
 import { getExtensionIcon } from "@/modules/extensions/management";
 import { browser } from "@/index";
-import { sleep } from "@/browser/utility/utils";
-import { getSettingValueById } from "@/saving/settings";
-import { createBetterWebRequest } from "@/browser/utility/web-requests";
+import { setupInterceptRules } from "@/browser/utility/intercept-rules";
 
 protocolModule.registerSchemesAsPrivileged([
   {
@@ -131,7 +129,7 @@ setInterval(() => {
   }
 }, 1000);
 
-function registerFlowInternalProtocol(protocol: Protocol) {
+export function registerFlowInternalProtocol(protocol: Protocol) {
   const handleActiveFaviconRequest = async (_request: Request, url: URL) => {
     // Get the tab ID
     const tabId = url.searchParams.get("tabId");
@@ -351,73 +349,6 @@ function registerFlowExternalProtocol(protocol: Protocol) {
   });
 }
 
-function setupInterceptRules(session: Session) {
-  const bypassCorsWebRequest = createBetterWebRequest(session.webRequest, "bypass-cors");
-  const betterPdfViewerWebRequest = createBetterWebRequest(session.webRequest, "better-pdf-viewer");
-
-  // Bypass CORS for flow and flow-internal protocols
-  const WHITELISTED_PROTOCOLS = ["flow:", "flow-internal:"];
-
-  bypassCorsWebRequest.onHeadersReceived((details, callback) => {
-    const currentUrl = details.webContents?.getURL();
-    const protocol = URL.parse(currentUrl ?? "")?.protocol;
-
-    if (protocol && WHITELISTED_PROTOCOLS.includes(protocol)) {
-      const newResponseHeaders = { ...details.responseHeaders };
-
-      // Remove all Access-Control-Allow-Origin headers in different cases
-      for (const header of Object.keys(newResponseHeaders)) {
-        if (header.toLowerCase() == "access-control-allow-origin") {
-          newResponseHeaders[header] = [];
-        }
-      }
-
-      // Add the Access-Control-Allow-Origin header back with a wildcard
-      newResponseHeaders["Access-Control-Allow-Origin"] = ["*"];
-
-      callback({ responseHeaders: newResponseHeaders });
-      return;
-    }
-
-    callback({});
-  });
-
-  // Redirect to better PDF viewer
-  betterPdfViewerWebRequest.onBeforeRequest(
-    {
-      urls: ["<all_urls>"],
-      types: ["mainFrame", "subFrame"]
-    },
-    (details, callback) => {
-      const url = details.url;
-      const urlObject = URL.parse(url);
-      if (!urlObject) {
-        return callback({});
-      }
-
-      const { pathname } = urlObject;
-      if (pathname.toLowerCase().endsWith(".pdf") && getSettingValueById("enableFlowPdfViewer") === true) {
-        const viewerURL = new URL("flow://pdf-viewer");
-        viewerURL.searchParams.set("url", url);
-        return callback({ redirectURL: viewerURL.toString() });
-      }
-
-      callback({});
-    }
-  );
-
-  betterPdfViewerWebRequest.onBeforeSendHeaders((details, callback) => {
-    const url = details.url;
-    const urlObject = URL.parse(url);
-    if (!urlObject) {
-      return callback({});
-    }
-
-    const newHeaders = { ...details.requestHeaders, Origin: urlObject.origin };
-    callback({ requestHeaders: newHeaders });
-  });
-}
-
 export function registerPreloadScript(session: Session) {
   session.registerPreloadScript({
     id: "flow-preload",
@@ -433,16 +364,3 @@ export function registerProtocolsWithSession(session: Session) {
 
   setupInterceptRules(session);
 }
-
-export const defaultSessionReady = app.whenReady().then(async () => {
-  const defaultSession = session.defaultSession;
-
-  registerProtocolsWithSession(defaultSession);
-  registerFlowInternalProtocol(defaultSession.protocol);
-
-  setupInterceptRules(defaultSession);
-  registerPreloadScript(defaultSession);
-
-  // wait for 50 ms before returning
-  return await sleep(50);
-});

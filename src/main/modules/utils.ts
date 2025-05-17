@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import mimeTypes from "mime-types";
@@ -64,4 +65,21 @@ export async function getActualSize(filePath: string): Promise<number> {
   } else {
     return 0; // can't take size of a stream/symlink/socket/etc
   }
+}
+
+/**
+ * Sleep for a number of milliseconds
+ * @param ms - The number of milliseconds to sleep
+ * @returns A promise that resolves after the number of milliseconds
+ */
+export function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Generate a short random ID from a UUID
+ * @returns A random ID
+ */
+export function generateID(): string {
+  return randomUUID().split("-")[0];
 }

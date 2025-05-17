@@ -1,6 +1,6 @@
 import { BrowserWindow, nativeTheme } from "electron";
 import { registerWindow, WindowType } from "@/modules/windows";
-import { defaultSessionReady } from "@/browser/utility/protocols";
+import { defaultSessionReady } from "@/browser/sessions";
 
 let settingsWindow: BrowserWindow | null = null;
 

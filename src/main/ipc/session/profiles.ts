@@ -1,5 +1,5 @@
 import { getProfiles, ProfileData, createProfile, updateProfile, deleteProfile } from "@/sessions/profiles";
-import { generateID } from "@/browser/utility/utils";
+import { generateID } from "@/modules/utils";
 import { ipcMain } from "electron";
 import { browser } from "@/index";
 import { getSpace } from "@/sessions/spaces";

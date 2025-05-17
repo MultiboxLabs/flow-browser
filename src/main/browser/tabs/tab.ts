@@ -10,7 +10,7 @@ import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { NavigationEntry, Rectangle, Session, WebContents, WebContentsView, WebPreferences } from "electron";
 import { createTabContextMenu } from "@/browser/tabs/tab-context-menu";
-import { generateID } from "@/browser/utility/utils";
+import { generateID } from "@/modules/utils";
 import { persistTabToStorage, removeTabFromStorage } from "@/saving/tabs";
 import { LoadedProfile } from "@/browser/profile-manager";
 

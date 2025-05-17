@@ -1,5 +1,11 @@
-import { registerPreloadScript, registerProtocolsWithSession } from "@/browser/utility/protocols";
+import { setupInterceptRules } from "@/browser/utility/intercept-rules";
+import {
+  registerFlowInternalProtocol,
+  registerPreloadScript,
+  registerProtocolsWithSession
+} from "@/browser/utility/protocols";
 import { debugPrint } from "@/modules/output";
+import { sleep } from "@/modules/utils";
 import { setAlwaysOpenExternal, shouldAlwaysOpenExternal } from "@/saving/open-external";
 import { getProfilePath } from "@/sessions/profiles";
 import { app, dialog, OpenExternalPermissionRequest, session, Session } from "electron";
@@ -81,3 +87,16 @@ export function getSession(profileId: string): Session {
 
   return sessions.get(profileId) as Session;
 }
+
+export const defaultSessionReady = app.whenReady().then(async () => {
+  const defaultSession = session.defaultSession;
+
+  registerProtocolsWithSession(defaultSession);
+  registerFlowInternalProtocol(defaultSession.protocol);
+
+  setupInterceptRules(defaultSession);
+  registerPreloadScript(defaultSession);
+
+  // wait for 50 ms before returning
+  return await sleep(50);
+});
