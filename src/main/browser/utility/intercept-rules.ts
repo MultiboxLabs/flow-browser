@@ -4,11 +4,11 @@ import { Session } from "electron";
 
 // Bypass CORS for flow and flow-internal protocols
 function setupCorsBypassForFlowProtocols(session: Session) {
-  const bypassCorsWebRequest = createBetterWebRequest(session.webRequest, "bypass-cors");
+  const webRequest = createBetterWebRequest(session.webRequest, "bypass-cors");
 
   const WHITELISTED_PROTOCOLS = ["flow:", "flow-internal:"];
 
-  bypassCorsWebRequest.onHeadersReceived((details, callback) => {
+  webRequest.onHeadersReceived((details, callback) => {
     const currentUrl = details.webContents?.getURL();
     const protocol = URL.parse(currentUrl ?? "")?.protocol;
 
@@ -35,10 +35,10 @@ function setupCorsBypassForFlowProtocols(session: Session) {
 
 // Setup redirects required for the better PDF viewer
 function setupBetterPdfViewer(session: Session) {
-  const betterPdfViewerWebRequest = createBetterWebRequest(session.webRequest, "better-pdf-viewer");
+  const webRequest = createBetterWebRequest(session.webRequest, "better-pdf-viewer");
 
   // Redirect to better PDF viewer
-  betterPdfViewerWebRequest.onBeforeRequest(
+  webRequest.onBeforeRequest(
     {
       urls: ["<all_urls>"],
       types: ["mainFrame", "subFrame"]
@@ -62,7 +62,7 @@ function setupBetterPdfViewer(session: Session) {
   );
 
   // Update Origin header to requests
-  betterPdfViewerWebRequest.onBeforeSendHeaders((details, callback) => {
+  webRequest.onBeforeSendHeaders((details, callback) => {
     const url = details.url;
     const urlObject = URL.parse(url);
     if (!urlObject) {
