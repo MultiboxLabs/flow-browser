@@ -40,8 +40,19 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
       const spaces = await flow.spaces.getSpaces();
       setSpaces(spaces);
 
-      // Get and set last used space if no current space
       if (!currentSpace) {
+        // Get and set window space if available
+        const windowSpaceId = await flow.spaces.getUsingSpace();
+        console.log("Setting current space to window space", windowSpaceId);
+        if (windowSpaceId) {
+          const windowSpace = spaces.find((s) => s.id === windowSpaceId);
+          if (windowSpace) {
+            setCurrentSpace(windowSpace);
+            return;
+          }
+        }
+
+        // Get and set last used space if no window space
         const lastUsedSpace = await flow.spaces.getLastUsedSpace();
         if (lastUsedSpace) {
           setCurrentSpace(lastUsedSpace);

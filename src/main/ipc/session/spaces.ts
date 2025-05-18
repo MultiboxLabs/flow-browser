@@ -62,6 +62,7 @@ ipcMain.handle("spaces:reorder", async (_event, orderMap: { profileId: string; s
 });
 
 export function setWindowSpace(window: TabbedBrowserWindow, spaceId: string) {
+  window.setCurrentSpace(spaceId);
   sendMessageToListenersInWindow(window, "spaces:on-set-window-space", spaceId);
 }
 

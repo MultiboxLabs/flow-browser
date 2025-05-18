@@ -13,6 +13,7 @@ import { createTabContextMenu } from "@/browser/tabs/tab-context-menu";
 import { generateID } from "@/modules/utils";
 import { persistTabToStorage, removeTabFromStorage } from "@/saving/tabs";
 import { LoadedProfile } from "@/browser/profile-manager";
+import { setWindowSpace } from "@/ipc/session/spaces";
 
 // Configuration
 const GLANCE_FRONT_ZINDEX = 3;
@@ -280,7 +281,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
             action: "allow",
             outlivesOpener: true,
             createWindow: (constructorOptions) => {
-              return this.createNewTab(details.url, details.disposition, constructorOptions);
+              return this.createNewTab(details.url, details.disposition, constructorOptions, details);
             }
           };
         }
@@ -452,7 +453,8 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public createNewTab(
     url: string,
     disposition: "new-window" | "foreground-tab" | "background-tab" | "default" | "other",
-    constructorOptions?: Electron.WebContentsViewConstructorOptions
+    constructorOptions?: Electron.WebContentsViewConstructorOptions,
+    details?: Electron.HandlerDetails
   ) {
     let windowId = this.window.id;
 
@@ -460,10 +462,31 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     const isForegroundTab = disposition === "foreground-tab";
     const isBackgroundTab = disposition === "background-tab";
 
+    // Parse features from details
+    const parsedFeatures: Record<string, string | number> = {};
+    if (details?.features) {
+      const features = details.features.split(",");
+      for (const feature of features) {
+        const [key, value] = feature.trim().split("=");
+        if (key && value) {
+          parsedFeatures[key] = isNaN(+value) ? value : +value;
+        }
+      }
+    }
+
     if (isNewWindow) {
-      // TODO: popup window instead of standard window
-      const newWindow = this.browser.createWindowInternal("normal");
+      const newWindow = this.browser.createWindowInternal("popup", {
+        window: {
+          ...(parsedFeatures.width ? { width: +parsedFeatures.width } : {}),
+          ...(parsedFeatures.height ? { height: +parsedFeatures.height } : {}),
+          ...(parsedFeatures.top ? { top: +parsedFeatures.top } : {}),
+          ...(parsedFeatures.left ? { left: +parsedFeatures.left } : {})
+        }
+      });
       windowId = newWindow.id;
+
+      // Set space if the window already loaded
+      setWindowSpace(newWindow, this.spaceId);
     }
 
     const newTab = this.tabManager.internalCreateTab(windowId, this.profileId, this.spaceId, constructorOptions);
@@ -484,7 +507,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       }
     }
 
-    if ((isForegroundTab && !glanced) || isBackgroundTab) {
+    if ((isForegroundTab && !glanced) || isBackgroundTab || isNewWindow) {
       this.tabManager.setActiveTab(newTab);
     }
 

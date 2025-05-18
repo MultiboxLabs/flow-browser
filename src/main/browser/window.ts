@@ -181,7 +181,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     };
 
     getLastUsedSpace().then((space) => {
-      if (space) {
+      if (space && !this.currentSpaceId) {
         this.setCurrentSpace(space.id);
       }
     });
