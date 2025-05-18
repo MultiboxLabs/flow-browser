@@ -89,6 +89,29 @@ if (hasPermission("browser")) {
   injectBrowserAction();
 }
 
+// PASSKEYS PATCH //
+const SHOULD_PATCH_PASSKEYS = false;
+if (SHOULD_PATCH_PASSKEYS) {
+  const tinyPasskeysScript = () => {
+    if ("navigator" in globalThis && "credentials" in globalThis.navigator) {
+      const credentials = globalThis.navigator.credentials;
+      const oldCredentialsCreate = credentials.create.bind(credentials);
+      const oldCredentialsGet = credentials.get.bind(credentials);
+
+      credentials.create = async (options) => {
+        return await oldCredentialsCreate(options);
+      };
+
+      credentials.get = async (options) => {
+        return await oldCredentialsGet(options);
+      };
+    }
+  };
+  contextBridge.executeInMainWorld({
+    func: tinyPasskeysScript
+  });
+}
+
 // INTERNAL FUNCTIONS //
 function getOSFromPlatform(platform: NodeJS.Platform) {
   switch (platform) {
