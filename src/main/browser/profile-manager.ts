@@ -14,8 +14,9 @@ import { registerWindow, WindowType } from "@/modules/windows";
 import { getSettingValueById } from "@/saving/settings";
 import { ExtensionManager } from "@/modules/extensions/management";
 
-const SCRUB_ELECTRON_USER_AGENT = true;
-const SCRUB_APP_USER_AGENT = false;
+const REMOVE_ELECTRON_USER_AGENT = false;
+const REMOVE_APP_USER_AGENT = false;
+const ADD_EDGE_USER_AGENT = true;
 
 /**
  * Represents a loaded browser profile
@@ -126,12 +127,16 @@ export class ProfileManager {
       if (FLAGS.SCRUBBED_USER_AGENT) {
         let userAgent = profileSession.getUserAgent();
 
-        if (SCRUB_ELECTRON_USER_AGENT) {
+        if (REMOVE_ELECTRON_USER_AGENT) {
           userAgent = userAgent.replace(/\sElectron\/\S+/, "");
         }
 
-        if (SCRUB_APP_USER_AGENT) {
+        if (REMOVE_APP_USER_AGENT) {
           userAgent = userAgent.replace(new RegExp(`\\s${app.getName()}/\\S+`, "i"), "");
+        }
+
+        if (ADD_EDGE_USER_AGENT) {
+          userAgent = `${userAgent} Edg/136.0.3240.76`;
         }
 
         profileSession.setUserAgent(userAgent);
