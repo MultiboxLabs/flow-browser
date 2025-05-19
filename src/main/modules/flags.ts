@@ -18,7 +18,7 @@ export const FLAGS: Flags = {
   // It also causes Google to flag us as a bot, which stops us from logging in to Google.
   // Current Solution: Remove Electron user agent, but keep app user agent.
   // Don't know how long this will work though...
-  SCRUBBED_USER_AGENT: true,
+  SCRUBBED_USER_AGENT: false,
 
   // Replace - Use window.location.replace to load the error page.
   // Load - Add the page to the history stack by loading it normally.

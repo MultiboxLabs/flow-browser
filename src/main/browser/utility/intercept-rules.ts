@@ -4,8 +4,33 @@ import { generateID } from "@/modules/utils";
 import { getSettingValueById } from "@/saving/settings";
 import { Session } from "electron";
 import { URL } from "url";
+import { transformUserAgentHeader } from "@/browser/utility/user-agent";
 
-// Bypass CORS for flow and flow-internal protocols
+function setupUserAgentTransformer(session: Session) {
+  const webRequest = createBetterWebRequest(session.webRequest, "user-agent-transformer");
+
+  webRequest.onBeforeSendHeaders((details, callback) => {
+    let updated = false;
+
+    const url = URL.parse(details.url);
+
+    const requestHeaders = details.requestHeaders;
+    const newHeaders = { ...requestHeaders };
+    for (const header of Object.keys(requestHeaders)) {
+      if (header.toLowerCase() == "user-agent") {
+        newHeaders[header] = transformUserAgentHeader(url, requestHeaders[header]);
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      callback({ requestHeaders: newHeaders });
+    } else {
+      callback({});
+    }
+  });
+}
+
 function setupCorsBypassForFlowProtocols(session: Session) {
   const webRequest = createBetterWebRequest(session.webRequest, "bypass-cors");
 
@@ -36,7 +61,6 @@ function setupCorsBypassForFlowProtocols(session: Session) {
   });
 }
 
-// Setup redirects required for the better PDF viewer
 function setupBetterPdfViewer(session: Session) {
   const webRequest = createBetterWebRequest(session.webRequest, "better-pdf-viewer");
 
@@ -86,22 +110,13 @@ function setupBetterPdfViewer(session: Session) {
       callback({});
     }
   );
-
-  // Update Origin header to requests
-  webRequest.onBeforeSendHeaders((details, callback) => {
-    const url = details.url;
-    const urlObject = URL.parse(url);
-    if (!urlObject) {
-      return callback({});
-    }
-
-    const newHeaders = { ...details.requestHeaders, Origin: urlObject.origin };
-    callback({ requestHeaders: newHeaders });
-  });
 }
 
 // Setup intercept rules for the session
 export function setupInterceptRules(session: Session) {
+  // Transform the User-Agent header
+  setupUserAgentTransformer(session);
+
   // Bypass CORS for flow and flow-internal protocols
   setupCorsBypassForFlowProtocols(session);
 
