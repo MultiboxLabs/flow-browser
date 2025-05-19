@@ -340,7 +340,6 @@ const MoreActionsMenu = ({ usePDFSlickStore }: MoreActionsMenuProps) => {
               <Menu.Item>
                 {({ active }) => (
                   <button
-                    disabled={pageNumber === numPages}
                     onClick={() => openModal()}
                     className={clsx(
                       "w-full items-center flex space-x-2 box-border text-left px-2 py-1.5 text-xs disabled:opacity-50",

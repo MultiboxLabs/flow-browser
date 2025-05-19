@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { VscChevronDown, VscCaseSensitive } from "react-icons/vsc";
 import { AnnotationEditorType, AnnotationEditorParamsType } from "pdfjs-dist";
@@ -14,6 +14,19 @@ const FreetextMenu = ({ usePDFSlickStore }: FreetextMenuProps) => {
   const annotationEditorMode = usePDFSlickStore((s) => s.annotationEditorMode);
   const pdfSlick = usePDFSlickStore((s) => s.pdfSlick);
   const isFreetextMode = annotationEditorMode === AnnotationEditorType.FREETEXT;
+
+  const [fontSize, setFontSize] = useState(12);
+
+  useEffect(() => {
+    if (pdfSlick) {
+      pdfSlick.setAnnotationEditorParams([
+        {
+          type: AnnotationEditorParamsType.FREETEXT_SIZE,
+          value: fontSize
+        }
+      ]);
+    }
+  }, [pdfSlick, fontSize]);
 
   return (
     <div
@@ -84,17 +97,13 @@ const FreetextMenu = ({ usePDFSlickStore }: FreetextMenuProps) => {
                 <div className="w-full flex flex-1 items-center">
                   <input
                     className="w-full h-1.5 dark:bg-slate-600 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                    defaultValue={1}
+                    defaultValue={12}
+                    value={fontSize}
                     type="range"
                     min={12}
                     max={100}
                     onChange={(e) => {
-                      pdfSlick?.setAnnotationEditorParams([
-                        {
-                          type: AnnotationEditorParamsType.FREETEXT_SIZE,
-                          value: +e.target.value
-                        }
-                      ]);
+                      setFontSize(+e.target.value);
                     }}
                   />
                 </div>

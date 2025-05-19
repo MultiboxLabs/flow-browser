@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { VscChevronDown, VscEdit } from "react-icons/vsc";
 import { AnnotationEditorType, AnnotationEditorParamsType } from "pdfjs-dist";
@@ -13,6 +13,32 @@ const InkMenu = ({ usePDFSlickStore }: InkMenuProps) => {
   const pdfSlick = usePDFSlickStore((s) => s.pdfSlick);
   const annotationEditorMode = usePDFSlickStore((s) => s.annotationEditorMode);
   const isInkMode = annotationEditorMode === AnnotationEditorType.INK;
+
+  const [opacity, setOpacity] = useState(100);
+  const [thickness, setThickness] = useState(1);
+
+  useEffect(() => {
+    if (pdfSlick) {
+      pdfSlick.setAnnotationEditorParams([
+        {
+          type: AnnotationEditorParamsType.INK_THICKNESS,
+          value: thickness
+        }
+      ]);
+    }
+  }, [pdfSlick, thickness]);
+
+  useEffect(() => {
+    if (pdfSlick) {
+      console.log("setting opacity", opacity);
+      pdfSlick.setAnnotationEditorParams([
+        {
+          type: AnnotationEditorParamsType.INK_OPACITY,
+          value: opacity
+        }
+      ]);
+    }
+  }, [pdfSlick, opacity]);
 
   return (
     <div
@@ -82,16 +108,12 @@ const InkMenu = ({ usePDFSlickStore }: InkMenuProps) => {
                   <input
                     className="w-full h-1.5 dark:bg-slate-600 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                     defaultValue={1}
+                    value={thickness}
                     type="range"
                     min={1}
                     max={100}
                     onChange={(e) => {
-                      pdfSlick?.setAnnotationEditorParams([
-                        {
-                          type: AnnotationEditorParamsType.INK_THICKNESS,
-                          value: +e.target.value
-                        }
-                      ]);
+                      setThickness(+e.target.value);
                     }}
                   />
                 </div>
@@ -105,16 +127,12 @@ const InkMenu = ({ usePDFSlickStore }: InkMenuProps) => {
                   <input
                     className="w-full h-1.5 dark:bg-slate-600 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                     defaultValue={100}
+                    value={opacity}
                     type="range"
                     min={0}
                     max={100}
                     onChange={(e) => {
-                      pdfSlick?.setAnnotationEditorParams([
-                        {
-                          type: AnnotationEditorParamsType.INK_OPACITY,
-                          value: +e.target.value
-                        }
-                      ]);
+                      setOpacity(+e.target.value);
                     }}
                   />
                 </div>

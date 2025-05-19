@@ -15,8 +15,10 @@ const activeTabFaviconCache = new Map<number, [string, Response]>();
 
 // Remove cached favicons that are no longer active
 setInterval(() => {
+  if (!browser) return;
+
   for (const [tabId, [cachedFaviconURL]] of activeTabFaviconCache.entries()) {
-    const tab = browser?.getTabFromId(tabId);
+    const tab = browser.getTabFromId(tabId);
     if (!tab || tab.isDestroyed || tab.faviconURL !== cachedFaviconURL) {
       activeTabFaviconCache.delete(tabId);
     }

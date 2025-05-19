@@ -46,7 +46,9 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
     if (isOpen) {
       searchRef.current?.focus();
     } else {
-      pdfSlick?.eventBus.dispatch("findbarclose", {});
+      if (pdfSlick) {
+        pdfSlick.eventBus.dispatch("findbarclose", {});
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);

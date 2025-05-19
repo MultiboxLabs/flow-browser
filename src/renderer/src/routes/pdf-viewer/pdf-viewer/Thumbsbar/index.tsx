@@ -39,8 +39,8 @@ const Thumbsbar = ({ usePDFSlickStore, isThumbsbarOpen, thumbsRef }: ThumbsbarPr
         setIsResizing(false);
       });
 
-    // @ts-expect-error: i dont care
-    select(resizerRef.current).call(dragResize);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    select(resizerRef.current).call(dragResize as any);
   }, []);
 
   return (

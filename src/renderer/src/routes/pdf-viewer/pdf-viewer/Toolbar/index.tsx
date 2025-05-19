@@ -102,11 +102,11 @@ const Toolbar = ({ usePDFSlickStore, isThumbsbarOpen, setIsThumbsbarOpen }: TToo
                   switch (e.key) {
                     case "Down": // IE/Edge specific value
                     case "ArrowDown":
-                      pdfSlick?.linkService.goToPage(Math.max(1, (pageNumber ?? 0) - 1));
+                      pdfSlick?.linkService.goToPage(Math.min(numPages ?? 0, (pageNumber ?? 0) + 1));
                       break;
                     case "Up": // IE/Edge specific value
                     case "ArrowUp":
-                      pdfSlick?.linkService.goToPage(Math.min(numPages ?? 0, (pageNumber ?? 0) + 1));
+                      pdfSlick?.linkService.goToPage(Math.max(1, (pageNumber ?? 0) - 1));
                       break;
                     default:
                       return;
