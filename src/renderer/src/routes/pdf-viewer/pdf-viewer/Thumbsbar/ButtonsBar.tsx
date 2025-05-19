@@ -17,7 +17,7 @@ const ButtonsBar = ({ usePDFSlickStore, isThumbsbarOpen, tab, setTab }: ButtonsB
   return (
     <div
       className={clsx(
-        "bg-slate-100/70 z-10 flex flex-col p-1 py-2 space-y-3 items-center border-r border-r-slate-300 shadow-sm transition-all [box-shadow:1px_0_2px_0_rgb(0_0_0_/_0.05)]",
+        "dark:bg-slate-600/70 bg-slate-100/70 z-10 flex flex-col p-1 py-2 space-y-3 items-center dark:border-r-slate-500 border-r border-r-slate-300 shadow-sm transition-all [box-shadow:1px_0_2px_0_rgb(0_0_0_/_0.05)]",
         {
           "translate-x-0 visible opacity-100": isThumbsbarOpen,
           "-translate-x-full invisible opacity-0": !isThumbsbarOpen
@@ -26,9 +26,10 @@ const ButtonsBar = ({ usePDFSlickStore, isThumbsbarOpen, tab, setTab }: ButtonsB
     >
       <button
         className={clsx(
-          "enabled:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent group",
+          "enabled:hover:dark:bg-slate-500 enabled:hover:bg-slate-200 enabled:hover:text-black dark:text-slate-300 text-slate-500 disabled:dark:text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent group",
           {
-            "enabled:bg-blue-100 enabled:text-black border-blue-200": tab === "thumbnails"
+            "enabled:dark:bg-blue-600 enabled:bg-blue-100 enabled:dark:text-slate-100 enabled:text-black dark:border-blue-400 border-blue-200":
+              tab === "thumbnails"
           }
         )}
         onClick={() => setTab("thumbnails")}
@@ -41,9 +42,10 @@ const ButtonsBar = ({ usePDFSlickStore, isThumbsbarOpen, tab, setTab }: ButtonsB
       <button
         disabled={!documentOutline}
         className={clsx(
-          "enabled:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent",
+          "enabled:hover:dark:bg-slate-500 enabled:hover:bg-slate-200 enabled:hover:text-black dark:text-slate-300 text-slate-500 disabled:dark:text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent",
           {
-            "enabled:bg-blue-100 enabled:text-black border-blue-200": tab === "outline"
+            "enabled:dark:bg-blue-600 enabled:bg-blue-100 enabled:dark:text-slate-100 enabled:text-black dark:border-blue-400 border-blue-200":
+              tab === "outline"
           }
         )}
         onClick={() => setTab("outline")}
@@ -57,9 +59,10 @@ const ButtonsBar = ({ usePDFSlickStore, isThumbsbarOpen, tab, setTab }: ButtonsB
       <button
         disabled={attachments.size < 1}
         className={clsx(
-          "enabled:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent",
+          "enabled:hover:dark:bg-slate-500 enabled:hover:bg-slate-200 enabled:hover:text-black dark:text-slate-300 text-slate-500 disabled:dark:text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent",
           {
-            "enabled:bg-blue-100 enabled:text-black border-blue-200": tab === "attachments"
+            "enabled:dark:bg-blue-600 enabled:bg-blue-100 enabled:dark:text-slate-100 enabled:text-black dark:border-blue-400 border-blue-200":
+              tab === "attachments"
           }
         )}
         onClick={() => setTab("attachments")}

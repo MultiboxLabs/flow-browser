@@ -22,7 +22,7 @@ export default function DocumentInfo({ usePDFSlickStore }: DocumentInfoProps) {
   return (
     <>
       <button
-        className={`enabled:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent`}
+        className={`enabled:hover:dark:bg-slate-600 enabled:hover:bg-slate-200 enabled:hover:text-black enabled:hover:dark:text-white dark:text-slate-300 text-slate-500 disabled:dark:text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent`}
         onClick={() => {
           openModal();
         }}

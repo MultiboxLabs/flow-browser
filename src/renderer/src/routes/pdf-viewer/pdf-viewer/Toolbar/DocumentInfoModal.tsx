@@ -59,108 +59,115 @@ export default function DocumentInfoModal({ usePDFSlickStore, isOpen, closeModal
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-sm border border-slate-300 bg-white py-6 text-left align-middle shadow-sm transition-all">
-                <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900 px-6 pb-4">
+              <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-sm border dark:border-slate-500 border-slate-300 dark:bg-slate-800 bg-white py-6 text-left align-middle shadow-sm transition-all">
+                <Dialog.Title
+                  as="h3"
+                  className="text-lg font-medium leading-6 dark:text-slate-100 text-gray-900 px-6 pb-4"
+                >
                   Document Properties
                 </Dialog.Title>
                 <dl className="">
-                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:bg-slate-50">
-                    <dt className="text-sm font-medium text-gray-500">File name</dt>
-                    <dd className="text-sm text-gray-900 col-span-2">
-                      {filename ?? <span className="text-xs text-gray-500">N/A</span>}
+                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:dark:bg-slate-700 hover:bg-slate-50">
+                    <dt className="text-sm font-medium dark:text-slate-400 text-gray-500">File name</dt>
+                    <dd className="text-sm dark:text-slate-200 text-gray-900 col-span-2">
+                      {filename ?? <span className="text-xs dark:text-slate-500 text-gray-500">N/A</span>}
                     </dd>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:bg-slate-50">
-                    <dt className="text-sm font-medium text-gray-500">File size</dt>
-                    <dd className="text-sm text-gray-900 col-span-2">
-                      {filesize ? formatBytes(filesize, 2) : <span className="text-xs text-gray-500">N/A</span>}
+                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:dark:bg-slate-700 hover:bg-slate-50">
+                    <dt className="text-sm font-medium dark:text-slate-400 text-gray-500">File size</dt>
+                    <dd className="text-sm dark:text-slate-200 text-gray-900 col-span-2">
+                      {filesize ? (
+                        formatBytes(filesize, 2)
+                      ) : (
+                        <span className="text-xs dark:text-slate-500 text-gray-500">N/A</span>
+                      )}
                     </dd>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:bg-slate-50">
-                    <dt className="text-sm font-medium text-gray-500">Title</dt>
-                    <dd className="text-sm text-gray-900 col-span-2">
-                      {title ?? <span className="text-xs text-gray-500">N/A</span>}
+                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:dark:bg-slate-700 hover:bg-slate-50">
+                    <dt className="text-sm font-medium dark:text-slate-400 text-gray-500">Title</dt>
+                    <dd className="text-sm dark:text-slate-200 text-gray-900 col-span-2">
+                      {title ?? <span className="text-xs dark:text-slate-500 text-gray-500">N/A</span>}
                     </dd>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:bg-slate-50">
-                    <dt className="text-sm font-medium text-gray-500">Author</dt>
-                    <dd className="text-sm text-gray-900 col-span-2">
-                      {author ?? <span className="text-xs text-gray-500">N/A</span>}
+                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:dark:bg-slate-700 hover:bg-slate-50">
+                    <dt className="text-sm font-medium dark:text-slate-400 text-gray-500">Author</dt>
+                    <dd className="text-sm dark:text-slate-200 text-gray-900 col-span-2">
+                      {author ?? <span className="text-xs dark:text-slate-500 text-gray-500">N/A</span>}
                     </dd>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:bg-slate-50">
-                    <dt className="text-sm font-medium text-gray-500">Subject</dt>
-                    <dd className="text-sm text-gray-900 col-span-2">
-                      {subject ?? <span className="text-xs text-gray-500">N/A</span>}
-                    </dd>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:bg-slate-50">
-                    <dt className="text-sm font-medium text-gray-500">Keywords</dt>
-                    <dd className="text-sm text-gray-900 col-span-2">
-                      {keywords ?? <span className="text-xs text-gray-500">N/A</span>}
+                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:dark:bg-slate-700 hover:bg-slate-50">
+                    <dt className="text-sm font-medium dark:text-slate-400 text-gray-500">Subject</dt>
+                    <dd className="text-sm dark:text-slate-200 text-gray-900 col-span-2">
+                      {subject ?? <span className="text-xs dark:text-slate-500 text-gray-500">N/A</span>}
                     </dd>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:bg-slate-50">
-                    <dt className="text-sm font-medium text-gray-500">Creation Date</dt>
-                    <dd className="text-sm text-gray-900 col-span-2">
+                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:dark:bg-slate-700 hover:bg-slate-50">
+                    <dt className="text-sm font-medium dark:text-slate-400 text-gray-500">Keywords</dt>
+                    <dd className="text-sm dark:text-slate-200 text-gray-900 col-span-2">
+                      {keywords ?? <span className="text-xs dark:text-slate-500 text-gray-500">N/A</span>}
+                    </dd>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:dark:bg-slate-700 hover:bg-slate-50">
+                    <dt className="text-sm font-medium dark:text-slate-400 text-gray-500">Creation Date</dt>
+                    <dd className="text-sm dark:text-slate-200 text-gray-900 col-span-2">
                       {creationDate ? (
                         new Intl.DateTimeFormat("en-US", {
                           dateStyle: "long",
                           timeStyle: "medium"
                         }).format(creationDate)
                       ) : (
-                        <span className="text-xs text-gray-500">N/A</span>
+                        <span className="text-xs dark:text-slate-500 text-gray-500">N/A</span>
                       )}
                     </dd>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:bg-slate-50">
-                    <dt className="text-sm font-medium text-gray-500">Modification Date</dt>
-                    <dd className="text-sm text-gray-900 col-span-2">
+                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:dark:bg-slate-700 hover:bg-slate-50">
+                    <dt className="text-sm font-medium dark:text-slate-400 text-gray-500">Modification Date</dt>
+                    <dd className="text-sm dark:text-slate-200 text-gray-900 col-span-2">
                       {modificationDate ? (
                         new Intl.DateTimeFormat("en-US", {
                           dateStyle: "long",
                           timeStyle: "medium"
                         }).format(modificationDate)
                       ) : (
-                        <span className="text-xs text-gray-500">N/A</span>
+                        <span className="text-xs dark:text-slate-500 text-gray-500">N/A</span>
                       )}
                     </dd>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:bg-slate-50">
-                    <dt className="text-sm font-medium text-gray-500">Creator</dt>
-                    <dd className="text-sm text-gray-900 col-span-2">
-                      {creator ?? <span className="text-xs text-gray-500">N/A</span>}
+                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:dark:bg-slate-700 hover:bg-slate-50">
+                    <dt className="text-sm font-medium dark:text-slate-400 text-gray-500">Creator</dt>
+                    <dd className="text-sm dark:text-slate-200 text-gray-900 col-span-2">
+                      {creator ?? <span className="text-xs dark:text-slate-500 text-gray-500">N/A</span>}
                     </dd>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:bg-slate-50">
-                    <dt className="text-sm font-medium text-gray-500">PDF Producer</dt>
-                    <dd className="text-sm text-gray-900 col-span-2">
-                      {producer ?? <span className="text-xs text-gray-500">N/A</span>}
+                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:dark:bg-slate-700 hover:bg-slate-50">
+                    <dt className="text-sm font-medium dark:text-slate-400 text-gray-500">PDF Producer</dt>
+                    <dd className="text-sm dark:text-slate-200 text-gray-900 col-span-2">
+                      {producer ?? <span className="text-xs dark:text-slate-500 text-gray-500">N/A</span>}
                     </dd>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:bg-slate-50">
-                    <dt className="text-sm font-medium text-gray-500">PDF Version</dt>
-                    <dd className="text-sm text-gray-900 col-span-2">
-                      {version ?? <span className="text-xs text-gray-500">N/A</span>}
+                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:dark:bg-slate-700 hover:bg-slate-50">
+                    <dt className="text-sm font-medium dark:text-slate-400 text-gray-500">PDF Version</dt>
+                    <dd className="text-sm dark:text-slate-200 text-gray-900 col-span-2">
+                      {version ?? <span className="text-xs dark:text-slate-500 text-gray-500">N/A</span>}
                     </dd>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:bg-slate-50">
-                    <dt className="text-sm font-medium text-gray-500">Page Count</dt>
-                    <dd className="text-sm text-gray-900 col-span-2">
-                      {numPages ?? <span className="text-xs text-gray-500">N/A</span>}
+                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:dark:bg-slate-700 hover:bg-slate-50">
+                    <dt className="text-sm font-medium dark:text-slate-400 text-gray-500">Page Count</dt>
+                    <dd className="text-sm dark:text-slate-200 text-gray-900 col-span-2">
+                      {numPages ?? <span className="text-xs dark:text-slate-500 text-gray-500">N/A</span>}
                     </dd>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:bg-slate-50">
-                    <dt className="text-sm font-medium text-gray-500">Page Size</dt>
-                    <dd className="text-sm text-gray-900 col-span-2">
+                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:dark:bg-slate-700 hover:bg-slate-50">
+                    <dt className="text-sm font-medium dark:text-slate-400 text-gray-500">Page Size</dt>
+                    <dd className="text-sm dark:text-slate-200 text-gray-900 col-span-2">
                       {pageSize ? (
                         <>
                           {pageSize.width} x {pageSize.height} {pageSize.unit} (
@@ -168,21 +175,23 @@ export default function DocumentInfoModal({ usePDFSlickStore, isOpen, closeModal
                           {pageSize.orientation})
                         </>
                       ) : (
-                        <span className="text-xs text-gray-500">N/A</span>
+                        <span className="text-xs dark:text-slate-500 text-gray-500">N/A</span>
                       )}
                     </dd>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:bg-slate-50">
-                    <dt className="text-sm font-medium text-gray-500">Fast Web View</dt>
-                    <dd className="text-sm text-gray-900 col-span-2">{isLinearized ? "Yes" : "No"}</dd>
+                  <div className="grid grid-cols-3 gap-4 px-6 py-1 my-0.5 hover:dark:bg-slate-700 hover:bg-slate-50">
+                    <dt className="text-sm font-medium dark:text-slate-400 text-gray-500">Fast Web View</dt>
+                    <dd className="text-sm dark:text-slate-200 text-gray-900 col-span-2">
+                      {isLinearized ? "Yes" : "No"}
+                    </dd>
                   </div>
                 </dl>
 
                 <div className="mt-4 px-6 flex justify-center">
                   <button
                     type="button"
-                    className="inline-flex justify-center rounded border border-transparent bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    className="inline-flex justify-center rounded border dark:border-slate-600 border-transparent dark:bg-slate-700 bg-slate-100 px-4 py-2 text-sm font-medium dark:text-slate-100 text-slate-900 hover:dark:bg-slate-600 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                     onClick={closeModal}
                   >
                     Close

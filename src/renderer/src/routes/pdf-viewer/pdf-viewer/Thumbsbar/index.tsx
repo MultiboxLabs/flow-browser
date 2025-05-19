@@ -48,7 +48,7 @@ const Thumbsbar = ({ usePDFSlickStore, isThumbsbarOpen, thumbsRef }: ThumbsbarPr
       <div
         ref={containerRef}
         className={clsx(
-          "h-full flex relative bg-slate-50 border-r border-slate-300 [box-shadow:1px_0_2px_0_rgb(0_0_0_/_0.05)]",
+          "h-full flex relative dark:bg-slate-700 dark:text-slate-200 dark:border-r-slate-500 bg-slate-50 border-r border-slate-300 [box-shadow:1px_0_2px_0_rgb(0_0_0_/_0.05)]",
           {
             visible: isThumbsbarOpen,
             "invisible border-r-0 overflow-hidden": !isThumbsbarOpen,
@@ -79,8 +79,8 @@ const Thumbsbar = ({ usePDFSlickStore, isThumbsbarOpen, thumbsRef }: ThumbsbarPr
             className={clsx(
               "absolute -left-px top-0 h-full z-10 w-1 transition-all duration-150 ease-in hover:delay-150 hover:duration-150",
               {
-                "bg-blue-400": isResizing,
-                "bg-transparent hover:bg-blue-400": !isResizing
+                "dark:bg-blue-600 bg-blue-400": isResizing,
+                "bg-transparent hover:dark:bg-blue-600 hover:bg-blue-400": !isResizing
               }
             )}
           />

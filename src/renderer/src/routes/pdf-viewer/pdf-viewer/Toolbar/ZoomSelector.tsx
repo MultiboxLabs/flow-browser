@@ -32,7 +32,7 @@ const ZoomSelector = ({ usePDFSlickStore }: ZoomSelectorProps) => {
     <div className="flex items-center space-x-1">
       <button
         disabled={!pdfSlick || scale <= 0.25}
-        className="enabled:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
+        className="enabled:hover:dark:bg-slate-600 enabled:hover:bg-slate-200 enabled:hover:text-black enabled:hover:dark:text-white dark:text-slate-300 text-slate-500 disabled:dark:text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
         onClick={() => pdfSlick?.viewer?.decreaseScale()}
       >
         <VscRemove className="h-4 w-4 fill-current" />
@@ -41,7 +41,7 @@ const ZoomSelector = ({ usePDFSlickStore }: ZoomSelectorProps) => {
       <Menu as="div" className="text-xs relative hidden sm:block">
         <Menu.Button
           disabled={!pdfSlick}
-          className="text-left w-32 bg-slate-200/70 hover:bg-slate-200 py-1 rounded-sm focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
+          className="text-left w-32 dark:bg-slate-600 dark:hover:bg-slate-500 dark:text-slate-200 bg-slate-200/70 hover:bg-slate-200 py-1 rounded-sm focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
         >
           <span className="sr-only">Open zoom options</span>
           <div className="flex px-1">
@@ -63,7 +63,7 @@ const ZoomSelector = ({ usePDFSlickStore }: ZoomSelectorProps) => {
           leaveFrom="transform opacity-100 scale-100"
           leaveTo="transform opacity-0 scale-95"
         >
-          <Menu.Items className="absolute right-0 left-0 z-30 mt-2 w-full origin-top-right divide-y divide-slate-200 rounded text-left bg-white shadow-lg ring-1 ring-black/5 focus:outline-none">
+          <Menu.Items className="absolute right-0 left-0 z-30 mt-2 w-full origin-top-right dark:divide-slate-500 divide-y divide-slate-200 rounded text-left dark:bg-slate-700 bg-white shadow-lg ring-1 dark:ring-white/10 ring-black/5 focus:outline-none">
             <div className="py-1">
               {Array.from(presets.entries()).map(([value, label]) => (
                 <Menu.Item key={label}>
@@ -73,7 +73,9 @@ const ZoomSelector = ({ usePDFSlickStore }: ZoomSelectorProps) => {
                         pdfSlick!.currentScaleValue = value;
                       }}
                       className={`block w-full box-border text-left px-2 py-1.5 text-xs ${
-                        active ? "bg-slate-100 text-gray-900" : "text-gray-700"
+                        active
+                          ? "dark:bg-slate-600 dark:text-slate-100 bg-slate-100 text-gray-900"
+                          : "dark:text-slate-200 text-gray-700"
                       }`}
                     >
                       {label}
@@ -92,7 +94,9 @@ const ZoomSelector = ({ usePDFSlickStore }: ZoomSelectorProps) => {
                         pdfSlick!.currentScale = value;
                       }}
                       className={`block w-full box-border text-left px-2 py-1.5 text-xs ${
-                        active ? "bg-slate-100 text-gray-900" : "text-gray-700"
+                        active
+                          ? "dark:bg-slate-600 dark:text-slate-100 bg-slate-100 text-gray-900"
+                          : "dark:text-slate-200 text-gray-700"
                       }`}
                     >
                       {label}
@@ -107,7 +111,7 @@ const ZoomSelector = ({ usePDFSlickStore }: ZoomSelectorProps) => {
 
       <button
         disabled={!pdfSlick || scale >= 5}
-        className="enabled:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
+        className="enabled:hover:dark:bg-slate-600 enabled:hover:bg-slate-200 enabled:hover:text-black enabled:hover:dark:text-white dark:text-slate-300 text-slate-500 disabled:dark:text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
         onClick={() => pdfSlick?.viewer?.increaseScale()}
       >
         <VscAdd className="h-4 w-4 fill-current" />

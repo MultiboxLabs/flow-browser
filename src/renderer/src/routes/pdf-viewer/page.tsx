@@ -6,7 +6,7 @@ import { Fragment } from "react/jsx-runtime";
 import "@pdfslick/react/dist/pdf_viewer.css";
 
 // Theme makes it go all weird...
-const THEME_PROVIDER_ENABLED = false;
+const THEME_PROVIDER_ENABLED = true;
 
 function Page() {
   const [url] = useQueryParam("url", StringParam);

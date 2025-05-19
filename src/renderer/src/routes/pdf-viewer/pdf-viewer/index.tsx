@@ -32,7 +32,7 @@ export function PDFViewerApp({ pdfFilePath }: PDFViewerAppProps) {
 
   return (
     <>
-      <div className="absolute inset-0 bg-slate-200/70 flex flex-col pdfSlick">
+      <div className="absolute inset-0 dark:bg-slate-800 bg-slate-200/70 flex flex-col pdfSlick">
         <Toolbar {...{ usePDFSlickStore, setIsThumbsbarOpen, isThumbsbarOpen }} />
         <div className="flex-1 flex">
           <Thumbsbar {...{ thumbsRef, usePDFSlickStore, isThumbsbarOpen }} />
@@ -44,7 +44,7 @@ export function PDFViewerApp({ pdfFilePath }: PDFViewerAppProps) {
       </div>
       {loadedPerc < 100 && (
         <div
-          className="fixed top-0 left-0 h-px bg-blue-600 z-50 transition-all duration-150 ease-out"
+          className="fixed top-0 left-0 h-px dark:bg-blue-400 bg-blue-600 z-50 transition-all duration-150 ease-out"
           style={{ width: `${loadedPerc}%` }}
         ></div>
       )}

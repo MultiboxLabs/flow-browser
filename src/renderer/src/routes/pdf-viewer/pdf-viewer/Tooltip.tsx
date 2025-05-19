@@ -14,7 +14,7 @@ const Tooltip = ({ children, position = "right", alignX = "center" }: TooltipPro
       className={clsx(
         "absolute z-10 inline-block text-xs transition-opacity duration-300",
         "rounded-sm shadow opacity-0 invisible",
-        "text-gray-500 bg-slate-50 border border-slate-300",
+        "dark:text-gray-400 text-gray-500 dark:bg-slate-700 bg-slate-50 dark:border-slate-600 border border-slate-300",
         "group-hover:visible group-hover:opacity-100",
         {
           "left-full top-1/2 -translate-y-1/2 ml-4": position === "right",
@@ -32,8 +32,8 @@ const Tooltip = ({ children, position = "right", alignX = "center" }: TooltipPro
             "absolute w-[6px] h-[6px] bg-inherit invisible -left-[8px] top-1/2 -mt-[4px]",
             "before:absolute before:w-[6px] before:h-[6px] before:bg-inherit before:visible before:rotate-45 before:content-['']",
             "after:absolute after:w-[7px] after:h-[7px] after:bg-inherit after:visible after:rotate-45 after:content-['']",
-            "before:border-b before:border-l before:border-solid before:border-slate-300",
-            "after:border-b after:border-l after:border-solid after:border-slate-300",
+            "before:border-b before:border-l before:border-solid dark:before:border-slate-600 before:border-slate-300",
+            "after:border-b after:border-l after:border-solid dark:after:border-slate-600 after:border-slate-300",
             "after:invisible before:invisible group-hover:after:visible group-hover:before:visible"
           )}
         />
@@ -45,8 +45,8 @@ const Tooltip = ({ children, position = "right", alignX = "center" }: TooltipPro
             "absolute w-[6px] h-[6px] bg-inherit invisible -top-[5px]",
             "before:absolute before:w-[6px] before:h-[6px] before:bg-inherit before:visible before:rotate-45 before:content-['']",
             "after:absolute after:w-[7px] after:h-[7px] after:bg-inherit after:visible after:rotate-45 after:content-['']",
-            "before:border-t before:border-l before:border-solid before:border-slate-300",
-            "after:border-t after:border-l after:border-solid after:border-slate-300",
+            "before:border-t before:border-l before:border-solid dark:before:border-slate-600 before:border-slate-300",
+            "after:border-t after:border-l after:border-solid dark:after:border-slate-600 after:border-slate-300",
             "after:invisible before:invisible group-hover:after:visible group-hover:before:visible",
 
             {

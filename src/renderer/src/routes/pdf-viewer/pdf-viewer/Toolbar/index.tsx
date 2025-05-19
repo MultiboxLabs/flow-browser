@@ -41,11 +41,11 @@ const Toolbar = ({ usePDFSlickStore, isThumbsbarOpen, setIsThumbsbarOpen }: TToo
   return (
     <>
       <div
-        className={`w-full h-9 flex items-center justify-between bg-slate-50 border-b border-b-slate-300 shadow-sm text-xs select-none sticky top-0 backdrop-blur z-10`}
+        className={`w-full h-9 flex items-center justify-between dark:bg-slate-700 dark:text-slate-200 dark:border-b-slate-500 bg-slate-50 border-b border-b-slate-300 shadow-sm text-xs select-none sticky top-0 backdrop-blur z-10`}
       >
         <div className="px-1 flex items-center space-x-1">
           <button
-            className={`enabled:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent`}
+            className={`enabled:hover:dark:bg-slate-600 enabled:hover:bg-slate-200 enabled:hover:text-black enabled:hover:dark:text-white dark:text-slate-300 text-slate-500 disabled:dark:text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent`}
             onClick={() => setIsThumbsbarOpen(!isThumbsbarOpen)}
           >
             {isThumbsbarOpen ? (
@@ -63,7 +63,7 @@ const Toolbar = ({ usePDFSlickStore, isThumbsbarOpen, setIsThumbsbarOpen }: TToo
 
           <button
             disabled={pageNumber <= 1}
-            className="enabled:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
+            className="enabled:hover:dark:bg-slate-600 enabled:hover:bg-slate-200 enabled:hover:text-black enabled:hover:dark:text-white dark:text-slate-300 text-slate-500 disabled:dark:text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
             onClick={() => pdfSlick?.viewer?.previousPage()}
           >
             <VscChevronUp className="h-4 w-4" />
@@ -71,7 +71,7 @@ const Toolbar = ({ usePDFSlickStore, isThumbsbarOpen, setIsThumbsbarOpen }: TToo
 
           <button
             disabled={!pdfSlick || pageNumber >= numPages}
-            className="enabled:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
+            className="enabled:hover:dark:bg-slate-600 enabled:hover:bg-slate-200 enabled:hover:text-black enabled:hover:dark:text-white dark:text-slate-300 text-slate-500 disabled:dark:text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
             onClick={() => pdfSlick?.viewer?.nextPage()}
           >
             <VscChevronDown className="h-4 w-4" />
@@ -93,7 +93,7 @@ const Toolbar = ({ usePDFSlickStore, isThumbsbarOpen, setIsThumbsbarOpen }: TToo
                 ref={pageNumberRef}
                 type="text"
                 value={wantedPageNumber}
-                className="block w-12 text-right rounded-sm border border-slate-300 focus:shadow focus:border-blue-400 focus:ring-0 outline-none text-xs p-1 px-1.5 placeholder:text-gray-300 focus:placeholder:text-gray-400 placeholder:italic"
+                className="block w-12 text-right rounded-sm border dark:bg-slate-600 dark:border-slate-500 dark:text-slate-200 dark:placeholder:text-slate-400 border-slate-300 focus:shadow focus:border-blue-400 focus:ring-0 outline-none text-xs p-1 px-1.5 placeholder:text-gray-300 focus:placeholder:text-gray-400 placeholder:italic"
                 onFocus={() => pageNumberRef.current?.select()}
                 onChange={(e) => {
                   setWantedPageNumber(e.currentTarget.value);
@@ -131,7 +131,7 @@ const Toolbar = ({ usePDFSlickStore, isThumbsbarOpen, setIsThumbsbarOpen }: TToo
           <div className="items-center space-x-1 hidden sm:flex">
             <button
               className={clsx(
-                "enabled:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
+                "enabled:hover:dark:bg-slate-600 enabled:hover:bg-slate-200 enabled:hover:text-black enabled:hover:dark:text-white dark:text-slate-300 text-slate-500 disabled:dark:text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
               )}
               onClick={() => pdfSlick?.downloadOrSave()}
             >

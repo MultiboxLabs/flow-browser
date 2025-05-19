@@ -20,7 +20,7 @@ const AttachmentButton: FC<AttachmentButtonProps> = ({ usePDFSlickStore, filenam
   return (
     <button
       ref={ref}
-      className="w-full box-border rounded text-left hover:text-slate-900 p-1 hover:bg-slate-200"
+      className="w-full box-border rounded text-left hover:dark:text-slate-100 hover:text-slate-900 p-1 hover:dark:bg-slate-600 hover:bg-slate-200"
       onClick={() => pdfSlick?.openOrDownloadData(content, filename)}
     >
       {filename}
@@ -33,7 +33,7 @@ const Attachments = ({ usePDFSlickStore, show }: AttachmentsProps) => {
 
   return (
     <div className={clsx("overflow-auto absolute inset-0", { invisible: !show })}>
-      <div className="p-2 text-slate-700 text-sm">
+      <div className="p-2 dark:text-slate-200 text-slate-700 text-sm">
         {Array.from(attachments.entries()).map(([key, { filename, content }]) => (
           <AttachmentButton key={key} {...{ usePDFSlickStore, filename, content }} />
         ))}

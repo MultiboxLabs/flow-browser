@@ -55,8 +55,10 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
     <div className="relative w-fit">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`enabled:hover:bg-slate-200 enabled:hover:text-black  disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent ${
-          isOpen ? "bg-slate-200 text-black" : "text-slate-500"
+        className={`enabled:hover:dark:bg-slate-600 enabled:hover:bg-slate-200 enabled:hover:text-black enabled:hover:dark:text-white disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent ${
+          isOpen
+            ? "dark:bg-slate-600 bg-slate-200 dark:text-slate-100 text-black"
+            : "dark:text-slate-300 text-slate-500"
         }`}
       >
         <VscSearch className="h-4 w-4" />
@@ -65,14 +67,14 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
       {isOpen && (
         <div className="absolute top-full mt-2 left-0 w-fit">
           <div
-            className={`h-9 flex items-center justify-between bg-slate-100 border border-slate-300 text-xs select-none sticky top-0 rounded-sm z-10`}
+            className={`h-9 flex items-center justify-between dark:bg-slate-700 bg-slate-100 dark:border-slate-500 border border-slate-300 dark:text-slate-200 text-xs select-none sticky top-0 rounded-sm z-10`}
           >
             <div className="px-1 flex items-center gap-1">
               <input
                 type="text"
                 ref={searchRef}
                 placeholder="Search... "
-                className="block w-48 rounded-sm border border-slate-300 focus:shadow focus:border-blue-400 focus:ring-0 outline-none text-xs p-1 px-1.5 placeholder:text-gray-300 focus:placeholder:text-gray-400 placeholder:italic"
+                className="block w-48 rounded-sm border dark:border-slate-500 border-slate-300 focus:shadow focus:border-blue-400 focus:ring-0 outline-none text-xs p-1 px-1.5 dark:bg-slate-600 dark:text-slate-200 dark:placeholder:text-slate-400 placeholder:text-gray-300 focus:placeholder:text-gray-400 placeholder:italic"
                 value={term}
                 onInput={(e) => {
                   const query = (e.target as HTMLInputElement).value;
@@ -104,7 +106,7 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
               />
 
               <button
-                className="enabled:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
+                className="enabled:hover:dark:bg-slate-600 enabled:hover:bg-slate-200 enabled:hover:text-black enabled:hover:dark:text-white dark:text-slate-300 text-slate-500 disabled:dark:text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
                 onClick={() => {
                   pdfSlick?.eventBus.dispatch("find", {
                     type: "again",
@@ -120,7 +122,7 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
               </button>
 
               <button
-                className="enabled:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
+                className="enabled:hover:dark:bg-slate-600 enabled:hover:bg-slate-200 enabled:hover:text-black enabled:hover:dark:text-white dark:text-slate-300 text-slate-500 disabled:dark:text-slate-500 disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent"
                 onClick={() => {
                   pdfSlick?.eventBus.dispatch("find", {
                     type: "again",
@@ -137,8 +139,10 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
               <Splitter />
 
               <button
-                className={`enabled:hover:bg-slate-200 enabled:hover:text-black disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent text-nowrap ${
-                  highlightAll ? "bg-slate-200 text-black" : "text-slate-500"
+                className={`enabled:hover:dark:bg-slate-500 enabled:hover:bg-slate-200 enabled:hover:text-black enabled:hover:dark:text-white disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent text-nowrap ${
+                  highlightAll
+                    ? "dark:bg-slate-600 bg-slate-200 dark:text-slate-100 text-black"
+                    : "dark:text-slate-300 text-slate-500"
                 }`}
                 onClick={() => {
                   const newHighlightAll = !highlightAll;
@@ -157,8 +161,10 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
               </button>
 
               <button
-                className={`enabled:hover:bg-slate-200 enabled:hover:text-black disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent text-nowrap ${
-                  caseSensitive ? "bg-slate-200 text-black" : "text-slate-500"
+                className={`enabled:hover:dark:bg-slate-500 enabled:hover:bg-slate-200 enabled:hover:text-black enabled:hover:dark:text-white disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent text-nowrap ${
+                  caseSensitive
+                    ? "dark:bg-slate-600 bg-slate-200 dark:text-slate-100 text-black"
+                    : "dark:text-slate-300 text-slate-500"
                 }`}
                 onClick={() => {
                   const newCaseSensitive = !caseSensitive;
@@ -177,8 +183,10 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
               </button>
 
               <button
-                className={`enabled:hover:bg-slate-200 enabled:hover:text-black disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent text-nowrap ${
-                  entireWord ? "bg-slate-200 text-black" : "text-slate-500"
+                className={`enabled:hover:dark:bg-slate-500 enabled:hover:bg-slate-200 enabled:hover:text-black enabled:hover:dark:text-white disabled:text-slate-300 p-1 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent text-nowrap ${
+                  entireWord
+                    ? "dark:bg-slate-600 bg-slate-200 dark:text-slate-100 text-black"
+                    : "dark:text-slate-300 text-slate-500"
                 }`}
                 onClick={() => {
                   const newEntireWord = !entireWord;

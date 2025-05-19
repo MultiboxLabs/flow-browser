@@ -30,7 +30,7 @@ const renderOutlineItems = ({
             {item.items?.length > 0 ? (
               <label
                 htmlFor={`${item.title}-${ix}`}
-                className="cursor-pointer mt-1 hover:text-slate-900 rounded p-1 hover:bg-slate-200"
+                className="cursor-pointer mt-1 hover:dark:text-slate-100 hover:text-slate-900 rounded p-1 hover:dark:bg-slate-600 hover:bg-slate-200"
               >
                 <VscTriangleRight className="w-4 py-px" />
               </label>
@@ -38,7 +38,7 @@ const renderOutlineItems = ({
               <span className="block w-6" />
             )}
             <button
-              className="flex-1 rounded text-left hover:text-slate-900 p-1 hover:bg-slate-200"
+              className="flex-1 rounded text-left hover:dark:text-slate-100 hover:text-slate-900 p-1 hover:dark:bg-slate-600 hover:bg-slate-200"
               onClick={() => pdfSlick?.linkService?.goToDestination(item.dest)}
             >
               {item.title}
@@ -64,7 +64,7 @@ const Outline = ({ usePDFSlickStore, show }: OutlineProps) => {
 
   return (
     <div className={clsx("overflow-auto absolute inset-0", { invisible: !show })}>
-      <div className="p-2 pl-0.5 text-slate-700 text-sm">
+      <div className="p-2 pl-0.5 dark:text-slate-200 text-slate-700 text-sm">
         {renderOutlineItems({ outline: documentOutline, pdfSlick })}
       </div>
     </div>

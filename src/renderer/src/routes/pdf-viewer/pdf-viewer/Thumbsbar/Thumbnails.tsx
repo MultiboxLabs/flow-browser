@@ -46,7 +46,7 @@ const Thumbnails = ({ usePDFSlickStore, thumbsRef, show }: ThumbnailsProps) => {
                     className={clsx(
                       "p-0.5",
                       {
-                        "bg-blue-400 shadow": loaded && pageNumber === currentPage
+                        "dark:bg-blue-600 bg-blue-400 shadow": loaded && pageNumber === currentPage
                       },
                       { "bg-transparent": pageNumber !== currentPage },
                       { "bg-transparent": !loaded }
@@ -54,8 +54,9 @@ const Thumbnails = ({ usePDFSlickStore, thumbsRef, show }: ThumbnailsProps) => {
                   >
                     <div
                       className={clsx("box-border relative border", {
-                        "border-slate-300 border-solid bg-slate-400/5 shadow-sm": !loaded,
-                        "border-slate-300 border-solid hover:border-blue-400 shadow hover:shadow":
+                        "dark:border-slate-500 border-slate-300 border-solid dark:bg-slate-600/5 bg-slate-400/5 shadow-sm":
+                          !loaded,
+                        "dark:border-slate-500 border-slate-300 border-solid hover:dark:border-blue-500 hover:border-blue-400 shadow hover:shadow":
                           loaded && pageNumber !== currentPage,
                         "border-transparent border-solid shadow-md": loaded && pageNumber === currentPage
                       })}
@@ -68,7 +69,9 @@ const Thumbnails = ({ usePDFSlickStore, thumbsRef, show }: ThumbnailsProps) => {
                     </div>
                   </button>
                 </div>
-                <div className="text-center text-xs text-slate-500 py-2">{pageLabel ?? pageNumber}</div>
+                <div className="text-center text-xs dark:text-slate-400 text-slate-500 py-2">
+                  {pageLabel ?? pageNumber}
+                </div>
               </div>
             </div>
           )}

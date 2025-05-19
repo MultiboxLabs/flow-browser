@@ -15,9 +15,11 @@ const InkMenu = ({ usePDFSlickStore }: InkMenuProps) => {
   const isInkMode = annotationEditorMode === AnnotationEditorType.INK;
 
   return (
-    <div className={`flex items-center rounded-sm group ${isInkMode ? "bg-blue-100" : "hover:bg-slate-200/50"}`}>
+    <div
+      className={`flex items-center rounded-sm group ${isInkMode ? "dark:bg-blue-700 bg-blue-100" : "hover:dark:bg-slate-600 hover:bg-slate-200/50"}`}
+    >
       <button
-        className={` enabled:hover:text-black text-slate-600 p-1 disabled:text-slate-300 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent`}
+        className={` enabled:hover:dark:text-slate-100 enabled:hover:text-black dark:text-slate-300 text-slate-600 p-1 disabled:dark:text-slate-500 disabled:text-slate-300 rounded-sm transition-all group relative focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent`}
         onClick={() => {
           const mode = isInkMode ? AnnotationEditorType.NONE : AnnotationEditorType.INK;
           pdfSlick?.setAnnotationEditorMode(mode);
@@ -29,7 +31,7 @@ const InkMenu = ({ usePDFSlickStore }: InkMenuProps) => {
       <Menu as="div" className="text-xs relative">
         <Menu.Button
           disabled={!pdfSlick}
-          className={`h-6 enabled:group-hover:hover:bg-slate-200 enabled:hover:text-black text-slate-500 disabled:text-slate-300 rounded-sm transition-all focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent`}
+          className={`h-6 enabled:group-hover:hover:dark:bg-slate-500 enabled:group-hover:hover:bg-slate-200 enabled:hover:dark:text-slate-100 enabled:hover:text-black dark:text-slate-300 text-slate-500 disabled:dark:text-slate-500 disabled:text-slate-300 rounded-sm transition-all focus:border-blue-400 focus:ring-0 focus:shadow outline-none border border-transparent`}
         >
           <div className="p-0.5">
             <VscChevronDown className="w-3 h-3" />
@@ -44,9 +46,9 @@ const InkMenu = ({ usePDFSlickStore }: InkMenuProps) => {
           leaveFrom="transform opacity-100 scale-100"
           leaveTo="transform opacity-0 scale-95"
         >
-          <Menu.Items className="absolute right-0 z-30 mt-2 origin-top-right rounded-sm text-left bg-white divide-y divide-slate-200 shadow-lg ring-1 ring-black/5 focus:outline-none">
+          <Menu.Items className="absolute right-0 z-30 mt-2 origin-top-right rounded-sm text-left dark:bg-slate-700 bg-white dark:divide-slate-500 divide-y divide-slate-200 shadow-lg ring-1 dark:ring-white/10 ring-black/5 focus:outline-none">
             <div className="flex flex-col space-y-1 p-2">
-              <div className="text-sm font-medium text-gray-900 py-1">Color</div>
+              <div className="text-sm font-medium dark:text-slate-200 text-gray-900 py-1">Color</div>
               {colorStrengths.map((s) => (
                 <div className="flex space-x-1" key={s}>
                   {colorNames.map((name) => (
@@ -73,12 +75,12 @@ const InkMenu = ({ usePDFSlickStore }: InkMenuProps) => {
 
             <div className="p-2 flex flex-col">
               <div className="py-1 flex space-x-2 items-center">
-                <label htmlFor="innkThickness" className="text-sm w-20 font-medium text-gray-900">
+                <label htmlFor="innkThickness" className="text-sm w-20 font-medium dark:text-slate-200 text-gray-900">
                   Thickness
                 </label>
                 <div className="w-full flex flex-1 items-center">
                   <input
-                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                    className="w-full h-1.5 dark:bg-slate-600 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                     defaultValue={1}
                     type="range"
                     min={1}
@@ -96,12 +98,12 @@ const InkMenu = ({ usePDFSlickStore }: InkMenuProps) => {
               </div>
 
               <div className="py-1 flex space-x-2 items-center">
-                <label htmlFor="inkOpacity" className="text-sm w-20 font-medium text-gray-900">
+                <label htmlFor="inkOpacity" className="text-sm w-20 font-medium dark:text-slate-200 text-gray-900">
                   Opacity
                 </label>
                 <div className="w-full flex flex-1 items-center">
                   <input
-                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                    className="w-full h-1.5 dark:bg-slate-600 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                     defaultValue={100}
                     type="range"
                     min={0}
