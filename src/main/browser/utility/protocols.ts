@@ -8,7 +8,6 @@ import { FLAGS } from "@/modules/flags";
 import { isDevelopmentServerRunning, setupHotReloadFileDescriptors, fetchFromDevServer } from "./hot-reload";
 import { getExtensionIcon } from "@/modules/extensions/management";
 import { browser } from "@/index";
-import { setupInterceptRules } from "@/browser/utility/intercept-rules";
 
 protocolModule.registerSchemesAsPrivileged([
   {
@@ -361,6 +360,4 @@ export function registerProtocolsWithSession(session: Session) {
   const protocol = session.protocol;
   registerFlowProtocol(protocol);
   registerFlowExternalProtocol(protocol);
-
-  setupInterceptRules(session);
 }

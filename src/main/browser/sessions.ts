@@ -70,6 +70,8 @@ function createSession(profileId: string) {
 
   registerProtocolsWithSession(profileSession);
   registerCallbacksWithSession(profileSession);
+
+  setupInterceptRules(profileSession);
   registerPreloadScript(profileSession);
 
   return profileSession;
