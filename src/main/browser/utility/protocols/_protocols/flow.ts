@@ -19,6 +19,20 @@ const FLOW_PROTOCOL_ALLOWED_DOMAINS: AllowedDomains = {
   "pdf-viewer": true
 };
 
+const PDF_CACHE = new Map<string, Response>();
+
+export function addPdfResponseToCache(key: string, response: Response) {
+  PDF_CACHE.set(key, response);
+}
+
+function getPdfResponseFromCache(key: string): Response | undefined {
+  return PDF_CACHE.get(key);
+}
+
+function removePdfResponseFromCache(key: string) {
+  PDF_CACHE.delete(key);
+}
+
 export function registerFlowProtocol(protocol: Protocol) {
   const handleDomainRequest = async (request: Request, url: URL) => {
     const hostname = url.hostname;
@@ -118,6 +132,23 @@ export function registerFlowProtocol(protocol: Protocol) {
     });
   };
 
+  const handlePdfCacheRequest = async (_request: Request, url: URL) => {
+    const pdfURL = url.searchParams.get("url");
+    const key = url.searchParams.get("key");
+    if (!pdfURL || !key) {
+      return new Response("Invalid request path", { status: 400 });
+    }
+
+    const pdfResponse = getPdfResponseFromCache(key);
+    if (!pdfResponse) {
+      // redirect to actual url
+      return Response.redirect(pdfURL);
+    }
+
+    removePdfResponseFromCache(key);
+    return pdfResponse;
+  };
+
   protocol.handle("flow", async (request) => {
     const urlString = request.url;
     const url = new URL(urlString);
@@ -135,6 +166,11 @@ export function registerFlowProtocol(protocol: Protocol) {
     // flow://extension-icon/:path
     if (url.host === "extension-icon") {
       return await handleExtensionIconRequest(request, url);
+    }
+
+    // flow://pdf-cache/:path
+    if (url.host === "pdf-cache") {
+      return await handlePdfCacheRequest(request, url);
     }
 
     // flow://:path

@@ -10,6 +10,7 @@ const THEME_PROVIDER_ENABLED = false;
 
 function Page() {
   const [url] = useQueryParam("url", StringParam);
+  const [cacheURL] = useQueryParam("cacheURL", StringParam);
   if (!url) {
     return null;
   }
@@ -17,7 +18,7 @@ function Page() {
   return (
     <>
       <title>{url}</title>
-      <PDFViewerApp pdfFilePath={url} />
+      <PDFViewerApp pdfFilePath={cacheURL ?? url} />
     </>
   );
 }
