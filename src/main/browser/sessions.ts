@@ -1,9 +1,6 @@
 import { setupInterceptRules } from "@/browser/utility/intercept-rules";
-import {
-  registerFlowInternalProtocol,
-  registerPreloadScript,
-  registerProtocolsWithSession
-} from "@/browser/utility/protocols";
+import { registerFlowInternalProtocol } from "@/browser/utility/protocols/_protocols/flow-internal";
+import { registerPreloadScript, registerProtocolsWithSession } from "@/browser/utility/protocols/index";
 import { debugPrint } from "@/modules/output";
 import { sleep } from "@/modules/utils";
 import { setAlwaysOpenExternal, shouldAlwaysOpenExternal } from "@/saving/open-external";
