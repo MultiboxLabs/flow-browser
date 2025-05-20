@@ -88,32 +88,6 @@ if (hasPermission("browser")) {
   injectBrowserAction();
 }
 
-// TRANSFORM USER AGENT DATA //
-const updateUserAgentData = () => {
-  Object.defineProperty(navigator, "userAgentData", {
-    get: () => {
-      return {
-        brands: [
-          {
-            brand: "Not.A/Brand",
-            version: "99"
-          },
-          {
-            brand: "Chromium",
-            version: "136"
-          }
-        ],
-        mobile: false,
-        platform: "macOS"
-      };
-    },
-    set: () => {}
-  });
-};
-contextBridge.executeInMainWorld({
-  func: updateUserAgentData
-});
-
 // INTERNAL FUNCTIONS //
 function getOSFromPlatform(platform: NodeJS.Platform) {
   switch (platform) {
