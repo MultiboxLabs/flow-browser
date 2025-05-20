@@ -1,6 +1,5 @@
 import { app, net } from "electron";
 import { FLAGS } from "@/modules/flags";
-import { is } from "@electron-toolkit/utils";
 
 /**
  * Sets a higher file descriptor limit for development hot reloading
@@ -19,7 +18,7 @@ export function setupHotReloadFileDescriptors() {
  * @returns True if the server is running, false otherwise
  */
 export function isDevelopmentServerRunning(): boolean {
-  if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+  if (!app.isPackaged && process.env["ELECTRON_RENDERER_URL"]) {
     return true;
   }
 
