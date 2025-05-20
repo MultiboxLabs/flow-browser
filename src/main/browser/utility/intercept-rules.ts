@@ -18,8 +18,12 @@ function setupUserAgentTransformer(session: Session) {
     const newHeaders = { ...requestHeaders };
     for (const header of Object.keys(requestHeaders)) {
       if (header.toLowerCase() == "user-agent") {
-        newHeaders[header] = transformUserAgentHeader(url, requestHeaders[header]);
-        updated = true;
+        const oldValue = requestHeaders[header];
+        const newValue = transformUserAgentHeader(oldValue, url);
+        if (oldValue !== newValue) {
+          newHeaders[header] = newValue;
+          updated = true;
+        }
       }
     }
 
