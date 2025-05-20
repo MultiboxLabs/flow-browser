@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import { Menu, Transition } from "@headlessui/react";
-import { VscChevronDown, VscCaseSensitive } from "react-icons/vsc";
+import { VscChevronDown, VscCaseSensitive } from "@/components/react-icons/vsc";
 import { AnnotationEditorType, AnnotationEditorParamsType } from "pdfjs-dist";
 import { default as colors, colorNames, colorStrengths } from "../colors";
 

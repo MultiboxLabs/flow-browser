@@ -14,7 +14,7 @@ import {
   VscDesktopDownload,
   VscExport,
   VscPlay
-} from "react-icons/vsc";
+} from "@/components/react-icons/vsc";
 import { ScrollMode, SpreadMode, type TUsePDFSlickStore } from "@pdfslick/react";
 import { shallow } from "zustand/shallow";
 import clsx from "clsx";

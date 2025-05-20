@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { Menu, Transition } from "@headlessui/react";
-import { VscAdd, VscRemove, VscChevronDown } from "react-icons/vsc";
+import { VscAdd, VscRemove, VscChevronDown } from "@/components/react-icons/vsc";
 import type { TUsePDFSlickStore } from "@pdfslick/react";
 
 const presets = new Map([

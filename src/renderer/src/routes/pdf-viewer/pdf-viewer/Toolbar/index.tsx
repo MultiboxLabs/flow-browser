@@ -6,7 +6,7 @@ import {
   VscLayoutSidebarLeft,
   VscLayoutSidebarLeftOff,
   VscDesktopDownload
-} from "react-icons/vsc";
+} from "@/components/react-icons/vsc";
 import type { TUsePDFSlickStore } from "@pdfslick/react";
 import ZoomSelector from "./ZoomSelector";
 import InkMenu from "./InkMenu";

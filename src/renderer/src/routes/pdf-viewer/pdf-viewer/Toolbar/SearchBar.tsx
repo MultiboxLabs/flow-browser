@@ -1,6 +1,6 @@
 import type { TUsePDFSlickStore } from "@pdfslick/react";
 import { useEffect, useRef, useState } from "react";
-import { VscSearch, VscChevronLeft, VscChevronRight } from "react-icons/vsc";
+import { VscSearch, VscChevronLeft, VscChevronRight } from "@/components/react-icons/vsc";
 import Splitter from "./Splitter";
 
 type SearchBarProps = {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { TUsePDFSlickStore } from "@pdfslick/react";
-import { VscInfo } from "react-icons/vsc";
+import { VscInfo } from "@/components/react-icons/vsc";
 import DocumentInfoModal from "./DocumentInfoModal";
 import Tooltip from "../Tooltip";
 

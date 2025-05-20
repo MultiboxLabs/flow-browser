@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { VscVersions, VscListTree, VscSaveAll } from "react-icons/vsc";
+import { VscVersions, VscListTree, VscSaveAll } from "@/components/react-icons/vsc";
 import Tooltip from "../Tooltip";
 import { type TUsePDFSlickStore } from "@pdfslick/react";
 

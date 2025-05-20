@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { PDFSlick, type TPDFDocumentOutline, type TUsePDFSlickStore } from "@pdfslick/react";
-import { VscTriangleRight } from "react-icons/vsc";
+import { VscTriangleRight } from "@/components/react-icons/vsc";
 
 type OutlineProps = {
   usePDFSlickStore: TUsePDFSlickStore;
