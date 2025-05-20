@@ -30,7 +30,6 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@ghostery/adblocker-electron": "^2.5.2",
-    "@pdfslick/react": "^3.0.0",
     "@phosphor-icons/core": "^2.1.1",
     "better-sqlite3": "^11.10.0",
     "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.7.5",
@@ -44,7 +43,6 @@
     "posthog-node": "^4.17.1",
     "sharp": "^0.34.1",
     "sharp-ico": "^0.1.5",
-    "use-query-params": "^2.2.1",
     "zod": "^3.24.4"
   },
   "devDependencies": {
@@ -52,6 +50,7 @@
     "@electron-toolkit/eslint-config-ts": "^3.1.0",
     "@electron-toolkit/tsconfig": "^1.0.1",
     "@headlessui/react": "^2.2.3",
+    "@pdfslick/react": "^3.0.0",
     "@phosphor-icons/react": "^2.1.7",
     "@radix-ui/react-alert-dialog": "^1.1.13",
     "@radix-ui/react-dialog": "^1.1.13",
@@ -101,6 +100,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tw-animate-css": "^1.2.9",
     "typescript": "^5.8.3",
+    "use-query-params": "^2.2.1",
     "vite": "^6.3.5"
   },
   "pnpm": {
