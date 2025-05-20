@@ -8,8 +8,16 @@ export function transformUserAgentHeader(userAgent: string, url: URL | null) {
     return userAgent;
   }
 
-  const addEdgeUserAgent = true;
+  // Edge User Agent:
+  // - Causes a few issues with Google Auth
+  const addEdgeUserAgent = false;
+
+  // Remove Electron User Agent:
+  // - Causes issues with Spotify
   const removeElectronUserAgent = true;
+
+  // Remove App User Agent:
+  // - Flow will be less identifiable
   const removeAppUserAgent = false;
 
   if (url) {
