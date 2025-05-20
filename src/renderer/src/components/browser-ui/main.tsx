@@ -15,6 +15,7 @@ import { SidebarHoverDetector } from "@/components/browser-ui/sidebar/hover-dete
 import MinimalToastProvider from "@/components/providers/minimal-toast-provider";
 import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
 import { ActionsProvider } from "@/components/providers/actions-provider";
+import { SidebarAddressBar } from "@/components/browser-ui/sidebar/header/address-bar/address-bar";
 
 export type CollapseMode = "icon" | "offcanvas";
 export type SidebarVariant = "sidebar" | "floating";
@@ -134,7 +135,10 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
             />
 
             {/* Content */}
-            <BrowserContent />
+            <div className="flex flex-col flex-1 h-full w-full">
+              <div className="remove-app-drag">{type === "popup" && <SidebarAddressBar className="rounded-lg" />}</div>
+              <BrowserContent />
+            </div>
           </div>
         </SidebarInset>
 

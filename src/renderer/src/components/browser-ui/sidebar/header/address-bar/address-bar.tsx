@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { SearchIcon } from "lucide-react";
 import { useRef } from "react";
 
-function FakeAddressBar() {
+function FakeAddressBar({ className }: { className?: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { addressUrl, focusedTab } = useTabs();
 
@@ -50,7 +50,8 @@ function FakeAddressBar() {
         "transition-colors duration-150",
         "bg-white/20 dark:bg-white/15",
         "hover:bg-white/25 dark:hover:bg-white/20",
-        isPlaceholder ? "text-black/60 dark:text-white/60" : "text-black dark:text-white"
+        isPlaceholder ? "text-black/60 dark:text-white/60" : "text-black dark:text-white",
+        className
       )}
       ref={inputRef}
       onClick={handleClick}
@@ -66,13 +67,13 @@ function FakeAddressBar() {
   );
 }
 
-export function SidebarAddressBar() {
+export function SidebarAddressBar({ className }: { className?: string }) {
   const { open } = useSidebar();
   if (!open) return null;
 
   return (
     <SidebarGroup className="pt-0 px-0">
-      <FakeAddressBar />
+      <FakeAddressBar className={className} />
     </SidebarGroup>
   );
 }

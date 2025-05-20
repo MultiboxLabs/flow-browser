@@ -1,6 +1,7 @@
 import { BrowserWindow, Rectangle, WebContents, WebContentsView } from "electron";
 import { debugPrint } from "@/modules/output";
 import { browser } from "@/index";
+import { clamp } from "@/modules/utils";
 
 const omniboxes = new Map<BrowserWindow, Omnibox>();
 
@@ -83,7 +84,22 @@ export class Omnibox {
 
     if (this.bounds) {
       debugPrint("OMNIBOX", `Updating bounds to: ${JSON.stringify(this.bounds)}`);
-      this.view.setBounds(this.bounds);
+
+      const windowBounds = this.window.getBounds();
+
+      const newX = clamp(this.bounds.x, 0, windowBounds.width);
+      const newY = clamp(this.bounds.y, 0, windowBounds.height);
+      const newWidth = clamp(this.bounds.width, 0, windowBounds.width - newX);
+      const newHeight = clamp(this.bounds.height, 0, windowBounds.height - newY);
+
+      const newBounds: Rectangle = {
+        x: newX,
+        y: newY,
+        width: newWidth,
+        height: newHeight
+      };
+
+      this.view.setBounds(newBounds);
     } else {
       const windowBounds = this.window.getBounds();
 
