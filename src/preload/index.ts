@@ -102,6 +102,30 @@ function getOSFromPlatform(platform: NodeJS.Platform) {
   }
 }
 
+// POPUP POLYFILLS //
+// Polyfill some methods for popup windows
+function polyfillPopup() {
+  window.moveTo = (x: number, y: number) => {
+    if (typeof x !== "number" || typeof y !== "number") {
+      throw new Error("Invalid arguments: x and y must be provided as numbers");
+    }
+
+    flow.interface.moveWindowTo(x, y);
+  };
+
+  window.resizeTo = (width: number, height: number) => {
+    if (typeof width !== "number" || typeof height !== "number") {
+      throw new Error("Invalid arguments: width and height must be provided as numbers");
+    }
+
+    flow.interface.resizeWindowTo(width, height);
+  };
+}
+
+contextBridge.executeInMainWorld({
+  func: polyfillPopup
+});
+
 /**
  * Generates a UUIDv4 string.
  * @returns A UUIDv4 string.
@@ -254,6 +278,15 @@ const interfaceAPI: FlowInterfaceAPI = {
   },
   setComponentWindowVisible: (componentId: string, visible: boolean) => {
     return ipcRenderer.send("interface:set-component-window-visible", componentId, visible);
+  },
+
+  // Special Exception: These are allowed on every tab, but very tightly secured.
+  // They will only work in popup windows.
+  moveWindowTo: async (x: number, y: number) => {
+    return ipcRenderer.send("interface:move-window-to", x, y);
+  },
+  resizeWindowTo: async (width: number, height: number) => {
+    return ipcRenderer.send("interface:resize-window-to", width, height);
   }
 };
 
@@ -516,7 +549,10 @@ const flowAPI: typeof flow = {
   }),
   page: wrapAPI(pageAPI, "browser"),
   navigation: wrapAPI(navigationAPI, "browser"),
-  interface: wrapAPI(interfaceAPI, "browser"),
+  interface: wrapAPI(interfaceAPI, "browser", {
+    moveWindowTo: "all",
+    resizeWindowTo: "all"
+  }),
   omnibox: wrapAPI(omniboxAPI, "browser"),
   newTab: wrapAPI(newTabAPI, "browser"),
 

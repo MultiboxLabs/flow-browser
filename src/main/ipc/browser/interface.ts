@@ -22,3 +22,18 @@ export function toggleSidebar(win: TabbedBrowserWindow) {
     webContents.send("sidebar:on-toggle");
   }
 }
+
+// These methods are only available for popup windows
+ipcMain.on("interface:move-window-to", (event, x: number, y: number) => {
+  const win = browser?.getWindowFromWebContents(event.sender);
+  if (win && win.type === "popup") {
+    win.window.setPosition(x, y);
+  }
+});
+
+ipcMain.on("interface:resize-window-to", (event, width: number, height: number) => {
+  const win = browser?.getWindowFromWebContents(event.sender);
+  if (win && win.type === "popup") {
+    win.window.setSize(width, height);
+  }
+});

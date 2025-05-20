@@ -35,4 +35,14 @@ export interface FlowInterfaceAPI {
    * Sets the visibility of a component window
    */
   setComponentWindowVisible: (componentId: string, visible: boolean) => void;
+
+  /**
+   * Moves popup window to a specific position
+   */
+  moveWindowTo: (x: number, y: number) => void;
+
+  /**
+   * Resizes popup window to a specific size
+   */
+  resizeWindowTo: (width: number, height: number) => void;
 }
