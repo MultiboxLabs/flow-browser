@@ -247,7 +247,7 @@ const tabsAPI: FlowTabsAPI = {
   disablePictureInPicture: async (goBackToTab: boolean) => {
     return ipcRenderer.invoke("tabs:disable-picture-in-picture", goBackToTab);
   },
-  
+
   setTabMuted: async (tabId: number, muted: boolean) => {
     return ipcRenderer.invoke("tabs:set-tab-muted", tabId, muted);
   }
