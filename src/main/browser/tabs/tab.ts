@@ -210,7 +210,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     }
 
     // Set position
-    if (position) {
+    if (position !== undefined) {
       this.position = position;
     } else {
       // Get the smallest position

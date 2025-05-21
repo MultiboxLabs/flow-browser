@@ -18,18 +18,45 @@ export async function persistTabToStorage(tab: Tab) {
   if (window.type !== "normal") return;
 
   // Prevent saving tabs stuck in sleep mode
-  if (tab.url === SLEEP_MODE_URL) return;
-  if (tab.asleep) return;
-  if (tab.navHistory.length === 0) return;
+  // if (tab.url === SLEEP_MODE_URL) return;
+  // if (tab.asleep) return;
+  // if (tab.navHistory.length === 0) return;
 
   const uniqueId = tab.uniqueId;
   const tabData = getTabData(tab);
 
   // Do NOT save sleep tabs
-  if (tab.navHistory.find((entry) => entry.url === SLEEP_MODE_URL)) return;
+  const asleep = tab.asleep;
+  const saveURL = !asleep && tab.url !== SLEEP_MODE_URL;
+  const saveNavHistory = !asleep && !tab.navHistory.find((entry) => entry.url === SLEEP_MODE_URL);
+
+  const recoverFromOldData = !saveURL || !saveNavHistory;
+
+  // Transform the tab data
+  const transformedTabData = {
+    ...tabData
+  };
+
+  if (recoverFromOldData) {
+    const oldTabData = await TabsDataStore.get<TabData>(uniqueId);
+    if (!oldTabData) return;
+
+    const oldTabDataUrl = oldTabData?.url;
+    if (!saveURL) {
+      if (!oldTabDataUrl) return;
+      transformedTabData.url = oldTabDataUrl;
+    }
+
+    const oldTabDataNavHistory = oldTabData?.navHistory;
+    if (!saveNavHistory) {
+      if (!oldTabDataNavHistory) return;
+      transformedTabData.navHistory = oldTabDataNavHistory;
+    }
+  }
 
   // Save the tab data
-  return await TabsDataStore.set(uniqueId, tabData)
+  console.log("saving tab", tabData.id, tabData.position);
+  return await TabsDataStore.set(uniqueId, transformedTabData)
     .then(() => true)
     .catch(() => false);
 }
@@ -112,6 +139,7 @@ async function createTabsFromTabDatas(browser: Browser, tabDatas: TabData[]) {
     for (const tabData of tabs) {
       browser.tabs.createTab(window.id, tabData.profileId, tabData.spaceId, undefined, {
         asleep: true,
+        position: tabData.position,
         navHistory: tabData.navHistory,
         navHistoryIndex: tabData.navHistoryIndex,
         uniqueId: tabData.uniqueId,
