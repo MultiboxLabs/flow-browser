@@ -106,7 +106,7 @@ export function SpaceSidebar({ space }: { space: Space }) {
           <div className="flex flex-col justify-between gap-1">
             <AnimatePresence initial={false}>
               {tabGroups
-                .sort((a, b) => a.order - b.order)
+                .sort((a, b) => a.position - b.position)
                 .map((tabGroup) => (
                   <SidebarTabGroups
                     key={tabGroup.id}

@@ -12,7 +12,7 @@ export function getTabData(tab: Tab): TabData {
     uniqueId: tab.uniqueId,
     createdAt: tab.createdAt,
     lastActiveAt: tab.lastActiveAt,
-    order: tab.order,
+    position: tab.position,
 
     profileId: tab.profileId,
     spaceId: tab.spaceId,
@@ -41,7 +41,7 @@ export function getTabGroupData(tabGroup: TabGroup): TabGroupData {
     spaceId: tabGroup.spaceId,
     tabIds: tabGroup.tabs.map((tab) => tab.id),
     glanceFrontTabId: tabGroup.mode === "glance" ? tabGroup.frontTabId : undefined,
-    order: tabGroup.order
+    position: tabGroup.position
   };
 }
 

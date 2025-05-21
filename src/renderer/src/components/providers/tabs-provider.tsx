@@ -111,7 +111,7 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
         profileId: tab.profileId,
         spaceId: tab.spaceId,
         tabIds: [tab.id],
-        order: tab.order
+        position: tab.position
       });
     }
 

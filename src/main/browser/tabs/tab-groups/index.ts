@@ -210,9 +210,9 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
       .filter((tab) => tab !== null);
   }
 
-  public get order(): number {
+  public get position(): number {
     this.errorIfDestroyed();
-    return this.tabs[0].order;
+    return this.tabs[0].position;
   }
 
   public destroy() {

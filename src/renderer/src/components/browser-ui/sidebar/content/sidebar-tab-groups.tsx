@@ -187,7 +187,7 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
 type TabGroupSourceData = {
   type: "tab-group";
   tabGroupId: number;
-  order: number;
+  position: number;
 };
 
 export function SidebarTabGroups({
@@ -218,11 +218,11 @@ export function SidebarTabGroups({
 
       const closestEdge = extractClosestEdge(self.data);
 
-      const sourceOrder = sourceData.order;
-      const thisOrder = tabGroup.order;
+      const sourcePosition = sourceData.position;
+      const thisPosition = tabGroup.position;
 
-      const isItemBeforeSource = thisOrder === sourceOrder - 1;
-      const isItemAfterSource = thisOrder === sourceOrder + 1;
+      const isItemBeforeSource = thisPosition === sourcePosition - 1;
+      const isItemAfterSource = thisPosition === sourcePosition + 1;
 
       const isDropIndicatorHidden =
         (isItemBeforeSource && closestEdge === "bottom") || (isItemAfterSource && closestEdge === "top");
@@ -241,7 +241,7 @@ export function SidebarTabGroups({
         const data: TabGroupSourceData = {
           type: "tab-group",
           tabGroupId: tabGroup.id,
-          order: tabGroup.order
+          position: tabGroup.position
         };
         return data;
       }
@@ -276,7 +276,7 @@ export function SidebarTabGroups({
       draggableCleanup();
       cleanupDropTarget();
     };
-  }, [tabGroup.id, tabGroup.order]);
+  }, [tabGroup.id, tabGroup.position]);
 
   return (
     <>
