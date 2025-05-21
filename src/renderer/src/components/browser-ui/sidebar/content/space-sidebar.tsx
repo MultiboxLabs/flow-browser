@@ -105,15 +105,17 @@ export function SpaceSidebar({ space }: { space: Space }) {
           <NewTabButton />
           <div className="flex flex-col justify-between gap-1">
             <AnimatePresence initial={false}>
-              {tabGroups.map((tabGroup) => (
-                <SidebarTabGroups
-                  key={tabGroup.id}
-                  tabGroup={tabGroup}
-                  isActive={activeTabGroup?.id === tabGroup.id || false}
-                  isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
-                  isSpaceLight={isSpaceLight}
-                />
-              ))}
+              {tabGroups
+                .sort((a, b) => a.order - b.order)
+                .map((tabGroup) => (
+                  <SidebarTabGroups
+                    key={tabGroup.id}
+                    tabGroup={tabGroup}
+                    isActive={activeTabGroup?.id === tabGroup.id || false}
+                    isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
+                    isSpaceLight={isSpaceLight}
+                  />
+                ))}
             </AnimatePresence>
           </div>
         </SidebarMenu>

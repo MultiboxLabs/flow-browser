@@ -184,6 +184,12 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
   );
 }
 
+type TabGroupSourceData = {
+  type: "tab-group";
+  tabGroupId: number;
+  order: number;
+};
+
 export function SidebarTabGroups({
   tabGroup,
   isFocused,
@@ -204,18 +210,23 @@ export function SidebarTabGroups({
     if (!el) return () => {};
 
     function onChange({ source, self }: ElementDropTargetEventBasePayload) {
-      console.log("onChange", source.element);
+      const sourceData = source.data as TabGroupSourceData;
+      if (sourceData.type !== "tab-group") {
+        setClosestEdge(null);
+        return;
+      }
+
       const closestEdge = extractClosestEdge(self.data);
 
-      // const sourceIndex = source.data.index;
+      const sourceOrder = sourceData.order;
+      const thisOrder = tabGroup.order;
 
-      // const isItemBeforeSource = index === sourceIndex - 1;
-      // const isItemAfterSource = index === sourceIndex + 1;
+      const isItemBeforeSource = thisOrder === sourceOrder - 1;
+      const isItemAfterSource = thisOrder === sourceOrder + 1;
 
-      // const isDropIndicatorHidden =
-      //   (isItemBeforeSource && closestEdge === "bottom") || (isItemAfterSource && closestEdge === "top");
+      const isDropIndicatorHidden =
+        (isItemBeforeSource && closestEdge === "bottom") || (isItemAfterSource && closestEdge === "top");
 
-      const isDropIndicatorHidden = false;
       if (isDropIndicatorHidden) {
         setClosestEdge(null);
         return;
@@ -227,9 +238,12 @@ export function SidebarTabGroups({
     const draggableCleanup = draggable({
       element: el,
       getInitialData: () => {
-        return {
-          tabGroupId: tabGroup.id
+        const data: TabGroupSourceData = {
+          type: "tab-group",
+          tabGroupId: tabGroup.id,
+          order: tabGroup.order
         };
+        return data;
       }
     });
 
@@ -262,7 +276,7 @@ export function SidebarTabGroups({
       draggableCleanup();
       cleanupDropTarget();
     };
-  }, [tabGroup.id]);
+  }, [tabGroup.id, tabGroup.order]);
 
   return (
     <>
