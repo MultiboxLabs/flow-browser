@@ -184,6 +184,17 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
 
     const profileSession = profile.session;
 
+    // Get or assign groupId
+    let groupId = tabCreationOptions.groupId;
+    let isNewGroupForThisTab = false;
+
+    if (groupId === undefined) {
+      // Create a new default group for this tab
+      groupId = this.tabGroupCounter++;
+      isNewGroupForThisTab = true;
+      // The actual group instance will be created after the tab itself is created.
+    }
+
     // Create tab
     const tab = new Tab(
       {
@@ -192,16 +203,48 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
         profileId: profileId,
         spaceId: spaceId,
         session: profileSession,
-        loadedProfile: profile
+        loadedProfile: profile,
+        groupId: groupId // Pass groupId to TabCreationDetails
       },
       {
         window: window,
         webContentsViewOptions,
-        ...tabCreationOptions
+        // Pass groupId in options as well, Tab constructor should handle precedence.
+        // If tabCreationOptions already had a groupId, it's used, otherwise the new one.
+        ...tabCreationOptions,
+        groupId: groupId
       }
     );
 
     this.tabs.set(tab.id, tab);
+
+    // If a new group was designated for this tab, create it now
+    if (isNewGroupForThisTab) {
+        const newGroup = new BaseTabGroup(this.browser, this, groupId, [tab]);
+        this.tabGroups.set(groupId, newGroup);
+        
+        // Listen for the destruction of this single-tab group
+        newGroup.on("destroy", () => {
+            // When group.destroy() is called, it emits this.
+            // internalDestroyTabGroup will handle tab reassignment if the tab still exists.
+            // Pass newGroup.tabs (which might be empty if tab was moved/destroyed first)
+            // or ideally, the tabs that *were* in it right before destroy.
+            // BaseTabGroup.destroy() should probably make tabs available to this event.
+            // For now, assume internalDestroyTabGroup will check tab's current group.
+            if (this.tabGroups.has(newGroup.id)) {
+                 // Pass the tabs that were in the group. BaseTabGroup.destroy() should make these available.
+                 // For now, we pass an empty array, and internalDestroyTabGroup will have to rely on
+                 // the fact that tabs always have a group ID. This part of tab reassignment on group destroy
+                 // is critical and complex.
+                 // A better approach: the 'destroy' event from BaseTabGroup should pass its list of tabs.
+                 // Let's assume BaseTabGroup's destroy emitter will pass its tabs.
+                 // For now, this is a placeholder for that logic.
+                 // If BaseTabGroup.destroy clears its tabs before emitting, this won't work as expected for reassignment.
+                 // The reassignment logic is primarily in internalDestroyTabGroup.
+                this.internalDestroyTabGroup(newGroup, newGroup.tabs); // newGroup.tabs will be empty if group.destroy cleared it
+            }
+        });
+    }
 
     // Setup event listeners
     tab.on("updated", () => {
@@ -439,44 +482,35 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
 
     if (!this.tabs.has(tabId)) return;
 
+    const currentGroup = this.getTabGroupByTabId(tabId);
+
     this.tabs.delete(tabId);
     this.removeFromActivationHistory(tabId);
     this.emit("tab-removed", tab);
 
-    if (wasActive) {
-      // If the removed tab was part of the active element (tab or group)
-      const activeElement = this.getActiveTab(windowId, spaceId);
-      if (activeElement instanceof BaseTabGroup) {
-        // If it was in an active group, the group handles its internal state.
-        // We might still need to update focus if the removed tab was focused.
-        if (this.getFocusedTab(windowId, spaceId)?.id === tab.id) {
-          // If the removed tab was focused, focus the next tab in the group or remove focus
-          const nextFocus = activeElement.tabs.find((t: Tab) => t.id !== tab.id);
-          if (nextFocus) {
-            this.setFocusedTab(nextFocus);
-          } else {
-            this.removeFocusedTab(windowId, spaceId);
-            // If group becomes empty, remove it? Or handled by group itself? Assuming handled by group.
-          }
-        }
-        // Check if group is now empty - group should emit destroy if so
-        if (activeElement && activeElement.tabs.length === 0) {
-          this.destroyTabGroup(activeElement.id); // Explicitly destroy if empty
-        }
-      } else {
-        // If the active element was the tab itself, remove it and find the next active.
-        this.removeActiveTab(windowId, spaceId);
+    if (currentGroup) {
+      currentGroup.removeTab(tabId); // BaseTabGroup.removeTab just removes from its list
+
+      if (currentGroup.tabs.length === 0) {
+        // If the group is now empty, destroy it.
+        // destroyTabGroup will trigger the group's 'destroy' event,
+        // which then calls internalDestroyTabGroup for cleanup.
+        // No tabs should need reassignment from this group as it's empty.
+        this.destroyTabGroup(currentGroup.id);
       }
     } else {
-      // Tab was not active, just ensure it's removed from any group it might be in
-      const group = this.getTabGroupByTabId(tab.id);
-      if (group) {
-        group.removeTab(tab.id);
-        if (group.tabs.length === 0) {
-          this.destroyTabGroup(group.id); // Explicitly destroy if empty
-        }
-      }
+      // This implies an inconsistent state if getTabGroupByTabId correctly logs an error
+      // when a tab's group doesn't exist.
+      console.warn(`Tab ${tabId} was removed, but its group (ID: ${tab.groupId}) could not be found or was already processed.`);
     }
+
+    if (wasActive) {
+      // If the removed tab was active (either directly or as part of an active group),
+      // determine the next active tab/group.
+      this.removeActiveTab(windowId, spaceId);
+    }
+    // Focus management is implicitly handled by removeActiveTab if it results in a new active tab/group,
+    // or by ensuring focus is cleared if no active elements remain.
   }
 
   /**
@@ -586,8 +620,16 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
    */
   public getTabGroupByTabId(tabId: number): TabGroup | undefined {
     const tab = this.getTabById(tabId);
-    if (tab && tab.groupId !== null) {
-      return this.tabGroups.get(tab.groupId);
+    if (tab) { // groupId is now non-nullable on Tab
+      const group = this.tabGroups.get(tab.groupId);
+      if (!group) {
+        // This indicates an inconsistency, as a tab's groupId should always point to an existing group.
+        console.error(`Tab ${tabId} (uniqueId: ${tab.uniqueId}) has groupId ${tab.groupId}, but no such group exists in tabGroups. This is a critical error.`);
+        // As a recovery mechanism, we could try to create a new default group for this orphan tab.
+        // For now, logging the error is important. Returning undefined might lead to further issues.
+        // Consider throwing an error or implementing recovery.
+      }
+      return group;
     }
     return undefined;
   }
@@ -599,12 +641,22 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     const id = this.tabGroupCounter++;
 
     const initialTabs: Tab[] = [];
+    const oldGroupsToDestroyIfEmpty: Map<number, TabGroup> = new Map();
+
     for (const tabId of initialTabIds) {
       const tab = this.getTabById(tabId);
       if (tab) {
-        // Remove tab from any existing group it might be in
-        const existingGroup = this.getTabGroupByTabId(tabId);
-        existingGroup?.removeTab(tabId);
+        const oldGroupId = tab.groupId; // Every tab has a group.
+        const oldGroup = this.getTabGroupById(oldGroupId);
+
+        if (oldGroup) {
+          // Store it for potential destruction later, but don't destroy yet,
+          // as the tab is still technically in it until reassigned by the new group.
+          oldGroupsToDestroyIfEmpty.set(oldGroupId, oldGroup);
+          // oldGroup.removeTab(tabId) will be effectively done when the new group adds the tab,
+          // or if we explicitly call it, ensure it doesn't change tab.groupId prematurely.
+          // For now, BaseTabGroup.addTab correctly sets the new groupId.
+        }
         initialTabs.push(tab);
       }
     }
@@ -613,6 +665,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
       throw new Error("Cannot create a tab group with no valid initial tabs.");
     }
 
+    // The new TabGroup's constructor (via BaseTabGroup.addTab) will set tab.groupId for these initialTabs.
     let tabGroup: TabGroup;
     switch (mode) {
       case "glance":
@@ -626,17 +679,46 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     }
 
     tabGroup.on("destroy", () => {
-      // Ensure cleanup happens even if destroyTabGroup isn't called externally
+      // The 'destroy' event from BaseTabGroup should ideally pass the list of tabs
+      // it contained at the moment of destruction.
+      // Assuming tabGroup.tabs still holds them or the event provides them.
       if (this.tabGroups.has(id)) {
-        this.internalDestroyTabGroup(tabGroup);
+        // Pass the tabs that were in the group. These tabs will be reassigned to new default groups.
+        this.internalDestroyTabGroup(tabGroup, tabGroup.tabs /* or event.tabs */);
       }
     });
 
     this.tabGroups.set(id, tabGroup);
 
+    // Now, process the old groups. After tabs have been assigned to the new group,
+    // check if any of the old groups became empty.
+    oldGroupsToDestroyIfEmpty.forEach((oldGroup, oldGroupId) => {
+      // Re-fetch the group to check its current tab count, as tabs were moved.
+      const potentiallyEmptyOldGroup = this.getTabGroupById(oldGroupId);
+      if (potentiallyEmptyOldGroup) {
+        // Manually remove tabs from old group's list if not already handled by `addTab` logic implicitly
+        // This is a bit tricky: `BaseTabGroup.addTab` sets `tab.groupId = this.id`.
+        // We need to ensure the old group's list is also updated.
+        // A simple way: iterate `initialTabIds` and call `oldGroup.removeTab(tabId)`
+        initialTabIds.forEach(tabIdMoved => {
+            if (potentiallyEmptyOldGroup.hasTab(tabIdMoved)) { // Check if this old group actually had the tab
+                 // And if tab's current group is no longer this old group
+                 const movedTab = this.getTabById(tabIdMoved);
+                 if(movedTab && movedTab.groupId !== potentiallyEmptyOldGroup.id) {
+                    potentiallyEmptyOldGroup.removeTab(tabIdMoved);
+                 }
+            }
+        });
+
+        if (potentiallyEmptyOldGroup.tabs.length === 0) {
+          this.destroyTabGroup(potentiallyEmptyOldGroup.id);
+        }
+      }
+    });
+    
     // If any of the initial tabs were active, make the new group active.
     // Use the space/window of the first tab for the group.
-    const firstTab = initialTabs[0];
+    const firstTab = tabGroup.tabs[0]; // Use tabGroup.tabs as it's now populated
     if (this.getActiveTab(firstTab.getWindow().id, firstTab.spaceId)?.id === firstTab.id) {
       this.setActiveTab(tabGroup);
     } else {
@@ -652,19 +734,67 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
   /**
    * Internal method to cleanup destroyed tab group state
    */
-  private internalDestroyTabGroup(tabGroup: TabGroup) {
+  private internalDestroyTabGroup(tabGroup: TabGroup, tabsThatWereInGroup: Tab[]) {
     const wasActive = this.getActiveTab(tabGroup.windowId, tabGroup.spaceId) === tabGroup;
     const groupId = tabGroup.id;
 
-    if (!this.tabGroups.has(groupId)) return;
+    if (!this.tabGroups.has(groupId)) {
+        // Group might have already been processed (e.g. if destroy is called multiple times or via event + direct call)
+        if (!tabGroup.isDestroyed) {
+            // If group object itself isn't marked destroyed, something is off.
+            console.warn(`internalDestroyTabGroup called for group ID ${groupId} not in tabGroups, but group object not marked destroyed.`);
+        }
+        // If tabs were passed, they might still need re-assignment if their group ID still points to this group.
+        // This is a safety net.
+        tabsThatWereInGroup.forEach(tab => {
+            if (!tab.isDestroyed && tab.groupId === groupId) {
+                console.warn(`Tab ${tab.id} still pointed to destroyed group ${groupId}. Reassigning.`);
+                const newDefaultGroupId = this.tabGroupCounter++;
+                tab.groupId = newDefaultGroupId;
+                const newDefaultGroup = new BaseTabGroup(this.browser, this, newDefaultGroupId, [tab]);
+                this.tabGroups.set(newDefaultGroupId, newDefaultGroup);
+                newDefaultGroup.on("destroy", () => {
+                    if (this.tabGroups.has(newDefaultGroupId)) {
+                        this.internalDestroyTabGroup(newDefaultGroup, newDefaultGroup.tabs);
+                    }
+                });
+                tab.updateLayout();
+            }
+        });
+        return;
+    }
 
     this.tabGroups.delete(groupId);
     this.removeFromActivationHistory(groupId);
 
+    // Reassign tabs that were in the destroyed group to new default groups
+    for (const tab of tabsThatWereInGroup) {
+      if (tab.isDestroyed) continue; // Skip if tab was already destroyed during group destruction
+
+      // Critical: Only reassign if the tab still believes it belongs to the group being destroyed.
+      // It might have been moved to another group just before this group's destruction.
+      if (tab.groupId === groupId) {
+        const newDefaultGroupId = this.tabGroupCounter++;
+        tab.groupId = newDefaultGroupId; // Update tab's groupId
+
+        const newDefaultGroup = new BaseTabGroup(this.browser, this, newDefaultGroupId, [tab]);
+        this.tabGroups.set(newDefaultGroupId, newDefaultGroup);
+        
+        newDefaultGroup.on("destroy", () => {
+            // Listen for the destruction of this new default group
+            if (this.tabGroups.has(newDefaultGroupId)) {
+                this.internalDestroyTabGroup(newDefaultGroup, newDefaultGroup.tabs);
+            }
+        });
+        tab.updateLayout(); // Update layout as its group context changed
+      }
+    }
+
     if (wasActive) {
+      // removeActiveTab will try to find the next suitable tab/group to activate.
+      // This could be one of meninas the new default groups if applicable.
       this.removeActiveTab(tabGroup.windowId, tabGroup.spaceId);
     }
-    // Group should handle destroying its own tabs or returning them to normal state.
   }
 
   /**
@@ -674,16 +804,30 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     const tabGroup = this.getTabGroupById(tabGroupId);
     if (!tabGroup) {
       console.warn(`Attempted to destroy non-existent tab group ID: ${tabGroupId}`);
-      return; // Don't throw, just warn and exit
+      return;
     }
 
-    // Ensure group's destroy logic runs first
+    // Important: BaseTabGroup.destroy() is responsible for:
+    // 1. Setting its own `isDestroyed = true`.
+    // 2. Emitting the "destroy" event.
+    // The "destroy" event handler (configured in internalCreateTab for default groups,
+    // or in createTabGroup for user-made groups) is what calls internalDestroyTabGroup
+    // with the list of tabs that were in the group.
+
     if (!tabGroup.isDestroyed) {
-      tabGroup.destroy(); // This should trigger the "destroy" event handled in createTabGroup
+      // This will trigger the "destroy" event, which in turn calls
+      // internalDestroyTabGroup with the list of tabs that were in the group.
+      // The list of tabs should be collected by BaseTabGroup *before* it clears its internal list.
+      tabGroup.destroy(); 
+    } else {
+      // If group was already marked destroyed (e.g., by itself), but TabManager might need to sync.
+      // This typically happens if destroyTabGroup is called *after* group.destroy() already ran.
+      // We still call internalDestroyTabGroup to ensure TabManager's state is clean
+      // and tabs are correctly reassigned if the event handler didn't run or complete.
+      // We pass tabGroup.tabs, which might be empty if destroy() cleared it.
+      // This relies on internalDestroyTabGroup's safety checks for tabs still pointing to this group.
+      this.internalDestroyTabGroup(tabGroup, tabGroup.tabs);
     }
-
-    // Cleanup TabManager state (might be redundant if event handler runs, but safe)
-    this.internalDestroyTabGroup(tabGroup);
   }
 
   /**

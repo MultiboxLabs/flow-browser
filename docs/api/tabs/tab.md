@@ -15,23 +15,12 @@ The `Tab` class represents a single tab within the Flow browser. It manages the 
 A `Tab` instance is typically created by the `TabManager`. The constructor requires `TabCreationDetails` and `TabCreationOptions`.
 
 ```typescript
-// Simplified example - Usually done within TabManager
-const tab = new Tab(
-  {
-    browser: browserInstance,
-    tabManager: tabManagerInstance,
-    profileId: "default",
-    spaceId: "main",
-    session: electronSession
-  },
-  {
-    window: browserWindowInstance, // Optional: Assign to a window immediately
-    webContentsViewOptions: {
-      /* ... */
-    } // Optional: Customize WebContentsView
-  }
-);
+// Simplified example - Tab creation is exclusively handled by TabManager.
+// The TabManager ensures that the necessary groupId is always provided.
+// new Tab({ browser, tabManager, profileId, spaceId, groupId, session, loadedProfile }, { window, ... });
 ```
+
+A `Tab` is always associated with a `TabGroup`, managed by the `TabManager`. The `groupId` property links a tab to its group.
 
 ### `TabCreationDetails`
 
@@ -39,21 +28,29 @@ const tab = new Tab(
 - `tabManager`: The `TabManager` instance responsible for this tab.
 - `profileId`: The ID of the user profile associated with this tab.
 - `spaceId`: The ID of the space this tab belongs to.
+- `groupId`: (`number`) The ID of the `TabGroup` this tab belongs to. This is ensured by `TabManager`.
 - `session`: The Electron `Session` object to use for this tab's web content.
+- `loadedProfile`: The `LoadedProfile` instance for the tab.
 
 ### `TabCreationOptions`
 
-- `window`: (Optional) The `TabbedBrowserWindow` to initially attach the tab to.
+These options are passed from `TabManager` to the `Tab` constructor.
+- `uniqueId`: (Optional `string`) A unique identifier for the tab. If not provided, one is generated.
+- `window`: The `TabbedBrowserWindow` to initially attach the tab to.
 - `webContentsViewOptions`: (Optional) Electron `WebContentsViewConstructorOptions` to customize the underlying view and web preferences.
+- `groupId`: (Optional `number`) The ID of the `TabGroup`. If provided here and in `TabCreationDetails`, `TabCreationDetails` takes precedence. `TabManager` ensures this is always set.
+- `asleep`: (Optional `boolean`) Whether the tab should be initially asleep.
+- `title`, `faviconURL`, `navHistory`, `navHistoryIndex`: (Optional) Properties to restore a tab's state.
+
 
 ## Key Properties
 
 - `id`: (Readonly `number`) The unique ID of the tab's `WebContents`.
+- `groupId`: (`number`) The ID of the `TabGroup` this tab belongs to. It is non-nullable.
 - `profileId`: (Readonly `string`) The associated profile ID.
 - `spaceId`: (`string`) The associated space ID. Can be updated.
 - `visible`: (`boolean`) Whether the tab's view is currently visible.
 - `isDestroyed`: (`boolean`) Whether the tab has been destroyed.
-- `layout`: (`TabLayout`) The current layout configuration (e.g., `{ type: 'normal' }`).
 - `faviconURL`: (`string | null`) The URL of the current favicon.
 - `title`: (`string`) The current page title.
 - `url`: (`string`) The current page URL.
@@ -68,10 +65,9 @@ const tab = new Tab(
 - `setWindow(window: TabbedBrowserWindow | null)`: Attaches the tab's view to a given window or detaches it if `null` is passed.
 - `loadURL(url: string, replace?: boolean)`: Loads the specified URL in the tab. If `replace` is true, it attempts to replace the current history entry.
 - `loadErrorPage(errorCode: number, url: string)`: Loads a custom error page for the given error code and original URL.
-- `setLayout(layout: TabLayout)`: Sets the tab's layout configuration and updates the view.
-- `updateLayout()`: Recalculates and applies the view's bounds based on the current `layout` and window dimensions. Should be called when the window resizes or layout changes.
+- `updateLayout()`: Recalculates and applies the view's bounds based on its visibility, group status (e.g., glance mode calculations), and window dimensions. Should be called when the window resizes or the tab's grouping/visibility changes.
 - `updateTabState()`: Reads the current state (title, URL, loading, audio) from `webContents` and updates the corresponding `Tab` properties. Emits an `updated` event if any state changed. Returns `true` if changed, `false` otherwise.
-- `show()`: Makes the tab's view visible.
+- `show()`: Makes the tab's view visible and updates its layout.
 - `hide()`: Hides the tab's view.
 - `destroy()`: Cleans up resources, removes the view, and marks the tab as destroyed. Emits the `destroyed` event.
 

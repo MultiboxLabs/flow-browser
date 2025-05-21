@@ -91,47 +91,40 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
   const tabGroups = useMemo(() => {
     if (!tabsData) return [];
 
-    const allTabGroupDatas: TabGroupData[] = [];
-    const tabsWithGroups: number[] = [];
+    // Directly use tabGroups from the main process. No synthesis needed.
+    const allTabGroupDatas: TabGroupData[] = tabsData.tabGroups || [];
+    const allTabs: TabData[] = tabsData.tabs || [];
 
-    const { tabGroups: groups = [] } = tabsData;
-    for (const tabGroup of groups) {
-      allTabGroupDatas.push(tabGroup);
-      for (const tabId of tabGroup.tabIds) {
-        tabsWithGroups.push(tabId);
+    const processedTabGroups: TabGroup[] = allTabGroupDatas.map((groupData) => {
+      // Filter tabs from allTabs that belong to the current groupData.id
+      const tabsInThisGroup = allTabs.filter((tab) => tab.groupId === groupData.id);
+
+      const activeTabIdsInSpace = getActiveTabId(groupData.spaceId) || [];
+      // A group is active if any of its tabs are among the active tabs in that space.
+      const isActive = tabsInThisGroup.some((tab) => activeTabIdsInSpace.includes(tab.id));
+
+      const focusedTabIdInSpace = getFocusedTabId(groupData.spaceId);
+      let groupFocusedTab: TabData | null = null;
+      if (focusedTabIdInSpace !== null) {
+        const potentialFocusedTab = allTabs.find((tab) => tab.id === focusedTabIdInSpace);
+        // Ensure the focused tab actually belongs to this group
+        if (potentialFocusedTab && potentialFocusedTab.groupId === groupData.id) {
+          groupFocusedTab = potentialFocusedTab;
+        }
       }
-    }
 
-    const tabsWithoutGroups = tabsData.tabs.filter((tab) => !tabsWithGroups.includes(tab.id));
-    for (const tab of tabsWithoutGroups) {
-      allTabGroupDatas.push({
-        // to not conflict with tab group ids
-        id: tab.id + 999,
-        mode: "normal",
-        profileId: tab.profileId,
-        spaceId: tab.spaceId,
-        tabIds: [tab.id]
-      });
-    }
-
-    const tabGroups: TabGroup[] = [];
-    allTabGroupDatas.map((tabGroupData) => {
-      const activeTabIds = getActiveTabId(tabGroupData.spaceId);
-      const isActive = tabGroupData.tabIds.some((tabId) => activeTabIds?.includes(tabId));
-
-      const focusedTabId = getFocusedTabId(tabGroupData.spaceId);
-      const focusedTab = tabsData?.tabs.find((tab) => tab.id === focusedTabId) || null;
-
-      const tabGroup = {
-        ...tabGroupData,
-        tabs: tabsData?.tabs.filter((tab) => tabGroupData.tabIds.includes(tab.id)) || [],
+      return {
+        ...groupData, // Spread properties from TabGroupData (id, mode, profileId, spaceId)
+                       // Note: tabIds from TabGroupData is now less relevant for client-side rendering of tabs,
+                       // as TabData.groupId is the source of truth for belonging.
+                       // We keep it if other parts of the app use it, but `tabs` array below is primary.
+        tabs: tabsInThisGroup,
         active: isActive,
-        focusedTab
+        focusedTab: groupFocusedTab
       };
-      tabGroups.push(tabGroup);
     });
 
-    return tabGroups;
+    return processedTabGroups;
   }, [getActiveTabId, getFocusedTabId, tabsData]);
 
   const getTabGroups = useCallback(

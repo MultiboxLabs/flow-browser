@@ -14,6 +14,7 @@ export type TabData = {
   profileId: string;
   spaceId: string;
   windowId: number;
+  groupId: number; // Added groupId
 
   title: string;
   url: string;

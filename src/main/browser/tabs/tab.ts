@@ -56,6 +56,7 @@ interface TabCreationDetails {
   // Properties
   profileId: string;
   spaceId: string;
+  groupId: number; // Added groupId
 
   // Session
   session: Session;
@@ -68,6 +69,7 @@ export interface TabCreationOptions {
   uniqueId?: string;
   window: TabbedBrowserWindow;
   webContentsViewOptions?: Electron.WebContentsViewConstructorOptions;
+  groupId?: number; // Added groupId, optional here if provided in details
 
   // Options
   asleep?: boolean;
@@ -115,7 +117,7 @@ function createWebContentsView(
 export class Tab extends TypedEventEmitter<TabEvents> {
   // Public properties
   public readonly id: number;
-  public groupId: number | null = null;
+  public groupId: number; // Changed to non-nullable
   public readonly profileId: string;
   public spaceId: string;
 
@@ -168,6 +170,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       // Properties
       profileId,
       spaceId,
+      groupId: detailsGroupId, // Renamed to avoid conflict
 
       // Session
       session
@@ -187,6 +190,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     const {
       window,
       webContentsViewOptions = {},
+      groupId: optionsGroupId, // Renamed to avoid conflict
 
       // Options
       asleep = false,
@@ -198,6 +202,18 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       navHistoryIndex,
       uniqueId
     } = options;
+
+    // Assign groupId - details takes precedence
+    if (detailsGroupId !== undefined) {
+      this.groupId = detailsGroupId;
+    } else if (optionsGroupId !== undefined) {
+      this.groupId = optionsGroupId;
+    } else {
+      // This case should ideally be prevented by TabManager ensuring a groupId is always passed.
+      // However, as a fallback, we might throw an error or assign a temporary/default ID
+      // if the design allowed for it. For now, strictness implies an error.
+      throw new Error("Tab created without a groupId. This should be handled by TabManager.");
+    }
 
     if (!uniqueId) {
       this.uniqueId = generateID();

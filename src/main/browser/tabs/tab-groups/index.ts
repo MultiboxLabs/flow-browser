@@ -188,12 +188,8 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
       return false;
     }
 
-    // Clear the groupId on the tab being removed
-    const tab = getTabFromId(this.tabManager, tabId);
-    if (tab && tab.groupId === this.id) {
-      tab.groupId = null;
-    }
-
+    // TabManager will be responsible for reassigning the tab's groupId if necessary.
+    // For now, we just remove it from this group's list.
     this.tabIds = this.tabIds.filter((id) => id !== tabId);
     this.emit("tab-removed", tabId);
     return true;
@@ -213,13 +209,8 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
   public destroy() {
     this.errorIfDestroyed();
 
-    // Clear groupId for all tabs in the group before destroying
-    for (const tab of this.tabs) {
-      if (tab.groupId === this.id) {
-        tab.groupId = null;
-      }
-    }
-
+    // TabManager will be responsible for reassigning the tabs' groupId.
+    // For now, we just mark the group as destroyed.
     this.isDestroyed = true;
     this.emit("destroy");
     this.destroyEmitter();

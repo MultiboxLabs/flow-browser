@@ -16,6 +16,7 @@ export function getTabData(tab: Tab): TabData {
     profileId: tab.profileId,
     spaceId: tab.spaceId,
     windowId: tab.getWindow().id,
+    groupId: tab.groupId, // Added groupId
 
     title: tab.title,
     url: tab.url,
