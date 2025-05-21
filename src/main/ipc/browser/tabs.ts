@@ -230,6 +230,30 @@ ipcMain.handle("tabs:set-tab-muted", async (_event, tabId: number, muted: boolea
 
   // No event for mute state change, so we need to update the tab state manually
   tab.updateTabState();
+  return true;
+});
+
+ipcMain.handle("tabs:move-tab", async (event, tabId: number, newPosition: number) => {
+  const webContents = event.sender;
+  const window = browser?.getWindowFromWebContents(webContents);
+  if (!window) return false;
+
+  const tabManager = browser?.tabs;
+  if (!tabManager) return false;
+
+  const tab = tabManager.getTabById(tabId);
+  if (!tab) return false;
+
+  let targetTabs: Tab[] = [tab];
+
+  const tabGroup = tabManager.getTabGroupByTabId(tab.id);
+  if (tabGroup) {
+    targetTabs = tabGroup.tabs;
+  }
+
+  for (const targetTab of targetTabs) {
+    targetTab.updateStateProperty("position", newPosition);
+  }
 
   return true;
 });

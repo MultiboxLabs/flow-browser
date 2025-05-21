@@ -650,6 +650,19 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
   }
 
   /**
+   * Get the smallest position of all tabs
+   */
+  public getSmallestPosition(): number {
+    let smallestPosition = 999;
+    for (const tab of this.tabs.values()) {
+      if (tab.position < smallestPosition) {
+        smallestPosition = tab.position;
+      }
+    }
+    return smallestPosition;
+  }
+
+  /**
    * Internal method to cleanup destroyed tab group state
    */
   private internalDestroyTabGroup(tabGroup: TabGroup) {

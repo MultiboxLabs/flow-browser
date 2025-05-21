@@ -72,6 +72,7 @@ export interface TabCreationOptions {
 
   // Options
   asleep?: boolean;
+  position?: number;
 
   // Old States to be restored
   title?: string;
@@ -131,7 +132,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public asleep: boolean = false;
   public createdAt: number;
   public lastActiveAt: number;
-  public position: number = 0;
+  public position: number;
 
   // Content properties (From WebContents)
   public title: string = "New Tab";
@@ -192,6 +193,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
       // Options
       asleep = false,
+      position,
 
       // Old States to be restored
       title,
@@ -205,6 +207,15 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       this.uniqueId = generateID();
     } else {
       this.uniqueId = uniqueId;
+    }
+
+    // Set position
+    if (position) {
+      this.position = position;
+    } else {
+      // Get the smallest position
+      const smallestPosition = this.tabManager.getSmallestPosition();
+      this.position = smallestPosition - 1;
     }
 
     // Create WebContentsView

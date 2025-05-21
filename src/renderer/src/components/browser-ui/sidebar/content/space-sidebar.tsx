@@ -92,6 +92,33 @@ export function SpaceSidebar({ space }: { space: Space }) {
 
   const hasTabs = tabGroups.length > 0;
 
+  const sortedTabGroups = [...tabGroups].sort((a, b) => a.position - b.position);
+
+  const moveTab = useCallback(
+    (tabId: number, newPosition: number) => {
+      const newSortedTabGroups = [...sortedTabGroups].sort((a, b) => a.position - b.position);
+      newSortedTabGroups.sort((a, b) => {
+        const isTabInGroupA = a.tabs.some((tab) => tab.id === tabId);
+        const isTabInGroupB = b.tabs.some((tab) => tab.id === tabId);
+
+        const aIndex = newSortedTabGroups.findIndex((tabGroup) => tabGroup.id === a.id);
+        const bIndex = newSortedTabGroups.findIndex((tabGroup) => tabGroup.id === b.id);
+
+        const aPos = isTabInGroupA ? newPosition : aIndex;
+        const bPos = isTabInGroupB ? newPosition : bIndex;
+
+        return aPos - bPos;
+      });
+
+      for (const [index, tabGroup] of newSortedTabGroups.entries()) {
+        if (tabGroup.position !== index) {
+          flow.tabs.moveTab(tabGroup.tabs[0].id, index);
+        }
+      }
+    },
+    [sortedTabGroups]
+  );
+
   return (
     <div className={cn(isSpaceLight ? "" : "dark", "h-full")} ref={sidebarRef}>
       <SpaceTitle space={space} />
@@ -105,17 +132,17 @@ export function SpaceSidebar({ space }: { space: Space }) {
           <NewTabButton />
           <div className="flex flex-col justify-between gap-1">
             <AnimatePresence initial={false}>
-              {tabGroups
-                .sort((a, b) => a.position - b.position)
-                .map((tabGroup) => (
-                  <SidebarTabGroups
-                    key={tabGroup.id}
-                    tabGroup={tabGroup}
-                    isActive={activeTabGroup?.id === tabGroup.id || false}
-                    isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
-                    isSpaceLight={isSpaceLight}
-                  />
-                ))}
+              {sortedTabGroups.map((tabGroup, index) => (
+                <SidebarTabGroups
+                  key={tabGroup.id}
+                  tabGroup={tabGroup}
+                  isActive={activeTabGroup?.id === tabGroup.id || false}
+                  isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
+                  isSpaceLight={isSpaceLight}
+                  position={index}
+                  moveTab={moveTab}
+                />
+              ))}
             </AnimatePresence>
           </div>
         </SidebarMenu>

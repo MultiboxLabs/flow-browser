@@ -53,4 +53,11 @@ export interface FlowTabsAPI {
    * @param muted Whether the tab should be muted
    */
   setTabMuted: (tabId: number, muted: boolean) => Promise<boolean>;
+
+  /**
+   * Move a tab to a new position
+   * @param tabId The id of the tab to move
+   * @param newPosition The new position of the tab
+   */
+  moveTab: (tabId: number, newPosition: number) => Promise<boolean>;
 }

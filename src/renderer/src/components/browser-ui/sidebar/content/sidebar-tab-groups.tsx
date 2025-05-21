@@ -187,18 +187,23 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
 type TabGroupSourceData = {
   type: "tab-group";
   tabGroupId: number;
+  primaryTabId: number;
   position: number;
 };
 
 export function SidebarTabGroups({
   tabGroup,
   isFocused,
-  isSpaceLight
+  isSpaceLight,
+  position,
+  moveTab
 }: {
   tabGroup: TabGroup;
   isActive: boolean; // isActive might still be needed depending on parent component logic
   isFocused: boolean;
   isSpaceLight: boolean;
+  position: number;
+  moveTab: (tabId: number, newPosition: number) => void;
 }) {
   const { tabs, focusedTab } = tabGroup;
   const ref = useRef<HTMLDivElement>(null);
@@ -219,7 +224,7 @@ export function SidebarTabGroups({
       const closestEdge = extractClosestEdge(self.data);
 
       const sourcePosition = sourceData.position;
-      const thisPosition = tabGroup.position;
+      const thisPosition = position;
 
       const isItemBeforeSource = thisPosition === sourcePosition - 1;
       const isItemAfterSource = thisPosition === sourcePosition + 1;
@@ -235,13 +240,33 @@ export function SidebarTabGroups({
       setClosestEdge(closestEdge);
     }
 
+    function onDrop(args: ElementDropTargetEventBasePayload) {
+      const closestEdgeOfTarget: Edge | null = extractClosestEdge(args.self.data);
+
+      setClosestEdge(null);
+
+      const sourceData = args.source.data as TabGroupSourceData;
+      if (sourceData.type !== "tab-group") {
+        return;
+      }
+
+      const sourceTabId = sourceData.primaryTabId;
+
+      if (closestEdgeOfTarget === "top") {
+        moveTab(sourceTabId, position - 0.5);
+      } else if (closestEdgeOfTarget === "bottom") {
+        moveTab(sourceTabId, position + 0.5);
+      }
+    }
+
     const draggableCleanup = draggable({
       element: el,
       getInitialData: () => {
         const data: TabGroupSourceData = {
           type: "tab-group",
           tabGroupId: tabGroup.id,
-          position: tabGroup.position
+          primaryTabId: tabGroup.tabs[0].id,
+          position: position
         };
         return data;
       }
@@ -262,11 +287,19 @@ export function SidebarTabGroups({
           allowedEdges: ["top", "bottom"]
         });
       },
-      onDrop: (args) => {
-        const closestEdgeOfTarget: Edge | null = extractClosestEdge(args.self.data);
-        console.log("closestEdgeOfTarget", closestEdgeOfTarget);
-        setClosestEdge(null);
+      canDrop: (args) => {
+        const sourceData = args.source.data as TabGroupSourceData;
+        if (sourceData.type !== "tab-group") {
+          return false;
+        }
+
+        if (sourceData.tabGroupId === tabGroup.id) {
+          return false;
+        }
+
+        return true;
       },
+      onDrop: onDrop,
       onDragEnter: onChange,
       onDrag: onChange,
       onDragLeave: () => setClosestEdge(null)
@@ -276,7 +309,7 @@ export function SidebarTabGroups({
       draggableCleanup();
       cleanupDropTarget();
     };
-  }, [tabGroup.id, tabGroup.position]);
+  }, [moveTab, tabGroup.id, position, tabGroup.tabs]);
 
   return (
     <>
