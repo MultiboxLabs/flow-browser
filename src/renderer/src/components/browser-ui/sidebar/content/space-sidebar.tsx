@@ -6,10 +6,34 @@ import { Button } from "@/components/ui/button";
 import { SidebarGroup, SidebarMenu } from "@/components/ui/resizable-sidebar";
 import { Space } from "@/lib/flow/interfaces/sessions/spaces";
 import { cn, hex_is_light } from "@/lib/utils";
-import { AnimatePresence, Reorder, motion } from "motion/react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { useCallback, useRef } from "react";
+import { DropIndicator as BaseDropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/list-item";
 
 const ENABLE_SECTION_DEVIDER = true;
+
+export function DropIndicator({ isSpaceLight }: { isSpaceLight: boolean }) {
+  return (
+    <ol
+      className="flex *:mx-2 relative h-0 -m-0.5"
+      style={
+        {
+          "--ds-border-selected": isSpaceLight ? "#000" : "#fff"
+        } as React.CSSProperties
+      }
+    >
+      <BaseDropIndicator
+        instruction={{
+          axis: "vertical",
+          operation: "reorder-after",
+          blocked: false
+        }}
+        lineGap="0px"
+        lineType="terminal-no-bleed"
+      />
+    </ol>
+  );
+}
 
 function SidebarSectionDivider({ hasTabs, handleCloseAllTabs }: { hasTabs: boolean; handleCloseAllTabs: () => void }) {
   if (!hasTabs) return null;
@@ -66,18 +90,6 @@ export function SpaceSidebar({ space }: { space: Space }) {
 
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  const [tabGroupsOrder, setTabGroupsOrder] = useState<number[]>([]);
-  const handleReorder = (newOrder: number[]) => {
-    console.log("newOrder", newOrder);
-    setTabGroupsOrder(newOrder);
-  };
-
-  const sortedTabGroups = useMemo(() => {
-    return tabGroups.sort((a, b) => tabGroupsOrder.indexOf(a.id) - tabGroupsOrder.indexOf(b.id));
-  }, [tabGroups, tabGroupsOrder]);
-
-  const [draggingTabGroup, setDraggingTabGroup] = useState<number | null>(null);
-
   const hasTabs = tabGroups.length > 0;
 
   return (
@@ -91,36 +103,19 @@ export function SpaceSidebar({ space }: { space: Space }) {
             </AnimatePresence>
           )}
           <NewTabButton />
-          <Reorder.Group
-            as="div"
-            layout
-            onReorder={handleReorder}
-            values={sortedTabGroups.map((tabGroup) => tabGroup.id)}
-            axis="y"
-          >
-            <div className="flex flex-col justify-between gap-1">
-              <AnimatePresence initial={false}>
-                {sortedTabGroups.map((tabGroup) => (
-                  <Reorder.Item
-                    key={tabGroup.id}
-                    value={tabGroup.id}
-                    dragConstraints={sidebarRef}
-                    dragElastic={0}
-                    dragSnapToOrigin={true}
-                    onDragStart={() => setDraggingTabGroup(tabGroup.id)}
-                    onDragEnd={() => setDraggingTabGroup(null)}
-                  >
-                    <SidebarTabGroups
-                      tabGroup={tabGroup}
-                      isActive={activeTabGroup?.id === tabGroup.id || false}
-                      isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
-                      isDragging={draggingTabGroup === tabGroup.id}
-                    />
-                  </Reorder.Item>
-                ))}
-              </AnimatePresence>
-            </div>
-          </Reorder.Group>
+          <div className="flex flex-col justify-between gap-1">
+            <AnimatePresence initial={false}>
+              {tabGroups.map((tabGroup) => (
+                <SidebarTabGroups
+                  key={tabGroup.id}
+                  tabGroup={tabGroup}
+                  isActive={activeTabGroup?.id === tabGroup.id || false}
+                  isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
+                  isSpaceLight={isSpaceLight}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
         </SidebarMenu>
       </SidebarGroup>
     </div>

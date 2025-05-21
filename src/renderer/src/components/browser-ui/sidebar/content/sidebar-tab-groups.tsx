@@ -2,10 +2,17 @@ import { Button } from "@/components/ui/button";
 import { SidebarMenuButton, useSidebar } from "@/components/ui/resizable-sidebar";
 import { cn, craftActiveFaviconURL } from "@/lib/utils";
 import { XIcon, Volume2, VolumeX } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { TabGroup } from "@/components/providers/tabs-provider";
+import {
+  draggable,
+  dropTargetForElements,
+  ElementDropTargetEventBasePayload
+} from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import { attachClosestEdge, extractClosestEdge, Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import { TabData } from "~/types/tabs";
+import { DropIndicator } from "@/components/browser-ui/sidebar/content/space-sidebar";
 
 const MotionSidebarMenuButton = motion(SidebarMenuButton);
 
@@ -179,27 +186,100 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
 
 export function SidebarTabGroups({
   tabGroup,
-  isFocused
+  isFocused,
+  isSpaceLight
 }: {
   tabGroup: TabGroup;
   isActive: boolean; // isActive might still be needed depending on parent component logic
   isFocused: boolean;
-  isDragging: boolean;
+  isSpaceLight: boolean;
 }) {
   const { tabs, focusedTab } = tabGroup;
+  const ref = useRef<HTMLDivElement>(null);
+
+  const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return () => {};
+
+    function onChange({ source, self }: ElementDropTargetEventBasePayload) {
+      console.log("onChange", source.element);
+      const closestEdge = extractClosestEdge(self.data);
+
+      // const sourceIndex = source.data.index;
+
+      // const isItemBeforeSource = index === sourceIndex - 1;
+      // const isItemAfterSource = index === sourceIndex + 1;
+
+      // const isDropIndicatorHidden =
+      //   (isItemBeforeSource && closestEdge === "bottom") || (isItemAfterSource && closestEdge === "top");
+
+      const isDropIndicatorHidden = false;
+      if (isDropIndicatorHidden) {
+        setClosestEdge(null);
+        return;
+      }
+
+      setClosestEdge(closestEdge);
+    }
+
+    const draggableCleanup = draggable({
+      element: el,
+      getInitialData: () => {
+        return {
+          tabGroupId: tabGroup.id
+        };
+      }
+    });
+
+    const cleanupDropTarget = dropTargetForElements({
+      element: el,
+      getData: ({ input, element }) => {
+        // your base data you want to attach to the drop target
+        const data = {
+          tabGroupId: tabGroup.id
+        };
+        // this will 'attach' the closest edge to your `data` object
+        return attachClosestEdge(data, {
+          input,
+          element,
+          // you can specify what edges you want to allow the user to be closest to
+          allowedEdges: ["top", "bottom"]
+        });
+      },
+      onDrop: (args) => {
+        const closestEdgeOfTarget: Edge | null = extractClosestEdge(args.self.data);
+        console.log("closestEdgeOfTarget", closestEdgeOfTarget);
+        setClosestEdge(null);
+      },
+      onDragEnter: onChange,
+      onDrag: onChange,
+      onDragLeave: () => setClosestEdge(null)
+    });
+
+    return () => {
+      draggableCleanup();
+      cleanupDropTarget();
+    };
+  }, [tabGroup.id]);
 
   return (
-    <motion.div
-      dragSnapToOrigin={true}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      layout
-      className={cn("space-y-0.5")}
-    >
-      {tabs.map((tab) => (
-        <SidebarTab key={tab.id} tab={tab} isFocused={isFocused && focusedTab?.id === tab.id} />
-      ))}
-    </motion.div>
+    <>
+      {closestEdge == "top" && <DropIndicator isSpaceLight={isSpaceLight} />}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        layout
+        className={cn("space-y-0.5")}
+        ref={ref}
+      >
+        {tabs.map((tab) => (
+          <SidebarTab key={tab.id} tab={tab} isFocused={isFocused && focusedTab?.id === tab.id} />
+        ))}
+      </motion.div>
+      {closestEdge == "bottom" && <DropIndicator isSpaceLight={isSpaceLight} />}
+    </>
   );
 }
