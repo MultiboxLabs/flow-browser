@@ -56,9 +56,9 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
 
   const handleToggleMute = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // TODO: function for muting/unmuting
-    console.log("Toggle mute for tab:", tab.id);
-    // In the future this would call: flow.tabs.toggleMute(tab.id);
+    if (!tab.id) return;
+    const newMutedState = !tab.muted;
+    flow.tabs.setTabMuted(tab.id, newMutedState);
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {

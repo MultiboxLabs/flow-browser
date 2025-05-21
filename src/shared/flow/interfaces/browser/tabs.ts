@@ -46,4 +46,11 @@ export interface FlowTabsAPI {
    * @param goBackToTab Whether to go back to the tab after Picture in Picture mode is disabled
    */
   disablePictureInPicture: (goBackToTab: boolean) => Promise<boolean>;
+
+  /**
+   * Set the muted state of a tab
+   * @param tabId The id of the tab to set muted state for
+   * @param muted Whether the tab should be muted
+   */
+  setTabMuted: (tabId: number, muted: boolean) => Promise<boolean>;
 }

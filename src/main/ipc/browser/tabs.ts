@@ -215,6 +215,22 @@ ipcMain.handle("tabs:disable-picture-in-picture", async (event, goBackToTab: boo
   return disabled;
 });
 
+ipcMain.handle("tabs:set-tab-muted", async (_event, tabId: number, muted: boolean) => {
+  if (!browser) return false;
+
+  const tabManager = browser.tabs;
+  if (!tabManager) return false;
+
+  const tab = tabManager.getTabById(tabId);
+  if (!tab) return false;
+
+  tab.webContents.setAudioMuted(muted);
+  
+  tab.updateTabState();
+  
+  return true;
+});
+
 ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
   const webContents = event.sender;
   const tabbedWindow = browser?.getWindowFromWebContents(webContents);
