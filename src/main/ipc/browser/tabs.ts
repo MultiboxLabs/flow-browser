@@ -12,6 +12,7 @@ export function getTabData(tab: Tab): TabData {
     uniqueId: tab.uniqueId,
     createdAt: tab.createdAt,
     lastActiveAt: tab.lastActiveAt,
+    order: tab.order,
 
     profileId: tab.profileId,
     spaceId: tab.spaceId,
@@ -39,7 +40,8 @@ export function getTabGroupData(tabGroup: TabGroup): TabGroupData {
     profileId: tabGroup.profileId,
     spaceId: tabGroup.spaceId,
     tabIds: tabGroup.tabs.map((tab) => tab.id),
-    glanceFrontTabId: tabGroup.mode === "glance" ? tabGroup.frontTabId : undefined
+    glanceFrontTabId: tabGroup.mode === "glance" ? tabGroup.frontTabId : undefined,
+    order: tabGroup.order
   };
 }
 

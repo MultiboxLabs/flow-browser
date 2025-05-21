@@ -110,7 +110,8 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
         mode: "normal",
         profileId: tab.profileId,
         spaceId: tab.spaceId,
-        tabIds: [tab.id]
+        tabIds: [tab.id],
+        order: tab.order
       });
     }
 

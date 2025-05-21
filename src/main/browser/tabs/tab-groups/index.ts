@@ -210,6 +210,11 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
       .filter((tab) => tab !== null);
   }
 
+  public get order(): number {
+    this.errorIfDestroyed();
+    return this.tabs[0].order;
+  }
+
   public destroy() {
     this.errorIfDestroyed();
 

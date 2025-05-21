@@ -34,7 +34,8 @@ type TabStateProperty =
   | "fullScreen"
   | "isPictureInPicture"
   | "asleep"
-  | "lastActiveAt";
+  | "lastActiveAt"
+  | "order";
 type TabContentProperty = "title" | "url" | "isLoading" | "audible" | "muted" | "navHistory" | "navHistoryIndex";
 
 type TabPublicProperty = TabStateProperty | TabContentProperty;
@@ -130,6 +131,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public asleep: boolean = false;
   public createdAt: number;
   public lastActiveAt: number;
+  public order: number = 0;
 
   // Content properties (From WebContents)
   public title: string = "New Tab";
