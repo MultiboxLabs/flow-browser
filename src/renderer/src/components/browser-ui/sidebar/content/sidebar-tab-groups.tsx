@@ -216,24 +216,8 @@ export function SidebarTabGroups({
     const el = ref.current;
     if (!el) return () => {};
 
-    function onChange({ source, self }: ElementDropTargetEventBasePayload) {
-      const sourceData = source.data as TabGroupSourceData;
+    function onChange({ self }: ElementDropTargetEventBasePayload) {
       const closestEdge = extractClosestEdge(self.data);
-
-      const sourcePosition = sourceData.position;
-      const thisPosition = position;
-
-      const isItemBeforeSource = thisPosition === sourcePosition - 1;
-      const isItemAfterSource = thisPosition === sourcePosition + 1;
-
-      const isDropIndicatorHidden =
-        (isItemBeforeSource && closestEdge === "bottom") || (isItemAfterSource && closestEdge === "top");
-
-      if (isDropIndicatorHidden) {
-        setClosestEdge(null);
-        return;
-      }
-
       setClosestEdge(closestEdge);
     }
 
@@ -259,7 +243,7 @@ export function SidebarTabGroups({
 
       if (sourceData.spaceId != tabGroup.spaceId) {
         if (sourceData.profileId != tabGroup.profileId) {
-          // not supported yet
+          // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
         } else {
           // move tab to new space
           flow.tabs.moveTabToWindowSpace(sourceTabId, tabGroup.spaceId, newPos);
@@ -285,17 +269,16 @@ export function SidebarTabGroups({
     const cleanupDropTarget = dropTargetForElements({
       element: el,
       getData: ({ input, element }) => {
-        // your base data you want to attach to the drop target
-        const data = {
-          tabGroupId: tabGroup.id
-        };
         // this will 'attach' the closest edge to your `data` object
-        return attachClosestEdge(data, {
-          input,
-          element,
-          // you can specify what edges you want to allow the user to be closest to
-          allowedEdges: ["top", "bottom"]
-        });
+        return attachClosestEdge(
+          {},
+          {
+            input,
+            element,
+            // you can specify what edges you want to allow the user to be closest to
+            allowedEdges: ["top", "bottom"]
+          }
+        );
       },
       canDrop: (args) => {
         const sourceData = args.source.data as TabGroupSourceData;
@@ -304,6 +287,11 @@ export function SidebarTabGroups({
         }
 
         if (sourceData.tabGroupId === tabGroup.id) {
+          return false;
+        }
+
+        if (sourceData.profileId !== tabGroup.profileId) {
+          // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
           return false;
         }
 

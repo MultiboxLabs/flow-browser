@@ -61,6 +61,12 @@ function SpaceButton({ space, isActive }: SpaceButtonProps) {
         const sourceData = args.source.data as TabGroupSourceData;
         if (sourceData.type !== "tab-group") return false;
 
+        const sourceProfileId = sourceData.profileId;
+        const targetProfileId = space.profileId;
+
+        // TODO: @MOVE_TABS_BETWEEN_PROFILES Does not support moving tabs between profiles
+        if (sourceProfileId !== targetProfileId) return false;
+
         return true;
       },
       onDragEnter: startDragging,
@@ -68,7 +74,7 @@ function SpaceButton({ space, isActive }: SpaceButtonProps) {
       onDragLeave: stopDragging,
       onDrop: stopDragging
     });
-  }, [onClick, removeDraggingTimeout]);
+  }, [onClick, removeDraggingTimeout, space.profileId]);
 
   return (
     <SidebarMenuButton

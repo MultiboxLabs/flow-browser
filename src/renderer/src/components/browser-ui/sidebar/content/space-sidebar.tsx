@@ -9,6 +9,7 @@ import { cn, hex_is_light } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useRef } from "react";
 import { DropIndicator as BaseDropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/list-item";
+import { SidebarTabDropTarget } from "@/components/browser-ui/sidebar/content/sidebar-tab-drop-target";
 
 const ENABLE_SECTION_DEVIDER = true;
 
@@ -120,17 +121,17 @@ export function SpaceSidebar({ space }: { space: Space }) {
   );
 
   return (
-    <div className={cn(isSpaceLight ? "" : "dark", "h-full")} ref={sidebarRef}>
+    <div className={cn(isSpaceLight ? "" : "dark", "h-full flex flex-col")} ref={sidebarRef}>
       <SpaceTitle space={space} />
-      <SidebarGroup className="py-0.5">
-        <SidebarMenu>
+      <SidebarGroup className="py-0.5 flex-1">
+        <SidebarMenu className="flex-1">
           {ENABLE_SECTION_DEVIDER && (
             <AnimatePresence>
               {hasTabs && <SidebarSectionDivider hasTabs={hasTabs} handleCloseAllTabs={handleCloseAllTabs} />}
             </AnimatePresence>
           )}
           <NewTabButton />
-          <div className="flex flex-col justify-between gap-1">
+          <div className="flex-1 flex flex-col justify-between gap-1">
             <AnimatePresence initial={false}>
               {sortedTabGroups.map((tabGroup, index) => (
                 <SidebarTabGroups
@@ -143,6 +144,12 @@ export function SpaceSidebar({ space }: { space: Space }) {
                   moveTab={moveTab}
                 />
               ))}
+              <SidebarTabDropTarget
+                spaceData={space}
+                isSpaceLight={isSpaceLight}
+                moveTab={moveTab}
+                biggestIndex={sortedTabGroups.length - 1}
+              />
             </AnimatePresence>
           </div>
         </SidebarMenu>
