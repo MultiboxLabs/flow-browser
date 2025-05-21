@@ -2,11 +2,19 @@ import { Browser } from "@/browser/browser";
 import { Tab, TabCreationOptions } from "@/browser/tabs/tab";
 import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
 import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
+import { NormalTabGroup } from "@/browser/tabs/tab-groups/normal";
 import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
+import { TabFolder } from "@/browser/tabs/tab-folders";
 import { windowTabsChanged } from "@/ipc/browser/tabs";
 import { setWindowSpace } from "@/ipc/session/spaces";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { shouldArchiveTab, shouldSleepTab } from "@/saving/tabs";
+import {
+  shouldArchiveTab,
+  shouldSleepTab,
+  getTabGroupDatastore,
+  getTabFolderDatastore,
+  persistTabToStorage
+} from "@/saving/tabs";
 import { getLastUsedSpace, getLastUsedSpaceFromProfile } from "@/sessions/spaces";
 import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
@@ -40,6 +48,9 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
   // Tab Groups
   public tabGroups: Map<number, TabGroup>;
   private tabGroupCounter: number = 0;
+
+  public tabFolders: Map<string, TabFolder> = new Map();
+  private tabFolderCounter: number = 0;
 
   // Private properties
   private readonly browser: Browser;
@@ -223,6 +234,9 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
       this.removeTab(tab);
     });
 
+    // Create a normal tab group for this tab
+    this.createTabGroup("normal", [tab.id]);
+
     // Return tab
     this.emit("tab-created", tab);
     return tab;
@@ -303,10 +317,20 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     let idToStore: number;
 
     if (tabOrGroup instanceof Tab) {
-      windowId = tabOrGroup.getWindow().id;
-      spaceId = tabOrGroup.spaceId;
-      tabToFocus = tabOrGroup;
-      idToStore = tabOrGroup.id;
+      // If the tab is not in a group, create a normal tab group for it
+      const existingTabGroup = this.getTabGroupByTabId(tabOrGroup.id);
+      if (!existingTabGroup) {
+        const newTabGroup = this.createTabGroup("normal", [tabOrGroup.id]);
+        windowId = newTabGroup.windowId;
+        spaceId = newTabGroup.spaceId;
+        tabToFocus = tabOrGroup;
+        idToStore = newTabGroup.id;
+      } else {
+        windowId = tabOrGroup.getWindow().id;
+        spaceId = tabOrGroup.spaceId;
+        tabToFocus = tabOrGroup;
+        idToStore = existingTabGroup.id;
+      }
     } else {
       windowId = tabOrGroup.windowId;
       spaceId = tabOrGroup.spaceId;
@@ -615,6 +639,9 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
 
     let tabGroup: TabGroup;
     switch (mode) {
+      case "normal":
+        tabGroup = new NormalTabGroup(this.browser, this, id, initialTabs as [Tab, ...Tab[]]);
+        break;
       case "glance":
         tabGroup = new GlanceTabGroup(this.browser, this, id, initialTabs as [Tab, ...Tab[]]);
         break;
@@ -646,7 +673,157 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
       }
     }
 
+    tabGroup.saveTabGroup();
+
     return tabGroup;
+  }
+
+  /**
+   * Persist a tab to storage
+   */
+  public async persistTab(tab: Tab) {
+    return persistTabToStorage(tab);
+  }
+
+  /**
+   * Persist a tab group to storage
+   */
+  public async persistTabGroup(tabGroup: TabGroup) {
+    const tabGroupStore = getTabGroupDatastore();
+    const id = `tabgroup-${tabGroup.id}`;
+    const tabGroupData = tabGroup.getData();
+
+    console.log("saving tab group", tabGroupData.id, tabGroupData.mode);
+    return await tabGroupStore
+      .set(id, tabGroupData)
+      .then(() => true)
+      .catch(() => false);
+  }
+
+  /**
+   * Remove a tab group from storage
+   */
+  public async removeTabGroupFromStorage(tabGroup: TabGroup) {
+    const tabGroupStore = getTabGroupDatastore();
+    const id = `tabgroup-${tabGroup.id}`;
+    return await tabGroupStore
+      .remove(id)
+      .then(() => true)
+      .catch(() => false);
+  }
+
+  /**
+   * Persist a tab folder to storage
+   */
+  public async persistTabFolder(tabFolder: TabFolder) {
+    const tabFolderStore = getTabFolderDatastore();
+    const id = tabFolder.id;
+    const tabFolderData = tabFolder.getData();
+
+    console.log("saving tab folder", tabFolderData.id, tabFolderData.name);
+    return await tabFolderStore
+      .set(id, tabFolderData)
+      .then(() => true)
+      .catch(() => false);
+  }
+
+  /**
+   * Remove a tab folder from storage
+   */
+  public async removeTabFolderFromStorage(tabFolder: TabFolder) {
+    const tabFolderStore = getTabFolderDatastore();
+    const id = tabFolder.id;
+    return await tabFolderStore
+      .remove(id)
+      .then(() => true)
+      .catch(() => false);
+  }
+
+  /**
+   * Create a tab folder
+   */
+  public createTabFolder(
+    name: string,
+    profileId: string,
+    spaceId: string,
+    position: number,
+    initialTabGroupIds: number[] = []
+  ): TabFolder {
+    const id = `folder-${this.tabFolderCounter++}`;
+
+    const folder = new TabFolder(
+      this,
+      id,
+      name,
+      profileId,
+      spaceId,
+      position,
+      true // expanded by default
+    );
+
+    for (const tabGroupId of initialTabGroupIds) {
+      const tabGroup = this.getTabGroupById(tabGroupId);
+      if (tabGroup) {
+        folder.addTabGroup(tabGroupId);
+        tabGroup.setFolder(id);
+      }
+    }
+
+    // Set up event listeners
+    folder.on("destroyed", () => {
+      if (this.tabFolders.has(id)) {
+        this.removeTabFolder(id);
+      }
+    });
+
+    this.tabFolders.set(id, folder);
+
+    folder.saveFolder();
+
+    return folder;
+  }
+
+  /**
+   * Remove a tab folder
+   */
+  public removeTabFolder(folderId: string): boolean {
+    const folder = this.tabFolders.get(folderId);
+    if (!folder) return false;
+
+    // Remove folder reference from all tab groups
+    for (const tabGroupId of folder.tabGroupIds) {
+      const tabGroup = this.getTabGroupById(tabGroupId);
+      if (tabGroup) {
+        tabGroup.setFolder(null);
+      }
+    }
+
+    this.tabFolders.delete(folderId);
+
+    // Remove from storage
+    this.removeTabFolderFromStorage(folder);
+
+    return true;
+  }
+
+  /**
+   * Get a tab folder by ID
+   */
+  public getTabFolderById(folderId: string): TabFolder | undefined {
+    return this.tabFolders.get(folderId);
+  }
+
+  /**
+   * Get all tab folders in a space
+   */
+  public getTabFoldersInSpace(spaceId: string): TabFolder[] {
+    const result: TabFolder[] = [];
+    for (const folder of this.tabFolders.values()) {
+      if (folder.spaceId === spaceId) {
+        result.push(folder);
+      }
+    }
+    return result;
   }
 
   /**
@@ -670,6 +847,15 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     const groupId = tabGroup.id;
 
     if (!this.tabGroups.has(groupId)) return;
+
+    // Remove from storage first
+    this.removeTabGroupFromStorage(tabGroup);
+
+    // Remove from any folder it might be in
+    if (tabGroup.folderId) {
+      const folder = this.getTabFolderById(tabGroup.folderId);
+      folder?.removeTabGroup(tabGroup.id);
+    }
 
     this.tabGroups.delete(groupId);
     this.removeFromActivationHistory(groupId);
@@ -740,6 +926,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     // Clear maps
     this.tabs.clear();
     this.tabGroups.clear();
+    this.tabFolders.clear();
     this.windowActiveSpaceMap.clear();
     this.spaceActiveTabMap.clear();
     this.spaceFocusedTabMap.clear();

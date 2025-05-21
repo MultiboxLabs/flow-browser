@@ -1,10 +1,11 @@
 import { Tab } from "@/browser/tabs/tab";
 import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
+import { TabFolder } from "@/browser/tabs/tab-folders";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { browser } from "@/index";
 import { getSpace } from "@/sessions/spaces";
 import { clipboard, ipcMain, Menu, MenuItem } from "electron";
-import { TabData, TabGroupData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
+import { TabData, TabGroupData, TabFolderData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
 
 export function getTabData(tab: Tab): TabData {
   return {
@@ -40,8 +41,21 @@ export function getTabGroupData(tabGroup: TabGroup): TabGroupData {
     profileId: tabGroup.profileId,
     spaceId: tabGroup.spaceId,
     tabIds: tabGroup.tabs.map((tab) => tab.id),
-    glanceFrontTabId: tabGroup.mode === "glance" ? tabGroup.frontTabId : undefined,
-    position: tabGroup.position
+    glanceFrontTabId: tabGroup.mode === "glance" ? (tabGroup as any).frontTabId : undefined,
+    position: tabGroup.position,
+    folderId: tabGroup.folderId || undefined
+  };
+}
+
+export function getTabFolderData(tabFolder: TabFolder): TabFolderData {
+  return {
+    id: tabFolder.id,
+    name: tabFolder.name,
+    profileId: tabFolder.profileId,
+    spaceId: tabFolder.spaceId,
+    tabGroupIds: Array.from(tabFolder.tabGroupIds),
+    position: tabFolder.position,
+    expanded: tabFolder.expanded
   };
 }
 
@@ -55,8 +69,20 @@ function getWindowTabsData(window: TabbedBrowserWindow) {
   const tabs = tabManager.getTabsInWindow(windowId);
   const tabGroups = tabManager.getTabGroupsInWindow(windowId);
 
+  const spaceSet = new Set<string>();
+  for (const tab of tabs) {
+    spaceSet.add(tab.spaceId);
+  }
+
+  const tabFolders: TabFolder[] = [];
+  for (const spaceId of spaceSet) {
+    const foldersInSpace = tabManager.getTabFoldersInSpace(spaceId);
+    tabFolders.push(...foldersInSpace);
+  }
+
   const tabDatas = tabs.map((tab) => getTabData(tab));
   const tabGroupDatas = tabGroups.map((tabGroup) => getTabGroupData(tabGroup));
+  const tabFolderDatas = tabFolders.map((tabFolder) => getTabFolderData(tabFolder));
 
   const windowProfiles: string[] = [];
   const windowSpaces: string[] = [];
@@ -92,6 +118,7 @@ function getWindowTabsData(window: TabbedBrowserWindow) {
   return {
     tabs: tabDatas,
     tabGroups: tabGroupDatas,
+    tabFolders: tabFolderDatas,
     focusedTabIds: focusedTabs,
     activeTabIds: activeTabs
   };

@@ -444,15 +444,14 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     const COLOR_BACKGROUND = "#ffffffff";
     this.on("updated", (properties) => {
       if (properties.includes("url") && this.url) {
-        const url = URL.parse(this.url);
-
-        if (url) {
+        try {
+          const url = new URL(this.url);
           if (WHITELISTED_PROTOCOLS.includes(url.protocol)) {
             this.view.setBackgroundColor(COLOR_TRANSPARENT);
           } else {
             this.view.setBackgroundColor(COLOR_BACKGROUND);
           }
-        } else {
+        } catch (e) {
           // Bad URL
           this.view.setBackgroundColor(COLOR_BACKGROUND);
         }
@@ -717,9 +716,13 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    */
   public loadErrorPage(errorCode: number, url: string) {
     // Errored on error page? Don't show another error page to prevent infinite loop
-    const parsedURL = URL.parse(url);
-    if (parsedURL && parsedURL.protocol === "flow:" && parsedURL.hostname === "error") {
-      return;
+    try {
+      const parsedURL = new URL(url);
+      if (parsedURL && parsedURL.protocol === "flow:" && parsedURL.hostname === "error") {
+        return;
+      }
+    } catch (e) {
+      // Invalid URL, continue with error page
     }
 
     // Craft error page URL
@@ -877,8 +880,12 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     let zIndex = TAB_ZINDEX;
 
     if (!tabGroup) {
+      console.warn(`Tab ${this.id} has no tab group, creating a fallback normal mode`);
       newTabGroupMode = "normal";
       newBounds = pageBounds;
+
+      // Create a real tab group for this tab to prevent future issues
+      this.tabManager.createTabGroup("normal", [this.id]);
     } else if (tabGroup.mode === "glance") {
       newTabGroupMode = "glance";
       const isFront = tabGroup.frontTabId === this.id;

@@ -1,9 +1,11 @@
 import { Tab } from "@/browser/tabs/tab";
 import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
+import { NormalTabGroup } from "@/browser/tabs/tab-groups/normal";
 import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
 import { TabManager } from "@/browser/tabs/tab-manager";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { Browser } from "@/browser/browser";
+import { TabGroupData, TabGroupMode } from "~/types/tabs";
 
 // Interfaces and Types
 export type TabGroupEvents = {
@@ -11,6 +13,8 @@ export type TabGroupEvents = {
   "tab-removed": [number];
   "space-changed": [];
   "window-changed": [];
+  "position-changed": [number];
+  "folder-changed": [string | null]; // Add folder change event
   destroy: [];
 };
 
@@ -23,15 +27,17 @@ function getTabFromId(tabManager: TabManager, id: number): Tab | null {
 }
 
 // Tab Group Class
-export type TabGroup = GlanceTabGroup | SplitTabGroup;
+export type TabGroup = NormalTabGroup | GlanceTabGroup | SplitTabGroup;
 
-export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
+export abstract class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
   public readonly id: number;
   public isDestroyed: boolean = false;
 
   public windowId: number;
   public profileId: string;
   public spaceId: string;
+  public folderId: string | null = null; // Add folder ID property
+  public abstract mode: TabGroupMode;
 
   protected browser: Browser;
   protected tabManager: TabManager;
@@ -126,6 +132,11 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
     this.tabIds.push(tabId);
     this.emit("tab-added", tabId);
 
+    this.on("tab-added", () => this.saveTabGroup());
+    this.on("tab-removed", () => this.saveTabGroup());
+    this.on("position-changed", () => this.saveTabGroup());
+    this.on("folder-changed", () => this.saveTabGroup());
+
     // Event Listeners
     const onTabDestroyed = () => {
       this.removeTab(tabId);
@@ -197,6 +208,63 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
     this.tabIds = this.tabIds.filter((id) => id !== tabId);
     this.emit("tab-removed", tabId);
     return true;
+  }
+
+  /**
+   * Set the folder for this tab group
+   */
+  public setFolder(folderId: string | null) {
+    this.errorIfDestroyed();
+
+    if (this.folderId === folderId) return;
+
+    this.folderId = folderId;
+    this.emit("folder-changed", folderId);
+  }
+
+  /**
+   * Save tab group to persistent storage
+   */
+  public async saveTabGroup() {
+    this.errorIfDestroyed();
+
+    try {
+      await this.tabManager.persistTabGroup(this as unknown as TabGroup);
+    } catch (error) {
+      console.error(`Error saving tab group ${this.id}:`, error);
+    }
+  }
+
+  /**
+   * Get tab group data
+   */
+  public getData(): TabGroupData {
+    this.errorIfDestroyed();
+
+    return {
+      id: this.id,
+      mode: this.mode,
+      profileId: this.profileId,
+      spaceId: this.spaceId,
+      tabIds: this.tabIds,
+      position: this.position,
+      folderId: this.folderId || undefined
+    };
+  }
+
+  /**
+   * Update tab group position
+   */
+  public setPosition(position: number) {
+    this.errorIfDestroyed();
+
+    if (this.position === position) return;
+
+    const firstTab = this.tabs[0];
+    if (firstTab) {
+      firstTab.updateStateProperty("position", position);
+      this.emit("position-changed", position);
+    }
   }
 
   public get tabs(): Tab[] {

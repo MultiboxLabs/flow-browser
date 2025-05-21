@@ -38,6 +38,17 @@ export type TabGroupData = {
   tabIds: number[];
   glanceFrontTabId?: number;
   position: number;
+  folderId?: string; // Add folder reference
+};
+
+export type TabFolderData = {
+  id: string;
+  name: string;
+  profileId: string;
+  spaceId: string;
+  tabGroupIds: number[];
+  position: number;
+  expanded: boolean;
 };
 
 export type WindowFocusedTabIds = {
@@ -51,6 +62,7 @@ export type WindowActiveTabIds = {
 export type WindowTabsData = {
   tabs: TabData[];
   tabGroups: TabGroupData[];
+  tabFolders?: TabFolderData[]; // Add folders collection
   focusedTabIds: WindowFocusedTabIds;
   activeTabIds: WindowActiveTabIds;
 };
