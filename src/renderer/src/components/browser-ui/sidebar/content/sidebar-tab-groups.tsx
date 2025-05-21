@@ -184,10 +184,12 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
   );
 }
 
-type TabGroupSourceData = {
+export type TabGroupSourceData = {
   type: "tab-group";
   tabGroupId: number;
   primaryTabId: number;
+  profileId: string;
+  spaceId: string;
   position: number;
 };
 
@@ -216,11 +218,6 @@ export function SidebarTabGroups({
 
     function onChange({ source, self }: ElementDropTargetEventBasePayload) {
       const sourceData = source.data as TabGroupSourceData;
-      if (sourceData.type !== "tab-group") {
-        setClosestEdge(null);
-        return;
-      }
-
       const closestEdge = extractClosestEdge(self.data);
 
       const sourcePosition = sourceData.position;
@@ -246,16 +243,27 @@ export function SidebarTabGroups({
       setClosestEdge(null);
 
       const sourceData = args.source.data as TabGroupSourceData;
-      if (sourceData.type !== "tab-group") {
-        return;
-      }
-
       const sourceTabId = sourceData.primaryTabId;
 
+      let newPos: number | undefined = undefined;
+
       if (closestEdgeOfTarget === "top") {
-        moveTab(sourceTabId, position - 0.5);
+        newPos = position - 0.5;
       } else if (closestEdgeOfTarget === "bottom") {
-        moveTab(sourceTabId, position + 0.5);
+        newPos = position + 0.5;
+      }
+
+      if (newPos) {
+        moveTab(sourceTabId, newPos);
+      }
+
+      if (sourceData.spaceId != tabGroup.spaceId) {
+        if (sourceData.profileId != tabGroup.profileId) {
+          // not supported yet
+        } else {
+          // move tab to new space
+          flow.tabs.moveTabToWindowSpace(sourceTabId, tabGroup.spaceId, newPos);
+        }
       }
     }
 
@@ -266,6 +274,8 @@ export function SidebarTabGroups({
           type: "tab-group",
           tabGroupId: tabGroup.id,
           primaryTabId: tabGroup.tabs[0].id,
+          profileId: tabGroup.profileId,
+          spaceId: tabGroup.spaceId,
           position: position
         };
         return data;
@@ -309,7 +319,7 @@ export function SidebarTabGroups({
       draggableCleanup();
       cleanupDropTarget();
     };
-  }, [moveTab, tabGroup.id, position, tabGroup.tabs]);
+  }, [moveTab, tabGroup.id, position, tabGroup.tabs, tabGroup.spaceId, tabGroup.profileId]);
 
   return (
     <>

@@ -258,6 +258,31 @@ ipcMain.handle("tabs:move-tab", async (event, tabId: number, newPosition: number
   return true;
 });
 
+ipcMain.handle("tabs:move-tab-to-window-space", async (event, tabId: number, spaceId: string, newPosition?: number) => {
+  const webContents = event.sender;
+  const window = browser?.getWindowFromWebContents(webContents);
+  if (!window) return false;
+
+  const tabManager = browser?.tabs;
+  if (!tabManager) return false;
+
+  const tab = tabManager.getTabById(tabId);
+  if (!tab) return false;
+
+  const space = await getSpace(spaceId);
+  if (!space) return false;
+
+  tab.setSpace(spaceId);
+  tab.setWindow(window);
+
+  if (newPosition) {
+    tab.updateStateProperty("position", newPosition);
+  }
+
+  tabManager.setActiveTab(tab);
+  return true;
+});
+
 ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
   const webContents = event.sender;
   const tabbedWindow = browser?.getWindowFromWebContents(webContents);

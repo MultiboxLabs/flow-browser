@@ -60,4 +60,12 @@ export interface FlowTabsAPI {
    * @param newPosition The new position of the tab
    */
   moveTab: (tabId: number, newPosition: number) => Promise<boolean>;
+
+  /**
+   * Move a tab to a new space
+   * @param tabId The id of the tab to move
+   * @param spaceId The id of the space to move the tab to
+   * @param newPosition The new position of the tab
+   */
+  moveTabToWindowSpace: (tabId: number, spaceId: string, newPosition?: number) => Promise<boolean>;
 }

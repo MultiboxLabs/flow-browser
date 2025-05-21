@@ -32,6 +32,7 @@ type BrowserSidebarProps = {
 
 export const SIDEBAR_HOVER_COLOR =
   "hover:bg-black/10 active:bg-black/15 dark:hover:bg-white/10 dark:active:bg-white/15";
+export const SIDEBAR_HOVER_COLOR_PLAIN = "bg-black/10 dark:bg-white/10";
 
 // Custom hook to handle sidebar animation mounting logic
 function useSidebarAnimation(shouldRenderContent: boolean, setVariant: (variant: SidebarVariant) => void) {
