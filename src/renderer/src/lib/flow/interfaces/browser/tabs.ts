@@ -39,4 +39,10 @@ export interface FlowTabsAPI {
    * Disable Picture in Picture mode for a tab
    */
   disablePictureInPicture: () => Promise<boolean>;
+  
+  /**
+   * Toggle mute for a tab
+   * @param tabId The id of the tab to toggle mute for
+   */
+  toggleMute: (tabId: number) => Promise<boolean>;
 }

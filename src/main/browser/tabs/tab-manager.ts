@@ -3,6 +3,7 @@ import { Tab, TabCreationOptions } from "@/browser/tabs/tab";
 import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
 import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
 import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
+import { NormalTabGroup } from "@/browser/tabs/tab-groups/normal";
 import { windowTabsChanged } from "@/ipc/browser/tabs";
 import { setWindowSpace } from "@/ipc/session/spaces";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
@@ -223,6 +224,11 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
       this.removeTab(tab);
     });
 
+    // Ensure tab belongs to a group
+    if (tab.groupId === null) {
+      this.getOrCreateNormalTabGroupForTab(tab);
+    }
+    
     // Return tab
     this.emit("tab-created", tab);
     return tab;
@@ -615,6 +621,9 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
 
     let tabGroup: TabGroup;
     switch (mode) {
+      case "normal":
+        tabGroup = new NormalTabGroup(this.browser, this, id, initialTabs as [Tab, ...Tab[]]);
+        break;
       case "glance":
         tabGroup = new GlanceTabGroup(this.browser, this, id, initialTabs as [Tab, ...Tab[]]);
         break;
@@ -647,6 +656,55 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     }
 
     return tabGroup;
+  }
+
+  /**
+   * Create a normal tab group with the provided tabs
+   */
+  public createNormalTabGroup(tabs: Tab[]): NormalTabGroup | null {
+    if (tabs.length === 0) {
+      console.warn("Cannot create tab group with no tabs");
+      return null;
+    }
+    
+    // Create a unique ID
+    const groupId = this.tabGroupCounter++;
+    
+    // Create the group
+    const tabGroup = new NormalTabGroup(this.browser, this, groupId, tabs as [Tab, ...Tab[]]);
+    
+    this.tabGroups.set(groupId, tabGroup);
+    
+    // Setup event handlers
+    tabGroup.on("destroy", () => {
+      // Ensure cleanup happens even if destroyTabGroup isn't called externally
+      if (this.tabGroups.has(groupId)) {
+        this.internalDestroyTabGroup(tabGroup);
+      }
+    });
+    
+    return tabGroup;
+  }
+
+  /**
+   * Get or create a normal tab group for a tab
+   * This ensures every tab always belongs to a group
+   */
+  public getOrCreateNormalTabGroupForTab(tab: Tab): BaseTabGroup {
+    if (tab.groupId !== null) {
+      const existingGroup = this.getTabGroupById(tab.groupId);
+      if (existingGroup) {
+        return existingGroup;
+      }
+    }
+    
+    // Create a new normal group
+    const newGroup = this.createNormalTabGroup([tab]);
+    if (!newGroup) {
+      throw new Error("Failed to create normal tab group for tab");
+    }
+    
+    return newGroup;
   }
 
   /**

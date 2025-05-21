@@ -217,6 +217,26 @@ ipcMain.handle("tabs:disable-picture-in-picture", async (event, goBackToTab: boo
   return disabled;
 });
 
+/**
+ * Toggle mute for a tab
+ */
+ipcMain.handle(
+  "tabs:toggle-mute",
+  (_event, tabId: number) => {
+    if (!browser) return false;
+    
+    const tab = browser.tabs.getTabById(tabId);
+    if (!tab) return false;
+    
+    const currentMuted = tab.muted;
+    tab.webContents.setAudioMuted(!currentMuted);
+    
+    tab.updateTabState();
+    
+    return !currentMuted;
+  }
+);
+
 ipcMain.handle("tabs:move-tab", async (event, tabId: number, newPosition: number) => {
   const webContents = event.sender;
   const window = browser?.getWindowFromWebContents(webContents);

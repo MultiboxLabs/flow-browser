@@ -27,6 +27,7 @@
     "build:linux": "electron-vite build && electron-builder --linux"
   },
   "dependencies": {
+    "@atlaskit/pragmatic-drag-and-drop-hitbox": "^1.1.0",
     "@ghostery/adblocker-electron": "^2.5.2",
     "@phosphor-icons/core": "^2.1.1",
     "better-sqlite3": "^11.10.0",
@@ -43,7 +44,7 @@
     "zod": "^3.24.4"
   },
   "devDependencies": {
-    "@atlaskit/pragmatic-drag-and-drop": "^1.6.1",
+    "@atlaskit/pragmatic-drag-and-drop": "^1.7.0",
     "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator": "^3.2.0",
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
     "@electron-toolkit/eslint-config-ts": "^3.1.0",

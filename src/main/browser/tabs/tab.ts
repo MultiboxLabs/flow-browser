@@ -444,10 +444,16 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     const COLOR_BACKGROUND = "#ffffffff";
     this.on("updated", (properties) => {
       if (properties.includes("url") && this.url) {
-        const url = URL.parse(this.url);
+        let protocol: string | null = null;
+        try {
+          const url = new URL(this.url);
+          protocol = url.protocol;
+        } catch {
+          console.error("Invalid URL", this.url);
+        }
 
-        if (url) {
-          if (WHITELISTED_PROTOCOLS.includes(url.protocol)) {
+        if (protocol) {
+          if (WHITELISTED_PROTOCOLS.includes(protocol)) {
             this.view.setBackgroundColor(COLOR_TRANSPARENT);
           } else {
             this.view.setBackgroundColor(COLOR_BACKGROUND);
@@ -717,8 +723,18 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    */
   public loadErrorPage(errorCode: number, url: string) {
     // Errored on error page? Don't show another error page to prevent infinite loop
-    const parsedURL = URL.parse(url);
-    if (parsedURL && parsedURL.protocol === "flow:" && parsedURL.hostname === "error") {
+    let protocol: string | null = null;
+    let hostname: string | null = null;
+    
+    try {
+      const parsedURL = new URL(url);
+      protocol = parsedURL.protocol;
+      hostname = parsedURL.hostname;
+    } catch {
+      console.error("Invalid URL", url);
+    }
+    
+    if (protocol === "flow:" && hostname === "error") {
       return;
     }
 

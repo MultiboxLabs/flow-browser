@@ -1,6 +1,7 @@
 import { Tab } from "@/browser/tabs/tab";
 import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
 import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
+import { NormalTabGroup } from "@/browser/tabs/tab-groups/normal";
 import { TabManager } from "@/browser/tabs/tab-manager";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { Browser } from "@/browser/browser";
@@ -23,7 +24,7 @@ function getTabFromId(tabManager: TabManager, id: number): Tab | null {
 }
 
 // Tab Group Class
-export type TabGroup = GlanceTabGroup | SplitTabGroup;
+export type TabGroup = GlanceTabGroup | SplitTabGroup | NormalTabGroup;
 
 export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
   public readonly id: number;
@@ -192,6 +193,10 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
     const tab = getTabFromId(this.tabManager, tabId);
     if (tab && tab.groupId === this.id) {
       tab.groupId = null;
+      
+      if (!this.isDestroyed && this.tabIds.length > 1) {
+        this.tabManager.createNormalTabGroup([tab]);
+      }
     }
 
     this.tabIds = this.tabIds.filter((id) => id !== tabId);
