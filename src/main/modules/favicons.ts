@@ -392,13 +392,15 @@ export function normalizeURL(url: string): string {
       parsedURL.protocol = "http:";
     }
 
-    // Add trailing slash to pathname if it doesn't have one and isn't empty
-    if (parsedURL.pathname && parsedURL.pathname !== "/" && !parsedURL.pathname.endsWith("/")) {
+    // Add trailing slash to pathname if the flag is enabled and it doesn't have one and isn't empty
+    if (
+      FLAGS.FAVICONS_FORCE_TRAILING_SLASH &&
+      parsedURL.pathname &&
+      parsedURL.pathname !== "/" &&
+      !parsedURL.pathname.endsWith("/")
+    ) {
       parsedURL.pathname = `${parsedURL.pathname}/`;
     }
-
-    // Remove query params from the URL
-    parsedURL.search = "";
 
     // Remove hash from the URL
     parsedURL.hash = "";
@@ -406,6 +408,7 @@ export function normalizeURL(url: string): string {
     // Remove the path from the URL if the flag is enabled
     if (FLAGS.FAVICONS_REMOVE_PATH) {
       parsedURL.pathname = "";
+      parsedURL.search = "";
     }
 
     return parsedURL.toString();
