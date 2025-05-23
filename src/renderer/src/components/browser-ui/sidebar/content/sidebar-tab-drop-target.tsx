@@ -30,10 +30,6 @@ export function SidebarTabDropTarget({ spaceData, isSpaceLight, moveTab, biggest
 
       const newPos = biggestIndex + 1;
 
-      if (newPos !== undefined) {
-        moveTab(sourceTabId, newPos);
-      }
-
       if (sourceData.spaceId != spaceData.id) {
         if (sourceData.profileId != spaceData.profileId) {
           // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
@@ -41,6 +37,8 @@ export function SidebarTabDropTarget({ spaceData, isSpaceLight, moveTab, biggest
           // move tab to new space
           flow.tabs.moveTabToWindowSpace(sourceTabId, spaceData.id, newPos);
         }
+      } else {
+        moveTab(sourceTabId, newPos);
       }
     }
 

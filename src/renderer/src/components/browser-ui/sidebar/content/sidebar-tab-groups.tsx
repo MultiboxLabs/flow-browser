@@ -237,10 +237,6 @@ export function SidebarTabGroups({
         newPos = position + 0.5;
       }
 
-      if (newPos !== undefined) {
-        moveTab(sourceTabId, newPos);
-      }
-
       if (sourceData.spaceId != tabGroup.spaceId) {
         if (sourceData.profileId != tabGroup.profileId) {
           // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
@@ -248,6 +244,8 @@ export function SidebarTabGroups({
           // move tab to new space
           flow.tabs.moveTabToWindowSpace(sourceTabId, tabGroup.spaceId, newPos);
         }
+      } else if (newPos !== undefined) {
+        moveTab(sourceTabId, newPos);
       }
     }
 
