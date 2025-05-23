@@ -56,7 +56,7 @@
       "role": "Viewer"
     }
   ],
-  "asarUnpack": ["assets/**"],
+  "asarUnpack": ["assets/**", "node_modules/sharp/**"],
   "win": {
     "executableName": "flow",
     "verifyUpdateCodeSignature": false
