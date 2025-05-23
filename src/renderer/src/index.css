@@ -68,6 +68,10 @@
   -webkit-app-region: no-drag;
 }
 
+.user-drag-none {
+  -webkit-user-drag: none;
+}
+
 .dark {
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);

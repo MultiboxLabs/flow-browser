@@ -30,7 +30,7 @@ export function SidebarTabDropTarget({ spaceData, isSpaceLight, moveTab, biggest
 
       const newPos = biggestIndex + 1;
 
-      if (newPos) {
+      if (newPos !== undefined) {
         moveTab(sourceTabId, newPos);
       }
 

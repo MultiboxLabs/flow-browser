@@ -55,7 +55,6 @@ export async function persistTabToStorage(tab: Tab) {
   }
 
   // Save the tab data
-  console.log("saving tab", tabData.id, tabData.position);
   return await TabsDataStore.set(uniqueId, transformedTabData)
     .then(() => true)
     .catch(() => false);

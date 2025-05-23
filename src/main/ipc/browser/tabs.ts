@@ -252,7 +252,6 @@ ipcMain.handle("tabs:move-tab", async (event, tabId: number, newPosition: number
   }
 
   for (const targetTab of targetTabs) {
-    console.log("moving tab", targetTab.id, newPosition);
     targetTab.updateStateProperty("position", newPosition);
   }
 
@@ -276,7 +275,7 @@ ipcMain.handle("tabs:move-tab-to-window-space", async (event, tabId: number, spa
   tab.setSpace(spaceId);
   tab.setWindow(window);
 
-  if (newPosition) {
+  if (newPosition !== undefined) {
     tab.updateStateProperty("position", newPosition);
   }
 

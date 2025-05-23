@@ -3,11 +3,11 @@ import { SidebarTabGroups } from "@/components/browser-ui/sidebar/content/sideba
 import { SpaceTitle } from "@/components/browser-ui/sidebar/content/space-title";
 import { useTabs } from "@/components/providers/tabs-provider";
 import { Button } from "@/components/ui/button";
-import { SidebarGroup, SidebarMenu } from "@/components/ui/resizable-sidebar";
+import { SidebarGroup, SidebarMenu, useSidebar } from "@/components/ui/resizable-sidebar";
 import { Space } from "@/lib/flow/interfaces/sessions/spaces";
 import { cn, hex_is_light } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { DropIndicator as BaseDropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/list-item";
 import { SidebarTabDropTarget } from "@/components/browser-ui/sidebar/content/sidebar-tab-drop-target";
 
@@ -37,30 +37,34 @@ export function DropIndicator({ isSpaceLight }: { isSpaceLight: boolean }) {
 }
 
 function SidebarSectionDivider({ hasTabs, handleCloseAllTabs }: { hasTabs: boolean; handleCloseAllTabs: () => void }) {
+  const { open } = useSidebar();
+
   if (!hasTabs) return null;
 
   return (
     <motion.div
-      className={cn("flex flex-row", "items-center justify-between", "mx-1 my-3", "h-1 gap-1")}
+      className={cn("flex flex-row", "items-center justify-between", "h-1 gap-1", open ? "mx-1 my-3" : "mx-1 my-1")}
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.2 }}
     >
       <div className={cn("h-[1px] flex-grow", "bg-black/10 dark:bg-white/25")} />
-      <Button
-        className={cn(
-          "h-1 !p-1 rounded-sm",
-          "text-black/50 dark:text-white/50",
-          "hover:text-black/80 dark:hover:text-white/80",
-          "hover:bg-transparent hover:dark:bg-transparent"
-        )}
-        variant="ghost"
-        size="sm"
-        onClick={handleCloseAllTabs}
-      >
-        <span className="text-xs font-semibold">Clear</span>
-      </Button>
+      {open && (
+        <Button
+          className={cn(
+            "h-1 !p-1 rounded-sm",
+            "text-black/50 dark:text-white/50",
+            "hover:text-black/80 dark:hover:text-white/80",
+            "hover:bg-transparent hover:dark:bg-transparent"
+          )}
+          variant="ghost"
+          size="sm"
+          onClick={handleCloseAllTabs}
+        >
+          <span className="text-xs font-semibold">Clear</span>
+        </Button>
+      )}
     </motion.div>
   );
 }
@@ -93,12 +97,13 @@ export function SpaceSidebar({ space }: { space: Space }) {
 
   const hasTabs = tabGroups.length > 0;
 
-  const sortedTabGroups = [...tabGroups].sort((a, b) => a.position - b.position);
+  const sortedTabGroups = useMemo(() => {
+    return [...tabGroups].sort((a, b) => a.position - b.position);
+  }, [tabGroups]);
 
   const moveTab = useCallback(
     (tabId: number, newPosition: number) => {
-      const newSortedTabGroups = [...sortedTabGroups].sort((a, b) => a.position - b.position);
-      newSortedTabGroups.sort((a, b) => {
+      const newSortedTabGroups = [...sortedTabGroups].sort((a, b) => {
         const isTabInGroupA = a.tabs.some((tab) => tab.id === tabId);
         const isTabInGroupB = b.tabs.some((tab) => tab.id === tabId);
 

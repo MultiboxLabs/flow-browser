@@ -19,6 +19,10 @@ function SpaceButton({ space, isActive }: SpaceButtonProps) {
   const ref = useRef<HTMLButtonElement>(null);
 
   const [dragging, setDragging] = useState(false);
+
+  const draggingRef = useRef(false);
+  draggingRef.current = dragging;
+
   const draggingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const onClick = useCallback(() => {
@@ -39,6 +43,7 @@ function SpaceButton({ space, isActive }: SpaceButtonProps) {
     if (!element) return;
 
     function startDragging() {
+      if (draggingRef.current) return;
       setDragging(true);
 
       if (!draggingTimeoutRef.current) {

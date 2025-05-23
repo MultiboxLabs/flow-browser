@@ -125,7 +125,7 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
                   src={craftActiveFaviconURL(tab.id, tab.faviconURL)}
                   //src={tab.faviconURL || undefined}
                   alt={tab.title}
-                  className="size-full rounded-sm"
+                  className="size-full rounded-sm user-drag-none object-contain overflow-hidden"
                   onError={() => setIsError(true)}
                   onClick={handleClick}
                   onMouseDown={handleMouseDown}
@@ -237,7 +237,7 @@ export function SidebarTabGroups({
         newPos = position + 0.5;
       }
 
-      if (newPos) {
+      if (newPos !== undefined) {
         moveTab(sourceTabId, newPos);
       }
 
