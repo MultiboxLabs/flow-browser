@@ -12,8 +12,9 @@ export interface SharedExtensionData {
   enabled: boolean;
   pinned: boolean;
   version: string;
-  path: string;
+  path: string | null; // Allow null for missing extensions
   size: number;
   permissions: string[];
   inspectViews: ExtensionInspectView[];
+  missing?: boolean; // Flag to indicate if the extension is missing
 }

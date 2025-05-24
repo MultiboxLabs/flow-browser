@@ -28,7 +28,31 @@ async function generateSharedExtensionData(
   extensionData: ExtensionData
 ): Promise<SharedExtensionData | null> {
   const extensionPath = await extensionsManager.getExtensionPath(extensionId, extensionData);
-  if (!extensionPath) return null;
+
+  if (!extensionPath) {
+    const iconURL = new URL("flow://extension-icon");
+    iconURL.searchParams.set("id", extensionId);
+    iconURL.searchParams.set("profile", extensionsManager.profileId);
+
+    return {
+      type: extensionData.type,
+      id: extensionId,
+      name: `Extension ${extensionId}`,
+      short_name: undefined,
+      description: extensionData.path
+        ? `Extension at ${extensionData.path}`
+        : "Extension files not found. The extension may have been moved or deleted.",
+      icon: iconURL.toString(),
+      enabled: false,
+      pinned: extensionData.pinned ? true : false,
+      version: "unknown",
+      path: null, // Indicate that the path is missing
+      size: 0,
+      permissions: [],
+      inspectViews: [],
+      missing: true // Add a flag to indicate the extension is missing
+    };
+  }
 
   const manifest = await getManifest(extensionPath);
   if (!manifest) return null;
@@ -64,7 +88,8 @@ async function generateSharedExtensionData(
     size,
     permissions,
     // TODO: Add inspect views
-    inspectViews: []
+    inspectViews: [],
+    missing: false // Add a flag to indicate the extension is not missing
   };
 }
 
@@ -154,7 +179,7 @@ ipcMain.handle(
 
     if (!sharedExtensionData) return false;
 
-    const extensionIcon = await getExtensionIcon(sharedExtensionData.path);
+    const extensionIcon = sharedExtensionData.path ? await getExtensionIcon(sharedExtensionData.path) : null;
 
     const returnValue = await dialog.showMessageBox(window.window, {
       icon: extensionIcon ?? undefined,
@@ -188,6 +213,37 @@ ipcMain.handle(
     return await extensionsManager.setPinned(extensionId, pinned);
   }
 );
+
+ipcMain.handle("extensions:load-unpacked", async (event: IpcMainInvokeEvent): Promise<boolean> => {
+  if (!browser) return false;
+
+  const profileId = await getCurrentProfileIdFromWebContents(event.sender);
+  if (!profileId) return false;
+
+  const loadedProfile = browser.getLoadedProfile(profileId);
+  if (!loadedProfile) return false;
+
+  const { extensionsManager } = loadedProfile;
+  if (!extensionsManager) return false;
+
+  const window = browser.getWindowFromWebContents(event.sender);
+  if (!window) return false;
+
+  const result = await dialog.showOpenDialog(window.window, {
+    title: "Select Extension Directory",
+    buttonLabel: "Load Extension",
+    properties: ["openDirectory"]
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return false;
+  }
+
+  const extensionPath = result.filePaths[0];
+  const extensionId = await extensionsManager.loadUnpackedExtension(extensionPath);
+
+  return extensionId !== null;
+});
 
 export async function fireOnExtensionsUpdated(profileId: string) {
   if (!browser) return;

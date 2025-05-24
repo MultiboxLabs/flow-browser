@@ -27,4 +27,9 @@ export interface FlowExtensionsAPI {
    * Set the pinned state of an extension
    */
   setExtensionPinned: (extensionId: string, pinned: boolean) => Promise<boolean>;
+
+  /**
+   * Load an unpacked extension from a local directory
+   */
+  loadUnpacked: () => Promise<boolean>;
 }

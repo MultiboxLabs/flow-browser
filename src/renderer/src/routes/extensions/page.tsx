@@ -15,7 +15,9 @@ import { toast } from "sonner";
 const CHROME_WEB_STORE_URL = "https://chromewebstore.google.com/category/extensions?utm_source=ext_sidebar";
 
 function ExtensionsPage() {
-  const [isDeveloperMode, setIsDeveloperMode] = useState(false);
+  const [isDeveloperMode, setIsDeveloperMode] = useState(() => {
+    return localStorage.getItem("developerMode") === "true";
+  });
   const router = useRouter();
   const selectedExtensionId = new URLSearchParams(router.search).get("id");
 
@@ -98,8 +100,10 @@ function ExtensionsPage() {
                     <div className="flex items-center space-x-2">
                       <Switch
                         checked={isDeveloperMode}
-                        onCheckedChange={setIsDeveloperMode}
-                        disabled
+                        onCheckedChange={(checked) => {
+                          setIsDeveloperMode(checked);
+                          localStorage.setItem("developerMode", checked.toString());
+                        }}
                         id="developer-mode"
                       />
                       <label
@@ -110,16 +114,26 @@ function ExtensionsPage() {
                       </label>
                     </div>
                   </div>
-                  {/* TODO: Add developer mode & Allow Loading Unpacked Extensions */}
                   {isDeveloperMode && (
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const success = await flow.extensions.loadUnpacked();
+                          if (success) {
+                            toast.success("Extension loaded successfully!");
+                          } else {
+                            toast.error("Failed to load extension");
+                          }
+                        }}
+                      >
                         Load unpacked
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" disabled>
                         Pack extension
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" disabled>
                         Update
                       </Button>
                     </div>
@@ -135,6 +149,16 @@ function ExtensionsPage() {
                         isProcessing={isProcessing}
                         setExtensionEnabled={setExtensionEnabled}
                         onDetailsClick={handleDetailsClick}
+                        onUninstallClick={async (extensionId) => {
+                          setIsProcessing(true);
+                          const success = await flow.extensions.uninstallExtension(extensionId);
+                          if (success) {
+                            toast.success("Extension uninstalled successfully!");
+                          } else {
+                            toast.error("Failed to uninstall extension");
+                          }
+                          setIsProcessing(false);
+                        }}
                       />
                     ))}
                   </div>
