@@ -2,7 +2,7 @@ import { ChangeEvent } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { Space } from "@/lib/flow/interfaces/sessions/spaces";
+import type { Space } from "~/flow/interfaces/sessions/spaces";
 import { motion } from "motion/react";
 import { Separator } from "@/components/ui/separator";
 import { Info, Sparkles } from "lucide-react";

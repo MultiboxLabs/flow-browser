@@ -1,8 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
-import type { Profile } from "@/lib/flow/interfaces/sessions/profiles";
-import type { Space } from "@/lib/flow/interfaces/sessions/spaces";
+import type { Profile } from "~/flow/interfaces/sessions/profiles";
+import type { Space } from "~/flow/interfaces/sessions/spaces";
 import { Trash2, ArrowLeft, Settings, Globe, Save, Loader2, Plus, Box } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

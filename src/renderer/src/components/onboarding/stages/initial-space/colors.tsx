@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { BackgroundGradientEditor } from "@/components/settings/sections/spaces/theme-editors/background-gradient";
-import type { Space } from "@/lib/flow/interfaces/sessions/spaces";
+import type { Space } from "~/flow/interfaces/sessions/spaces";
 
 export function OnboardingSpaceColors({
   advance,

@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Profile } from "@/lib/flow/interfaces/sessions/profiles";
+import type { Profile } from "~/flow/interfaces/sessions/profiles";
 import {
   Dialog,
   DialogContent,

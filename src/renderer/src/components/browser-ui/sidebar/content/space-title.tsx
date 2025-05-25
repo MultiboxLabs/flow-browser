@@ -1,4 +1,4 @@
-import { Space } from "@/lib/flow/interfaces/sessions/spaces";
+import { Space } from "~/flow/interfaces/sessions/spaces";
 import { SidebarGroup, SidebarMenuButton, useSidebar } from "@/components/ui/resizable-sidebar";
 import { SpaceIcon } from "@/lib/phosphor-icons";
 

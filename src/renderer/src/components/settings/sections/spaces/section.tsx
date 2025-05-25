@@ -5,8 +5,8 @@ import { Plus, GripVertical } from "lucide-react";
 import { SpaceCard } from "./space-card";
 import { SpaceEditor } from "./space-editor";
 import { CreateSpaceDialog } from "./space-dialogs";
-import type { Space } from "@/lib/flow/interfaces/sessions/spaces";
-import type { Profile } from "@/lib/flow/interfaces/sessions/profiles";
+import type { Space } from "~/flow/interfaces/sessions/spaces";
+import type { Profile } from "~/flow/interfaces/sessions/profiles";
 import { Reorder, useDragControls } from "motion/react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 

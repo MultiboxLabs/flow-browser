@@ -1,7 +1,7 @@
 import { ColorPicker } from "../color-picker";
 import { motion } from "motion/react";
 import { GalleryVerticalEnd, Shuffle } from "lucide-react";
-import { Space } from "@/lib/flow/interfaces/sessions/spaces";
+import { Space } from "~/flow/interfaces/sessions/spaces";
 import { useReducer, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SpaceIcon } from "@/lib/phosphor-icons";

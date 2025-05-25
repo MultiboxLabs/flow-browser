@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   useSidebar
 } from "@/components/ui/resizable-sidebar";
-import { NavigationEntry } from "@/lib/flow/interfaces/browser/navigation";
+import { NavigationEntry } from "~/flow/interfaces/browser/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarCloseIcon, SidebarOpenIcon, XIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";

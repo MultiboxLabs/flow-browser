@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import type { Space } from "../../lib/flow/interfaces/sessions/spaces";
+import type { Space } from "~/flow/interfaces/sessions/spaces";
 import { hexToOKLCHString } from "@/lib/colors";
 import { hex_is_light } from "@/lib/utils";
 import { WindowType } from "@/components/browser-ui/main";

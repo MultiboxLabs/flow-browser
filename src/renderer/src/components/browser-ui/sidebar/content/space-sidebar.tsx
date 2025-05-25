@@ -4,7 +4,7 @@ import { SpaceTitle } from "@/components/browser-ui/sidebar/content/space-title"
 import { useTabs } from "@/components/providers/tabs-provider";
 import { Button } from "@/components/ui/button";
 import { SidebarGroup, SidebarMenu, useSidebar } from "@/components/ui/resizable-sidebar";
-import { Space } from "@/lib/flow/interfaces/sessions/spaces";
+import { Space } from "~/flow/interfaces/sessions/spaces";
 import { cn, hex_is_light } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useMemo, useRef } from "react";

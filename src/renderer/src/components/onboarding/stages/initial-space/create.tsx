@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
-import type { Profile } from "@/lib/flow/interfaces/sessions/profiles";
+import type { Profile } from "~/flow/interfaces/sessions/profiles";
 
 const DEFAULT_SPACE_NAME = "Personal";
 

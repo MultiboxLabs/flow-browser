@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Save, Settings, Trash2, PaintBucket, Check } from "lucide-react";
-import type { Space } from "@/lib/flow/interfaces/sessions/spaces";
+import type { Space } from "~/flow/interfaces/sessions/spaces";
 import { BasicSettingsTab, ThemeSettingsTab } from "./editor-tabs";
 import { DeleteConfirmDialog } from "./space-dialogs";
 import { motion, AnimatePresence } from "motion/react";
