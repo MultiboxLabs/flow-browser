@@ -11,6 +11,7 @@ import { settings } from "@/settings/main";
 import { onboarding } from "@/onboarding/main";
 import "@/modules/extensions/main";
 import { waitForElectronComponentsToBeReady } from "@/modules/electron-components";
+import { debugPrint } from "@/modules/output";
 
 /**
  * Main Browser controller that coordinates browser components
@@ -93,7 +94,7 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
     // Could fail, but we don't care
     const isReady = await waitForElectronComponentsToBeReady();
     if (!isReady) {
-      console.warn("WidevineCDM is not ready");
+      debugPrint("INITIALIZATION", "WidevineCDM is not ready");
     }
 
     // Create the window
