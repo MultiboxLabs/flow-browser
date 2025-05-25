@@ -1,10 +1,9 @@
 import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
-import { SidebarSide } from "../../main";
 
 const WINDOWS_CONTROL_BUTTON_CLASSES =
-  "h-8 w-9 flex items-center justify-center transition-colors duration-150";
+  "h-8 w-9 flex items-center justify-center transition-colors duration-150 rounded-sm";
 
 function WindowsClose() {
   return (
@@ -36,18 +35,13 @@ function WindowsMaximize() {
 
 function WindowsMinimize() {
   return (
-    <svg
-      width="10"
-      height="1"
-      viewBox="0 0 10 1"
-      className="fill-gray-700 dark:fill-gray-300"
-    >
+    <svg width="10" height="1" viewBox="0 0 10 1" className="fill-gray-700 dark:fill-gray-300">
       <rect width="10" height="1" />
     </svg>
   );
 }
 
-export function SidebarWindowControls({}: { side: SidebarSide }) {
+export function SidebarWindowControls() {
   const titlebarRef = useRef<HTMLDivElement>(null);
   const titlebarBounds = useBoundingRect(titlebarRef);
 
@@ -55,7 +49,7 @@ export function SidebarWindowControls({}: { side: SidebarSide }) {
     if (titlebarBounds) {
       flow.interface.setWindowButtonPosition({
         x: titlebarBounds.x,
-        y: titlebarBounds.y,
+        y: titlebarBounds.y
       });
     }
   }, [titlebarBounds]);
@@ -93,41 +87,37 @@ export function SidebarWindowControls({}: { side: SidebarSide }) {
           "justify-end"
         )}
       >
-        {/* Minimize Button */}
-        <button
-          onClick={handleMinimize}
-          className={cn(
-            WINDOWS_CONTROL_BUTTON_CLASSES,
-            "hover:bg-gray-200/20 dark:hover:bg-gray-600/20"
-          )}
-          title="Minimize"
-        >
-          <WindowsMinimize />
-        </button>
+        <div className="flex items-center gap-1">
+          {/* Minimize Button */}
+          <button
+            onClick={handleMinimize}
+            className={cn(WINDOWS_CONTROL_BUTTON_CLASSES, "hover:bg-gray-200/20 dark:hover:bg-gray-700/50")}
+            title="Minimize"
+          >
+            <WindowsMinimize />
+          </button>
 
-        {/* Maximize Button */}
-        <button
-          onClick={handleMaximize}
-          className={cn(
-            WINDOWS_CONTROL_BUTTON_CLASSES,
-            "hover:bg-gray-200/20 dark:hover:bg-gray-600/20"
-          )}
-          title="Maximize"
-        >
-          <WindowsMaximize />
-        </button>
+          {/* Maximize Button */}
+          <button
+            onClick={handleMaximize}
+            className={cn(WINDOWS_CONTROL_BUTTON_CLASSES, "hover:bg-gray-200/20 dark:hover:bg-gray-700/50")}
+            title="Maximize"
+          >
+            <WindowsMaximize />
+          </button>
 
-        {/* Close Button */}
-        <button
-          onClick={handleClose}
-          className={cn(
-            WINDOWS_CONTROL_BUTTON_CLASSES,
-            "hover:bg-red-500 dark:hover:bg-red-500 [&:hover_svg]:stroke-white"
-          )}
-          title="Close"
-        >
-          <WindowsClose />
-        </button>
+          {/* Close Button */}
+          <button
+            onClick={handleClose}
+            className={cn(
+              WINDOWS_CONTROL_BUTTON_CLASSES,
+              "hover:bg-red-500 dark:hover:bg-red-500 [&:hover_svg]:stroke-white"
+            )}
+            title="Close"
+          >
+            <WindowsClose />
+          </button>
+        </div>
       </div>
     </>
   );

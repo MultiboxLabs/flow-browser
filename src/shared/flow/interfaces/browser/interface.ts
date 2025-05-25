@@ -55,4 +55,19 @@ export interface FlowInterfaceAPI {
    * Resizes popup window to a specific size
    */
   resizeWindowTo: (width: number, height: number) => void;
+
+  /**
+   * Minimizes the window
+   */
+  minimizeWindow: () => void;
+
+  /**
+   * Maximizes the window
+   */
+  maximizeWindow: () => void;
+
+  /**
+   * Closes the window
+   */
+  closeWindow: () => void;
 }

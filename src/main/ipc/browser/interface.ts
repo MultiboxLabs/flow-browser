@@ -61,3 +61,25 @@ ipcMain.on("interface:resize-window-to", (event, width: number, height: number) 
     resizeWindowTo(win.window, width, height);
   }
 });
+
+// Window Controls
+ipcMain.on("interface:minimize-window", (event) => {
+  const win = browser?.getWindowFromWebContents(event.sender);
+  if (win) {
+    win.window.minimize();
+  }
+});
+
+ipcMain.on("interface:maximize-window", (event) => {
+  const win = browser?.getWindowFromWebContents(event.sender);
+  if (win) {
+    win.window.maximize();
+  }
+});
+
+ipcMain.on("interface:close-window", (event) => {
+  const win = browser?.getWindowFromWebContents(event.sender);
+  if (win) {
+    win.window.close();
+  }
+});

@@ -321,6 +321,15 @@ const interfaceAPI: FlowInterfaceAPI = {
   },
   resizeWindowTo: async (width: number, height: number) => {
     return ipcRenderer.send("interface:resize-window-to", width, height);
+  },
+  minimizeWindow: () => {
+    return ipcRenderer.send("interface:minimize-window");
+  },
+  maximizeWindow: () => {
+    return ipcRenderer.send("interface:maximize-window");
+  },
+  closeWindow: () => {
+    return ipcRenderer.send("interface:close-window");
   }
 };
 
