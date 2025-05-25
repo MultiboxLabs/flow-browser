@@ -210,7 +210,8 @@ export function OmniboxMain() {
             "border-[#e0e0e0] dark:border-[#383838]",
             "bg-white/80 dark:bg-[#1c1c1c]/80",
             "transition-all duration-150",
-            "flex flex-col h-screen"
+            "flex flex-col",
+            matches.length > 0 ? "h-screen" : "max-h-screen"
           )}
           loop
           value={selectedValue}
