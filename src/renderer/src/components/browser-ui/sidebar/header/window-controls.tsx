@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
 const WINDOWS_CONTROL_BUTTON_CLASSES =
-  "h-8 w-9 flex items-center justify-center transition-colors duration-150 rounded-sm";
+  "h-8 w-9 flex items-center justify-center transition-colors duration-150 rounded-sm remove-app-drag";
 
 function WindowsClose() {
   return (
@@ -129,7 +129,7 @@ export function SidebarWindowControls() {
           "flex items-center",
           "platform-darwin:mb-2 platform-darwin:mt-0.5 platform-darwin:mx-1",
           "platform-win32:h-6 platform-linux:h-6",
-          "justify-end"
+          "justify-end app-drag"
         )}
       >
         {/* Windows Window Controls */}
