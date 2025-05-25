@@ -24,7 +24,7 @@ type BrowserWindowEvents = {
   "enter-full-screen": [];
   "leave-full-screen": [];
   destroy: [];
-};
+}; 
 
 export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> {
   id: number;
@@ -50,7 +50,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       minHeight: type === "normal" ? 400 : 200,
       width: 1280,
       height: 720,
-      titleBarStyle: "hidden",
+      titleBarStyle: process.platform === "darwin" ? "hidden" : undefined,
       titleBarOverlay: {
         height: 30,
         symbolColor: nativeTheme.shouldUseDarkColors ? "white" : "black",

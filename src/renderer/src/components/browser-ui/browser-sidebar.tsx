@@ -117,10 +117,10 @@ function SidebarFooterContent() {
 }
 
 // Component for the sidebar header content
-function SidebarHeaderContent({ open, themeClasses }: { open: boolean; themeClasses: string }) {
+function SidebarHeaderContent({ open, themeClasses, side }: { open: boolean; themeClasses: string, side: SidebarSide }) {
   return (
     <SidebarHeader className={cn(themeClasses, "pb-0 gap-0")}>
-      {open && <SidebarWindowControls />}
+      {open && <SidebarWindowControls side={side} />}
       <NavigationControls />
       <SidebarAddressBar />
     </SidebarHeader>
@@ -158,7 +158,7 @@ function SidebarContent({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <SidebarHeaderContent open={open} themeClasses={themeClasses} />
+      <SidebarHeaderContent open={open} themeClasses={themeClasses} side={side} />
       <ScrollableSidebarContent />
       <SidebarFooter className={themeClasses}>{open && <SidebarFooterContent />}</SidebarFooter>
       <SidebarRail className={railClassNames} isRightSide={side === "right"} />

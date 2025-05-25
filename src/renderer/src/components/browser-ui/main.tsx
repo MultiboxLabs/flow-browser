@@ -86,7 +86,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
         <SidebarInset className="bg-transparent">
           <div
             className={cn(
-              "dark flex-1 flex p-2 platform-win32:pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))] app-drag",
+              "dark flex-1 flex p-2 app-drag",
               (open || (!open && sidebarCollapseMode === "icon")) &&
                 hasSidebar &&
                 variant === "sidebar" &&
