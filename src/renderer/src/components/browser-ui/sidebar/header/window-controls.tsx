@@ -1,6 +1,6 @@
 import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { cn } from "@/lib/utils";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const WINDOWS_CONTROL_BUTTON_CLASSES =
   "h-8 w-9 flex items-center justify-center transition-colors duration-150 rounded-sm";
@@ -19,7 +19,24 @@ function WindowsClose() {
   );
 }
 
-function WindowsMaximize() {
+function WindowsMaximize({ isMaximized }: { isMaximized: boolean }) {
+  if (isMaximized) {
+    // Restore/unmaximize icon - two overlapping rectangles
+    return (
+      <svg
+        width="10"
+        height="10"
+        viewBox="0 0 10 10"
+        className="fill-none stroke-gray-700 dark:stroke-gray-300"
+        strokeWidth="1"
+      >
+        <rect x="2" y="0.5" width="7.5" height="7.5" />
+        <rect x="0.5" y="2" width="7.5" height="7.5" />
+      </svg>
+    );
+  }
+
+  // Maximize icon - single rectangle
   return (
     <svg
       width="10"
@@ -44,6 +61,25 @@ function WindowsMinimize() {
 export function SidebarWindowControls() {
   const titlebarRef = useRef<HTMLDivElement>(null);
   const titlebarBounds = useBoundingRect(titlebarRef);
+
+  const [isMaximized, setIsMaximized] = useState(false);
+
+  useEffect(() => {
+    let updated = false;
+    flow.interface.isWindowMaximized().then((isMaximized) => {
+      if (!updated) {
+        setIsMaximized(isMaximized);
+      }
+    });
+
+    const removeListener = flow.interface.onWindowMaximizedChanged((isMaximized) => {
+      setIsMaximized(isMaximized);
+      updated = true;
+    });
+    return () => {
+      removeListener();
+    };
+  }, []);
 
   useEffect(() => {
     if (titlebarBounds) {
@@ -103,7 +139,7 @@ export function SidebarWindowControls() {
             className={cn(WINDOWS_CONTROL_BUTTON_CLASSES, "hover:bg-gray-200/20 dark:hover:bg-gray-700/50")}
             title="Maximize"
           >
-            <WindowsMaximize />
+            <WindowsMaximize isMaximized={isMaximized} />
           </button>
 
           {/* Close Button */}

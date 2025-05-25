@@ -70,4 +70,14 @@ export interface FlowInterfaceAPI {
    * Closes the window
    */
   closeWindow: () => void;
+
+  /**
+   * Checks if the window is maximized
+   */
+  isWindowMaximized: () => Promise<boolean>;
+
+  /**
+   * Adds a callback to be called when the window is maximized
+   */
+  onWindowMaximizedChanged: IPCListener<[boolean]>;
 }

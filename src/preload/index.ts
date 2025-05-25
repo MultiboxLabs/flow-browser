@@ -308,6 +308,22 @@ const interfaceAPI: FlowInterfaceAPI = {
     return ipcRenderer.send("interface:set-component-window-visible", componentId, visible);
   },
 
+  minimizeWindow: () => {
+    return ipcRenderer.send("interface:minimize-window");
+  },
+  maximizeWindow: () => {
+    return ipcRenderer.send("interface:maximize-window");
+  },
+  closeWindow: () => {
+    return ipcRenderer.send("interface:close-window");
+  },
+  isWindowMaximized: () => {
+    return ipcRenderer.invoke("interface:is-window-maximized");
+  },
+  onWindowMaximizedChanged: (callback: (isMaximized: boolean) => void) => {
+    return listenOnIPCChannel("interface:window-maximize-changed", callback);
+  },
+
   // Special Exception: These are allowed on every tab, but very tightly secured.
   // They will only work in popup windows.
   moveWindowBy: async (x: number, y: number) => {
@@ -321,15 +337,6 @@ const interfaceAPI: FlowInterfaceAPI = {
   },
   resizeWindowTo: async (width: number, height: number) => {
     return ipcRenderer.send("interface:resize-window-to", width, height);
-  },
-  minimizeWindow: () => {
-    return ipcRenderer.send("interface:minimize-window");
-  },
-  maximizeWindow: () => {
-    return ipcRenderer.send("interface:maximize-window");
-  },
-  closeWindow: () => {
-    return ipcRenderer.send("interface:close-window");
   }
 };
 

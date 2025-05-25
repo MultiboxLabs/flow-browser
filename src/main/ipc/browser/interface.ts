@@ -1,5 +1,6 @@
 import { TabbedBrowserWindow } from "@/browser/window";
 import { browser } from "@/index";
+import { sendMessageToListenersInWindow } from "@/ipc/listeners-manager";
 import { BrowserWindow } from "electron";
 import { ipcMain } from "electron";
 
@@ -73,8 +74,20 @@ ipcMain.on("interface:minimize-window", (event) => {
 ipcMain.on("interface:maximize-window", (event) => {
   const win = browser?.getWindowFromWebContents(event.sender);
   if (win) {
-    win.window.maximize();
+    if (win.window.isMaximized()) {
+      win.window.unmaximize();
+    } else {
+      win.window.maximize();
+    }
   }
+});
+
+ipcMain.handle("interface:is-window-maximized", (event) => {
+  const win = browser?.getWindowFromWebContents(event.sender);
+  if (win) {
+    return win.window.isMaximized();
+  }
+  return false;
 });
 
 ipcMain.on("interface:close-window", (event) => {
@@ -83,3 +96,8 @@ ipcMain.on("interface:close-window", (event) => {
     win.window.close();
   }
 });
+
+export function fireWindowMaximizedChanged(win: TabbedBrowserWindow) {
+  const isMaximized = win.window.isMaximized();
+  sendMessageToListenersInWindow(win, "interface:window-maximize-changed", isMaximized);
+}
