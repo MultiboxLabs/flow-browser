@@ -20,7 +20,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
 
     steps:
       - name: Check out Git repository
@@ -35,14 +35,18 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Use Stock Electron (Ubuntu ARM only)
+        if: matrix.os == 'ubuntu-24.04-arm'
+        run: bun run use-stock-electron
+
       - name: Install Build Dependencies (Ubuntu only)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm'
         run: |
           sudo apt-get update
           sudo apt-get install -y flatpak-builder elfutils dpkg fakeroot
 
       - name: Setup Flatpak (Ubuntu only)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm'
         run: |
           flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
@@ -71,7 +75,7 @@ jobs:
           PASSWD: ${{ secrets.CASTLABS_EVS_PASSWORD }}
 
       - name: Build for Linux
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm'
         run: bun run build:linux -p always
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
