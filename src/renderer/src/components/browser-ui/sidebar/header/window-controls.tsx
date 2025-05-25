@@ -128,12 +128,12 @@ export function SidebarWindowControls() {
           isFullscreen && "platform-darwin:hidden",
           "flex items-center",
           "platform-darwin:mb-2 platform-darwin:mt-0.5 platform-darwin:mx-1",
-          "platform-win32:h-6",
+          "platform-win32:h-6 platform-linux:h-6",
           "justify-end"
         )}
       >
         {/* Windows Window Controls */}
-        <div className="hidden platform-win32:flex items-center gap-1">
+        <div className="hidden platform-win32:flex platform-linux:flex items-center gap-1">
           {/* Minimize Button */}
           <button
             onClick={handleMinimize}
