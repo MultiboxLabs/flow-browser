@@ -77,7 +77,6 @@ export function SidebarWindowControls() {
     });
 
     const removeListener = flow.interface.onWindowStateChanged((state) => {
-      console.log(state);
       setIsMaximized(state.isMaximized);
       setIsFullscreen(state.isFullscreen);
       updated = true;
@@ -116,8 +115,6 @@ export function SidebarWindowControls() {
   const handleClose = () => {
     flow.interface.closeWindow();
   };
-
-  console.log(isFullscreen);
 
   return (
     <>
