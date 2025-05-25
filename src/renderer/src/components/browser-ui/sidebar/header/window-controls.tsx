@@ -122,11 +122,11 @@ export function SidebarWindowControls() {
         ref={titlebarRef}
         className={cn(
           "h-2 w-full",
-          isFullscreen && "platform-darwin:hidden",
           "flex items-center",
           "platform-darwin:mb-2 platform-darwin:mt-0.5 platform-darwin:mx-1",
           "platform-win32:h-6 platform-linux:h-6",
-          "justify-end app-drag"
+          "justify-end app-drag",
+          isFullscreen && "hidden"
         )}
       >
         {/* Windows & Linux Window Controls */}
