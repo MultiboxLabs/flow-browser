@@ -64,6 +64,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y flatpak-builder elfutils dpkg fakeroot
 
+      - name: Install Additional Build Dependencies (Ubuntu ARM only)
+        if: matrix.os == 'ubuntu-24.04-arm'
+        run: |
+          sudo apt-get install -y ruby ruby-dev
+          sudo gem install --no-document fpm
+
       - name: Setup Flatpak (Ubuntu only)
         if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm'
         run: |
@@ -98,6 +104,8 @@ jobs:
       - name: Build for Linux
         if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm'
         run: bun run build:linux -p never
+        env:
+          USE_SYSTEM_FPM: ${{ matrix.os == 'ubuntu-24.04-arm' }}
 
       - name: Build for macOS
         if: matrix.os == 'macos-latest'
