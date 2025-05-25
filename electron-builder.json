@@ -78,7 +78,8 @@
   "linux": {
     "target": ["AppImage", "deb", "flatpak"],
     "category": "Network;WebBrowser;",
-    "executableArgs": ["--ozone-platform-hint=auto"]
+    "executableArgs": ["--ozone-platform-hint=auto"],
+    "icon": "build/icon.png"
   },
   "appImage": {
     "artifactName": "${name}-${version}-${arch}.${ext}"
