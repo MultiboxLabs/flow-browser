@@ -1,4 +1,4 @@
-import { IPCListener, PageBounds } from "~/flow/types";
+import { IPCListener, PageBounds, WindowState } from "~/flow/types";
 
 // API //
 export interface FlowInterfaceAPI {
@@ -72,12 +72,12 @@ export interface FlowInterfaceAPI {
   closeWindow: () => void;
 
   /**
-   * Checks if the window is maximized
+   * Gets the state of the window
    */
-  isWindowMaximized: () => Promise<boolean>;
+  getWindowState: () => Promise<WindowState>;
 
   /**
-   * Adds a callback to be called when the window is maximized
+   * Adds a callback to be called when the window state changes
    */
-  onWindowMaximizedChanged: IPCListener<[boolean]>;
+  onWindowStateChanged: IPCListener<[WindowState]>;
 }

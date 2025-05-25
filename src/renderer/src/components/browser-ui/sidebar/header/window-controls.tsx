@@ -21,7 +21,7 @@ function WindowsClose() {
 
 function WindowsMaximize({ isMaximized }: { isMaximized: boolean }) {
   if (isMaximized) {
-    // Restore/unmaximize icon - two overlapping rectangles
+    // Restore/unmaximize icon - two rectangles without overlap
     return (
       <svg
         width="10"
@@ -30,7 +30,9 @@ function WindowsMaximize({ isMaximized }: { isMaximized: boolean }) {
         className="fill-none stroke-gray-700 dark:stroke-gray-300"
         strokeWidth="1"
       >
-        <rect x="2" y="0.5" width="7.5" height="7.5" />
+        {/* Back rectangle - only top and right lines */}
+        <path d="M2 0.5 L9.5 0.5 M9.5 0.5 L9.5 8" />
+        {/* Front rectangle */}
         <rect x="0.5" y="2" width="7.5" height="7.5" />
       </svg>
     );
@@ -63,17 +65,21 @@ export function SidebarWindowControls() {
   const titlebarBounds = useBoundingRect(titlebarRef);
 
   const [isMaximized, setIsMaximized] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     let updated = false;
-    flow.interface.isWindowMaximized().then((isMaximized) => {
+    flow.interface.getWindowState().then((state) => {
       if (!updated) {
-        setIsMaximized(isMaximized);
+        setIsMaximized(state.isMaximized);
+        setIsFullscreen(state.isFullscreen);
       }
     });
 
-    const removeListener = flow.interface.onWindowMaximizedChanged((isMaximized) => {
-      setIsMaximized(isMaximized);
+    const removeListener = flow.interface.onWindowStateChanged((state) => {
+      console.log(state);
+      setIsMaximized(state.isMaximized);
+      setIsFullscreen(state.isFullscreen);
       updated = true;
     });
     return () => {
@@ -111,19 +117,23 @@ export function SidebarWindowControls() {
     flow.interface.closeWindow();
   };
 
+  console.log(isFullscreen);
+
   return (
     <>
       <div
         ref={titlebarRef}
         className={cn(
-          "h-8 w-full",
+          "h-2 w-full",
+          isFullscreen && "platform-darwin:hidden",
           "flex items-center",
           "platform-darwin:mb-2 platform-darwin:mt-0.5 platform-darwin:mx-1",
           "platform-win32:h-6",
           "justify-end"
         )}
       >
-        <div className="flex items-center gap-1">
+        {/* Windows Window Controls */}
+        <div className="hidden platform-win32:flex items-center gap-1">
           {/* Minimize Button */}
           <button
             onClick={handleMinimize}

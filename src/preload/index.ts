@@ -13,6 +13,7 @@ import type { SpaceData } from "@/sessions/spaces";
 import type { SharedExtensionData } from "~/types/extensions";
 import type { WindowTabsData } from "~/types/tabs";
 import type { UpdateStatus } from "~/types/updates";
+import type { WindowState } from "~/flow/types";
 
 // API TYPES //
 import { FlowBrowserAPI } from "~/flow/interfaces/browser/browser";
@@ -317,11 +318,12 @@ const interfaceAPI: FlowInterfaceAPI = {
   closeWindow: () => {
     return ipcRenderer.send("interface:close-window");
   },
-  isWindowMaximized: () => {
-    return ipcRenderer.invoke("interface:is-window-maximized");
+
+  getWindowState: () => {
+    return ipcRenderer.invoke("interface:get-window-state");
   },
-  onWindowMaximizedChanged: (callback: (isMaximized: boolean) => void) => {
-    return listenOnIPCChannel("interface:window-maximize-changed", callback);
+  onWindowStateChanged: (callback: (state: WindowState) => void) => {
+    return listenOnIPCChannel("interface:window-state-changed", callback);
   },
 
   // Special Exception: These are allowed on every tab, but very tightly secured.

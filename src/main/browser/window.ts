@@ -11,7 +11,7 @@ import { WindowEventType } from "@/modules/windows";
 import { windowEvents } from "@/modules/windows";
 import { initializePortalComponentWindows } from "@/browser/components/portal-component-windows";
 import { defaultSessionReady } from "@/browser/sessions";
-import { fireWindowMaximizedChanged } from "@/ipc/browser/interface";
+import { fireWindowStateChanged } from "@/ipc/browser/interface";
 
 type BrowserWindowType = "normal" | "popup";
 
@@ -90,18 +90,20 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     this.window.on("enter-full-screen", () => {
       this.emit("enter-full-screen");
       this._updateWindowButtonVisibility();
+      fireWindowStateChanged(this);
     });
 
     this.window.on("leave-full-screen", () => {
       this.emit("leave-full-screen");
       this._updateWindowButtonVisibility();
+      fireWindowStateChanged(this);
     });
 
     this.window.on("maximize", () => {
-      fireWindowMaximizedChanged(this);
+      fireWindowStateChanged(this);
     });
     this.window.on("unmaximize", () => {
-      fireWindowMaximizedChanged(this);
+      fireWindowStateChanged(this);
     });
 
     // Focus on the focused tab

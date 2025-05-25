@@ -82,14 +82,6 @@ ipcMain.on("interface:maximize-window", (event) => {
   }
 });
 
-ipcMain.handle("interface:is-window-maximized", (event) => {
-  const win = browser?.getWindowFromWebContents(event.sender);
-  if (win) {
-    return win.window.isMaximized();
-  }
-  return false;
-});
-
 ipcMain.on("interface:close-window", (event) => {
   const win = browser?.getWindowFromWebContents(event.sender);
   if (win) {
@@ -97,7 +89,21 @@ ipcMain.on("interface:close-window", (event) => {
   }
 });
 
-export function fireWindowMaximizedChanged(win: TabbedBrowserWindow) {
-  const isMaximized = win.window.isMaximized();
-  sendMessageToListenersInWindow(win, "interface:window-maximize-changed", isMaximized);
+function getWindowState(win: TabbedBrowserWindow) {
+  return {
+    isMaximized: win.window.isMaximized(),
+    isFullscreen: win.window.isFullScreen()
+  };
+}
+
+ipcMain.handle("interface:get-window-state", (event) => {
+  const win = browser?.getWindowFromWebContents(event.sender);
+  if (win) {
+    return getWindowState(win);
+  }
+  return false;
+});
+
+export function fireWindowStateChanged(win: TabbedBrowserWindow) {
+  sendMessageToListenersInWindow(win, "interface:window-state-changed", getWindowState(win));
 }
