@@ -81,10 +81,10 @@
     "executableArgs": ["--ozone-platform-hint=auto"]
   },
   "appImage": {
-    "artifactName": "${name}-${version}.${ext}"
+    "artifactName": "${name}-${version}-${arch}.${ext}"
   },
   "flatpak": {
-    "artifactName": "${name}-${version}.${ext}"
+    "artifactName": "${name}-${version}-${arch}.${ext}"
   },
   "npmRebuild": false,
   "publish": {
