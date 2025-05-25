@@ -67,6 +67,8 @@ jobs:
 
       - name: Install Dependencies
         run: bun install --development --frozen-lockfile
+        env:
+          SHARP_IGNORE_GLOBAL_LIBVIPS: 1
 
       - name: Install Castlabs EVS
         if: matrix.os == 'macos-latest' || matrix.os == 'windows-latest'
