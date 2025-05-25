@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
 const WINDOWS_CONTROL_BUTTON_CLASSES =
-  "h-8 w-9 flex items-center justify-center transition-colors duration-150 rounded-sm remove-app-drag";
+  "h-7 w-8 flex items-center justify-center transition-colors duration-150 rounded-sm remove-app-drag";
 
 function WindowsClose() {
   return (
@@ -129,7 +129,8 @@ export function SidebarWindowControls() {
           "justify-end app-drag"
         )}
       >
-        {/* Windows Window Controls */}
+        {/* Windows & Linux Window Controls */}
+        {/* Optimized for Windows, used for Linux until we make a custom design for it */}
         <div className="hidden platform-win32:flex platform-linux:flex items-center gap-1">
           {/* Minimize Button */}
           <button
