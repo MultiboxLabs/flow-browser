@@ -9,7 +9,9 @@
     "!**/.vscode/*",
     "!src/*",
     "!electron.vite.config.{js,ts,mjs,cjs}",
-    "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc,dev-app-update.yml,CHANGELOG.md,README.md}",
+    "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc,dev-app-update.yml}",
+    "!{CHANGELOG.md,README.md,CONTRIBUTING.md,docs/**}",
+    "!{scripts/**}",
     "!{.env,.env.*,.npmrc,bun.lock}",
     "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
   ],
