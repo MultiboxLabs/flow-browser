@@ -1,3 +1,4 @@
+import { Browser } from "@/browser/browser";
 import { LoadedProfile } from "@/browser/profile-manager";
 import {
   TabBoundsController,
@@ -11,11 +12,13 @@ import {
   TabContextMenuController,
   TabErrorPageController,
   TabNavigationController,
-  TabDataController
+  TabDataController,
+  TabSleepController
 } from "@/browser/tabs/tab/controllers";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { generateID } from "@/modules/utils";
 import { NavigationEntry } from "electron";
+import { PageBounds } from "~/flow/types";
 
 type TabEvents = {
   "window-changed": [];
@@ -23,11 +26,16 @@ type TabEvents = {
   "webview-attached": [];
   "webview-detached": [];
   "pip-active-changed": [boolean];
+  "bounds-changed": [PageBounds];
+  "visiblity-changed": [boolean];
+  "sleep-changed": [];
   "data-changed": [];
   destroyed: [];
 };
 
 interface TabCreationDetails {
+  browser: Browser;
+
   tabId?: string;
   loadedProfile: LoadedProfile;
   webContentsViewOptions: Electron.WebContentsViewConstructorOptions;
@@ -43,7 +51,10 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public readonly id: string;
   public readonly loadedProfile: LoadedProfile;
 
-  public creationDetails: TabCreationDetails;
+  public readonly browser: Browser;
+  public readonly profileId: string;
+
+  public readonly creationDetails: TabCreationDetails;
 
   public window: TabWindowController;
   public space: TabSpaceController;
@@ -51,14 +62,16 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public data: TabDataController;
   public state: TabStateController;
 
-  public webview: TabWebviewController;
-  public pip: TabPipController;
   public bounds: TabBoundsController;
   public visiblity: TabVisiblityController;
+
+  public webview: TabWebviewController;
+  public pip: TabPipController;
   public saving: TabSavingController;
   public contextMenu: TabContextMenuController;
   public errorPage: TabErrorPageController;
   public navigation: TabNavigationController;
+  public sleep: TabSleepController;
 
   constructor(details: TabCreationDetails) {
     super();
@@ -67,20 +80,25 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.loadedProfile = details.loadedProfile;
     this.creationDetails = details;
 
+    this.browser = details.browser;
+    this.profileId = details.loadedProfile.profileId;
+
     this.window = new TabWindowController(this);
     this.space = new TabSpaceController(this);
 
     this.data = new TabDataController(this);
     this.state = new TabStateController(this);
 
-    this.webview = new TabWebviewController(this);
-    this.pip = new TabPipController(this);
     this.bounds = new TabBoundsController(this);
     this.visiblity = new TabVisiblityController(this);
+
+    this.webview = new TabWebviewController(this);
+    this.pip = new TabPipController(this);
     this.saving = new TabSavingController(this);
     this.contextMenu = new TabContextMenuController(this);
     this.errorPage = new TabErrorPageController(this);
     this.navigation = new TabNavigationController(this);
+    this.sleep = new TabSleepController(this);
   }
 
   public destroy() {

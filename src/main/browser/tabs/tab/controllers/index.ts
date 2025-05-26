@@ -10,6 +10,7 @@ import { TabContextMenuController } from "@/browser/tabs/tab/controllers/context
 import { TabErrorPageController } from "@/browser/tabs/tab/controllers/error-page";
 import { TabNavigationController } from "@/browser/tabs/tab/controllers/navigation";
 import { TabDataController } from "@/browser/tabs/tab/controllers/data";
+import { TabSleepController } from "@/browser/tabs/tab/controllers/sleep";
 
 export {
   TabBoundsController,
@@ -23,5 +24,6 @@ export {
   TabContextMenuController,
   TabErrorPageController,
   TabNavigationController,
-  TabDataController
+  TabDataController,
+  TabSleepController
 };

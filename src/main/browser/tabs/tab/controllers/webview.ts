@@ -53,6 +53,10 @@ export class TabWebviewController {
   }
 
   public attach() {
+    if (this.webContentsView) {
+      return false;
+    }
+
     const tab = this.tab;
     const creationDetails = tab.creationDetails;
 
@@ -63,6 +67,12 @@ export class TabWebviewController {
     tab.navigation.setupNavigation(this.webContents);
 
     tab.emit("webview-attached");
+
+    tab.window.updateWebviewWindow();
+    tab.bounds.updateWebviewBounds();
+    tab.visiblity.updateWebviewVisiblity();
+
+    return true;
   }
 
   public detach() {

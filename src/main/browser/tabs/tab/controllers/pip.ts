@@ -48,6 +48,24 @@ export class TabPipController {
 
   constructor(tab: Tab) {
     this.tab = tab;
+
+    // Reset the active state when the webview is attached or detached
+    tab.on("webview-attached", () => {
+      this.setActive(false);
+    });
+    tab.on("webview-detached", () => {
+      this.setActive(false);
+    });
+  }
+
+  private setActive(active: boolean) {
+    if (this.active === active) {
+      return false;
+    }
+
+    this.active = active;
+    this.tab.emit("pip-active-changed", active);
+    return true;
   }
 
   public async tryEnterPiP() {
@@ -69,8 +87,7 @@ export class TabPipController {
 
     const enteredPiP = await enteredPiPPromise;
     if (enteredPiP) {
-      this.active = true;
-      this.tab.emit("pip-active-changed", true);
+      this.setActive(true);
     }
 
     return enteredPiP;
@@ -93,8 +110,7 @@ export class TabPipController {
 
     const exitedPiP = await exitedPiPPromise;
     if (exitedPiP) {
-      this.active = false;
-      this.tab.emit("pip-active-changed", false);
+      this.setActive(false);
     }
 
     return exitedPiP;
