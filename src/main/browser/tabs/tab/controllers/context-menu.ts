@@ -29,13 +29,7 @@ interface MenuActions {
   [key: string]: MenuItemFunction | InspectFunction;
 }
 
-function createTabContextMenu(
-  browser: Browser,
-  tab: Tab,
-  profileId: string,
-  tabbedWindow: TabbedBrowserWindow,
-  spaceId: string
-) {
+function createTabContextMenu(browser: Browser, tab: Tab, profileId: string) {
   const webContents = tab.webview.webContents;
   if (!webContents) {
     return false;
@@ -52,7 +46,10 @@ function createTabContextMenu(
 
       // Helper function to create a new tab
       const createNewTab = async (url: string, window?: TabbedBrowserWindow) => {
-        const sourceTab = await browser.tabs.createTab(window ? window.id : tabbedWindow.id, profileId, spaceId);
+        const tabbedWindow = tab.window.get();
+        const spaceId = tab.space.get();
+
+        const sourceTab = await browser.tabs.createTab(window ? window.id : tabbedWindow?.id, profileId, spaceId, url);
         sourceTab.loadURL(url);
         browser.tabs.setActiveTab(sourceTab);
       };
@@ -297,7 +294,9 @@ export class TabContextMenuController {
     this.tab = tab;
 
     tab.on("webview-attached", () => {
-      createTabContextMenu();
+      const browser = tab.browser;
+      const profileId = tab.profileId;
+      createTabContextMenu(browser, tab, profileId);
     });
   }
 }

@@ -39,6 +39,6 @@ export class TabErrorPageController {
 
     // Load error page
     const replace = FLAGS.ERROR_PAGE_LOAD_MODE === "replace";
-    this.loadURL(errorPageURL.toString(), replace);
+    this.tab.navigation.loadUrl(errorPageURL.toString(), replace);
   }
 }
