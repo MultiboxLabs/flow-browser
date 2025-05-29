@@ -307,7 +307,7 @@ export class ExtensionManager extends TypedEventEmitter<{
       return null;
     }
 
-    const extension = await session.loadExtension(extensionPath);
+    const extension = await session.extensions.loadExtension(extensionPath);
     if (!extension) {
       return null;
     }
@@ -322,12 +322,12 @@ export class ExtensionManager extends TypedEventEmitter<{
    * @returns True if the extension was unloaded, false otherwise
    */
   private async unloadExtensionWithId(extensionId: string) {
-    const extension = this.profileSession.getExtension(extensionId);
+    const extension = this.profileSession.extensions.getExtension(extensionId);
     if (!extension) {
       return false;
     }
 
-    this.profileSession.removeExtension(extensionId);
+    this.profileSession.extensions.removeExtension(extensionId);
     return true;
   }
 
