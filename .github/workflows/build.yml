@@ -39,7 +39,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, macos-13, windows-latest]
 
     steps:
       - name: Check out Git repository
@@ -80,27 +80,6 @@ jobs:
         env:
           SHARP_IGNORE_GLOBAL_LIBVIPS: 1
 
-      - name: Install Castlabs EVS
-        if: matrix.os == 'macos-latest' || matrix.os == 'windows-latest'
-        run: python3 -m pip install --upgrade castlabs-evs --break-system-packages
-
-      - name: Login to Castlabs EVS (macOS)
-        if: matrix.os == 'macos-latest' && github.event_name != 'pull_request_target'
-        continue-on-error: true
-        run: python3 -m castlabs_evs.account --no-ask reauth -A $ACCOUNT_NAME -P $PASSWD
-        env:
-          ACCOUNT_NAME: ${{ secrets.CASTLABS_EVS_ACCOUNT_NAME }}
-          PASSWD: ${{ secrets.CASTLABS_EVS_PASSWORD }}
-
-      - name: Login to Castlabs EVS (Windows)
-        if: matrix.os == 'windows-latest' && github.event_name != 'pull_request_target'
-        continue-on-error: true
-        shell: cmd
-        run: python3 -m castlabs_evs.account --no-ask reauth -A "%ACCOUNT_NAME%" -P "%PASSWD%"
-        env:
-          ACCOUNT_NAME: ${{ secrets.CASTLABS_EVS_ACCOUNT_NAME }}
-          PASSWD: ${{ secrets.CASTLABS_EVS_PASSWORD }}
-
       - name: Build for Linux
         if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm'
         run: bun run build:linux -p never
@@ -108,7 +87,7 @@ jobs:
           USE_SYSTEM_FPM: ${{ matrix.os == 'ubuntu-24.04-arm' }}
 
       - name: Build for macOS
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-latest' || matrix.os == 'macos-13'
         run: bun run build:mac -p never
 
       - name: Build for Windows
@@ -147,6 +126,7 @@ jobs:
             - [Linux](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/ubuntu-latest.zip)
             - [Linux ARM](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/ubuntu-24.04-arm.zip)
             - [macOS](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/macos-latest.zip)
+            - [macOS (Intel)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/macos-13.zip)
             - [Windows](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/windows-latest.zip)
 
             _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
