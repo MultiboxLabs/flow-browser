@@ -50,11 +50,11 @@ interface TabCreationDetails {
 export class Tab extends TypedEventEmitter<TabEvents> {
   public readonly id: string;
   public readonly loadedProfile: LoadedProfile;
+  public readonly creationDetails: TabCreationDetails;
+  public destroyed: boolean;
 
   public readonly browser: Browser;
   public readonly profileId: string;
-
-  public readonly creationDetails: TabCreationDetails;
 
   public window: TabWindowController;
   public space: TabSpaceController;
@@ -79,6 +79,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.id = details.tabId ?? generateID();
     this.loadedProfile = details.loadedProfile;
     this.creationDetails = details;
+    this.destroyed = false;
 
     this.browser = details.browser;
     this.profileId = details.loadedProfile.profileId;
@@ -102,6 +103,18 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   }
 
   public destroy() {
+    if (this.destroyed) {
+      throw new Error("Tab already destroyed");
+    }
+
+    this.destroyed = true;
+    this.webview.detach();
     this.emit("destroyed");
+  }
+
+  public throwIfDestroyed() {
+    if (this.destroyed) {
+      throw new Error("Tab already destroyed");
+    }
   }
 }
