@@ -53,6 +53,8 @@ export class TabWebviewController {
   }
 
   public attach() {
+    this.tab.throwIfDestroyed();
+
     if (this.webContentsView) {
       return false;
     }
