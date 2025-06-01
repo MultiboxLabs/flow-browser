@@ -170,15 +170,17 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
           <div className={cn("flex flex-row items-center gap-0.5", open && "flex-shrink-0")}>
             {/* Close tab button */}
             {isHovered && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleCloseTab}
-                className="size-5 bg-transparent rounded-sm hover:bg-black/10 dark:hover:bg-white/10"
-                onMouseDown={(event) => event.stopPropagation()}
-              >
-                <XIcon className="size-4 text-muted-foreground dark:text-white" />
-              </Button>
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCloseTab}
+                  className="size-5 bg-transparent rounded-sm hover:bg-black/10 dark:hover:bg-white/10"
+                  onMouseDown={(event) => event.stopPropagation()}
+                >
+                  <XIcon className="size-4 text-muted-foreground dark:text-white" />
+                </Button>
+              </motion.div>
             )}
           </div>
         </>
