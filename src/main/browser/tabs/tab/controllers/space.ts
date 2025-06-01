@@ -2,10 +2,13 @@ import { Tab } from "@/browser/tabs/tab";
 
 export class TabSpaceController {
   private readonly tab: Tab;
-  private spaceId: string | null = null;
+  private spaceId: string;
 
   constructor(tab: Tab) {
     this.tab = tab;
+
+    const creationDetails = tab.creationDetails;
+    this.spaceId = creationDetails.spaceId;
   }
 
   public get() {

@@ -15,6 +15,7 @@ import {
   TabDataController,
   TabSleepController
 } from "@/browser/tabs/tab/controllers";
+import { TabbedBrowserWindow } from "@/browser/window";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { generateID } from "@/modules/utils";
 import { NavigationEntry } from "electron";
@@ -33,8 +34,11 @@ type TabEvents = {
   destroyed: [];
 };
 
-interface TabCreationDetails {
+export interface TabCreationDetails {
   browser: Browser;
+
+  window: TabbedBrowserWindow;
+  spaceId: string;
 
   tabId?: string;
   loadedProfile: LoadedProfile;
