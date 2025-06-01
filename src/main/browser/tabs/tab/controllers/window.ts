@@ -5,12 +5,15 @@ const TAB_ZINDEX = 2;
 
 export class TabWindowController {
   private readonly tab: Tab;
-  private window: TabbedBrowserWindow | null = null;
+  private window: TabbedBrowserWindow;
 
   private oldWindow: TabbedBrowserWindow | null = null;
 
   constructor(tab: Tab) {
     this.tab = tab;
+
+    const creationDetails = tab.creationDetails;
+    this.window = creationDetails.window;
   }
 
   public get() {
