@@ -1,4 +1,3 @@
-import { ThemeProvider } from "@/components/main/theme";
 import { SettingsLayout } from "@/components/settings/settings-layout";
 
 function Page() {
@@ -6,11 +5,7 @@ function Page() {
 }
 
 function App() {
-  return (
-    <ThemeProvider>
-      <Page />
-    </ThemeProvider>
-  );
+  return <Page />;
 }
 
 export default App;

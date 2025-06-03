@@ -1,6 +1,7 @@
 import { MenuItemConstructorOptions } from "electron";
 import { settings } from "@/settings/main";
 import { isDefaultBrowser, setDefaultBrowser } from "@/modules/default-browser";
+import { getCurrentShortcut } from "@/modules/shortcuts";
 
 export const createAppMenu = (): MenuItemConstructorOptions => ({
   role: "appMenu",
@@ -9,6 +10,7 @@ export const createAppMenu = (): MenuItemConstructorOptions => ({
     { type: "separator" },
     {
       label: "Settings",
+      accelerator: getCurrentShortcut("browser.openSettings"),
       click: () => {
         settings.show();
       }

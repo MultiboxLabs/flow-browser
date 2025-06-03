@@ -17,6 +17,7 @@ async function createSettingsWindow() {
     center: true,
     show: false,
     frame: false,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "black" : "white",
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "hidden",
     titleBarOverlay: {
       height: 40,
