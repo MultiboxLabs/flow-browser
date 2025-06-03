@@ -49,7 +49,7 @@ export class TabDataController {
     return changed;
   }
 
-  public getData() {
+  public get() {
     return {
       window: this.window,
       space: this.space,

@@ -66,6 +66,10 @@ export class TabWebviewController {
     this.webContentsView = webContentsView;
     this.webContents = webContentsView.webContents;
 
+    this.webContents.on("focus", () => {
+      tab.emit("focused");
+    });
+
     tab.navigation.setupNavigation(this.webContents);
 
     tab.emit("webview-attached");
