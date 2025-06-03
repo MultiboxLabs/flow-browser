@@ -5,7 +5,6 @@ import {
   TabPipController,
   TabSavingController,
   TabSpaceController,
-  TabStateController,
   TabVisiblityController,
   TabWebviewController,
   TabWindowController,
@@ -31,6 +30,9 @@ type TabEvents = {
   "visiblity-changed": [boolean];
   "sleep-changed": [];
   "data-changed": [];
+
+  focused: [];
+
   destroyed: [];
 };
 
@@ -60,22 +62,21 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public readonly browser: Browser;
   public readonly profileId: string;
 
-  public window: TabWindowController;
-  public space: TabSpaceController;
+  public readonly window: TabWindowController;
+  public readonly space: TabSpaceController;
 
-  public data: TabDataController;
-  public state: TabStateController;
+  public readonly data: TabDataController;
 
-  public bounds: TabBoundsController;
-  public visiblity: TabVisiblityController;
+  public readonly bounds: TabBoundsController;
+  public readonly visiblity: TabVisiblityController;
 
-  public webview: TabWebviewController;
-  public pip: TabPipController;
-  public saving: TabSavingController;
-  public contextMenu: TabContextMenuController;
-  public errorPage: TabErrorPageController;
-  public navigation: TabNavigationController;
-  public sleep: TabSleepController;
+  public readonly webview: TabWebviewController;
+  public readonly pip: TabPipController;
+  public readonly saving: TabSavingController;
+  public readonly contextMenu: TabContextMenuController;
+  public readonly errorPage: TabErrorPageController;
+  public readonly navigation: TabNavigationController;
+  public readonly sleep: TabSleepController;
 
   constructor(details: TabCreationDetails) {
     super();
@@ -92,7 +93,6 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.space = new TabSpaceController(this);
 
     this.data = new TabDataController(this);
-    this.state = new TabStateController(this);
 
     this.bounds = new TabBoundsController(this);
     this.visiblity = new TabVisiblityController(this);
@@ -107,13 +107,13 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   }
 
   public destroy() {
-    if (this.destroyed) {
-      throw new Error("Tab already destroyed");
-    }
+    this.throwIfDestroyed();
 
     this.destroyed = true;
     this.webview.detach();
     this.emit("destroyed");
+
+    this.destroyEmitter();
   }
 
   public throwIfDestroyed() {

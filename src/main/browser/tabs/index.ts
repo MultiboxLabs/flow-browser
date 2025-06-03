@@ -1,7 +1,7 @@
 import { Browser } from "@/browser/browser";
 import { TabManager } from "@/browser/tabs/tab-manager";
 
-export class TabsOrchestrator {
+export class TabOrchestrator {
   private readonly browser: Browser;
   public readonly tabManager: TabManager;
 
