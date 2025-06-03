@@ -19,11 +19,11 @@ concurrency:
 jobs:
   # Runs before the build starts
   # Cannot find a way to do this yet without compromising security
-  before-build:
+  before-build-comment:
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - name: Comment PR with build status
-        if: github.event_name == 'pull_request'
         continue-on-error: true
         uses: thollander/actions-comment-pull-request@v3
         with:
@@ -111,14 +111,14 @@ jobs:
             dist/*.flatpak
 
   # Runs after all builds complete
-  after-build:
+  after-build-comment:
     needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    continue-on-error: true
     steps:
       - name: Comment PR with artifact links
         uses: thollander/actions-comment-pull-request@v3
+        continue-on-error: true
         with:
           message: |
             ### Build artifacts for all platforms are ready! 🚀
