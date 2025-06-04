@@ -1,4 +1,3 @@
-import { ThemeProvider } from "@/components/main/theme";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
@@ -141,10 +140,10 @@ function Page() {
 
 function App() {
   return (
-    <ThemeProvider forceTheme="dark">
+    <>
       <title>Flow Games</title>
       <Page />
-    </ThemeProvider>
+    </>
   );
 }
 export default App;

@@ -1,4 +1,3 @@
-import { ThemeProvider } from "@/components/main/theme";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
@@ -186,12 +185,12 @@ function ExtensionsPage() {
 
 function App() {
   return (
-    <ThemeProvider forceTheme="dark">
+    <>
       <title>Extensions</title>
       <ExtensionsProvider>
         <ExtensionsPage />
       </ExtensionsProvider>
-    </ThemeProvider>
+    </>
   );
 }
 

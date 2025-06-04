@@ -1,4 +1,3 @@
-import { ThemeProvider } from "@/components/main/theme";
 import { NewTabPage } from "@/components/new-tab/main";
 
 function Page() {
@@ -7,10 +6,10 @@ function Page() {
 
 function App() {
   return (
-    <ThemeProvider persist>
+    <>
       <title>New Tab</title>
       <Page />
-    </ThemeProvider>
+    </>
   );
 }
 

@@ -1,14 +1,14 @@
-import { ReactNode, useEffect, useState } from "react";
+import { lazy, Suspense } from "react";
+import { RouteProviders } from "./config";
+
+const PageComponent = lazy(() => import("./page"));
 
 export default function Route() {
-  const [Page, setPage] = useState<ReactNode>(null);
-
-  useEffect(() => {
-    import("./page").then((module) => {
-      const Page = module.default;
-      setPage(<Page />);
-    });
-  }, []);
-
-  return Page;
+  return (
+    <RouteProviders>
+      <Suspense>
+        <PageComponent />
+      </Suspense>
+    </RouteProviders>
+  );
 }

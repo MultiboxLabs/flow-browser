@@ -1,4 +1,3 @@
-import { ThemeProvider } from "@/components/main/theme";
 import { FrownIcon, RefreshCwIcon, ArrowLeftIcon, Gamepad2Icon } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect } from "react";
@@ -152,12 +151,4 @@ function Page() {
   );
 }
 
-function App() {
-  return (
-    <ThemeProvider>
-      <Page />
-    </ThemeProvider>
-  );
-}
-
-export default App;
+export default Page;

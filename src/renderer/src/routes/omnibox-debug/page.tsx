@@ -1,4 +1,3 @@
-import { ThemeProvider } from "@/components/main/theme";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Input } from "@/components/ui/input";
@@ -433,12 +432,12 @@ function Page() {
 
 function App() {
   return (
-    <ThemeProvider>
+    <>
       <title>Omnibox Debugger</title>
       <div className="w-full h-full bg-background">
         <Page />
       </div>
-    </ThemeProvider>
+    </>
   );
 }
 

@@ -4,7 +4,4 @@ function Page() {
   return <BrowserUI type="popup" />;
 }
 
-function App() {
-  return <Page />;
-}
-export default App;
+export default Page;
