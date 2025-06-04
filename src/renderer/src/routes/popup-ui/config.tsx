@@ -1,5 +1,8 @@
 import { ReactNode } from "react";
 
-export const RouteProviders = ({ children }: { children: ReactNode }) => {
-  return children;
+export const RouteConfig = {
+  Providers: ({ children }: { children: ReactNode }) => {
+    return children;
+  },
+  Fallback: null
 };

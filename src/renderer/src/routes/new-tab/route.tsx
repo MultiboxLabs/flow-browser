@@ -1,14 +1,14 @@
 import { lazy, Suspense } from "react";
-import { RouteProviders } from "./config";
+import { RouteConfig } from "./config";
 
 const PageComponent = lazy(() => import("./page"));
 
 export default function Route() {
   return (
-    <RouteProviders>
-      <Suspense>
+    <RouteConfig.Providers>
+      <Suspense fallback={RouteConfig.Fallback}>
         <PageComponent />
       </Suspense>
-    </RouteProviders>
+    </RouteConfig.Providers>
   );
 }

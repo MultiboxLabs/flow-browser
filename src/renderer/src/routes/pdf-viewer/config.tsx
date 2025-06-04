@@ -4,8 +4,11 @@ import { Fragment, ReactNode } from "react";
 // Theme makes it go all weird...
 const THEME_PROVIDER_ENABLED = true;
 
-export const RouteProviders = ({ children }: { children: ReactNode }) => {
-  const ThemeProvider = THEME_PROVIDER_ENABLED ? ThemeProviderComponent : Fragment;
+const ThemeProvider = THEME_PROVIDER_ENABLED ? ThemeProviderComponent : Fragment;
 
-  return <ThemeProvider>{children}</ThemeProvider>;
+export const RouteConfig = {
+  Providers: ({ children }: { children: ReactNode }) => {
+    return <ThemeProvider>{children}</ThemeProvider>;
+  },
+  Fallback: null
 };
