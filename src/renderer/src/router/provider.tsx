@@ -41,7 +41,7 @@ export function RouterProvider({ children }: RouterProviderProps) {
       protocol: location.protocol,
       origin: location.origin,
       hostname: location.hostname,
-      pathname: location.pathname,
+      pathname: "/",
       href: location.href,
       search: location.search,
       hash: location.hash
