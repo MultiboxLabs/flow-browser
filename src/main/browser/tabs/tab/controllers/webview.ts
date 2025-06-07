@@ -70,7 +70,8 @@ export class TabWebviewController {
       tab.emit("focused");
     });
 
-    tab.navigation.setupNavigation(this.webContents);
+    tab.navigation.setupWebviewNavigation(this.webContents);
+    tab.data.setupWebviewData(this.webContents);
 
     tab.emit("webview-attached");
 

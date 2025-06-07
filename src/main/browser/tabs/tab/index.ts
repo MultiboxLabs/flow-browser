@@ -29,6 +29,7 @@ type TabEvents = {
   "bounds-changed": [PageBounds];
   "visiblity-changed": [boolean];
   "sleep-changed": [];
+  "nav-history-changed": [];
   "data-changed": [];
 
   focused: [];

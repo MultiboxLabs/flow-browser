@@ -1,12 +1,23 @@
 import { Tab } from "@/browser/tabs/tab";
 import { TabbedBrowserWindow } from "@/browser/window";
+import { WebContents } from "electron";
 
 export class TabDataController {
   private readonly tab: Tab;
 
+  // from other controllers
   public window: TabbedBrowserWindow | null = null;
   public space: string | null = null;
   public pipActive: boolean = false;
+
+  // from webview (recorded here)
+  public audible: boolean = false;
+  public muted: boolean = false;
+  public url: string = "";
+  public isLoading: boolean = true;
+
+  // recorded here
+  public asleep: boolean = false;
 
   constructor(tab: Tab) {
     this.tab = tab;
@@ -14,6 +25,13 @@ export class TabDataController {
     tab.on("window-changed", () => this.refreshData());
     tab.on("space-changed", () => this.refreshData());
     tab.on("pip-active-changed", () => this.refreshData());
+    tab.on("nav-history-changed", () => this.emitDataChanged());
+
+    tab.on("webview-detached", () => this.onWebviewDetached());
+  }
+
+  private emitDataChanged() {
+    this.tab.emit("data-changed");
   }
 
   public refreshData() {
@@ -49,11 +67,42 @@ export class TabDataController {
     return changed;
   }
 
+  public setupWebviewData(webContents: WebContents) {
+    // audible
+    webContents.on("audio-state-changed", () => {});
+    webContents.on("media-started-playing", () => {});
+    webContents.on("media-paused", () => {});
+
+    // title
+    webContents.on("page-title-updated", () => {});
+
+    // isLoading
+    webContents.on("did-finish-load", () => {});
+    webContents.on("did-start-loading", () => {});
+    webContents.on("did-stop-loading", () => {});
+
+    // url
+    webContents.on("did-finish-load", () => {});
+    webContents.on("did-start-navigation", () => {});
+    webContents.on("did-redirect-navigation", () => {});
+    webContents.on("did-navigate-in-page", () => {});
+  }
+
+  private onWebviewDetached() {
+    return false;
+  }
+
   public get() {
+    const tab = this.tab;
+    const navHistory = tab.navigation.navHistory;
+    const navHistoryIndex = tab.navigation.navHistoryIndex;
+
     return {
       window: this.window,
       space: this.space,
-      pipActive: this.pipActive
+      pipActive: this.pipActive,
+      navHistory: navHistory,
+      navHistoryIndex: navHistoryIndex
     };
   }
 }
