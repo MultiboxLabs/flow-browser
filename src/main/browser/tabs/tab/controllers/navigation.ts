@@ -31,7 +31,7 @@ export class TabNavigationController {
     return this._navHistoryIndex ?? this.navHistory.length - 1;
   }
 
-  public setupNavigation(webContents: WebContents) {
+  public setupWebviewNavigation(webContents: WebContents) {
     // Restore the navigation history
     webContents.navigationHistory.restore({
       entries: this.navHistory,
@@ -52,6 +52,8 @@ export class TabNavigationController {
 
     this.navHistory = navHistory;
     this._navHistoryIndex = activeIndex;
+
+    tab.emit("nav-history-changed");
 
     return true;
   }
@@ -79,6 +81,7 @@ export class TabNavigationController {
         }
         this._navHistoryIndex = navHistoryIndex + 1;
       }
+      tab.emit("nav-history-changed");
       return true;
     }
 
