@@ -4,17 +4,36 @@ import { PageBounds } from "~/flow/types";
 export class TabBoundsController {
   private readonly tab: Tab;
 
+  /**
+   * Whether the tab is currently animating.
+   * When animating, the size of the bounds will not be updated.
+   * This is because there are a lot of complex calculations done in the tab when animating, which cause performance issues.
+   */
+  public isAnimating: boolean;
+
+  /**
+   * The bounds of the tab.
+   */
   private bounds: PageBounds;
 
   constructor(tab: Tab) {
     this.tab = tab;
 
+    this.isAnimating = false;
     this.bounds = {
       x: 0,
       y: 0,
       width: 0,
       height: 0
     };
+  }
+
+  public startAnimating() {
+    this.isAnimating = true;
+  }
+
+  public stopAnimating() {
+    this.isAnimating = false;
   }
 
   public set(bounds: PageBounds) {
