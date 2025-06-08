@@ -4,7 +4,6 @@ import {
   TabBoundsController,
   TabPipController,
   TabSavingController,
-  TabSpaceController,
   TabVisiblityController,
   TabWebviewController,
   TabWindowController,
@@ -64,7 +63,6 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public readonly profileId: string;
 
   public readonly window: TabWindowController;
-  public readonly space: TabSpaceController;
 
   public readonly data: TabDataController;
 
@@ -91,7 +89,6 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.profileId = details.loadedProfile.profileId;
 
     this.window = new TabWindowController(this);
-    this.space = new TabSpaceController(this);
 
     this.data = new TabDataController(this);
 
