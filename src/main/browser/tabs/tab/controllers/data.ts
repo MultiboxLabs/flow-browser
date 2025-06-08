@@ -11,10 +11,11 @@ export class TabDataController {
   public asleep: boolean = false;
 
   // from webview (recorded here)
-  public audible: boolean = false;
-  public muted: boolean = false;
+  public title: string = "";
   public url: string = "";
   public isLoading: boolean = true;
+  public audible: boolean = false;
+  public muted: boolean = false;
 
   // recorded here
   // none currently
@@ -41,6 +42,8 @@ export class TabDataController {
 
     const tab = this.tab;
 
+    /// From other controllers ///
+
     // Window
     const window = tab.window.get();
     if (this.window !== window) {
@@ -62,6 +65,48 @@ export class TabDataController {
       changed = true;
     }
 
+    /// From webview ///
+    const webContents = tab.webview.webContents;
+
+    if (webContents) {
+      // Title
+      const title = webContents.getTitle();
+      if (this.title !== title) {
+        this.title = title;
+        changed = true;
+      }
+
+      // URL
+      const url = webContents.getURL();
+      if (this.url !== url) {
+        this.url = url;
+        changed = true;
+      }
+
+      // isLoading
+      const isLoading = webContents.isLoading();
+      if (this.isLoading !== isLoading) {
+        this.isLoading = isLoading;
+        changed = true;
+      }
+
+      // audible
+      const audible = webContents.isAudioMuted();
+      if (this.audible !== audible) {
+        this.audible = audible;
+        changed = true;
+      }
+
+      // muted
+      const muted = webContents.isAudioMuted();
+      if (this.muted !== muted) {
+        this.muted = muted;
+        changed = true;
+      }
+    }
+
+    /// Finalise ///
+
     // Process changes
     if (changed) {
       this.tab.emit("data-changed");
@@ -71,23 +116,23 @@ export class TabDataController {
 
   public setupWebviewData(webContents: WebContents) {
     // audible
-    webContents.on("audio-state-changed", () => {});
-    webContents.on("media-started-playing", () => {});
-    webContents.on("media-paused", () => {});
+    webContents.on("audio-state-changed", () => this.refreshData());
+    webContents.on("media-started-playing", () => this.refreshData());
+    webContents.on("media-paused", () => this.refreshData());
 
     // title
-    webContents.on("page-title-updated", () => {});
+    webContents.on("page-title-updated", () => this.refreshData());
 
     // isLoading
-    webContents.on("did-finish-load", () => {});
-    webContents.on("did-start-loading", () => {});
-    webContents.on("did-stop-loading", () => {});
+    webContents.on("did-finish-load", () => this.refreshData());
+    webContents.on("did-start-loading", () => this.refreshData());
+    webContents.on("did-stop-loading", () => this.refreshData());
 
     // url
-    webContents.on("did-finish-load", () => {});
-    webContents.on("did-start-navigation", () => {});
-    webContents.on("did-redirect-navigation", () => {});
-    webContents.on("did-navigate-in-page", () => {});
+    webContents.on("did-finish-load", () => this.refreshData());
+    webContents.on("did-start-navigation", () => this.refreshData());
+    webContents.on("did-redirect-navigation", () => this.refreshData());
+    webContents.on("did-navigate-in-page", () => this.refreshData());
   }
 
   private onWebviewDetached() {
@@ -100,11 +145,21 @@ export class TabDataController {
     const navHistoryIndex = tab.navigation.navHistoryIndex;
 
     return {
+      // from other controllers
       window: this.window,
       pipActive: this.pipActive,
       asleep: this.asleep,
+
+      // from navigation
       navHistory: navHistory,
-      navHistoryIndex: navHistoryIndex
+      navHistoryIndex: navHistoryIndex,
+
+      // from webview
+      title: this.title,
+      url: this.url,
+      isLoading: this.isLoading,
+      audible: this.audible,
+      muted: this.muted
     };
   }
 }
