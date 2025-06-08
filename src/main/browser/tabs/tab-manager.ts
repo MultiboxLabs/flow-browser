@@ -11,7 +11,7 @@ type TabManagerEvents = {
   destroyed: [];
 };
 
-type TabCreationOptions = Omit<TabCreationDetails, "browser" | "window" | "spaceId">;
+type TabCreationOptions = Omit<TabCreationDetails, "browser" | "window">;
 
 export class TabManager extends TypedEventEmitter<TabManagerEvents> {
   public tabs: Map<string, Tab> = new Map();
@@ -49,7 +49,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
   /**
    * Create a tab
    */
-  public createTab(windowId: number, profileId: string, spaceId: string, options: TabCreationOptions): Tab {
+  public createTab(windowId: number, profileId: string, options: TabCreationOptions): Tab {
     if (this.isDestroyed) {
       throw new Error("TabManager has been destroyed");
     }
@@ -70,7 +70,6 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     const tab = new Tab({
       browser: this.browser,
       window,
-      spaceId,
       ...options
     });
 
@@ -151,21 +150,6 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     for (const tab of this.tabs.values()) {
       const tabWindow = tab.window.get();
       if (tabWindow.id === windowId) {
-        result.push(tab);
-      }
-    }
-    return result;
-  }
-
-  /**
-   * Get all tabs in a window space
-   */
-  public getTabsInWindowSpace(windowId: number, spaceId: string): Tab[] {
-    const result: Tab[] = [];
-    for (const tab of this.tabs.values()) {
-      const tabWindow = tab.window.get();
-      const tabSpace = tab.space.get();
-      if (tabWindow.id === windowId && tabSpace === spaceId) {
         result.push(tab);
       }
     }

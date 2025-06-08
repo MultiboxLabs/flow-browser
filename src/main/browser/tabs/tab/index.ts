@@ -39,7 +39,6 @@ export interface TabCreationDetails {
   browser: Browser;
 
   window: TabbedBrowserWindow;
-  spaceId: string;
 
   tabId?: string;
   loadedProfile: LoadedProfile;
