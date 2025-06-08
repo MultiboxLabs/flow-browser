@@ -2,6 +2,11 @@ import { Tab } from "@/browser/tabs/tab";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { WebContents } from "electron";
 
+type PropertiesFromOtherControllers = "window" | "pipActive" | "asleep";
+type PropertiesFromWebview = "title" | "url" | "isLoading" | "audible" | "muted";
+
+type TabDataProperties = PropertiesFromOtherControllers | PropertiesFromWebview;
+
 export class TabDataController {
   private readonly tab: Tab;
 
@@ -42,67 +47,50 @@ export class TabDataController {
 
     const tab = this.tab;
 
+    const setProperty = <T extends TabDataProperties>(property: T, value: TabDataController[T]) => {
+      if (this[property] !== value) {
+        this[property] = value as this[T];
+        changed = true;
+      }
+    };
+
     /// From other controllers ///
 
     // Window
     const window = tab.window.get();
-    if (this.window !== window) {
-      this.window = window;
-      changed = true;
-    }
+    setProperty("window", window);
 
     // Picture in Picture
     const pipActive = tab.pip.active;
-    if (this.pipActive !== pipActive) {
-      this.pipActive = pipActive;
-      changed = true;
-    }
+    setProperty("pipActive", pipActive);
 
     // Asleep
     const asleep = tab.sleep.asleep;
-    if (this.asleep !== asleep) {
-      this.asleep = asleep;
-      changed = true;
-    }
+    setProperty("asleep", asleep);
 
     /// From webview ///
-    const webContents = tab.webview.webContents;
 
+    const webContents = tab.webview.webContents;
     if (webContents) {
       // Title
       const title = webContents.getTitle();
-      if (this.title !== title) {
-        this.title = title;
-        changed = true;
-      }
+      setProperty("title", title);
 
       // URL
       const url = webContents.getURL();
-      if (this.url !== url) {
-        this.url = url;
-        changed = true;
-      }
+      setProperty("url", url);
 
       // isLoading
       const isLoading = webContents.isLoading();
-      if (this.isLoading !== isLoading) {
-        this.isLoading = isLoading;
-        changed = true;
-      }
+      setProperty("isLoading", isLoading);
 
       // audible
       const audible = webContents.isAudioMuted();
-      if (this.audible !== audible) {
-        this.audible = audible;
-        changed = true;
-      }
+      setProperty("audible", audible);
 
       // muted
       const muted = webContents.isAudioMuted();
-      if (this.muted !== muted) {
-        this.muted = muted;
-        changed = true;
-      }
+      setProperty("muted", muted);
     }
 
     /// Finalise ///
