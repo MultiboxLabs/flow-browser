@@ -1,7 +1,11 @@
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { generateID } from "@/modules/utils";
 import { Tab } from "@/browser/tabs/tab";
-import { TabGroupFocusedTabController, TabGroupTabsController } from "@/browser/tabs/tab-group/controllers";
+import {
+  TabGroupFocusedTabController,
+  TabGroupTabsController,
+  TabGroupWindowController
+} from "@/browser/tabs/tab-group/controllers";
 import { Browser } from "@/browser/browser";
 import { TabbedBrowserWindow } from "@/browser/window";
 
@@ -9,7 +13,6 @@ type TabGroupTypes = "normal" | "split" | "glance";
 
 type TabGroupEvents = {
   "window-changed": [];
-  "space-changed": [];
   "tab-added": [Tab];
   "tab-removed": [Tab];
   destroyed: [];
@@ -37,8 +40,9 @@ export class TabGroup extends TypedEventEmitter<TabGroupEvents> {
 
   protected tabIds: string[] = [];
 
-  public tabs: TabGroupTabsController;
-  public focusedTab: TabGroupFocusedTabController;
+  public readonly window: TabGroupWindowController;
+  public readonly tabs: TabGroupTabsController;
+  public readonly focusedTab: TabGroupFocusedTabController;
 
   constructor(variant: TabGroupVariant, details: TabGroupCreationDetails) {
     super();
@@ -50,6 +54,7 @@ export class TabGroup extends TypedEventEmitter<TabGroupEvents> {
     this.maxTabs = variant.maxTabs;
     this.creationDetails = details;
 
+    this.window = new TabGroupWindowController(this);
     this.tabs = new TabGroupTabsController(this);
     this.focusedTab = new TabGroupFocusedTabController(this);
   }
