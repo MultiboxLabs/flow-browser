@@ -7,8 +7,8 @@ export class TabDataController {
 
   // from other controllers
   public window: TabbedBrowserWindow | null = null;
-  public space: string | null = null;
   public pipActive: boolean = false;
+  public asleep: boolean = false;
 
   // from webview (recorded here)
   public audible: boolean = false;
@@ -17,17 +17,19 @@ export class TabDataController {
   public isLoading: boolean = true;
 
   // recorded here
-  public asleep: boolean = false;
+  // none currently
 
   constructor(tab: Tab) {
     this.tab = tab;
 
     tab.on("window-changed", () => this.refreshData());
-    tab.on("space-changed", () => this.refreshData());
     tab.on("pip-active-changed", () => this.refreshData());
+    tab.on("sleep-changed", () => this.refreshData());
     tab.on("nav-history-changed", () => this.emitDataChanged());
 
     tab.on("webview-detached", () => this.onWebviewDetached());
+
+    setImmediate(() => this.refreshData());
   }
 
   private emitDataChanged() {
@@ -46,17 +48,17 @@ export class TabDataController {
       changed = true;
     }
 
-    // Space
-    const space = tab.space.get();
-    if (this.space !== space) {
-      this.space = space;
-      changed = true;
-    }
-
     // Picture in Picture
     const pipActive = tab.pip.active;
     if (this.pipActive !== pipActive) {
       this.pipActive = pipActive;
+      changed = true;
+    }
+
+    // Asleep
+    const asleep = tab.sleep.asleep;
+    if (this.asleep !== asleep) {
+      this.asleep = asleep;
       changed = true;
     }
 
@@ -99,8 +101,8 @@ export class TabDataController {
 
     return {
       window: this.window,
-      space: this.space,
       pipActive: this.pipActive,
+      asleep: this.asleep,
       navHistory: navHistory,
       navHistoryIndex: navHistoryIndex
     };

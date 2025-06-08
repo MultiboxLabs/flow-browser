@@ -21,7 +21,6 @@ import { PageBounds } from "~/flow/types";
 
 type TabEvents = {
   "window-changed": [];
-  "space-changed": [];
   "webview-attached": [];
   "webview-detached": [];
   "pip-active-changed": [boolean];
