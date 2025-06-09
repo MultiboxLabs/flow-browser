@@ -35,7 +35,7 @@ function stripTrailingCommas(jsonString: string): string {
 }
 
 /// Config ///
-const electronVersion = "35.3.0";
+const electronVersion = "36.4.0";
 
 const rootDir = ".";
 const packageJsonPath = path.join(rootDir, "package.json");
