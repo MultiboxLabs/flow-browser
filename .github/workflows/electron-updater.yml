@@ -101,7 +101,7 @@ jobs:
           echo "$OUTPUT"
 
           # Extract version from output
-          VERSION=$(echo "$OUTPUT" | grep "Latest stable version:" | sed 's/Latest stable version: //')
+          VERSION=$(echo "$OUTPUT" | grep "Latest beta version:" | sed 's/Latest beta version: //')
           if [ -n "$VERSION" ]; then
             echo "version=$VERSION" >> $GITHUB_OUTPUT
           fi
