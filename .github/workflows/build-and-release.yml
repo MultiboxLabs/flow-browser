@@ -37,7 +37,7 @@ jobs:
 
       - name: Use Stock Electron (Ubuntu ARM only)
         if: matrix.os == 'ubuntu-24.04-arm'
-        run: bun run use-stock-electron
+        run: bun run script:use-stock-electron
 
       - name: Install Build Dependencies (Ubuntu only)
         if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm'

@@ -25,7 +25,7 @@
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
-    "use-stock-electron": "bun run scripts/use-stock-electron.ts"
+    "script:use-stock-electron": "bun run scripts/use-stock-electron.ts"
   },
   "dependencies": {
     "@ghostery/adblocker-electron": "^2.5.2",
