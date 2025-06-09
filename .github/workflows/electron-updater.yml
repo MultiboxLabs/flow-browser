@@ -45,6 +45,9 @@ jobs:
           VERSION=$(echo "$OUTPUT" | grep "Latest stable version:" | sed 's/Latest stable version: //')
           if [ -n "$VERSION" ]; then
             echo "version=$VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "No valid version found. Exiting workflow."
+            exit 1
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -106,6 +109,9 @@ jobs:
           VERSION=$(echo "$OUTPUT" | grep "Latest beta version:" | sed 's/Latest beta version: //')
           if [ -n "$VERSION" ]; then
             echo "version=$VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "No valid version found. Exiting workflow."
+            exit 1
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
