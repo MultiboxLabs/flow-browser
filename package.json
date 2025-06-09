@@ -25,7 +25,9 @@
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
-    "script:use-stock-electron": "bun run scripts/use-stock-electron.ts"
+    "script:use-stock-electron": "bun run scripts/use-stock-electron.ts",
+    "script:upgrade-electron-to-beta": "bun run scripts/electron-upgrader/beta.ts",
+    "script:upgrade-electron-to-stable": "bun run scripts/electron-upgrader/stable.ts"
   },
   "dependencies": {
     "@ghostery/adblocker-electron": "^2.5.2",
@@ -71,6 +73,7 @@
     "@types/chrome": "^0.0.322",
     "@types/d3-drag": "^3.0.7",
     "@types/d3-selection": "^3.0.11",
+    "@types/jju": "^1.4.5",
     "@types/node": "^22.15.17",
     "@types/react": "^19.1.4",
     "@types/react-dom": "^19.1.5",
@@ -87,6 +90,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
+    "jju": "^1.4.0",
     "lucide-react": "^0.510.0",
     "motion": "^12.11.0",
     "prettier": "^3.5.3",
