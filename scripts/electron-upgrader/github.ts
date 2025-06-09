@@ -48,6 +48,16 @@ interface GitHubTagRef {
   };
 }
 
+function getGitHubHeaders(): HeadersInit {
+  if (process.env.GITHUB_TOKEN) {
+    return {
+      Authorization: `Bearer ${process.env.GITHUB_TOKEN}`
+    };
+  }
+
+  return {};
+}
+
 /**
  * Fetches all releases from the castlabs/electron-releases GitHub repository
  *
@@ -58,7 +68,9 @@ interface GitHubTagRef {
  * console.log(`Found ${releases.length} releases`);
  */
 async function fetchReleases(): Promise<GitHubRelease[]> {
-  const response = await fetch(`https://api.github.com/repos/${ELECTRON_REPOSITORY}/releases`);
+  const response = await fetch(`https://api.github.com/repos/${ELECTRON_REPOSITORY}/releases`, {
+    headers: getGitHubHeaders()
+  });
   if (!response.ok) {
     throw new Error(`Failed to fetch releases: ${response.statusText}`);
   }
@@ -150,7 +162,9 @@ export async function getCommitHashForTag(tagName: string): Promise<string | nul
     // Remove the TAG_PREFIX if it exists in the tagName for the API call
     const cleanTagName = tagName.startsWith(TAG_PREFIX) ? tagName : `${TAG_PREFIX}${tagName}`;
 
-    const response = await fetch(`https://api.github.com/repos/${ELECTRON_REPOSITORY}/git/refs/tags/${cleanTagName}`);
+    const response = await fetch(`https://api.github.com/repos/${ELECTRON_REPOSITORY}/git/refs/tags/${cleanTagName}`, {
+      headers: getGitHubHeaders()
+    });
     if (!response.ok) {
       if (response.status === 404) {
         console.error(`Tag ${cleanTagName} not found`);
