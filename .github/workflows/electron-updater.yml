@@ -74,8 +74,6 @@ jobs:
           labels: |
             dependencies
             electron
-          assignees: ${{ github.actor }}
-          reviewers: ${{ github.actor }}
 
   upgrade-electron-beta:
     runs-on: ubuntu-latest
@@ -139,5 +137,3 @@ jobs:
           labels: |
             dependencies
             electron
-          assignees: ${{ github.actor }}
-          reviewers: ${{ github.actor }}
