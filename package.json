@@ -26,8 +26,8 @@
     "build:mac": "electron-vite build && electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
     "script:use-stock-electron": "bun run scripts/use-stock-electron.ts",
-    "script:upgrade-electron-to-beta": "bun run scripts/electron-upgrader/beta.ts",
-    "script:upgrade-electron-to-stable": "bun run scripts/electron-upgrader/stable.ts"
+    "script:upgrade-electron-to-stable": "bun run scripts/electron-upgrader/stable.ts",
+    "script:upgrade-electron-to-beta": "bun run scripts/electron-upgrader/beta.ts"
   },
   "dependencies": {
     "@ghostery/adblocker-electron": "^2.5.2",
