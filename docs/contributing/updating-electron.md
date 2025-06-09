@@ -2,7 +2,7 @@
 
 We use [Castlabs's Electron for Content Security](https://github.com/castlabs/electron-releases), which is a fork of Electron with support for Widevine Content Decryption Module (CDM).
 
-## Updating Electron
+## Updating Electron Manually
 
 1. Find the latest version of Electron in the [Castlabs Electron Releases](https://github.com/castlabs/electron-releases/releases) page.
 2. Update the `electron` version in the `package.json` file in this format:
