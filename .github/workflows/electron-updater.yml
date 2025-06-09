@@ -8,6 +8,10 @@ on:
   # Allow manual trigger
   workflow_dispatch:
 
+  push:
+    branches:
+      - evan/improved-electron-upgrader
+
 permissions:
   contents: write
   pull-requests: write
