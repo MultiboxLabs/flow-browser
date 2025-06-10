@@ -1,5 +1,5 @@
-import { findLatestBetaMajorVersion, getCommitHashForTag } from "./github";
-import { updateBunLock, updatePackageJson } from "./updater";
+import { findLatestBetaMajorVersion, getCommitHashForTag } from "./_modules/github";
+import { updateBunLock, updatePackageJson } from "./_modules/updater";
 
 // GRAB RELEASE FROM GITHUB //
 const latestBetaVersion = await findLatestBetaMajorVersion();

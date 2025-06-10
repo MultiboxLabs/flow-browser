@@ -1,6 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as jju from "jju";
+import { BunLock } from "@/_types/bun-lock";
+import { PackageJson } from "@/_types/package-json";
 
 const DEP_PREFIX = "github:castlabs/electron-releases#";
 const HASH_PREFIX = "electron@git+ssh://github.com/castlabs/electron-releases#";
@@ -20,7 +22,7 @@ export function updatePackageJson(electronVersion: string) {
 
   // Read and parse package.json with jju to preserve formatting and comments
   const packageJsonContent = fs.readFileSync(packageJsonPath, "utf8");
-  const packageJson = jju.parse(packageJsonContent);
+  const packageJson = jju.parse(packageJsonContent) as PackageJson;
 
   // Update the electron dependency
   if (packageJson.devDependencies && packageJson.devDependencies.electron) {
@@ -58,7 +60,7 @@ export function updateBunLock(electronVersion: string, commitHash: string) {
   const bunLockContent = fs.readFileSync(bunLockPath, "utf8");
 
   // Parse with jju using a more lenient mode
-  let bunLock;
+  let bunLock: BunLock;
   try {
     bunLock = jju.parse(bunLockContent, {
       mode: "json5" // Use JSON5 mode to handle trailing commas

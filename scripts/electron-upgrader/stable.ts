@@ -1,5 +1,5 @@
-import { findLatestStableMajorVersion, getCommitHashForTag } from "./github";
-import { updateBunLock, updatePackageJson } from "./updater";
+import { findLatestStableMajorVersion, getCommitHashForTag } from "./_modules/github";
+import { updateBunLock, updatePackageJson } from "./_modules/updater";
 
 // GRAB RELEASE FROM GITHUB //
 const latestStableVersion = await findLatestStableMajorVersion();

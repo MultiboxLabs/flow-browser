@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "fs";
 import path from "path";
+import * as jju from "jju";
 
 const rootDir = ".";
 const packageJsonPath = path.join(rootDir, "package.json");
@@ -8,7 +9,7 @@ const backupPath = path.join(rootDir, "package.json.old");
 export function changeName(newName: string) {
   // Grab package.json
   const packageJSONString = readFileSync(packageJsonPath, "utf8");
-  const packageJSON = JSON.parse(packageJSONString);
+  const packageJSON = jju.parse(packageJSONString);
 
   // Change App Name
   packageJSON["productName"] = newName;
@@ -16,8 +17,9 @@ export function changeName(newName: string) {
   // Save old package.json
   writeFileSync("package.json.old", packageJSONString);
 
-  // Write package.json
-  writeFileSync(packageJsonPath, JSON.stringify(packageJSON, null, 2));
+  // Write package.json with preserved formatting
+  const updatedContent = jju.update(packageJSONString, packageJSON, { mode: "json", indent: 2 });
+  writeFileSync(packageJsonPath, updatedContent);
 
   console.log("Successfully changed app name to", newName);
 }
