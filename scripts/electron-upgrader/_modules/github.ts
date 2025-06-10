@@ -1,8 +1,8 @@
-/** The major version number for beta electron releases */
-const BETA_MAJOR_VERSION = 37;
+/** The major version number for next major version electron releases */
+const NEXT_MAJOR_VERSION = 37;
 
-/** The major version number for stable electron releases */
-const STABLE_MAJOR_VERSION = 36;
+/** The major version number for current major version electron releases */
+const CURRENT_MAJOR_VERSION = 36;
 
 /** The GitHub repository containing electron releases */
 const ELECTRON_REPOSITORY = "castlabs/electron-releases";
@@ -92,59 +92,51 @@ function extractMajorVersion(tagName: string): number | null {
 }
 
 /**
- * Finds the latest stable electron version for the configured stable major version.
- * This function filters out prerelease versions and returns only stable releases.
+ * Finds the latest version with a specific major version number
  *
- * @returns {Promise<string | null>} A promise that resolves to the latest stable version tag, or null if none found
- * @throws {Error} May throw if GitHub API requests fail
+ * @param {number} targetMajorVersion - The major version number to search for
+ * @param {boolean} includePrereleases - Whether to include prereleases in the search
+ * @returns {Promise<string | null>} A promise that resolves to the latest version with the specified major version, or null if not found
  * @example
- * const latestStable = await findLatestStableMajorVersion();
- * console.log(`Latest stable: ${latestStable}`); // "v36.4.0+wvcus"
+ * const latestVersion = await findLatestVersionWithMajorVersion(36);
+ * console.log(`Latest version with major version 36: ${latestVersion}`); // "v36.4.0+wvcus"
  */
-export async function findLatestStableMajorVersion(): Promise<string | null> {
+export async function findLatestVersionWithMajorVersion(
+  targetMajorVersion: number,
+  includePrereleases: boolean = false
+): Promise<string | null> {
   try {
     const releases = await fetchReleases();
 
-    const stableMajorReleases = releases
+    const currentMajorReleases = releases
       .filter((release) => {
-        const majorVersion = extractMajorVersion(release.tag_name);
-        return majorVersion === STABLE_MAJOR_VERSION && release.tag_name.includes(TAG_SUFFIX) && !release.prerelease;
-      })
-      .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+        if (!includePrereleases && release.prerelease) return false;
 
-    return stableMajorReleases.length > 0 ? stableMajorReleases[0].tag_name : null;
+        const majorVersion = extractMajorVersion(release.tag_name);
+        return majorVersion === targetMajorVersion && release.tag_name.includes(TAG_SUFFIX);
+      })
+      .sort((a, b) => {
+        // Sort prereleases to the end
+        if (a.prerelease && !b.prerelease) return 1;
+        if (!a.prerelease && b.prerelease) return -1;
+
+        // Sort by published date
+        return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+      });
+
+    return currentMajorReleases.length > 0 ? currentMajorReleases[0].tag_name : null;
   } catch (error) {
-    console.error("Error fetching latest stable major version:", error);
+    console.error(`Error fetching latest version with major version ${targetMajorVersion}:`, error);
     return null;
   }
 }
 
-/**
- * Finds the latest beta electron version for the configured beta major version.
- * This function includes prerelease versions in the search.
- *
- * @returns {Promise<string | null>} A promise that resolves to the latest beta version tag, or null if none found
- * @throws {Error} May throw if GitHub API requests fail
- * @example
- * const latestBeta = await findLatestBetaMajorVersion();
- * console.log(`Latest beta: ${latestBeta}`); // "v37.1.0-beta.1+wvcus"
- */
-export async function findLatestBetaMajorVersion(): Promise<string | null> {
-  try {
-    const releases = await fetchReleases();
+export async function findLatestCurrentMajorVersion(): Promise<string | null> {
+  return findLatestVersionWithMajorVersion(CURRENT_MAJOR_VERSION, false);
+}
 
-    const betaMajorReleases = releases
-      .filter((release) => {
-        const majorVersion = extractMajorVersion(release.tag_name);
-        return majorVersion === BETA_MAJOR_VERSION && release.tag_name.includes(TAG_SUFFIX);
-      })
-      .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
-
-    return betaMajorReleases.length > 0 ? betaMajorReleases[0].tag_name : null;
-  } catch (error) {
-    console.error("Error fetching latest beta major version:", error);
-    return null;
-  }
+export async function findLatestNextMajorVersion(): Promise<string | null> {
+  return findLatestVersionWithMajorVersion(NEXT_MAJOR_VERSION, true);
 }
 
 /**
