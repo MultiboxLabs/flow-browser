@@ -2,12 +2,14 @@ import { AddressBarCopyLinkButton } from "@/components/browser-ui/sidebar/header
 import { PinnedBrowserActions } from "@/components/browser-ui/sidebar/header/address-bar/pinned-browser-actions";
 import { useTabs } from "@/components/providers/tabs-provider";
 import { SidebarGroup, useSidebar } from "@/components/ui/resizable-sidebar";
+import { useBrowserUITranslations } from "@/lib/i18n";
 import { simplifyUrl } from "@/lib/url";
 import { cn } from "@/lib/utils";
 import { SearchIcon } from "lucide-react";
 import { useRef } from "react";
 
 function FakeAddressBar({ className }: { className?: string }) {
+  const { t: tBrowserUI } = useBrowserUITranslations();
   const inputRef = useRef<HTMLInputElement>(null);
   const { addressUrl, focusedTab } = useTabs();
 
@@ -34,7 +36,7 @@ function FakeAddressBar({ className }: { className?: string }) {
   const simplifiedUrl = simplifyUrl(addressUrl);
   const isPlaceholder = !simplifiedUrl;
 
-  const value = isPlaceholder ? "Search or type URL" : simplifiedUrl;
+  const value = isPlaceholder ? tBrowserUI("Search or type URL") : simplifiedUrl;
 
   return (
     <div

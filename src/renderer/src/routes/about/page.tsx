@@ -2,8 +2,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 import { copyTextToClipboard } from "@/lib/utils";
+import { usePagesTranslations } from "@/lib/i18n";
 
 function Page() {
+  const { t: tPages } = usePagesTranslations();
+
   const hostnames = ["about", "new-tab", "games", "omnibox", "error", "extensions"];
 
   return (
@@ -16,8 +19,8 @@ function Page() {
       >
         <Card className="border-border shadow-lg">
           <CardHeader>
-            <CardTitle className="text-3xl font-bold">Flow URLs</CardTitle>
-            <CardDescription>A list of available Flow browser URLs</CardDescription>
+            <CardTitle className="text-3xl font-bold">{tPages("about.title")}</CardTitle>
+            <CardDescription>{tPages("about.description")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

@@ -1,3 +1,4 @@
+import { useSettingsTranslations } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react"; // For loading state
 
@@ -18,6 +19,7 @@ function InfoRow({ label, value }: InfoRowProps) {
 }
 
 export function BrowserInfoCard() {
+  const { t: tSettings } = useSettingsTranslations();
   const [appInfo, setAppInfo] = useState<Awaited<ReturnType<typeof getAppInfo>> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -40,28 +42,28 @@ export function BrowserInfoCard() {
     // Replaced Card with styled div
     <div className="rounded-lg border bg-card text-card-foreground p-6">
       <div className="mb-4">
-        <h3 className="text-xl font-semibold tracking-tight">Browser Information</h3>
-        <p className="text-sm text-muted-foreground mt-1">Details about your Flow Browser installation.</p>
+        <h3 className="text-xl font-semibold tracking-tight">{tSettings("sections.about.info.title")}</h3>
+        <p className="text-sm text-muted-foreground mt-1">{tSettings("sections.about.info.description")}</p>
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center h-32 text-muted-foreground">
           <Loader2 className="h-6 w-6 animate-spin mr-2" />
-          <span>Loading browser details...</span>
+          <span>{tSettings("sections.about.info.loading")}</span>
         </div>
       ) : appInfo ? (
         // Using a 3-column grid for label & value to better control alignment and wrapping
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-1 border-t pt-4">
-          <InfoRow label="Browser Name" value="Flow Browser" />
-          <InfoRow label="Version" value={appInfo.app_version} />
-          <InfoRow label="Build Number" value={appInfo.build_number} />
-          <InfoRow label="Engine Version" value={`Chromium ${appInfo.chrome_version}`} />
-          <InfoRow label="Operating System" value={appInfo.os} />
-          <InfoRow label="Update Channel" value={appInfo.update_channel} />
+          <InfoRow label={tSettings("sections.about.info.browser-name")} value="Flow Browser" />
+          <InfoRow label={tSettings("sections.about.info.version")} value={appInfo.app_version} />
+          <InfoRow label={tSettings("sections.about.info.build")} value={appInfo.build_number} />
+          <InfoRow label={tSettings("sections.about.info.engine")} value={`Chromium ${appInfo.chrome_version}`} />
+          <InfoRow label={tSettings("sections.about.info.os")} value={appInfo.os} />
+          <InfoRow label={tSettings("sections.about.info.update-channel")} value={appInfo.update_channel} />
         </div>
       ) : (
         <div className="flex items-center justify-center h-32 text-destructive">
-          Could not load browser information.
+          {tSettings("sections.about.info.loading.failed")}
         </div>
       )}
     </div>

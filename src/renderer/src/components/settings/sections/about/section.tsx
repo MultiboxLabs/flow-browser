@@ -1,13 +1,16 @@
 import { BrowserInfoCard } from "./browser-info-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSettingsTranslations } from "@/lib/i18n";
 
 export function AboutSettings() {
+  const { t: tSettings } = useSettingsTranslations();
+
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">About</h2>
-        <p className="text-muted-foreground">Information about your browser</p>
+        <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-200">{tSettings("sections.about")}</h2>
+        <p className="text-muted-foreground">{tSettings("sections.about.description")}</p>
       </div>
 
       <BrowserInfoCard />
