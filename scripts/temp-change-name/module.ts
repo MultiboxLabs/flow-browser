@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "fs";
 import path from "path";
 import * as jju from "jju";
+import { PackageJson } from "@/_types/package-json";
 
 const rootDir = ".";
 const packageJsonPath = path.join(rootDir, "package.json");
@@ -9,7 +10,14 @@ const backupPath = path.join(rootDir, "package.json.old");
 export function changeName(newName: string) {
   // Grab package.json
   const packageJSONString = readFileSync(packageJsonPath, "utf8");
-  const packageJSON = jju.parse(packageJSONString);
+  let packageJSON: PackageJson;
+
+  try {
+    packageJSON = jju.parse(packageJSONString);
+  } catch (error) {
+    console.error("Error parsing package.json", error);
+    process.exit(1);
+  }
 
   // Change App Name
   packageJSON["productName"] = newName;
