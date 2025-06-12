@@ -928,7 +928,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     if (newBounds) {
       // Use immediate update if mode hasn't changed AND bounds controller is idle
       const useImmediateUpdate =
-        newTabGroupMode === lastTabGroupMode && isRectangleEqual(this.bounds.bounds, this.bounds.targetBounds);
+        newTabGroupMode === lastTabGroupMode && isRectangleEqual(this.bounds.bounds, newBounds);
 
       if (useImmediateUpdate) {
         this.bounds.setBoundsImmediate(newBounds);
