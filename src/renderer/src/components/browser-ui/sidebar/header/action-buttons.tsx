@@ -10,11 +10,11 @@ import {
   SidebarMenuItem,
   useSidebar
 } from "@/components/ui/resizable-sidebar";
-import { NavigationEntry } from "~/flow/interfaces/browser/navigation";
 import { cn } from "@/lib/utils";
-import { SidebarCloseIcon, SidebarOpenIcon, XIcon } from "lucide-react";
+import { Pin, PinOff, SidebarCloseIcon, SidebarOpenIcon, XIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { ComponentProps, useCallback, useEffect, useRef, useState } from "react";
+import { NavigationEntry } from "~/flow/interfaces/browser/navigation";
 import { TabData } from "~/types/tabs";
 
 export type NavigationEntryWithIndex = NavigationEntry & { index: number };
@@ -94,9 +94,22 @@ function StopLoadingIcon() {
   );
 }
 
+function PinButton() {
+  const { pinned, togglePin } = useSidebar();
+
+  return (
+    <SidebarActionButton
+      icon={pinned ? <PinOff className="size-4" /> : <Pin className="size-4" />}
+      onClick={togglePin}
+      className={SIDEBAR_HOVER_COLOR}
+      title={pinned ? "Unpin sidebar" : "Pin sidebar"}
+    />
+  );
+}
+
 export function NavigationControls() {
   const { focusedTab } = useTabs();
-  const { open, setOpen } = useSidebar();
+  const { open, setOpen, variant } = useSidebar();
 
   const [entries, setEntries] = useState<NavigationEntryWithIndex[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -164,6 +177,7 @@ export function NavigationControls() {
             onClick={closeSidebar}
             className={SIDEBAR_HOVER_COLOR}
           />
+          {variant === "floating" && <PinButton />}
 
           {/* Browser Actions */}
           <BrowserActionList alignmentY="bottom" alignmentX="right" />

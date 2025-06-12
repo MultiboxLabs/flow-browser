@@ -1,3 +1,12 @@
+import { CollapseMode, SidebarSide } from "@/components/browser-ui/main";
+import { ScrollableSidebarContent } from "@/components/browser-ui/sidebar/content/sidebar-content";
+import { SidebarFooterUpdate } from "@/components/browser-ui/sidebar/footer/update";
+import { NavigationControls } from "@/components/browser-ui/sidebar/header/action-buttons";
+import { SidebarAddressBar } from "@/components/browser-ui/sidebar/header/address-bar/address-bar";
+import { SidebarWindowControls } from "@/components/browser-ui/sidebar/header/window-controls";
+import { SidebarSpacesSwitcher } from "@/components/browser-ui/sidebar/spaces-switcher";
+import { PortalComponent } from "@/components/portal/portal";
+import { useSpaces } from "@/components/providers/spaces-provider";
 import {
   Sidebar,
   SidebarFooter,
@@ -6,21 +15,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  useSidebar
+  useSidebar,
+  type SidebarVariant
 } from "@/components/ui/resizable-sidebar";
-import { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { CollapseMode, SidebarVariant, SidebarSide } from "@/components/browser-ui/main";
 import { PlusIcon, SettingsIcon } from "lucide-react";
-import { SidebarSpacesSwitcher } from "@/components/browser-ui/sidebar/spaces-switcher";
-import { ScrollableSidebarContent } from "@/components/browser-ui/sidebar/content/sidebar-content";
-import { useSpaces } from "@/components/providers/spaces-provider";
-import { NavigationControls } from "@/components/browser-ui/sidebar/header/action-buttons";
-import { SidebarAddressBar } from "@/components/browser-ui/sidebar/header/address-bar/address-bar";
-import { PortalComponent } from "@/components/portal/portal";
-import { SidebarWindowControls } from "@/components/browser-ui/sidebar/header/window-controls";
-import { motion, AnimatePresence } from "motion/react";
-import { SidebarFooterUpdate } from "@/components/browser-ui/sidebar/footer/update";
+import { AnimatePresence, motion } from "motion/react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type BrowserSidebarProps = {
   collapseMode: CollapseMode;
@@ -56,6 +57,7 @@ function useSidebarAnimation(shouldRenderContent: boolean, setVariant: (variant:
 
 // Custom hook to handle sidebar hover state
 function useSidebarHover(setIsHoveringSidebar: (isHovering: boolean) => void) {
+  const { pinned } = useSidebar();
   const isHoveringSidebarRef = useRef(false);
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -72,16 +74,18 @@ function useSidebarHover(setIsHoveringSidebar: (isHovering: boolean) => void) {
   }, [setIsHoveringSidebar]);
 
   const handleMouseLeave = useCallback(() => {
+    if (pinned) return;
+
     isHoveringSidebarRef.current = false;
     timeoutIdRef.current = setTimeout(() => {
       if (timeoutIdRef.current) {
         clearTimeout(timeoutIdRef.current);
       }
-      if (!isHoveringSidebarRef.current) {
+      if (!isHoveringSidebarRef.current && !pinned) {
         setIsHoveringSidebar(false);
       }
     }, 100);
-  }, [setIsHoveringSidebar]);
+  }, [pinned, setIsHoveringSidebar]);
 
   return { handleMouseEnter, handleMouseLeave };
 }
