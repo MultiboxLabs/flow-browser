@@ -1,21 +1,25 @@
-import * as React from "react";
-import { Slot as SlotPrimitive } from "radix-ui";
 import { VariantProps, cva } from "class-variance-authority";
 import { PanelLeftIcon } from "lucide-react";
+import { Slot as SlotPrimitive } from "radix-ui";
+import * as React from "react";
 
-import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebarResize } from "@/hooks/use-sidebar-resize";
 import { mergeButtonRefs } from "@/lib/merge-button-refs";
+import { cn } from "@/lib/utils";
+
+export type SidebarVariant = "sidebar" | "floating";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
+const SIDEBAR_PINNED_COOKIE_NAME = "sidebar_pinned";
+const SIDEBAR_PINNED_COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
@@ -27,6 +31,8 @@ const MIN_SIDEBAR_WIDTH = "14rem";
 const MAX_SIDEBAR_WIDTH = "22rem";
 
 type SidebarContextProps = {
+  variant: SidebarVariant;
+  setVariant: (variant: SidebarVariant) => void;
   state: "expanded" | "collapsed";
   open: boolean;
   setOpen: (open: boolean) => void;
@@ -41,6 +47,11 @@ type SidebarContextProps = {
 
   isDraggingRail: boolean;
   setIsDraggingRail: (isDraggingRail: boolean) => void;
+
+  // Pinning Properties
+  pinned: boolean;
+  setPinned: (pinned: boolean) => void;
+  togglePin: () => void;
 };
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null);
@@ -74,6 +85,28 @@ function SidebarProvider({
 
   const [width, setWidth] = React.useState(defaultWidth);
   const [isDraggingRail, setIsDraggingRail] = React.useState(false);
+  const [variant, setVariant] = React.useState<SidebarVariant>("sidebar");
+
+  // Pinning state management
+  const [pinned, setPinnedState] = React.useState(() => {
+    // Try to get pinned state from cookie first
+    const cookies = document.cookie.split(";");
+    const pinnedCookie = cookies.find((cookie) => cookie.trim().startsWith(`${SIDEBAR_PINNED_COOKIE_NAME}=`));
+    if (pinnedCookie) {
+      return pinnedCookie.split("=")[1] === "true";
+    }
+    return false;
+  });
+
+  const setPinned = React.useCallback((value: boolean) => {
+    setPinnedState(value);
+    // Persist pinned state in cookie
+    document.cookie = `${SIDEBAR_PINNED_COOKIE_NAME}=${value}; path=/; max-age=${SIDEBAR_PINNED_COOKIE_MAX_AGE}`;
+  }, []);
+
+  const togglePin = React.useCallback(() => {
+    setPinned(!pinned);
+  }, [pinned, setPinned]);
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
@@ -122,6 +155,8 @@ function SidebarProvider({
 
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({
+      variant,
+      setVariant,
       state,
       open,
       setOpen,
@@ -134,9 +169,15 @@ function SidebarProvider({
       setWidth,
 
       isDraggingRail,
-      setIsDraggingRail
+      setIsDraggingRail,
+
+      pinned,
+      setPinned,
+      togglePin
     }),
     [
+      variant,
+      setVariant,
       state,
       open,
       setOpen,
@@ -147,7 +188,10 @@ function SidebarProvider({
       width,
       setWidth,
       isDraggingRail,
-      setIsDraggingRail
+      setIsDraggingRail,
+      pinned,
+      setPinned,
+      togglePin
     ]
   );
 
@@ -185,7 +229,7 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset";
   collapsible?: "offcanvas" | "icon" | "none";
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+  const { isMobile, state, openMobile, setOpenMobile, pinned } = useSidebar();
 
   if (collapsible === "none") {
     return (
@@ -233,6 +277,7 @@ function Sidebar({
       data-variant={variant}
       data-side={side}
       data-slot="sidebar"
+      data-pinned={pinned}
     >
       {/* This is what handles the sidebar gap on desktop */}
       <div

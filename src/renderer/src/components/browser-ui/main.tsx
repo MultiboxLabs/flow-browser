@@ -1,34 +1,30 @@
 import BrowserContent from "@/components/browser-ui/browser-content";
-import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/resizable-sidebar";
-import { motion, AnimatePresence } from "motion/react";
-import { cn } from "@/lib/utils";
 import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar";
-import { SpacesProvider } from "@/components/providers/spaces-provider";
-import { useEffect, useMemo, useRef } from "react";
-import { useState } from "react";
-import { TabsProvider, useTabs } from "@/components/providers/tabs-provider";
-import { SettingsProvider, useSettings } from "@/components/providers/settings-provider";
+import { SidebarAddressBar } from "@/components/browser-ui/sidebar/header/address-bar/address-bar";
+import { SidebarHoverDetector } from "@/components/browser-ui/sidebar/hover-detector";
 import { TabDisabler } from "@/components/logic/tab-disabler";
+import { ActionsProvider } from "@/components/providers/actions-provider";
+import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
 import { BrowserActionProvider } from "@/components/providers/browser-action-provider";
 import { ExtensionsProviderWithSpaces } from "@/components/providers/extensions-provider";
-import { SidebarHoverDetector } from "@/components/browser-ui/sidebar/hover-detector";
 import MinimalToastProvider from "@/components/providers/minimal-toast-provider";
-import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
-import { ActionsProvider } from "@/components/providers/actions-provider";
-import { SidebarAddressBar } from "@/components/browser-ui/sidebar/header/address-bar/address-bar";
+import { SettingsProvider, useSettings } from "@/components/providers/settings-provider";
+import { SpacesProvider } from "@/components/providers/spaces-provider";
+import { TabsProvider, useTabs } from "@/components/providers/tabs-provider";
+import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/resizable-sidebar";
+import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export type CollapseMode = "icon" | "offcanvas";
-export type SidebarVariant = "sidebar" | "floating";
 export type SidebarSide = "left" | "right";
 
 export type WindowType = "main" | "popup";
 
 function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowType }) {
-  const { open, setOpen } = useSidebar();
+  const { open, setOpen, pinned, variant, setVariant } = useSidebar();
   const { getSetting } = useSettings();
   const { focusedTab, tabGroups } = useTabs();
-
-  const [variant, setVariant] = useState<SidebarVariant>("sidebar");
   const [isHoveringSidebar, setIsHoveringSidebar] = useState(false);
 
   const side: SidebarSide = getSetting<SidebarSide>("sidebarSide") ?? "left";
@@ -54,10 +50,11 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
   const isActiveTabLoading = focusedTab?.isLoading || false;
 
   useEffect(() => {
-    if (!isHoveringSidebar && open && variant === "floating") {
+    // Only auto-hide floating sidebar if it's not pinned
+    if (!isHoveringSidebar && open && variant === "floating" && !pinned) {
       setOpen(false);
     }
-  }, [isHoveringSidebar, open, variant, setOpen, setVariant]);
+  }, [isHoveringSidebar, open, variant, pinned, setOpen]);
 
   // Only show the browser content if the focused tab is in full screen mode
   if (focusedTab?.fullScreen) {
