@@ -620,16 +620,11 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public putToSleep(alreadyLoadedURL: boolean = false) {
     if (this.asleep) return;
 
-    // Save current state (To be safe)
-    this.updateTabState();
-
-    // Store the current URL before putting to sleep
-    const currentUrl = this.url;
-    if (currentUrl && currentUrl !== SLEEP_MODE_URL) {
-      this.url = currentUrl;
-    }
-
+    // Mark as asleep first so subsequent events are ignored
     this.updateStateProperty("asleep", true);
+
+    // Persist the UI-visible URL before we navigate away
+    this.updateTabState();
 
     if (!alreadyLoadedURL) {
       // Load about:blank to save resources
