@@ -313,6 +313,20 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
 
   contextMenu.append(
     new MenuItem({
+      label: "Duplicate Tab",
+      enabled: hasURL,
+      click: async () => {
+        const url = tab.url;
+        if (!url) return;
+        const newTab = await tabManager.createTab(tabbedWindow.id, tab.profileId, tab.spaceId);
+        newTab.loadURL(url);
+        tabManager.setActiveTab(newTab);
+      }
+    })
+  );
+
+  contextMenu.append(
+    new MenuItem({
       type: "separator"
     })
   );
