@@ -143,7 +143,8 @@ async function createTabsFromTabDatas(browser: Browser, tabDatas: TabData[]) {
         navHistoryIndex: tabData.navHistoryIndex,
         uniqueId: tabData.uniqueId,
         title: tabData.title,
-        faviconURL: tabData.faviconURL || undefined
+        faviconURL: tabData.faviconURL || undefined,
+        url: tabData.url
       });
     }
   }

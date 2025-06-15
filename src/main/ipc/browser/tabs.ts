@@ -294,6 +294,8 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
   const tab = tabManager.getTabById(tabId);
   if (!tab) return;
 
+  tab.updateTabState();
+
   const isTabVisible = tab.visible;
   const hasURL = !!tab.url;
 
@@ -332,13 +334,11 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
     })
   );
 
-    contextMenu.append(
+  contextMenu.append(
     new MenuItem({
       label: "Duplicate Tab",
-      enabled: !!tab.url,
       click: async () => {
         const url = tab.url;
-        if (!url) return;
         const newTab = await tabManager.createTab(tabbedWindow.id, tab.profileId, tab.spaceId);
         newTab.loadURL(url);
         tabManager.setActiveTab(newTab);

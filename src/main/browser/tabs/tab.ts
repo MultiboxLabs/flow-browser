@@ -76,6 +76,7 @@ export interface TabCreationOptions {
 
   // Old States to be restored
   title?: string;
+  url?: string;
   faviconURL?: string;
   navHistory?: NavigationEntry[];
   navHistoryIndex?: number;
@@ -197,6 +198,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
       // Old States to be restored
       title,
+      url,
       faviconURL,
       navHistory = [],
       navHistoryIndex,
@@ -260,6 +262,10 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     setImmediate(() => {
       if (title) {
         this.title = title;
+      }
+
+      if (url) {
+        this.url = url;
       }
 
       if (faviconURL) {
@@ -614,12 +620,18 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public putToSleep(alreadyLoadedURL: boolean = false) {
     if (this.asleep) return;
 
+    // Save current state (To be safe)
+    this.updateTabState();
+
+    // Store the current URL before putting to sleep
+    const currentUrl = this.url;
+    if (currentUrl && currentUrl !== SLEEP_MODE_URL) {
+      this.url = currentUrl;
+    }
+
     this.updateStateProperty("asleep", true);
 
     if (!alreadyLoadedURL) {
-      // Save current state (To be safe)
-      this.updateTabState();
-
       // Load about:blank to save resources
       this.loadURL(SLEEP_MODE_URL);
     }
