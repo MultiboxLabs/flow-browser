@@ -339,7 +339,11 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
       label: "Duplicate Tab",
       click: async () => {
         const url = tab.url;
-        const newTab = await tabManager.createTab(tabbedWindow.id, tab.profileId, tab.spaceId);
+        const newTab = await tabManager.createTab(tabbedWindow.id, tab.profileId, tab.spaceId, undefined, {
+          title: tab.title,
+          faviconURL: tab.faviconURL || undefined,
+          position: tab.position + 1
+        });
         newTab.loadURL(url);
         tabManager.setActiveTab(newTab);
       }
