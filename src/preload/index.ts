@@ -263,9 +263,21 @@ const tabsAPI: FlowTabsAPI = {
 };
 
 // PAGE API //
+type Bounds = { x: number; y: number; width: number; height: number };
+let queuedBounds: Bounds | null = null;
+let queuedSetPageBoundsTimeout: NodeJS.Timeout | null = null;
 const pageAPI: FlowPageAPI = {
-  setPageBounds: (bounds: { x: number; y: number; width: number; height: number }) => {
-    return ipcRenderer.send("page:set-bounds", bounds);
+  setPageBounds: (bounds: Bounds) => {
+    const timestamp = Date.now();
+    queuedBounds = bounds;
+
+    if (queuedSetPageBoundsTimeout) return;
+
+    queuedSetPageBoundsTimeout = setTimeout(() => {
+      ipcRenderer.send("page:set-bounds", queuedBounds, timestamp);
+      queuedBounds = null;
+      queuedSetPageBoundsTimeout = null;
+    }, 1000 / 60);
   }
 };
 
