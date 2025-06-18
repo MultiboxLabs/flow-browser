@@ -6,15 +6,17 @@ import {
   dropTargetForElements,
   ElementDropTargetEventBasePayload
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import { cn } from "@/lib/utils";
 
 type SidebarTabDropTargetProps = {
   spaceData: Space;
   isSpaceLight: boolean;
   moveTab: (tabId: number, newPos: number) => void;
   biggestIndex: number;
+  className?: string;
 };
 
-export function SidebarTabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex }: SidebarTabDropTargetProps) {
+export function SidebarTabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex, className }: SidebarTabDropTargetProps) {
   const [showDropIndicator, setShowDropIndicator] = useState(false);
   const dropTargetRef = useRef<HTMLDivElement>(null);
 
@@ -77,7 +79,7 @@ export function SidebarTabDropTarget({ spaceData, isSpaceLight, moveTab, biggest
   return (
     <>
       {showDropIndicator && <DropIndicator isSpaceLight={isSpaceLight} />}
-      <div className="flex-1 flex flex-col" ref={dropTargetRef} onDoubleClick={handleDoubleClick}></div>
+      <div className={cn("flex-1 flex flex-col", className)} ref={dropTargetRef} onDoubleClick={handleDoubleClick}></div>
     </>
   );
 }
