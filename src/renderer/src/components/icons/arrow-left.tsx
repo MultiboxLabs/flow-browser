@@ -18,10 +18,10 @@ interface ArrowLeftIconProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const pathVariants: Variants = {
-  normal: { d: "m12 19-7-7 7-7", translateX: 0, scale: 1 },
+  normal: { d: "m12 19-7-7 7-7", x: 0, scale: 1 },
   animate: {
     d: "m12 19-7-7 7-7",
-    translateX: -5,
+    x: -5,
     scale: 1.1,
     transition: {
       duration: 0.4
@@ -30,10 +30,10 @@ const pathVariants: Variants = {
 };
 
 const secondPathVariants: Variants = {
-  normal: { d: "M19 12H5", translateX: 0, scale: 1 },
+  normal: { d: "M19 12H5", x: 0, scale: 1 },
   animate: {
     d: "M19 12H5",
-    translateX: -5,
+    x: -5,
     scale: 1.1,
     transition: {
       duration: 0.4
