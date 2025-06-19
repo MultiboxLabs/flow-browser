@@ -16,6 +16,7 @@ import { SidebarCloseIcon, SidebarOpenIcon, XIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { ComponentProps, useCallback, useEffect, useRef, useState } from "react";
 import { TabData } from "~/types/tabs";
+import { SidebarVariant } from "../../main";
 
 export type NavigationEntryWithIndex = NavigationEntry & { index: number };
 
@@ -94,7 +95,7 @@ function StopLoadingIcon() {
   );
 }
 
-export function NavigationControls() {
+export function NavigationControls({ variant, setVariant }: { variant: SidebarVariant, setVariant: (variant: SidebarVariant) => void }) {
   const { focusedTab } = useTabs();
   const { open, setOpen } = useSidebar();
 
@@ -124,7 +125,8 @@ export function NavigationControls() {
     });
   }, [focusedTab]);
 
-  if (!open) {
+
+  if (!open && variant === 'sidebar') {
     return (
       <SidebarMenu>
         <div className="mt-3" />
@@ -141,7 +143,11 @@ export function NavigationControls() {
   }
 
   const closeSidebar = () => {
-    setOpen(false);
+    if(variant === 'sidebar') {
+      setOpen(false)
+    } else {
+      setVariant('sidebar')
+    }
   };
 
   const handleStopLoading = () => {
@@ -154,13 +160,15 @@ export function NavigationControls() {
     flow.navigation.reloadTab(focusedTab.id);
   };
 
+  const SidebarIcon = variant === 'floating' && open ? SidebarOpenIcon : SidebarCloseIcon
+
   return (
     <SidebarGroup className="px-1">
       <SidebarMenu className="flex flex-row justify-between">
         {/* Left Side Buttons */}
         <SidebarMenuItem className="flex flex-row gap-0.5">
           <SidebarActionButton
-            icon={<SidebarCloseIcon className="w-4 h-4" />}
+            icon={<SidebarIcon className="w-4 h-4" />}
             onClick={closeSidebar}
             className={SIDEBAR_HOVER_COLOR}
           />

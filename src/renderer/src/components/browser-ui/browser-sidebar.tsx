@@ -117,11 +117,11 @@ function SidebarFooterContent() {
 }
 
 // Component for the sidebar header content
-function SidebarHeaderContent({ open, themeClasses }: { open: boolean; themeClasses: string }) {
+function SidebarHeaderContent({ open, themeClasses, variant, setVariant }: { open: boolean; themeClasses: string; variant: SidebarVariant, setVariant: (variant: SidebarVariant) => void }) {
   return (
     <SidebarHeader className={cn(themeClasses, "pb-0 gap-0")}>
       {open && <SidebarWindowControls />}
-      <NavigationControls />
+      <NavigationControls variant={variant} setVariant={setVariant} />
       <SidebarAddressBar />
     </SidebarHeader>
   );
@@ -137,7 +137,8 @@ function SidebarContent({
   handleMouseEnter,
   handleMouseLeave,
   sidebarClassNames,
-  railClassNames
+  railClassNames,
+  setVariant
 }: {
   open: boolean;
   side: SidebarSide;
@@ -148,6 +149,7 @@ function SidebarContent({
   handleMouseLeave: () => void;
   sidebarClassNames: string;
   railClassNames: string;
+  setVariant: (variant: SidebarVariant) => void;
 }) {
   return (
     <Sidebar
@@ -158,7 +160,7 @@ function SidebarContent({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <SidebarHeaderContent open={open} themeClasses={themeClasses} />
+      <SidebarHeaderContent open={open} themeClasses={themeClasses} variant={variant} setVariant={setVariant} />
       <ScrollableSidebarContent />
       <SidebarFooter className={themeClasses}>{open && <SidebarFooterContent />}</SidebarFooter>
       <SidebarRail className={railClassNames} isRightSide={side === "right"} />
@@ -253,6 +255,7 @@ export function BrowserSidebar({ collapseMode, variant, side, setIsHoveringSideb
             handleMouseLeave={handleMouseLeave}
             sidebarClassNames={sidebarClassNames}
             railClassNames={railClassNames}
+            setVariant={setVariant}
           />
         </motion.div>
       )}
