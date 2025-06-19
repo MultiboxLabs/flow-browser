@@ -107,8 +107,8 @@ export function SpaceSidebar({ space }: { space: Space }) {
         const isTabInGroupA = a.tabs.some((tab) => tab.id === tabId);
         const isTabInGroupB = b.tabs.some((tab) => tab.id === tabId);
 
-        const aIndex = newSortedTabGroups.findIndex((tabGroup) => tabGroup.id === a.id);
-        const bIndex = newSortedTabGroups.findIndex((tabGroup) => tabGroup.id === b.id);
+        const aIndex = sortedTabGroups.findIndex((tabGroup) => tabGroup.id === a.id);
+        const bIndex = sortedTabGroups.findIndex((tabGroup) => tabGroup.id === b.id);
 
         const aPos = isTabInGroupA ? newPosition : aIndex;
         const bPos = isTabInGroupB ? newPosition : bIndex;
