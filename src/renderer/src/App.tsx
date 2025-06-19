@@ -1,7 +1,8 @@
-import { RouterProvider } from "./router/provider";
-import { Route } from "./router/route";
 import { Toaster } from "sonner";
 import { PlatformProvider } from "@/components/main/platform";
+import { UmamiScriptLoader } from "@/components/analytics/umami";
+import { RouterProvider } from "./router/provider";
+import { Route } from "./router/route";
 import { QueryParamProvider } from "use-query-params";
 import { WindowHistoryAdapter } from "use-query-params/adapters/window";
 
@@ -69,12 +70,16 @@ function Routes() {
 
 function App() {
   return (
-    <QueryParamProvider adapter={WindowHistoryAdapter}>
-      <PlatformProvider>
+    <>
+      <UmamiScriptLoader />
+
+      <QueryParamProvider adapter={WindowHistoryAdapter}>
+        <PlatformProvider>
         <Routes />
         <Toaster richColors />
       </PlatformProvider>
     </QueryParamProvider>
+    </>
   );
 }
 
