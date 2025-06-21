@@ -14,6 +14,8 @@ import { getSettingValueById } from "@/saving/settings";
 import { ExtensionManager } from "@/modules/extensions/management";
 import { transformUserAgentHeader } from "@/browser/utility/user-agent";
 
+export const loadedProfileSessions: Set<Session> = new Set();
+
 /**
  * Represents a loaded browser profile
  */
@@ -117,6 +119,8 @@ export class ProfileManager {
       }
 
       const profileSession = getSession(profileId);
+      loadedProfileSessions.add(profileSession);
+
       const profilePath = getProfilePath(profileId);
 
       // Remove Electron and App details to closer emulate Chrome's UA

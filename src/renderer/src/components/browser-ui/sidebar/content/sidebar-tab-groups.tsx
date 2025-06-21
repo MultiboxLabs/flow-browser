@@ -99,11 +99,12 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
         isFocused && "bg-white dark:bg-white/25",
         isFocused && "active:bg-white active:dark:bg-white/25",
         "text-gray-900 dark:text-gray-200",
-        "transition-colors"
+        "transition-colors",
+        tab.asleep && "grayscale"
       )}
       initial={{ opacity: 0, x: -10 }}
       animate={{
-        opacity: 1,
+        opacity: tab.asleep ? 0.5 : 1,
         x: 0,
         scale: isPressed ? 0.985 : 1
       }}

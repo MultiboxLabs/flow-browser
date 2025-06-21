@@ -10,6 +10,7 @@ import "@/modules/auto-update";
 import "@/modules/posthog";
 import "@/modules/content-blocker";
 import { debugPrint } from "@/modules/output";
+import { setupQuitHandler } from "@/modules/quit-handlers";
 
 export let browser: Browser | null = null;
 
@@ -224,6 +225,7 @@ function initializeApp() {
     handleOpenUrl(url);
   });
 
+  setupQuitHandler();
   return true;
 }
 

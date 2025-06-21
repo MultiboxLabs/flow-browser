@@ -221,6 +221,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     // Create WebContentsView
     const webContentsView = createWebContentsView(session, webContentsViewOptions);
     const webContents = webContentsView.webContents;
+
     this.id = webContents.id;
     this.view = webContentsView;
     this.webContents = webContents;
@@ -360,6 +361,11 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     const { webContents, window: tabbedWindow } = this;
 
     const window = tabbedWindow.window;
+
+    // Set zoom level limits when webContents is ready
+    webContents.on("did-finish-load", () => {
+      webContents.setVisualZoomLevelLimits(1, 5);
+    });
 
     // Handle fullscreen events
     webContents.on("enter-html-full-screen", () => {
