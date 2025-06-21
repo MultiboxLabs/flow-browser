@@ -105,8 +105,8 @@ function SidebarProvider({
   }, []);
 
   const togglePin = React.useCallback(() => {
-    setPinned(!pinned);
-  }, [pinned, setPinned]);
+    setPinned(prev => !prev);
+  }, [setPinned]);
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
