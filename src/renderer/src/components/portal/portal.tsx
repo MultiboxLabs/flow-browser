@@ -1,13 +1,16 @@
 import { PlatformConsumer } from "@/components/main/platform";
+import { usePortalsProvider } from "@/components/portal/provider";
+import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { useCopyStyles } from "@/hooks/use-copy-styles";
-import { useCssSizeToPixels } from "@/hooks/use-css-size-to-pixels";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { mergeRefs } from "@/lib/merge-refs";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 const DEFAULT_Z_INDEX = 3;
 
-function generateComponentId() {
-  return Math.random().toString(36).substring(2, 15);
+interface PortalComponentProps extends React.ComponentProps<"div"> {
+  visible?: boolean;
+  zIndex?: number;
 }
 
 type PortalContextValue = {
@@ -15,6 +18,11 @@ type PortalContextValue = {
   y: number | null;
   width: number | null;
   height: number | null;
+};
+
+type PortalRef = {
+  id: string;
+  window: Window;
 };
 
 const PortalContext = createContext<PortalContextValue>({
@@ -29,132 +37,140 @@ export function usePortalContext() {
   return context;
 }
 
-type PortalComponentProps = {
-  children: React.ReactNode;
-  x: string | number;
-  y: string | number;
-  width: string | number;
-  height: string | number;
-  zIndex?: number;
-  visible?: boolean;
-  ref?: React.RefObject<HTMLElement | null>;
-  anchorX?: "left" | "right";
-  anchorY?: "top" | "bottom";
-};
 export function PortalComponent({
-  children,
-  x,
-  y,
-  width,
-  height,
-  zIndex,
   visible = true,
-  anchorX = "left",
-  anchorY = "top",
-  ref
+  zIndex = DEFAULT_Z_INDEX,
+  children,
+  ref,
+  ...args
 }: PortalComponentProps) {
-  const [container, setContainer] = useState<HTMLElement | null>(null);
-  const [componentId, setComponentId] = useState<string | null>(null);
-  const parentRef = useRef<HTMLDivElement>(null);
-  const containerWinRef = useRef<Window | null>(null);
+  const { getPortal, releasePortal } = usePortalsProvider();
+  const [portal, setPortal] = useState<PortalRef | null>(null);
 
+  const holderRef = useRef<HTMLDivElement>(null);
+  const mergedRef = mergeRefs([ref, holderRef]);
+  const lastPortalRef = useRef(portal);
+
+  const boundsRect = useBoundingRect(holderRef);
+  const bounds = useMemo(() => {
+    return {
+      x: Math.round(boundsRect?.x ?? 0),
+      y: Math.round(boundsRect?.y ?? 0),
+      width: Math.round(boundsRect?.width ?? 0),
+      height: Math.round(boundsRect?.height ?? 0)
+    };
+  }, [boundsRect]);
+
+  // Get portal on mount and release on unmount
   useEffect(() => {
-    const newComponentId = generateComponentId();
-    setComponentId(newComponentId);
-
-    // Open the container window with a unique name based on componentId
-    const windowName = `popup_${newComponentId}`;
-    const containerWin = window.open("about:blank", windowName, `componentId=${newComponentId}`);
-    containerWinRef.current = containerWin;
-
-    if (containerWin) {
-      // Get the document and body of the container window
-      const containerDoc = containerWin.document;
-      const containerBody = containerDoc.body;
-
-      // Reset any default margins/paddings
-      containerBody.style.margin = "0";
-      containerBody.style.padding = "0";
-      containerBody.style.overflow = "hidden";
-
-      setContainer(containerBody);
+    const newPortal = getPortal();
+    if (newPortal) {
+      setPortal(newPortal);
+    } else {
+      console.warn("Failed to get portal - popup might be blocked");
     }
 
     return () => {
-      if (containerWin && !containerWin.closed) {
-        containerWin.close();
+      if (newPortal) {
+        releasePortal(newPortal);
       }
     };
-  }, []); // Remove x, y, width, height from dependencies as they shouldn't trigger window reopening
+  }, [getPortal, releasePortal]);
 
-  if (ref) {
-    ref.current = container;
-  }
-
-  // Use the hook for style copying
-  useCopyStyles(containerWinRef.current);
-
-  const widthString = typeof width === "string" ? width : `${width}px`;
-  const heightString = typeof height === "string" ? height : `${height}px`;
-  const widthInPixels = useCssSizeToPixels(widthString, parentRef, "width");
-  const heightInPixels = useCssSizeToPixels(heightString, parentRef, "height");
-
-  const xString = typeof x === "string" ? x : `${x}px`;
-  const yString = typeof y === "string" ? y : `${y}px`;
-  const xInPixels = useCssSizeToPixels(xString, parentRef, "left");
-  const yInPixels = useCssSizeToPixels(yString, parentRef, "top");
-
-  // Calculate position based on anchor values
-  let effectiveX = xInPixels;
-  let effectiveY = yInPixels;
-
-  // Adjust X position if anchor is "right"
-  if (anchorX === "right") {
-    effectiveX = xInPixels - widthInPixels;
-  }
-
-  // Adjust Y position if anchor is "bottom"
-  if (anchorY === "bottom") {
-    effectiveY = yInPixels - heightInPixels;
-  }
-
+  // Update portal reference
   useEffect(() => {
-    if (!componentId) return;
+    lastPortalRef.current = portal;
+  }, [portal]);
 
-    // Use the already calculated effective positions
-    flow.interface.setComponentWindowBounds(componentId, {
-      x: effectiveX,
-      y: effectiveY,
-      width: widthInPixels,
-      height: heightInPixels
-    });
-  }, [componentId, effectiveX, effectiveY, widthInPixels, heightInPixels]);
+  // Copy styles from parent window to portal window
+  useCopyStyles(portal?.window ?? null);
 
+  // Set up portal window body styles
   useEffect(() => {
-    if (!componentId) return;
+    if (!portal?.window || portal.window.closed) return;
 
-    const zIndexValue = zIndex ?? DEFAULT_Z_INDEX;
-    flow.interface.setComponentWindowZIndex(componentId, zIndexValue);
-  }, [componentId, zIndex]);
+    try {
+      const containerBody = portal.window.document.body;
+      containerBody.style.margin = "0";
+      containerBody.style.padding = "0";
+      containerBody.style.overflow = "hidden";
+    } catch (error) {
+      // Portal window might be closed or inaccessible during hot reload
+      console.warn("Failed to set portal window styles:", error);
+    }
+  }, [portal]);
 
+  const portalChildren = useMemo(() => {
+    const contextValue: PortalContextValue = {
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.width,
+      height: bounds.height
+    };
+
+    return (
+      <PortalContext.Provider key="portal-context" value={contextValue}>
+        <PlatformConsumer>
+          <div key="portal-children" className="w-screen h-screen">
+            {children}
+          </div>
+        </PlatformConsumer>
+      </PortalContext.Provider>
+    );
+  }, [children, bounds]);
+
+  // Update visibility of the portal
   useEffect(() => {
-    if (!componentId) return;
+    if (!portal?.window || portal.window.closed) return;
 
-    flow.interface.setComponentWindowVisible(componentId, visible);
-  }, [componentId, visible]);
+    try {
+      flow.interface.setComponentWindowVisible(portal.id, visible);
+    } catch (error) {
+      console.warn("Failed to set portal visibility:", error);
+    }
+  }, [portal, visible]);
 
-  const portal = (
-    <PortalContext.Provider
-      value={{
-        x: effectiveX,
-        y: effectiveY,
-        width: widthInPixels,
-        height: heightInPixels
-      }}
-    >
-      <PlatformConsumer>{children}</PlatformConsumer>
-    </PortalContext.Provider>
+  // Update z-index of the portal
+  useEffect(() => {
+    if (!portal?.window || portal.window.closed) return;
+
+    try {
+      flow.interface.setComponentWindowZIndex(portal.id, zIndex);
+    } catch (error) {
+      console.warn("Failed to set portal z-index:", error);
+    }
+  }, [portal, zIndex]);
+
+  // Update bounds of the portal
+  useEffect(() => {
+    if (!portal?.window || portal.window.closed) return;
+    if (!bounds) return;
+
+    try {
+      flow.interface.setComponentWindowBounds(portal.id, {
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height
+      });
+    } catch (error) {
+      console.warn("Failed to set portal bounds:", error);
+    }
+  }, [portal, bounds]);
+
+  // Hot reload cleanup
+  useEffect(() => {
+    if (import.meta.hot) {
+      import.meta.hot.dispose(() => {
+        // Don't destroy portal on hot reload, just clean up references
+        lastPortalRef.current = null;
+      });
+    }
+  }, []);
+
+  return (
+    <div {...args} ref={mergedRef}>
+      {portal && portal.window && !portal.window.closed && createPortal(portalChildren, portal.window.document.body)}
+    </div>
   );
-
-  return <div ref={parentRef}>{container && createPortal(portal, container)}</div>;
 }

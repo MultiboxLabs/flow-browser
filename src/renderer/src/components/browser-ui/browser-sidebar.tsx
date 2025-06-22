@@ -263,11 +263,15 @@ export function BrowserSidebar({ collapseMode, variant, side, setIsHoveringSideb
   if (variant === "floating") {
     return (
       <PortalComponent
-        x={side === "left" ? 0 : "100vw"}
-        y={0}
-        width={width}
-        height="100%"
-        anchorX={side === "left" ? "left" : "right"}
+        className="absolute"
+        style={{
+          top: 0,
+          left: side === "left" ? 0 : "100vw",
+          width: width,
+          height: "100%"
+        }}
+        visible={true}
+        zIndex={3}
       >
         {sidebarContent}
       </PortalComponent>

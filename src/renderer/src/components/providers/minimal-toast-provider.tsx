@@ -47,11 +47,13 @@ function ToastContainer({
   return (
     <PortalComponent
       visible={isVisible}
-      x={sidebarSide === "left" ? "100vw" : "0vw"}
-      y={0}
-      width={"10%"}
-      height={"6%"}
-      anchorX={sidebarSide === "left" ? "right" : "left"}
+      className="absolute"
+      style={{
+        top: 0,
+        ...(sidebarSide === "left" ? { right: "0vw" } : { left: "0vw" }),
+        width: "10%",
+        height: "6%"
+      }}
     >
       <div
         className={cn(
