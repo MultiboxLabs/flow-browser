@@ -64,21 +64,6 @@ export function PortalComponent({
   // Copy styles from parent window to portal window
   useCopyStyles(portal?.window ?? null);
 
-  // Set up portal window body styles
-  useEffect(() => {
-    if (!portal?.window || portal.window.closed) return;
-
-    try {
-      const containerBody = portal.window.document.body;
-      containerBody.style.margin = "0";
-      containerBody.style.padding = "0";
-      containerBody.style.overflow = "hidden";
-    } catch (error) {
-      // Portal window might be closed or inaccessible during hot reload
-      console.warn("Failed to set portal window styles:", error);
-    }
-  }, [portal]);
-
   const portalChildren = useMemo(() => {
     const contextValue: PortalContextValue = {
       x: bounds.x,

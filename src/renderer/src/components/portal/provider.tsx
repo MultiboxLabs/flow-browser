@@ -1,19 +1,37 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef } from "react";
 
-const TARGET_FREE_PORTALS = 10;
+const MAX_IDLE_PORTALS = 10;
+const MIN_IDLE_PORTALS = 5;
 
 interface Portal {
   id: string;
   window: Window;
-  using: boolean;
   _destroy: () => void;
 }
 
+declare global {
+  interface Window {
+    portals: {
+      available: Map<string, Portal>;
+      used: Map<string, Portal>;
+    };
+  }
+}
+
+if (!window.portals) {
+  window.portals = {
+    available: new Map(),
+    used: new Map()
+  };
+}
+
 interface PortalContextValue {
-  portals: Portal[];
-  usePortal: () => Portal | null;
-  takePortal: () => Portal | null;
-  removePortal: (portal: Portal) => void;
+  takePortal: typeof takePortal;
+  takeAvailablePortal: typeof takeAvailablePortal;
+  getAvailablePortals: typeof getAvailablePortals;
+  releasePortal: typeof releasePortal;
+  removePortal: typeof removePortal;
+  usePortal: typeof usePortal;
 }
 
 const PortalContext = createContext<PortalContextValue | null>(null);
@@ -30,7 +48,7 @@ export function usePortalsProvider() {
   return context;
 }
 
-function createReusablePortal() {
+function createPortal() {
   const portalId = generatePortalId();
 
   const windowName = `portal_${portalId}`;
@@ -40,124 +58,150 @@ function createReusablePortal() {
     return null;
   }
 
+  const docElementStyle = containerWin.document.documentElement.style;
+  const bodyStyle = containerWin.document.body.style;
+  docElementStyle.overflow = "hidden";
+  bodyStyle.margin = "0";
+  bodyStyle.padding = "0";
+  bodyStyle.backgroundColor = "white";
+
   const portal: Portal = {
     id: portalId,
     window: containerWin,
-    using: false,
     _destroy: () => {
       containerWin.close();
     }
   };
+
+  window.portals.available.set(portalId, portal);
   return portal;
 }
 
-export function PortalsProvider({ children }: { children: React.ReactNode }) {
-  const [portals, setPortals] = useState<Portal[]>([]);
+/// UTILITY FUNCTIONS ///
+function takePortal(id: string) {
+  const portal = window.portals.available.get(id);
+  if (portal) {
+    window.portals.used.set(id, portal);
+    window.portals.available.delete(id);
+    return portal;
+  }
+  return null;
+}
 
-  const portalsRef = useRef<Portal[]>([]);
-  portalsRef.current = portals;
+function takeAvailablePortal() {
+  const portal = window.portals.available.values().next().value;
+  if (portal) {
+    window.portals.used.set(portal.id, portal);
+    window.portals.available.delete(portal.id);
+    return portal;
+  }
+  return null;
+}
 
-  const createPortal = useCallback(() => {
-    const portal = createReusablePortal();
-    console.log("createPortal", portal);
-    if (portal) {
-      setPortals((prev) => [...prev, portal]);
-      return portal;
+function getAvailablePortals() {
+  return window.portals.available;
+}
+
+function releasePortal(portal: Portal) {
+  portal.window.document.documentElement.style.width = `0px`;
+  portal.window.document.documentElement.style.height = `0px`;
+  portal.window.document.body.style.width = `0px`;
+  portal.window.document.body.style.height = `0px`;
+
+  window.portals.used.delete(portal.id);
+  window.portals.available.set(portal.id, portal);
+
+  flow.interface.setComponentWindowVisible(portal.id, false);
+}
+
+function removePortal(portal: Portal) {
+  window.portals.used.delete(portal.id);
+  window.portals.available.delete(portal.id);
+
+  portal._destroy();
+}
+
+function usePortal() {
+  const portalRef = useRef<Portal | null>(null);
+  const portal = useMemo(() => {
+    const portal = takeAvailablePortal();
+    if (!portal) {
+      return null;
     }
-    return null;
-  }, []);
-
-  /**
-   * Get a free portal.
-   */
-  const getFreePortal = useCallback(() => {
-    const portal = portalsRef.current.find((portal) => !portal.using);
     return portal;
   }, []);
-
-  /**
-   * Take a portal. If no portal is available, create a new one.
-   */
-  const takePortal = useCallback(() => {
-    const portal = getFreePortal() || createPortal();
-    if (portal) {
-      setPortals((portals) => {
-        for (const p of portals) {
-          if (p.id === portal.id) {
-            p.using = true;
-          }
-        }
-        return portals;
-      });
-      return portal;
-    }
-    return createPortal();
-  }, [createPortal, getFreePortal]);
-
-  /**
-   * Remove a portal. Use when the portal is no longer needed.
-   */
-  const removePortal = useCallback((portal: Portal) => {
-    portal._destroy();
-    setPortals((prev) => prev.filter((p) => p.id !== portal.id));
-  }, []);
-
-  const usePortalHook = useCallback(
-    function usePortal() {
-      const [portal, setPortal] = useState<Portal | null>(null);
-
-      useEffect(() => {
-        const portal = takePortal();
-        setPortal(portal);
-
-        return () => {
-          if (portal) {
-            removePortal(portal);
-          }
-        };
-      }, []);
-
-      return portal;
-    },
-    [removePortal, takePortal]
-  );
+  portalRef.current = portal;
 
   useEffect(() => {
-    let ended = false;
-
-    function checkPortals() {
-      requestIdleCallback(() => {
-        if (ended) {
-          return;
-        }
-
-        const portals = portalsRef.current;
-
-        const freePortals = portals.filter((portal) => !portal.using);
-        if (freePortals.length < TARGET_FREE_PORTALS) {
-          for (let i = 0; i < TARGET_FREE_PORTALS - freePortals.length; i++) {
-            createPortal();
-          }
-        }
-
-        // Check portals every second
-        setTimeout(checkPortals, 1000);
-      });
-    }
-
-    checkPortals();
-
     return () => {
-      ended = true;
-
-      for (const portal of portalsRef.current) {
-        removePortal(portal);
+      if (portalRef.current) {
+        console.log("releasePortal", portalRef.current.id);
+        releasePortal(portalRef.current);
       }
     };
-  }, [createPortal, removePortal]);
+  }, []);
+
+  return portal;
+}
+
+/// PROVIDER ///
+export function PortalsProvider({ children }: { children: React.ReactNode }) {
+  useMemo(() => {
+    const availablePortals = getAvailablePortals();
+    while (availablePortals.size < MIN_IDLE_PORTALS) {
+      const portal = createPortal();
+      if (!portal) {
+        // something went wrong, stop the loop
+        break;
+      }
+    }
+  }, []);
+
+  const optimizePortalPool = useMemo(
+    () =>
+      function optimizePool() {
+        setTimeout(() => {
+          requestIdleCallback(() => {
+            const availablePortals = window.portals.available;
+
+            // Check all the portals are still alive
+            for (const portal of availablePortals.values()) {
+              if (portal.window.closed) {
+                removePortal(portal);
+              }
+            }
+
+            // Check if we need more portals
+            if (availablePortals.size < MIN_IDLE_PORTALS) {
+              createPortal();
+              optimizePortalPool();
+              return;
+            }
+
+            // If the count of available portals exceeds MAX_UNUSED_PORTALS, close the excess portals.
+            while (availablePortals.size > MAX_IDLE_PORTALS) {
+              const portal = availablePortals.values().next().value;
+              if (portal) {
+                removePortal(portal);
+              }
+            }
+          });
+        }, 100);
+      },
+    []
+  );
 
   return (
-    <PortalContext.Provider value={{ portals, takePortal, removePortal, usePortal: usePortalHook }}>
+    <PortalContext.Provider
+      value={{
+        takePortal,
+        takeAvailablePortal,
+        getAvailablePortals,
+        releasePortal,
+        removePortal,
+        usePortal
+      }}
+    >
       {children}
     </PortalContext.Provider>
   );
