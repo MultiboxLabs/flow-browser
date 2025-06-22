@@ -3,7 +3,7 @@ import { usePortalsProvider } from "@/components/portal/provider";
 import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { useCopyStyles } from "@/hooks/use-copy-styles";
 import { mergeRefs } from "@/lib/merge-refs";
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 
 const DEFAULT_Z_INDEX = 3;
@@ -18,11 +18,6 @@ type PortalContextValue = {
   y: number | null;
   width: number | null;
   height: number | null;
-};
-
-type PortalRef = {
-  id: string;
-  window: Window;
 };
 
 const PortalContext = createContext<PortalContextValue>({
@@ -44,8 +39,8 @@ export function PortalComponent({
   ref,
   ...args
 }: PortalComponentProps) {
-  const { getPortal, releasePortal } = usePortalsProvider();
-  const [portal, setPortal] = useState<PortalRef | null>(null);
+  const { usePortal } = usePortalsProvider();
+  const portal = usePortal();
 
   const holderRef = useRef<HTMLDivElement>(null);
   const mergedRef = mergeRefs([ref, holderRef]);
@@ -60,22 +55,6 @@ export function PortalComponent({
       height: Math.round(boundsRect?.height ?? 0)
     };
   }, [boundsRect]);
-
-  // Get portal on mount and release on unmount
-  useEffect(() => {
-    const newPortal = getPortal();
-    if (newPortal) {
-      setPortal(newPortal);
-    } else {
-      console.warn("Failed to get portal - popup might be blocked");
-    }
-
-    return () => {
-      if (newPortal) {
-        releasePortal(newPortal);
-      }
-    };
-  }, [getPortal, releasePortal]);
 
   // Update portal reference
   useEffect(() => {
