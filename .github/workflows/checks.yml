@@ -52,6 +52,9 @@ jobs:
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -80,4 +83,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "style: format code with prettier"
-          git push
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}
