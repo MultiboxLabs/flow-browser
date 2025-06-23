@@ -16,7 +16,13 @@ type SidebarTabDropTargetProps = {
   className?: string;
 };
 
-export function SidebarTabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex, className }: SidebarTabDropTargetProps) {
+export function SidebarTabDropTarget({
+  spaceData,
+  isSpaceLight,
+  moveTab,
+  biggestIndex,
+  className
+}: SidebarTabDropTargetProps) {
   const [showDropIndicator, setShowDropIndicator] = useState(false);
   const dropTargetRef = useRef<HTMLDivElement>(null);
 
@@ -79,7 +85,11 @@ export function SidebarTabDropTarget({ spaceData, isSpaceLight, moveTab, biggest
   return (
     <>
       {showDropIndicator && <DropIndicator isSpaceLight={isSpaceLight} />}
-      <div className={cn("flex-1 flex flex-col", className)} ref={dropTargetRef} onDoubleClick={handleDoubleClick}></div>
+      <div
+        className={cn("flex-1 flex flex-col", className)}
+        ref={dropTargetRef}
+        onDoubleClick={handleDoubleClick}
+      ></div>
     </>
   );
 }
