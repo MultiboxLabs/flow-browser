@@ -57,7 +57,7 @@ function ToastContainer({
     >
       <div
         className={cn(
-          "w-screen h-screen pt-4 select-none",
+          "w-screen h-screen absolute pt-4 select-none",
           sidebarSide === "left" ? "pr-4" : "pl-4",
           spaceInjectedClasses
         )}
@@ -65,10 +65,11 @@ function ToastContainer({
         <AnimatePresence onExitComplete={() => setIsVisible(false)}>
           {currentMessage && (
             <motion.div
-              initial={{ opacity: 0.9, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0.9, scale: 0.9 }}
-              transition={{ duration: 0.3 }}
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0 }}
+              style={{ transformOrigin: "top" }}
+              transition={{ duration: 0.25, ease: "easeInOut" }}
               className="box-border border border-border dimmed-space-background-start rounded-lg w-full h-full flex items-center justify-center"
               onClick={removeToast}
             >
