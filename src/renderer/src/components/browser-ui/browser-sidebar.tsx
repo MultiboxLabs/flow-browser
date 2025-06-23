@@ -117,7 +117,17 @@ function SidebarFooterContent() {
 }
 
 // Component for the sidebar header content
-function SidebarHeaderContent({ open, themeClasses, variant, setVariant }: { open: boolean; themeClasses: string; variant: SidebarVariant, setVariant: (variant: SidebarVariant) => void }) {
+function SidebarHeaderContent({
+  open,
+  themeClasses,
+  variant,
+  setVariant
+}: {
+  open: boolean;
+  themeClasses: string;
+  variant: SidebarVariant;
+  setVariant: (variant: SidebarVariant) => void;
+}) {
   return (
     <SidebarHeader className={cn(themeClasses, "pb-0 gap-0")}>
       {open && <SidebarWindowControls />}

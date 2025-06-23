@@ -95,7 +95,13 @@ function StopLoadingIcon() {
   );
 }
 
-export function NavigationControls({ variant, setVariant }: { variant: SidebarVariant, setVariant: (variant: SidebarVariant) => void }) {
+export function NavigationControls({
+  variant,
+  setVariant
+}: {
+  variant: SidebarVariant;
+  setVariant: (variant: SidebarVariant) => void;
+}) {
   const { focusedTab } = useTabs();
   const { open, setOpen } = useSidebar();
 
@@ -125,8 +131,7 @@ export function NavigationControls({ variant, setVariant }: { variant: SidebarVa
     });
   }, [focusedTab]);
 
-
-  if (!open && variant === 'sidebar') {
+  if (!open && variant === "sidebar") {
     return (
       <SidebarMenu>
         <div className="mt-3" />
@@ -143,10 +148,10 @@ export function NavigationControls({ variant, setVariant }: { variant: SidebarVa
   }
 
   const closeSidebar = () => {
-    if(variant === 'sidebar') {
-      setOpen(false)
+    if (variant === "sidebar") {
+      setOpen(false);
     } else {
-      setVariant('sidebar')
+      setVariant("sidebar");
     }
   };
 
@@ -160,7 +165,7 @@ export function NavigationControls({ variant, setVariant }: { variant: SidebarVa
     flow.navigation.reloadTab(focusedTab.id);
   };
 
-  const SidebarIcon = variant === 'floating' && open ? SidebarOpenIcon : SidebarCloseIcon
+  const SidebarIcon = variant === "floating" && open ? SidebarOpenIcon : SidebarCloseIcon;
 
   return (
     <SidebarGroup className="px-1">
