@@ -26,6 +26,35 @@ if (!window.portals) {
   };
 }
 
+// Vite hot reloading compatibility
+if (import.meta.hot) {
+  const cleanup = () => {
+    if (window.portals) {
+      // Close all available portals
+      for (const portal of window.portals.available.values()) {
+        removePortal(portal);
+      }
+      // Close all used portals
+      for (const portal of window.portals.used.values()) {
+        removePortal(portal);
+      }
+      // Clear the maps
+      window.portals.available.clear();
+      window.portals.used.clear();
+    }
+  };
+
+  // Cleanup all portals when this module is about to be hot reloaded
+  import.meta.hot.dispose(() => {
+    cleanup();
+  });
+
+  // Re-initialize portal pool after hot reload
+  import.meta.hot.accept(() => {
+    cleanup();
+  });
+}
+
 interface PortalContextValue {
   takePortal: typeof takePortal;
   takeAvailablePortal: typeof takeAvailablePortal;
