@@ -3,7 +3,7 @@ import { usePortalsProvider } from "@/components/portal/provider";
 import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { useCopyStyles } from "@/hooks/use-copy-styles";
 import { mergeRefs } from "@/lib/merge-refs";
-import { createContext, useContext, useEffect, useMemo, useRef } from "react";
+import { createContext, useContext, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 
 const DEFAULT_Z_INDEX = 3;
@@ -44,7 +44,6 @@ export function PortalComponent({
 
   const holderRef = useRef<HTMLDivElement>(null);
   const mergedRef = mergeRefs([ref, holderRef]);
-  const lastPortalRef = useRef(portal);
 
   const boundsRect = useBoundingRect(holderRef);
   const bounds = useMemo(() => {
@@ -55,11 +54,6 @@ export function PortalComponent({
       height: Math.round(boundsRect?.height ?? 0)
     };
   }, [boundsRect]);
-
-  // Update portal reference
-  useEffect(() => {
-    lastPortalRef.current = portal;
-  }, [portal]);
 
   // Copy styles from parent window to portal window
   useCopyStyles(portal?.window ?? null);
@@ -84,7 +78,7 @@ export function PortalComponent({
   }, [children, bounds]);
 
   // Update visibility of the portal
-  useEffect(() => {
+  useMemo(() => {
     if (!portal?.window || portal.window.closed) return;
 
     try {
@@ -95,7 +89,7 @@ export function PortalComponent({
   }, [portal, visible]);
 
   // Update z-index of the portal
-  useEffect(() => {
+  useMemo(() => {
     if (!portal?.window || portal.window.closed) return;
 
     try {
@@ -106,7 +100,7 @@ export function PortalComponent({
   }, [portal, zIndex]);
 
   // Update bounds of the portal
-  useEffect(() => {
+  useMemo(() => {
     if (!portal?.window || portal.window.closed) return;
     if (!bounds) return;
 
@@ -121,16 +115,6 @@ export function PortalComponent({
       console.warn("Failed to set portal bounds:", error);
     }
   }, [portal, bounds]);
-
-  // Hot reload cleanup
-  useEffect(() => {
-    if (import.meta.hot) {
-      import.meta.hot.dispose(() => {
-        // Don't destroy portal on hot reload, just clean up references
-        lastPortalRef.current = null;
-      });
-    }
-  }, []);
 
   return (
     <div {...args} ref={mergedRef}>
