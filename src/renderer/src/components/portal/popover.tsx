@@ -38,7 +38,7 @@ function PortalPopoverContent({ children, ...props }: React.ComponentProps<typeo
     <AnimatePresence mode="wait">
       {open && (
         <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-          <PortalComponent x={0} y={0} width={"100vw"} height={"100vh"} zIndex={4}>
+          <PortalComponent className="w-screen h-screen absolute top-0 left-0" zIndex={4}>
             <PopoverContent
               {...props}
               portal={false}

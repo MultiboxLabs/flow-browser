@@ -3,6 +3,7 @@ import { usePortalsProvider } from "@/components/portal/provider";
 import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { useCopyStyles } from "@/hooks/use-copy-styles";
 import { mergeRefs } from "@/lib/merge-refs";
+import { cn } from "@/lib/utils";
 import { createContext, useContext, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 
@@ -35,6 +36,7 @@ export function usePortalContext() {
 export function PortalComponent({
   visible = true,
   zIndex = DEFAULT_Z_INDEX,
+  className,
   children,
   ref,
   ...args
@@ -116,9 +118,22 @@ export function PortalComponent({
     }
   }, [portal, bounds]);
 
+  const sizer = createPortal(
+    <div {...args} ref={mergedRef} className={cn("pointer-events-none", className)} />,
+    window.document.body,
+    "portal-sizer"
+  );
+
+  const wrapper =
+    portal &&
+    portal.window &&
+    !portal.window.closed &&
+    createPortal(portalChildren, portal.window.document.body, "portal-wrapper");
+
   return (
-    <div {...args} ref={mergedRef}>
-      {portal && portal.window && !portal.window.closed && createPortal(portalChildren, portal.window.document.body)}
-    </div>
+    <>
+      {sizer}
+      {wrapper}
+    </>
   );
 }

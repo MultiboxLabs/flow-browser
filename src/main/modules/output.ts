@@ -15,7 +15,7 @@ const DEBUG_AREAS = {
   PROFILES: false, // @/modules/profiles.ts
   SPACES: false, // @/sessions/spaces.ts
   ICONS: false, // @/modules/icons.ts
-  PORTAL_COMPONENTS: true, // @/browser/components/portal-component-windows.ts
+  PORTAL_COMPONENTS: false, // @/browser/components/portal-component-windows.ts
   AUTO_UPDATER: false, // @/modules/auto-update.ts
   CONTENT_BLOCKER: false, // @/modules/content-blocker.ts
   WEB_REQUESTS_INTERCEPTION: false, // @/browser/utility/web-requests.ts
