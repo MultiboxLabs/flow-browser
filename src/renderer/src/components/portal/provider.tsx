@@ -147,9 +147,9 @@ function removePortal(portal: Portal) {
 
 function usePortal() {
   const currentPortal = useMemo(() => {
-    const portal = takeAvailablePortal();
+    let portal = takeAvailablePortal();
     if (!portal) {
-      return null;
+      portal = createPortal();
     }
     return portal;
   }, []);
