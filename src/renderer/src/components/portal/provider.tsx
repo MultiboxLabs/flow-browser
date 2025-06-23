@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useRef } from "react";
+import { createContext, useContext, useMemo } from "react";
+import { useUnmount } from "react-use";
 
 const MAX_IDLE_PORTALS = 10;
 const MIN_IDLE_PORTALS = 5;
@@ -116,26 +117,21 @@ function removePortal(portal: Portal) {
 }
 
 function usePortal() {
-  const portalRef = useRef<Portal | null>(null);
-  const portal = useMemo(() => {
+  const currentPortal = useMemo(() => {
     const portal = takeAvailablePortal();
     if (!portal) {
       return null;
     }
     return portal;
   }, []);
-  portalRef.current = portal;
 
-  useEffect(() => {
-    return () => {
-      if (portalRef.current) {
-        console.log("releasePortal", portalRef.current.id);
-        releasePortal(portalRef.current);
-      }
-    };
-  }, []);
+  useUnmount(() => {
+    if (currentPortal) {
+      releasePortal(currentPortal);
+    }
+  });
 
-  return portal;
+  return currentPortal;
 }
 
 /// PROVIDER ///
