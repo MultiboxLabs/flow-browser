@@ -78,7 +78,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "jju": "^1.4.0",
     "lucide-react": "^0.514.0",
-    "motion": "^12.18.1",
+    "motion": "^12.11.0",
     "prettier": "^3.5.3",
     "radix-ui": "^1.4.2",
     "react": "^19.1.0",
