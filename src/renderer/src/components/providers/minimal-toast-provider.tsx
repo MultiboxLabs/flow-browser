@@ -65,9 +65,9 @@ function ToastContainer({
         <AnimatePresence onExitComplete={() => setIsVisible(false)}>
           {currentMessage && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0.9, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
+              exit={{ opacity: 0.9, scale: 0.9 }}
               transition={{ duration: 0.3 }}
               className="box-border border border-border dimmed-space-background-start rounded-lg w-full h-full flex items-center justify-center"
               onClick={removeToast}

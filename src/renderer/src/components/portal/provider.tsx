@@ -58,12 +58,11 @@ function createPortal() {
     return null;
   }
 
-  const docElementStyle = containerWin.document.documentElement.style;
+  // Reset any default margins/paddings
   const bodyStyle = containerWin.document.body.style;
-  docElementStyle.overflow = "hidden";
   bodyStyle.margin = "0";
   bodyStyle.padding = "0";
-  bodyStyle.backgroundColor = "white";
+  bodyStyle.overflow = "hidden";
 
   const portal: Portal = {
     id: portalId,
@@ -103,11 +102,6 @@ function getAvailablePortals() {
 }
 
 function releasePortal(portal: Portal) {
-  portal.window.document.documentElement.style.width = `0px`;
-  portal.window.document.documentElement.style.height = `0px`;
-  portal.window.document.body.style.width = `0px`;
-  portal.window.document.body.style.height = `0px`;
-
   window.portals.used.delete(portal.id);
   window.portals.available.set(portal.id, portal);
 
