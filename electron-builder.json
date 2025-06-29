@@ -5,6 +5,7 @@
   "directories": {
     "buildResources": "build"
   },
+  "extraResources": ["scripting.sdef"],
   "files": [
     "!**/.vscode/*",
     "!src/*",
@@ -72,6 +73,10 @@
   "mac": {
     "category": "public.app-category.productivity",
     "entitlementsInherit": "build/entitlements.mac.plist",
+    "extendInfo": {
+      "NSAppleScriptEnabled": true,
+      "OSAScriptingDefinition": "scripting.sdef"
+    },
     "notarize": false
   },
   "dmg": {
