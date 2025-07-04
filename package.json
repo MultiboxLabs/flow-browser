@@ -38,6 +38,7 @@
     "electron-context-menu": "^4.0.5",
     "electron-updater": "^6.6.2",
     "knex": "^3.1.0",
+    "mica-electron": "^1.5.16",
     "mime-types": "^3.0.1",
     "posthog-node": "^5.0.0",
     "react-use": "^17.6.0",
