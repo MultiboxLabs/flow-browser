@@ -210,7 +210,7 @@ export function BrowserSidebar({ collapseMode, variant, side, setIsHoveringSideb
     initial: { x: sideOffset, originX: side === "left" ? 0 : 1 },
     animate: { x: 0 },
     exit: { x: sideOffset },
-    transition: { type: "spring", damping: 30, stiffness: 400 }
+    transition: { type: "spring" as const, damping: 30, stiffness: 400 }
   };
 
   // Style for floating variant

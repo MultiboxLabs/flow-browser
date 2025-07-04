@@ -294,6 +294,8 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
   const tab = tabManager.getTabById(tabId);
   if (!tab) return;
 
+  tab.updateTabState();
+
   const isTabVisible = tab.visible;
   const hasURL = !!tab.url;
 
@@ -328,6 +330,22 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
         } else {
           tab.putToSleep();
         }
+      }
+    })
+  );
+
+  contextMenu.append(
+    new MenuItem({
+      label: "Duplicate Tab",
+      click: async () => {
+        const url = tab.url;
+        const newTab = await tabManager.createTab(tabbedWindow.id, tab.profileId, tab.spaceId, undefined, {
+          title: tab.title,
+          faviconURL: tab.faviconURL || undefined,
+          position: tab.position + 1
+        });
+        newTab.loadURL(url);
+        tabManager.setActiveTab(newTab);
       }
     })
   );
