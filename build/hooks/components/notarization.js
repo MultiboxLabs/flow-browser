@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "fs/promises";
 import path from "path";
 import os from "os";
 import crypto from "crypto";
@@ -16,10 +16,10 @@ async function createNotarizationApiKeyFile() {
     const fileName = `notarization_auth_key_${randomStr}.p8`;
     const tempFilePath = path.join(tempDir, fileName);
 
-    fs.writeFileSync(tempFilePath, apiKey);
+    await fs.writeFile(tempFilePath, apiKey);
 
     process.env["APPLE_API_KEY"] = tempFilePath;
-    console.log(`API key file created at ${tempFilePath}`);
+    console.log(`\nAPI key file created at ${tempFilePath}`);
   } else {
     console.log("No API key found");
   }
