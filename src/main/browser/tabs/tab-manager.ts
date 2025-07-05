@@ -104,7 +104,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
    * Remove a tab from the tab manager
    * @internal Should not be used directly, use `tab.destroy()` instead
    */
-  public _removeTab(tab: Tab): void {
+  private _removeTab(tab: Tab): void {
     if (!this.tabs.has(tab.id)) {
       return;
     }
