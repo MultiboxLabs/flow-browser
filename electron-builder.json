@@ -75,7 +75,9 @@
     "notarize": true
   },
   "dmg": {
-    "artifactName": "${name}-${version}-${arch}.${ext}"
+    "artifactName": "${name}-${version}-${arch}.${ext}",
+    "background": "build/dmg-background.tiff",
+    "icon": "build/volume-icon.icns"
   },
   "linux": {
     "target": ["AppImage", "deb", "flatpak"],
