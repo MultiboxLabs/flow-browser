@@ -4,6 +4,7 @@ import { Tab } from "@/browser/tabs/tab";
 import {
   TabGroupFocusedTabController,
   TabGroupTabsController,
+  TabGroupVisiblityController,
   TabGroupWindowController
 } from "@/browser/tabs/tab-group/controllers";
 import { Browser } from "@/browser/browser";
@@ -15,14 +16,14 @@ type TabGroupEvents = {
   "window-changed": [];
   "tab-added": [Tab];
   "tab-removed": [Tab];
+  "space-changed": [];
   destroyed: [];
 };
 
 export interface TabGroupCreationDetails {
   browser: Browser;
-
   window: TabbedBrowserWindow;
-  spaceId: string;
+  space: string;
 }
 
 export interface TabGroupVariant {
@@ -43,6 +44,7 @@ export class TabGroup extends TypedEventEmitter<TabGroupEvents> {
   public readonly window: TabGroupWindowController;
   public readonly tabs: TabGroupTabsController;
   public readonly focusedTab: TabGroupFocusedTabController;
+  public readonly visiblity: TabGroupVisiblityController;
 
   constructor(variant: TabGroupVariant, details: TabGroupCreationDetails) {
     super();
@@ -57,6 +59,7 @@ export class TabGroup extends TypedEventEmitter<TabGroupEvents> {
     this.window = new TabGroupWindowController(this);
     this.tabs = new TabGroupTabsController(this);
     this.focusedTab = new TabGroupFocusedTabController(this);
+    this.visiblity = new TabGroupVisiblityController(this);
   }
 
   public destroy() {
