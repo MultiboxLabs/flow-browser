@@ -133,6 +133,15 @@ export class TabGroupTabsController {
   }
 
   /**
+   * Checks if a tab belongs to this tab group.
+   * @param tabId - The ID of the tab to check
+   * @returns true if the tab belongs to this group, false otherwise
+   */
+  public hasTab(tabId: string): boolean {
+    return this.tabIds.has(tabId);
+  }
+
+  /**
    * Cleans up all event listeners for all tabs in this group.
    * Should be called when the tab group is being destroyed to prevent memory leaks.
    */
