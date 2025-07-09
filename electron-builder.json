@@ -97,6 +97,16 @@
     "owner": "multiboxlabs",
     "releaseType": "prerelease"
   },
+  "electronFuses": {
+    "runAsNode": false,
+    "enableCookieEncryption": true,
+    "enableNodeOptionsEnvironmentVariable": false,
+    "enableNodeCliInspectArguments": false,
+    "enableEmbeddedAsarIntegrityValidation": true,
+    "onlyLoadAppFromAsar": true,
+    "loadBrowserProcessSpecificV8Snapshot": false,
+    "grantFileProtocolExtraPrivileges": true
+  },
   "electronDist": "node_modules/electron/dist",
   "afterPack": "./build/hooks/afterPack.js",
   "afterSign": "./build/hooks/afterSign.js"
