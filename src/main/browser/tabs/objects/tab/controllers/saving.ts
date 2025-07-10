@@ -1,4 +1,4 @@
-import { Tab } from "@/browser/tabs/tab";
+import { Tab } from "@/browser/tabs/objects/tab";
 
 export class TabSavingController {
   private readonly tab: Tab;

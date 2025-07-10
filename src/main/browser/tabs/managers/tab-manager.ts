@@ -1,5 +1,5 @@
 import { Browser } from "@/browser/browser";
-import { Tab, TabCreationDetails } from "@/browser/tabs/tab";
+import { Tab, TabCreationDetails } from "@/browser/tabs/objects/tab";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { windowTabsChanged } from "@/ipc/browser/tabs";
 import { WebContents } from "electron";

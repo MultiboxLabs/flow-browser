@@ -1,4 +1,4 @@
-import { Tab } from "@/browser/tabs/tab";
+import { Tab } from "@/browser/tabs/objects/tab";
 import { TabbedBrowserWindow } from "@/browser/window";
 
 const TAB_ZINDEX = 2;

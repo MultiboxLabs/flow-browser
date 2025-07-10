@@ -1,7 +1,7 @@
 import { Browser } from "@/browser/browser";
-import { TabGroupManager } from "@/browser/tabs/tab-group-manager";
-import { ActiveTabGroupManager } from "@/browser/tabs/active-tab-group-manager";
-import { TabManager } from "@/browser/tabs/tab-manager";
+import { TabGroupManager } from "@/browser/tabs/managers/tab-group-manager";
+import { ActiveTabGroupManager } from "@/browser/tabs/managers/active-tab-group-manager";
+import { TabManager } from "@/browser/tabs/managers/tab-manager";
 
 export class TabOrchestrator {
   private readonly browser: Browser;

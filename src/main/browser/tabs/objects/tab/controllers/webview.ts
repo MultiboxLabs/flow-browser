@@ -1,4 +1,4 @@
-import { Tab } from "@/browser/tabs/tab";
+import { Tab } from "@/browser/tabs/objects/tab";
 import { Session, WebContents, WebContentsView, WebPreferences } from "electron";
 
 interface PatchedWebContentsView extends WebContentsView {

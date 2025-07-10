@@ -1,5 +1,5 @@
-import { Tab } from "@/browser/tabs/tab";
-import { TabGroup } from "@/browser/tabs/tab-group";
+import { Tab } from "@/browser/tabs/objects/tab";
+import { TabGroup } from "@/browser/tabs/objects/tab-group";
 
 /**
  * Controller responsible for managing the focused tab within a tab group.

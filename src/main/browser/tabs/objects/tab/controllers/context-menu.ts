@@ -1,4 +1,4 @@
-import { Tab } from "@/browser/tabs/tab";
+import { Tab } from "@/browser/tabs/objects/tab";
 import { Browser } from "@/browser/browser";
 import { TabbedBrowserWindow } from "@/browser/window";
 import contextMenu from "electron-context-menu";

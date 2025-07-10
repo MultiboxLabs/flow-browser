@@ -1,12 +1,12 @@
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { generateID } from "@/modules/utils";
-import { Tab } from "@/browser/tabs/tab";
+import { Tab } from "@/browser/tabs/objects/tab";
 import {
   TabGroupFocusedTabController,
   TabGroupTabsController,
   TabGroupVisiblityController,
   TabGroupWindowController
-} from "@/browser/tabs/tab-group/controllers";
+} from "@/browser/tabs/objects/tab-group/controllers";
 import { Browser } from "@/browser/browser";
 import { TabbedBrowserWindow } from "@/browser/window";
 

@@ -12,7 +12,7 @@ import {
   TabNavigationController,
   TabDataController,
   TabSleepController
-} from "@/browser/tabs/tab/controllers";
+} from "@/browser/tabs/objects/tab/controllers";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { generateID } from "@/modules/utils";
