@@ -1,4 +1,4 @@
-import { Tab } from "@/browser/tabs/tab";
+import { Tab } from "@/browser/tabs/objects/tab";
 
 // This function must be self-contained: it runs in the actual tab's context
 const enterPiP = async function () {

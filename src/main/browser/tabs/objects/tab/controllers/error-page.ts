@@ -1,4 +1,4 @@
-import { Tab } from "@/browser/tabs/tab";
+import { Tab } from "@/browser/tabs/objects/tab";
 import { FLAGS } from "@/modules/flags";
 
 export class TabErrorPageController {

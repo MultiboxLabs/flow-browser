@@ -1,4 +1,4 @@
-import { TabGroup } from "@/browser/tabs/tab-group";
+import { TabGroup } from "@/browser/tabs/objects/tab-group";
 
 export class TabGroupVisiblityController {
   private readonly tabGroup: TabGroup;

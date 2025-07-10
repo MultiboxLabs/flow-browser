@@ -1,4 +1,4 @@
-import { TabGroup } from "@/browser/tabs/tab-group";
+import { TabGroup } from "@/browser/tabs/objects/tab-group";
 import { TabbedBrowserWindow } from "@/browser/window";
 
 export class TabGroupWindowController {

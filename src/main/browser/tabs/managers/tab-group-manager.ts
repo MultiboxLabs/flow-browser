@@ -1,7 +1,7 @@
 import { Browser } from "@/browser/browser";
-import { Tab } from "@/browser/tabs/tab";
-import { TabGroup } from "@/browser/tabs/tab-group";
-import { NormalTabGroup } from "@/browser/tabs/tab-group/types/normal";
+import { Tab } from "@/browser/tabs/objects/tab";
+import { TabGroup } from "@/browser/tabs/objects/tab-group";
+import { NormalTabGroup } from "@/browser/tabs/objects/tab-group/types/normal";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getSpacesFromProfile } from "@/sessions/spaces";
 

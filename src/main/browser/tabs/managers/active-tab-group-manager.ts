@@ -1,5 +1,5 @@
 import { Browser } from "@/browser/browser";
-import { TabGroup } from "@/browser/tabs/tab-group";
+import { TabGroup } from "@/browser/tabs/objects/tab-group";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 

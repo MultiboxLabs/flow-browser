@@ -1,4 +1,4 @@
-import { Tab } from "@/browser/tabs/tab";
+import { Tab } from "@/browser/tabs/objects/tab";
 import { NavigationEntry, WebContents } from "electron";
 
 export const DEFAULT_URL = "flow://new-tab";
