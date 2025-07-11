@@ -30,5 +30,7 @@
 		<true/>
 		<key>com.apple.security.files.user-selected.read-write</key>
 		<true/>
+		<key>com.apple.developer.web-browser.public-key-credential</key>
+		<true/>
 	</dict>
 </plist>

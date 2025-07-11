@@ -32,7 +32,7 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
-    "@electron-webauthn/native": "^0.0.1",
+    "@electron-webauthn/native": "^0.0.5",
     "@ghostery/adblocker-electron": "^2.5.2",
     "@phosphor-icons/core": "^2.1.1",
     "arktype": "^2.1.25",

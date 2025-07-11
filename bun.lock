@@ -5,7 +5,7 @@
     "": {
       "name": "flow-browser",
       "dependencies": {
-        "@electron-webauthn/native": "^0.0.1",
+        "@electron-webauthn/native": "^0.0.5",
         "@ghostery/adblocker-electron": "^2.5.2",
         "@phosphor-icons/core": "^2.1.1",
         "arktype": "^2.1.25",
@@ -159,17 +159,17 @@
 
     "@electron-toolkit/tsconfig": ["@electron-toolkit/tsconfig@1.0.1", "", { "peerDependencies": { "@types/node": "*" } }, "sha512-M0Mol3odspvtCuheyujLNAW7bXq7KFNYVMRtpjFa4ZfES4MuklXBC7Nli/omvc+PRKlrklgAGx3l4VakjNo8jg=="],
 
-    "@electron-webauthn/native": ["@electron-webauthn/native@0.0.1", "", { "optionalDependencies": { "@electron-webauthn/native-darwin-arm64": "0.0.1", "@electron-webauthn/native-darwin-x64": "0.0.1", "@electron-webauthn/native-linux-x64-gnu": "0.0.1", "@electron-webauthn/native-win32-arm64-msvc": "0.0.1", "@electron-webauthn/native-win32-x64-msvc": "0.0.1" } }, "sha512-+YFr9kLRkKAlnA+0zkEeYz2Zq8k1oZHQfxEGRx6y7FlwXtnbgZ3pe8xgobgPUKqDAbaDHYuJCc0EEVL6BV5M8w=="],
+    "@electron-webauthn/native": ["@electron-webauthn/native@0.0.5", "", { "optionalDependencies": { "@electron-webauthn/native-darwin-arm64": "0.0.5", "@electron-webauthn/native-darwin-x64": "0.0.5", "@electron-webauthn/native-linux-x64-gnu": "0.0.5", "@electron-webauthn/native-win32-arm64-msvc": "0.0.5", "@electron-webauthn/native-win32-x64-msvc": "0.0.5" } }, "sha512-Cd5PuHGfY/o1Sf7RD6DuJ+276CjSyGs++u7wb4NwZihXioDs8Jo7ikFnTeVVMtfWP+ddrV7Wk4KUmKOnnubclw=="],
 
-    "@electron-webauthn/native-darwin-arm64": ["@electron-webauthn/native-darwin-arm64@0.0.1", "", { "os": "darwin", "cpu": "arm64" }, "sha512-yxjd8Qmo4itcBWqZI0w2VmclgneaGXFTHnjyIjTqHqDpu0dnqVLQQZyJsR6a1USKq1IHVWCBe9Sr0Lr19p7BOw=="],
+    "@electron-webauthn/native-darwin-arm64": ["@electron-webauthn/native-darwin-arm64@0.0.5", "", { "os": "darwin", "cpu": "arm64" }, "sha512-B6PKEKUpU2YJHfr9lj0N01w69vmOwvlKDumAKnicuzcZEA1Hto6DXnDlehNNu/FGH1L8nihLCTalFSEaAM2yIg=="],
 
-    "@electron-webauthn/native-darwin-x64": ["@electron-webauthn/native-darwin-x64@0.0.1", "", { "os": "darwin", "cpu": "x64" }, "sha512-DN3WGat904pyPNBfYj160O7QxETEIQfDxPiuEnKHIbFzE7QxUeR9SFK5xqf9t+XtXF4tE9PLJYoA/VjhA3r0EQ=="],
+    "@electron-webauthn/native-darwin-x64": ["@electron-webauthn/native-darwin-x64@0.0.5", "", { "os": "darwin", "cpu": "x64" }, "sha512-Mfa5z7pSfad1JNegA9fpMEr5WucLpB3uyMsR4qY7F7+qVT5bRBWNZDnZ3vFzLDTGkt7m8M+LlbOD0yjAMGJrOw=="],
 
-    "@electron-webauthn/native-linux-x64-gnu": ["@electron-webauthn/native-linux-x64-gnu@0.0.1", "", { "os": "linux", "cpu": "x64" }, "sha512-r0/QZJxMHyQx7KE/650d4i8rYOT0njy8Oz7A181RilvE9hNV08il23p/zGrqJKC+V0QLMjFoJhDZJKmchYq8kg=="],
+    "@electron-webauthn/native-linux-x64-gnu": ["@electron-webauthn/native-linux-x64-gnu@0.0.5", "", { "os": "linux", "cpu": "x64" }, "sha512-+0FGl9E7Q2tC3lzNlgFj21sICw2mne99rHp+L224u/JVuUxenNjsFDOx/W/a6khJj7rhmH+0xgFILHL9H8zPXw=="],
 
-    "@electron-webauthn/native-win32-arm64-msvc": ["@electron-webauthn/native-win32-arm64-msvc@0.0.1", "", { "os": "win32", "cpu": "arm64" }, "sha512-n80Ul4IaFYYf9U9CqT3K1xyEm+E87IXZEeG6dUpCQ829meuAKVHGpiHCzUyYYROuu67WRRPS0NKv7X1KMEyrPA=="],
+    "@electron-webauthn/native-win32-arm64-msvc": ["@electron-webauthn/native-win32-arm64-msvc@0.0.5", "", { "os": "win32", "cpu": "arm64" }, "sha512-WJmMtNroY6tgb7kM7CZPd8cROsAuGejsSFEgN5PsJTCXu6wmg9bmoT7FdWLQ8PrDrdqAZOMu2Y7V0UENM4f6nw=="],
 
-    "@electron-webauthn/native-win32-x64-msvc": ["@electron-webauthn/native-win32-x64-msvc@0.0.1", "", { "os": "win32", "cpu": "x64" }, "sha512-0D91dzKFsvnfWQjCzuMrSH284bM9wXpkVwbi4zfp/sxPlkm/rBRs/IADLTckNQbyuYVHCvQuEpduhRMPVm1lAQ=="],
+    "@electron-webauthn/native-win32-x64-msvc": ["@electron-webauthn/native-win32-x64-msvc@0.0.5", "", { "os": "win32", "cpu": "x64" }, "sha512-ma5bPByzIXPIPRtg/le447nSwEZoySnVpz8zo6H6IJIYh/pwLZgoQAFDn41gzU6BSs3mMnKuzbe6mW3JrusqsQ=="],
 
     "@electron/asar": ["@electron/asar@3.2.18", "", { "dependencies": { "commander": "^5.0.0", "glob": "^7.1.6", "minimatch": "^3.0.4" }, "bin": { "asar": "bin/asar.js" } }, "sha512-2XyvMe3N3Nrs8cV39IKELRHTYUWFKrmqqSY1U+GMlc0jvqjIVnoxhNd2H4JolWQncbJi1DCvb5TNxZuI2fEjWg=="],
 
