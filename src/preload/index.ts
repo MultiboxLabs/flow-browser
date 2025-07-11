@@ -90,21 +90,79 @@ if (hasPermission("browser")) {
 }
 
 // PASSKEYS PATCH //
-const SHOULD_PATCH_PASSKEYS = false;
+const SHOULD_PATCH_PASSKEYS = "navigator" in globalThis && "credentials" in globalThis.navigator;
 if (SHOULD_PATCH_PASSKEYS) {
+  type PatchedCredentialsContainer = Pick<CredentialsContainer, "create" | "get"> & {
+    isAvailable: () => Promise<boolean>;
+    isConditionalMediationAvailable: () => Promise<boolean>;
+  };
+
+  const patchedCredentialsContainer: PatchedCredentialsContainer = {
+    create: async (options) => {
+      return ipcRenderer.invoke("webauthn:create", options);
+    },
+    get: async (options) => {
+      return ipcRenderer.invoke("webauthn:get", options);
+    },
+    isAvailable: async () => {
+      return ipcRenderer.invoke("webauthn:is-available");
+    },
+    isConditionalMediationAvailable: async () => {
+      return false;
+    }
+  };
+  contextBridge.exposeInMainWorld("electronCredentials", patchedCredentialsContainer);
+
   const tinyPasskeysScript = () => {
-    if ("navigator" in globalThis && "credentials" in globalThis.navigator) {
-      const credentials = globalThis.navigator.credentials;
-      const oldCredentialsCreate = credentials.create.bind(credentials);
-      const oldCredentialsGet = credentials.get.bind(credentials);
+    if ("electronCredentials" in globalThis) {
+      const patchedCredentials: typeof patchedCredentialsContainer = globalThis.electronCredentials;
 
-      credentials.create = async (options) => {
-        return await oldCredentialsCreate(options);
-      };
+      if ("navigator" in globalThis && "credentials" in globalThis.navigator) {
+        const credentials = globalThis.navigator.credentials;
+        const oldCredentialsCreate = credentials.create.bind(credentials);
+        const oldCredentialsGet = credentials.get.bind(credentials);
 
-      credentials.get = async (options) => {
-        return await oldCredentialsGet(options);
-      };
+        // navigator.credentials.create()
+        credentials.create = async (options) => {
+          if (options) {
+            if (options.publicKey) {
+              return await patchedCredentials.create(options);
+            }
+          }
+
+          return await oldCredentialsCreate(options);
+        };
+
+        // navigator.credentials.get()
+        credentials.get = async (options) => {
+          if (options) {
+            // Conditional mediation is not supported yet
+            if (options.mediation === "conditional") {
+              return null;
+            }
+
+            if (options.publicKey) {
+              return await patchedCredentials.get(options);
+            }
+          }
+
+          return await oldCredentialsGet(options);
+        };
+      }
+
+      if (
+        "PublicKeyCredential" in globalThis &&
+        "isUserVerifyingPlatformAuthenticatorAvailable" in globalThis.PublicKeyCredential
+      ) {
+        // PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+        globalThis.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = patchedCredentials.isAvailable;
+
+        // PublicKeyCredential.isConditionalMediationAvailable()
+        globalThis.PublicKeyCredential.isConditionalMediationAvailable =
+          patchedCredentials.isConditionalMediationAvailable;
+      }
+
+      delete globalThis.electronCredentials;
     }
   };
   contextBridge.executeInMainWorld({
