@@ -9,6 +9,7 @@ import {
 } from "@/browser/tabs/objects/tab-group/controllers";
 import { Browser } from "@/browser/browser";
 import { TabbedBrowserWindow } from "@/browser/window";
+import { ExportedTabGroup } from "@/browser/tabs/objects/tabs-container";
 
 type TabGroupTypes = "normal" | "split" | "glance";
 
@@ -77,5 +78,11 @@ export class TabGroup extends TypedEventEmitter<TabGroupEvents> {
     if (this.destroyed) {
       throw new Error("Tab group already destroyed");
     }
+  }
+
+  public export(): ExportedTabGroup {
+    return {
+      type: "tab-group"
+    };
   }
 }
