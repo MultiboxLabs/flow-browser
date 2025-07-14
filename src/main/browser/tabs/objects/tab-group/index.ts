@@ -9,7 +9,7 @@ import {
 } from "@/browser/tabs/objects/tab-group/controllers";
 import { Browser } from "@/browser/browser";
 import { TabbedBrowserWindow } from "@/browser/window";
-import { ExportedTabGroup } from "@/browser/tabs/objects/tabs-container";
+import { ExportedTabGroup } from "@/browser/tabs/objects/tab-containers/base";
 
 type TabGroupTypes = "normal" | "split" | "glance";
 

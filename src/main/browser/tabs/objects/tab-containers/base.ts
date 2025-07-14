@@ -1,4 +1,5 @@
 import { TabGroup } from "@/browser/tabs/objects/tab-group";
+import { TabFolder } from "@/browser/tabs/objects/tab-containers/tab-folder";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 
 // Container Child //
@@ -6,39 +7,65 @@ type TabGroupChild = {
   type: "tab-group";
   item: TabGroup;
 };
-type TabContainerChild = {
-  type: "tab-container";
-  item: TabsContainer;
+type TabFolderChild = {
+  type: "tab-folder";
+  item: TabFolder;
 };
-export type ContainerChild = TabGroupChild | TabContainerChild;
+export type ContainerChild = TabGroupChild | TabFolderChild;
 
 // Exported Tab Data //
+export type ExportedBaseTabContainer = {
+  type: "tab-container";
+  children: ExportedTabData[];
+};
+
 export type ExportedTabGroup = {
   type: "tab-group";
 };
-export type ExportedTabsContainer = {
-  type: "tabs-container";
+export type ExportedTabContainer = {
+  type: "tab-container";
+  children: ExportedTabData[];
+};
+export type ExportedTabsFolder = {
+  type: "tab-folder";
   name: string;
   children: ExportedTabData[];
 };
-type ExportedTabData = ExportedTabGroup | ExportedTabsContainer;
+// ExportedTabContainer would not be a child: it should only be the root container.
+type ExportedTabData = ExportedTabGroup | ExportedTabsFolder;
 
-// Tabs Container //
-type TabsContainerEvents = {
+// Base Tab Container //
+export type BaseTabContainerEvents = {
   "child-added": [child: ContainerChild];
   "child-removed": [child: ContainerChild];
   "children-moved": [];
 };
 
-export class TabsContainer extends TypedEventEmitter<TabsContainerEvents> {
-  public name: string;
+export class BaseTabContainer<
+  TEvents extends BaseTabContainerEvents = BaseTabContainerEvents
+> extends TypedEventEmitter<TEvents> {
   public children: ContainerChild[];
 
-  constructor(name: string) {
+  constructor() {
     super();
 
-    this.name = name;
     this.children = [];
+  }
+
+  public getAllTabGroups(): TabGroup[] {
+    const scanTabContainer = (container: BaseTabContainer): TabGroup[] => {
+      return container.children.flatMap((child) => {
+        if (child.type === "tab-group") {
+          return [child.item];
+        }
+        if (child.type === "tab-folder") {
+          return scanTabContainer(child.item);
+        }
+        return [];
+      });
+    };
+
+    return scanTabContainer(this);
   }
 
   public addChild(child: ContainerChild): void {
@@ -78,10 +105,9 @@ export class TabsContainer extends TypedEventEmitter<TabsContainerEvents> {
     return this.children.length;
   }
 
-  public export(): ExportedTabsContainer {
+  protected baseExport(): ExportedBaseTabContainer {
     return {
-      type: "tabs-container",
-      name: this.name,
+      type: "tab-container",
       children: this.children.map((child) => {
         return child.item.export();
       })
