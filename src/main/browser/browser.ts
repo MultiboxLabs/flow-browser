@@ -4,14 +4,13 @@ import { app, WebContents } from "electron";
 import { BrowserEvents } from "@/browser/events";
 import { ProfileManager, LoadedProfile } from "@/browser/profile-manager";
 import { WindowManager, BrowserWindowType, BrowserWindowCreationOptions } from "@/browser/window-manager";
-import { TabManager } from "@/browser/tabs/tab-manager";
-import { Tab } from "@/browser/tabs/tab";
 import { setupMenu } from "@/browser/utility/menu";
 import { settings } from "@/settings/main";
 import { onboarding } from "@/onboarding/main";
 import "@/modules/extensions/main";
 import { waitForElectronComponentsToBeReady } from "@/modules/electron-components";
 import { debugPrint } from "@/modules/output";
+import { TabOrchestrator } from "@/browser/tabs";
 
 /**
  * Main Browser controller that coordinates browser components
@@ -24,9 +23,8 @@ import { debugPrint } from "@/modules/output";
 export class Browser extends TypedEventEmitter<BrowserEvents> {
   private readonly profileManager: ProfileManager;
   private readonly windowManager: WindowManager;
-  private readonly tabManager: TabManager;
+  public readonly tabs: TabOrchestrator;
   private _isDestroyed: boolean = false;
-  public tabs: TabManager;
   public updateMenu: () => Promise<void>;
 
   /**
@@ -36,10 +34,7 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
     super();
     this.windowManager = new WindowManager(this);
     this.profileManager = new ProfileManager(this, this);
-    this.tabManager = new TabManager(this);
-
-    // A public reference to the tab manager
-    this.tabs = this.tabManager;
+    this.tabs = new TabOrchestrator(this);
 
     // Load menu
     this.updateMenu = setupMenu(this);
@@ -178,13 +173,6 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
       // Always destroy the emitter
       this.destroyEmitter();
     }
-  }
-
-  /**
-   * Get tab from ID
-   */
-  public getTabFromId(tabId: number): Tab | undefined {
-    return this.tabManager.getTabById(tabId);
   }
 
   /**
