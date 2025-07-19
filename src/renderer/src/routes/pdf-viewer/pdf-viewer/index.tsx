@@ -12,8 +12,7 @@ export function PDFViewerApp({ pdfFilePath }: PDFViewerAppProps) {
   const [loadedPerc, setLoadedPerc] = useState(0);
   const { isDocumentLoaded, viewerRef, thumbsRef, usePDFSlickStore, PDFSlickViewer } = usePDFSlick(pdfFilePath, {
     getDocumentParams: {
-      disableAutoFetch:
-        false /** pages need to be loaded for printing, otherwise we get `Expected print service to be initialized.` */,
+      disableAutoFetch: false /** pages need to be loaded for printing, otherwise we get `Expected print service to be initialized.` */,
       disableFontFace: false,
       disableRange: false,
       disableStream: true,
