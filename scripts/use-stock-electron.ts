@@ -119,6 +119,39 @@ function updateBunLock(electronVersion: string) {
 }
 
 /**
+ * Updates the electron-builder.json file to remove electronDownload and add electronDist
+ */
+function updateElectronBuilderJson() {
+  const electronBuilderPath = path.join(process.cwd(), "electron-builder.json");
+
+  // Check if file exists
+  if (!fs.existsSync(electronBuilderPath)) {
+    console.log("⚠️  electron-builder.json not found, skipping...");
+    return;
+  }
+
+  // Read and parse electron-builder.json
+  const electronBuilderContent = fs.readFileSync(electronBuilderPath, "utf8");
+  const electronBuilder = jju.parse(electronBuilderContent);
+
+  // Remove electronDownload key if it exists
+  if (electronBuilder.electronDownload) {
+    delete electronBuilder.electronDownload;
+  }
+
+  // Add electronDist key
+  electronBuilder.electronDist = "node_modules/electron/dist";
+
+  // Write back to electron-builder.json with preserved formatting
+  const updatedContent = jju.update(electronBuilderContent, electronBuilder, {
+    mode: "json",
+    indent: 2
+  });
+
+  fs.writeFileSync(electronBuilderPath, updatedContent);
+}
+
+/**
  * Parse command line arguments
  */
 function parseArgs(): ScriptOptions {
@@ -161,6 +194,11 @@ async function main() {
     console.log("🔒 Updating bun.lock...");
     updateBunLock(electronVersion);
     console.log("✅ bun.lock updated!");
+
+    // Update electron-builder.json
+    console.log("⚙️  Updating electron-builder.json...");
+    updateElectronBuilderJson();
+    console.log("✅ electron-builder.json updated!");
 
     console.log(`🎉 Successfully updated Electron to standard npm version ${electronVersion}`);
     console.log("💡 Note: This switches from castlabs/electron-releases to standard electron");
