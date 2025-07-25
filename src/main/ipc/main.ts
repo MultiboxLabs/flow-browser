@@ -25,3 +25,4 @@ import "@/ipc/app/onboarding";
 
 // Special
 import "@/ipc/listeners-manager";
+import "@/ipc/webauthn";
