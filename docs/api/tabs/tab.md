@@ -1,89 +1,282 @@
-# Tab Class Documentation
+# Tab API Documentation
 
-The `Tab` class represents a single tab within the Flow browser. It manages the web content (`WebContentsView`), state, layout, and lifecycle of a browser tab.
+The `Tab` class is the core component that manages individual browser tabs in the Flow Browser. It provides a comprehensive interface for tab management, including webview handling, navigation, bounds management, and various tab-specific features.
 
 ## Overview
 
-- **Manages Web Content:** Each `Tab` instance encapsulates an Electron `WebContentsView` and its associated `WebContents` object, responsible for rendering web pages.
-- **State Management:** Tracks various states like URL, title, loading status, audio status, and visibility.
-- **Layout Control:** Supports different layouts (`normal`, `glance`, `split`) and updates the view bounds accordingly.
-- **Lifecycle:** Handles creation, showing/hiding, and destruction of the tab.
-- **Events:** Emits events for focus changes, updates, and destruction.
+The Tab class extends `TypedEventEmitter` and orchestrates multiple controllers to handle different aspects of tab functionality. Each tab represents a single browsing context with its own webview, navigation history, and state management.
 
-## Creating a Tab
-
-A `Tab` instance is typically created by the `TabManager`. The constructor requires `TabCreationDetails` and `TabCreationOptions`.
+## Class Structure
 
 ```typescript
-// Simplified example - Usually done within TabManager
-const tab = new Tab(
-  {
-    browser: browserInstance,
-    tabManager: tabManagerInstance,
-    profileId: "default",
-    spaceId: "main",
-    session: electronSession
-  },
-  {
-    window: browserWindowInstance, // Optional: Assign to a window immediately
-    webContentsViewOptions: {
-      /* ... */
-    } // Optional: Customize WebContentsView
-  }
-);
+class Tab extends TypedEventEmitter<TabEvents>
 ```
 
-### `TabCreationDetails`
+### Properties
 
-- `browser`: The main `Browser` controller instance.
-- `tabManager`: The `TabManager` instance responsible for this tab.
-- `profileId`: The ID of the user profile associated with this tab.
-- `spaceId`: The ID of the space this tab belongs to.
-- `session`: The Electron `Session` object to use for this tab's web content.
+#### Core Properties
 
-### `TabCreationOptions`
+- `id: string` - Unique identifier for the tab
+- `loadedProfile: LoadedProfile` - The profile this tab belongs to
+- `creationDetails: TabCreationDetails` - Details used to create the tab
+- `destroyed: boolean` - Whether the tab has been destroyed
+- `browser: Browser` - Reference to the parent browser instance
+- `profileId: string` - ID of the profile this tab belongs to
 
-- `window`: (Optional) The `TabbedBrowserWindow` to initially attach the tab to.
-- `webContentsViewOptions`: (Optional) Electron `WebContentsViewConstructorOptions` to customize the underlying view and web preferences.
+#### Controllers
 
-## Key Properties
+The Tab class manages various controllers that handle specific aspects of tab functionality:
 
-- `id`: (Readonly `number`) The unique ID of the tab's `WebContents`.
-- `profileId`: (Readonly `string`) The associated profile ID.
-- `spaceId`: (`string`) The associated space ID. Can be updated.
-- `visible`: (`boolean`) Whether the tab's view is currently visible.
-- `isDestroyed`: (`boolean`) Whether the tab has been destroyed.
-- `layout`: (`TabLayout`) The current layout configuration (e.g., `{ type: 'normal' }`).
-- `faviconURL`: (`string | null`) The URL of the current favicon.
-- `title`: (`string`) The current page title.
-- `url`: (`string`) The current page URL.
-- `isLoading`: (`boolean`) Whether the page is currently loading.
-- `audible`: (`boolean`) Whether the tab is currently playing audio.
-- `muted`: (`boolean`) Whether the tab's audio is muted.
-- `view`: (Readonly `PatchedWebContentsView`) The Electron `WebContentsView` instance.
-- `webContents`: (Readonly `WebContents`) The Electron `WebContents` instance associated with the view.
+- `window: TabWindowController` - Manages tab window assignment
+- `data: TabDataController` - Handles tab data and state synchronization
+- `bounds: TabBoundsController` - Manages tab positioning and sizing
+- `visiblity: TabVisiblityController` - Controls tab visibility
+- `webview: TabWebviewController` - Manages the webview component
+- `pip: TabPipController` - Handles Picture-in-Picture functionality
+- `saving: TabSavingController` - Manages tab saving operations
+- `contextMenu: TabContextMenuController` - Handles context menu functionality
+- `errorPage: TabErrorPageController` - Manages error page display
+- `navigation: TabNavigationController` - Handles navigation and history
+- `sleep: TabSleepController` - Manages tab sleep/wake functionality
 
-## Key Methods
+## Creation Details
 
-- `setWindow(window: TabbedBrowserWindow | null)`: Attaches the tab's view to a given window or detaches it if `null` is passed.
-- `loadURL(url: string, replace?: boolean)`: Loads the specified URL in the tab. If `replace` is true, it attempts to replace the current history entry.
-- `loadErrorPage(errorCode: number, url: string)`: Loads a custom error page for the given error code and original URL.
-- `setLayout(layout: TabLayout)`: Sets the tab's layout configuration and updates the view.
-- `updateLayout()`: Recalculates and applies the view's bounds based on the current `layout` and window dimensions. Should be called when the window resizes or layout changes.
-- `updateTabState()`: Reads the current state (title, URL, loading, audio) from `webContents` and updates the corresponding `Tab` properties. Emits an `updated` event if any state changed. Returns `true` if changed, `false` otherwise.
-- `show()`: Makes the tab's view visible.
-- `hide()`: Hides the tab's view.
-- `destroy()`: Cleans up resources, removes the view, and marks the tab as destroyed. Emits the `destroyed` event.
+### TabCreationDetails Interface
+
+```typescript
+interface TabCreationDetails {
+  browser: Browser;
+  window: TabbedBrowserWindow;
+  tabId?: string;
+  loadedProfile: LoadedProfile;
+  webContentsViewOptions: Electron.WebContentsViewConstructorOptions;
+  navHistory?: NavigationEntry[];
+  navHistoryIndex?: number;
+  defaultURL?: string;
+  asleep?: boolean;
+}
+```
 
 ## Events
 
-The `Tab` class extends `TypedEventEmitter` and emits the following events:
+The Tab class emits the following events:
 
-- `focused`: Emitted when the tab's `webContents` gains focus. Used by `TabManager` to track the active tab.
-- `updated`: Emitted when the tab's state (e.g., title, URL, loading status, favicon, visibility) changes, often triggered by internal calls to `updateTabState()` or methods like `show()`/`hide()`.
-- `destroyed`: Emitted when the `destroy()` method is called and the tab is successfully cleaned up.
+- `"window-changed"` - Emitted when the tab's window changes
+- `"webview-attached"` - Emitted when the webview is attached
+- `"webview-detached"` - Emitted when the webview is detached
+- `"pip-active-changed"` - Emitted when Picture-in-Picture state changes
+- `"bounds-changed"` - Emitted when tab bounds change
+- `"visiblity-changed"` - Emitted when tab visibility changes
+- `"sleep-changed"` - Emitted when tab sleep state changes
+- `"nav-history-changed"` - Emitted when navigation history changes
+- `"data-changed"` - Emitted when tab data changes
+- `"focused"` - Emitted when the tab gains focus
+- `"destroyed"` - Emitted when the tab is destroyed
 
-## Internal Helpers
+## Methods
 
-- `createWebContentsView()`: Factory function used internally by the constructor to create the `WebContentsView` with appropriate web preferences (sandbox, preload script, session).
-- `setupEventListeners()`: Sets up listeners on the `webContents` object to react to page events (focus, favicon updates, load failures, navigation, media playback) and trigger state updates or actions.
+### Core Methods
+
+#### `destroy()`
+
+Destroys the tab and cleans up resources.
+
+- Detaches the webview
+- Emits the "destroyed" event
+- Destroys the event emitter
+
+#### `throwIfDestroyed()`
+
+Throws an error if the tab has already been destroyed.
+
+## Controllers Documentation
+
+### TabBoundsController
+
+Manages tab positioning and sizing.
+
+#### Properties
+
+- `isAnimating: boolean` - Whether the tab is currently animating
+
+#### Methods
+
+- `startAnimating()` - Starts animation mode
+- `stopAnimating()` - Stops animation mode
+- `set(bounds: PageBounds)` - Sets tab bounds
+- `get()` - Gets current bounds
+- `updateWebviewBounds()` - Updates webview bounds based on visibility
+
+### TabDataController
+
+Handles tab data synchronization and state management.
+
+#### Properties
+
+- `window: TabbedBrowserWindow | null` - Current window
+- `pipActive: boolean` - Picture-in-Picture state
+- `asleep: boolean` - Sleep state
+- `title: string` - Tab title
+- `url: string` - Current URL
+- `isLoading: boolean` - Loading state
+- `audible: boolean` - Audio state
+- `muted: boolean` - Muted state
+
+#### Methods
+
+- `refreshData()` - Refreshes all tab data
+- `setupWebviewData(webContents)` - Sets up webview event listeners
+- `get()` - Returns complete tab data object
+
+### TabNavigationController
+
+Manages tab navigation and history.
+
+#### Properties
+
+- `navHistory: NavigationEntry[]` - Navigation history
+- `navHistoryIndex: number` - Current history index
+
+#### Methods
+
+- `setupWebviewNavigation(webContents)` - Sets up navigation for webview
+- `syncNavHistory()` - Synchronizes navigation history
+- `loadUrl(url, replace?)` - Loads a URL, optionally replacing current entry
+
+### TabWebviewController
+
+Manages the webview component.
+
+#### Properties
+
+- `webContentsView: WebContentsView | null` - The webview component
+- `webContents: WebContents | null` - The webview's web contents
+- `attached: boolean` - Whether webview is attached
+
+#### Methods
+
+- `attach()` - Attaches the webview
+- `detach()` - Detaches and destroys the webview
+
+### TabWindowController
+
+Manages tab window assignment.
+
+#### Methods
+
+- `get()` - Gets current window
+- `set(window)` - Sets the tab's window
+- `updateWebviewWindow()` - Updates webview window assignment
+
+### TabVisiblityController
+
+Controls tab visibility.
+
+#### Properties
+
+- `isVisible: boolean` - Current visibility state
+
+#### Methods
+
+- `setVisible(visible)` - Sets tab visibility
+- `updateWebviewVisiblity()` - Updates webview visibility
+
+### TabPipController
+
+Handles Picture-in-Picture functionality.
+
+#### Properties
+
+- `active: boolean` - Whether PiP is active
+
+#### Methods
+
+- `tryEnterPiP()` - Attempts to enter Picture-in-Picture mode
+- `tryExitPiP()` - Attempts to exit Picture-in-Picture mode
+
+### TabSleepController
+
+Manages tab sleep/wake functionality.
+
+#### Properties
+
+- `asleep: boolean` - Whether the tab is asleep
+
+#### Methods
+
+- `putToSleep()` - Puts the tab to sleep
+- `wakeUp()` - Wakes up the tab
+
+### TabContextMenuController
+
+Handles context menu functionality for tabs. Automatically sets up context menus when the webview is attached.
+
+### TabErrorPageController
+
+Manages error page display when navigation fails.
+
+#### Methods
+
+- `loadErrorPage(errorCode, url)` - Loads an error page for failed navigation
+
+### TabSavingController
+
+Manages tab saving operations (currently minimal implementation).
+
+## Usage Example
+
+```typescript
+import { Tab, TabCreationDetails } from "@/browser/tabs/tab";
+
+// Create tab creation details
+const creationDetails: TabCreationDetails = {
+  browser: browserInstance,
+  window: tabbedWindow,
+  loadedProfile: profile,
+  webContentsViewOptions: {},
+  defaultURL: "https://example.com"
+};
+
+// Create a new tab
+const tab = new Tab(creationDetails);
+
+// Set up event listeners
+tab.on("data-changed", () => {
+  console.log("Tab data changed");
+});
+
+tab.on("focused", () => {
+  console.log("Tab focused");
+});
+
+// Manage tab visibility
+tab.visiblity.setVisible(true);
+
+// Load a URL
+tab.navigation.loadUrl("https://example.com");
+
+// Access tab data
+const tabData = tab.data.get();
+console.log("Tab title:", tabData.title);
+console.log("Tab URL:", tabData.url);
+
+// Clean up
+tab.destroy();
+```
+
+## Integration
+
+The Tab class integrates with:
+
+- **Browser**: Parent browser instance that manages multiple tabs
+- **TabbedBrowserWindow**: Window that displays the tab
+- **LoadedProfile**: Profile that provides session and extensions
+- **WebContentsView**: Electron's webview component for rendering web content
+
+## Best Practices
+
+1. Always call `destroy()` when a tab is no longer needed
+2. Use `throwIfDestroyed()` before performing operations on tabs
+3. Listen to appropriate events for state synchronization
+4. Use the controller APIs rather than directly manipulating internal state
+5. Handle webview attachment/detachment properly for performance
