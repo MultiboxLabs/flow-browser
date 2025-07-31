@@ -9,13 +9,21 @@ type BlockerInstanceType = "all" | "adsAndTrackers" | "adsOnly";
 
 const SESSION_KEY = "content-blocker";
 
+interface BlockerConfig {
+  type: BlockerInstanceType;
+  enabled: boolean;
+}
+
 /**
  * ContentBlocker class manages ad and tracking content blocking functionality
+ * with improved memory management, error handling, and performance optimizations
  */
 class ContentBlocker {
   private blockerInstancePromise: Promise<ElectronBlocker> | undefined = undefined;
   private blockerInstanceType: BlockerInstanceType | undefined = undefined;
-  private blockedSessions: Session[] = [];
+  private blockedSessions = new Set<Session>();
+  private isInitialized = false;
+  private updateTimeout: NodeJS.Timeout | undefined;
 
   /**
    * Creates or returns existing blocker instance of the specified type
@@ -30,26 +38,37 @@ class ContentBlocker {
     }
 
     debugPrint("CONTENT_BLOCKER", "Creating blocker instance:", type);
-    switch (type) {
-      case "all":
-        this.blockerInstancePromise = ElectronBlocker.fromPrebuiltFull();
-        break;
-      case "adsAndTrackers":
-        this.blockerInstancePromise = ElectronBlocker.fromPrebuiltAdsAndTracking();
-        break;
-      case "adsOnly":
-        this.blockerInstancePromise = ElectronBlocker.fromPrebuiltAdsOnly();
-        break;
-    }
 
-    this.blockerInstancePromise.then((blocker) => {
+    try {
+      let promise: Promise<ElectronBlocker>;
+
+      switch (type) {
+        case "all":
+          promise = ElectronBlocker.fromPrebuiltFull();
+          break;
+        case "adsAndTrackers":
+          promise = ElectronBlocker.fromPrebuiltAdsAndTracking();
+          break;
+        case "adsOnly":
+          promise = ElectronBlocker.fromPrebuiltAdsOnly();
+          break;
+      }
+
+      this.blockerInstancePromise = promise;
+      this.blockerInstanceType = type;
+
+      const blocker = await promise;
       blocker.on("request-blocked", (request) => {
         debugPrint("CONTENT_BLOCKER", "Request blocked:", request.url);
       });
-    });
 
-    this.blockerInstanceType = type;
-    return this.blockerInstancePromise as Promise<ElectronBlocker>;
+      return blocker;
+    } catch (error) {
+      debugPrint("CONTENT_BLOCKER", "Failed to create blocker instance:", error);
+      this.blockerInstancePromise = undefined;
+      this.blockerInstanceType = undefined;
+      throw error;
+    }
   }
 
   /**
@@ -58,31 +77,81 @@ class ContentBlocker {
   private async disableBlocker(): Promise<void> {
     if (!this.blockerInstancePromise) return;
 
-    const blocker = await this.blockerInstancePromise;
-    for (const session of this.blockedSessions) {
-      blocker.disableBlockingInSession(createBetterSession(session, SESSION_KEY));
-    }
+    try {
+      const blocker = await this.blockerInstancePromise;
 
-    this.blockedSessions = [];
-    this.blockerInstancePromise = undefined;
-    this.blockerInstanceType = undefined;
+      // Disable blocking for all sessions
+      const disablePromises = Array.from(this.blockedSessions).map((session) =>
+        blocker.disableBlockingInSession(createBetterSession(session, SESSION_KEY))
+      );
+
+      await Promise.allSettled(disablePromises);
+
+      this.blockedSessions.clear();
+      this.blockerInstancePromise = undefined;
+      this.blockerInstanceType = undefined;
+
+      debugPrint("CONTENT_BLOCKER", "Content blocker disabled for all sessions");
+    } catch (error) {
+      debugPrint("CONTENT_BLOCKER", "Error disabling blocker:", error);
+    }
   }
 
   /**
    * Enables content blocking for a specific session
    */
   private async enableBlockerForSession(blockerType: BlockerInstanceType, session: Session): Promise<void> {
-    const blocker = await this.createBlockerInstance(blockerType);
-    if (!blocker) return;
+    try {
+      const blocker = await this.createBlockerInstance(blockerType);
 
-    // check if session is already blocked
-    if (this.blockedSessions.includes(session)) return;
+      // Skip if already blocked
+      if (this.blockedSessions.has(session)) return;
 
-    // add session to blocked sessions
-    this.blockedSessions.push(session);
+      // Enable blocking
+      await blocker.enableBlockingInSession(createBetterSession(session, SESSION_KEY));
 
-    // enable blocking in session
-    blocker.enableBlockingInSession(createBetterSession(session, SESSION_KEY));
+      // Track blocked session
+      this.blockedSessions.add(session);
+
+      debugPrint("CONTENT_BLOCKER", `Enabled ${blockerType} blocking for session`);
+    } catch (error) {
+      debugPrint("CONTENT_BLOCKER", "Failed to enable blocker for session:", error);
+    }
+  }
+
+  /**
+   * Removes a session from blocking
+   */
+  public async removeSession(session: Session): Promise<void> {
+    if (!this.blockedSessions.has(session)) return;
+
+    try {
+      if (this.blockerInstancePromise) {
+        const blocker = await this.blockerInstancePromise;
+        await blocker.disableBlockingInSession(createBetterSession(session, SESSION_KEY));
+      }
+
+      this.blockedSessions.delete(session);
+      debugPrint("CONTENT_BLOCKER", "Removed session from content blocking");
+    } catch (error) {
+      debugPrint("CONTENT_BLOCKER", "Error removing session:", error);
+    }
+  }
+
+  /**
+   * Gets current blocker configuration
+   */
+  private getBlockerConfig(): BlockerConfig {
+    const contentBlocker = getSettingValueById("contentBlocker") as string | undefined;
+
+    switch (contentBlocker) {
+      case "all":
+      case "adsAndTrackers":
+      case "adsOnly":
+        return { type: contentBlocker as BlockerInstanceType, enabled: true };
+      default:
+        return { type: "adsOnly", enabled: false };
+    }
   }
 
   /**
@@ -91,41 +160,88 @@ class ContentBlocker {
   public async updateConfig(): Promise<void> {
     if (!browser) return;
 
-    const contentBlocker = getSettingValueById("contentBlocker") as string | undefined;
-    const profiles = browser.getLoadedProfiles();
-
-    switch (contentBlocker) {
-      case "all":
-      case "adsAndTrackers":
-      case "adsOnly":
-        for (const profile of profiles) {
-          this.enableBlockerForSession(contentBlocker as BlockerInstanceType, profile.session);
-        }
-        break;
-      default:
-        this.disableBlocker();
+    // Debounce rapid configuration changes
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
     }
 
-    debugPrint("CONTENT_BLOCKER", "Content blocker configuration updated:", contentBlocker);
+    this.updateTimeout = setTimeout(async () => {
+      try {
+        const config = this.getBlockerConfig();
+        const profiles = browser?.getLoadedProfiles() ?? [];
+
+        if (config.enabled) {
+          // Enable blocking for all profiles
+          const enablePromises = profiles.map((profile) => this.enableBlockerForSession(config.type, profile.session));
+          await Promise.allSettled(enablePromises);
+        } else {
+          // Disable blocking entirely
+          await this.disableBlocker();
+        }
+
+        debugPrint("CONTENT_BLOCKER", "Content blocker configuration updated:", config);
+      } catch (error) {
+        debugPrint("CONTENT_BLOCKER", "Error updating configuration:", error);
+      }
+    }, 100);
+  }
+
+  /**
+   * Cleans up resources and event listeners
+   */
+  public async cleanup(): Promise<void> {
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+      this.updateTimeout = undefined;
+    }
+
+    await this.disableBlocker();
+    this.isInitialized = false;
   }
 
   /**
    * Initializes content blocker and sets up event listeners
    */
   public async initialize(): Promise<void> {
-    // Initial configuration
-    await this.updateConfig();
+    if (this.isInitialized) return;
 
-    // Listen for setting changes
-    settingsEmitter.on("settings-changed", () => {
-      this.updateConfig();
-    });
+    try {
+      // Initial configuration
+      await this.updateConfig();
 
-    // Listen for profile changes
-    browser?.on("profile-loaded", () => {
-      this.updateConfig();
-    });
+      // Listen for setting changes
+      settingsEmitter.on("settings-changed", this.handleSettingsChanged);
+
+      // Listen for profile changes
+      browser?.on("profile-loaded", this.handleProfileLoaded);
+      browser?.on("profile-unloaded", this.handleProfileRemoved);
+
+      this.isInitialized = true;
+      debugPrint("CONTENT_BLOCKER", "Content blocker initialized successfully");
+    } catch (error) {
+      debugPrint("CONTENT_BLOCKER", "Failed to initialize content blocker:", error);
+    }
   }
+
+  /**
+   * Event handlers bound to maintain proper context
+   */
+  private handleSettingsChanged = () => {
+    this.updateConfig();
+  };
+
+  private handleProfileLoaded = () => {
+    this.updateConfig();
+  };
+
+  private handleProfileRemoved = (profileId: string) => {
+    // Find the session for this profile and remove it
+    if (!browser) return;
+    const profile = browser.getLoadedProfile(profileId);
+    if (profile) {
+      this.removeSession(profile.session);
+    }
+  };
 }
 
 // Export singleton instance
@@ -135,4 +251,9 @@ export const contentBlocker = new ContentBlocker();
 onSettingsCached().then(() => {
   debugPrint("CONTENT_BLOCKER", "Initializing content blocker");
   contentBlocker.initialize();
+});
+
+// Handle app shutdown
+process.on("beforeExit", async () => {
+  await contentBlocker.cleanup();
 });
