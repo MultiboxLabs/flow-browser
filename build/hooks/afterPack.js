@@ -1,5 +1,6 @@
 import { signAppWithVMP } from "./components/castlabs-evs.js";
 import { createNotarizationApiKeyFile } from "./components/notarization.js";
+import { applyElectronFuses } from "./components/electron-fuses.js";
 
 const vmpSignPlatforms = ["darwin"];
 
@@ -8,6 +9,11 @@ export async function handler(context) {
   // Header
   console.log("\n---------");
   console.log("Executing afterPack hook");
+
+  // Apply electron fuses
+  await applyElectronFuses(context.appOutDir)
+    .then(() => true)
+    .catch(() => false);
 
   // macOS needs to VMP-sign the app before signing it with Apple
   if (vmpSignPlatforms.includes(process.platform)) {
