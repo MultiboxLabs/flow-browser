@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, useId } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -201,8 +201,8 @@ export function ColorPicker({
     }
   }, [state.isEditingText, updateState, applyTextChanges, disabled]);
 
-  // Generate component ID
-  const componentId = `color-picker-${label.toLowerCase().replace(/\s+/g, "-")}`;
+  // Generate unique component ID
+  const componentId = useId();
 
   return (
     <div className={`space-y-2.5 ${className}`.trim()}>
