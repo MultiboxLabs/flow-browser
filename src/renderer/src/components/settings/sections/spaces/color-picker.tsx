@@ -79,45 +79,49 @@ export function ColorPicker({ defaultColor, label, onChange }: ColorPickerProps)
     // Clear previous validation error
     setValidationError("");
 
-    // Add # if not present and value is not empty
+    // Only validate, don't auto-format while typing
     let normalizedValue = value;
     if (value && !value.startsWith("#")) {
       normalizedValue = "#" + value;
-      setTextValue(normalizedValue);
     }
 
-    // Validate and update if valid
+    // Just validate - don't update the text field or preview while typing
     if (normalizedValue && isValidHexColor(normalizedValue)) {
-      const finalColor = normalizeHexColor(normalizedValue);
-      setPreviewColor(finalColor);
-      setTextValue(finalColor);
-
-      // Update color picker input
-      if (colorInputRef.current) {
-        colorInputRef.current.value = finalColor;
-      }
-
-      onChange(finalColor);
+      // Valid color - clear any error but don't update preview until blur/enter
+      setValidationError("");
     } else if (normalizedValue && normalizedValue !== "#") {
       setValidationError("Invalid hex color format");
     }
   };
 
-  // Handle text input blur
+  // Handle text input blur (only exit edit mode, don't auto-save)
   const handleTextBlur = () => {
     setIsEditingText(false);
+    // Reset to previous valid color when just clicking outside
+    setTextValue(previewColor);
+    setValidationError("");
+  };
 
+  // Apply changes (used by Enter key and Apply button)
+  const applyChanges = () => {
     if (!textValue || textValue === "#") {
       setTextValue(previewColor);
       setValidationError("");
+      setIsEditingText(false);
       return;
     }
 
-    if (!isValidHexColor(textValue)) {
+    // Add # if not present
+    let normalizedValue = textValue;
+    if (textValue && !textValue.startsWith("#")) {
+      normalizedValue = "#" + textValue;
+    }
+
+    if (!isValidHexColor(normalizedValue)) {
       setValidationError("Invalid hex color format");
       setTextValue(previewColor); // Reset to last valid color
     } else {
-      const finalColor = normalizeHexColor(textValue);
+      const finalColor = normalizeHexColor(normalizedValue);
       setPreviewColor(finalColor);
       setTextValue(finalColor);
 
@@ -128,12 +132,13 @@ export function ColorPicker({ defaultColor, label, onChange }: ColorPickerProps)
       onChange(finalColor);
       setValidationError("");
     }
+    setIsEditingText(false);
   };
 
   // Handle text input key press
   const handleTextKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      handleTextBlur();
+      applyChanges();
       textInputRef.current?.blur();
     } else if (e.key === "Escape") {
       setTextValue(previewColor);
@@ -158,7 +163,7 @@ export function ColorPicker({ defaultColor, label, onChange }: ColorPickerProps)
   // Toggle edit mode
   const handleToggleEdit = () => {
     if (isEditingText) {
-      handleTextBlur();
+      applyChanges();
     } else {
       setIsEditingText(true);
       setTimeout(() => {
