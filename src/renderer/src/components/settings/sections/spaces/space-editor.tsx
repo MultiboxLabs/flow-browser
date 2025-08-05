@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Save, Settings, Trash2, PaintBucket, Check } from "lucide-react";
 import type { Space } from "~/flow/interfaces/sessions/spaces";
@@ -31,30 +31,21 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
   };
 
   // Detect if there are unsaved changes
-  const hasChanges = () => {
+  const hasChanges = useCallback(() => {
     return (
       editedSpace.name !== currentSpace.name ||
       editedSpace.bgStartColor !== currentSpace.bgStartColor ||
       editedSpace.bgEndColor !== currentSpace.bgEndColor ||
       editedSpace.icon !== currentSpace.icon
     );
-  };
+  }, [editedSpace.name, editedSpace.bgStartColor, editedSpace.bgEndColor, editedSpace.icon, currentSpace.name, currentSpace.bgStartColor, currentSpace.bgEndColor, currentSpace.icon]);
 
   // Reset save success state when changes are detected
   useEffect(() => {
-    if (saveSuccess) {
-      const currentHasChanges = (
-        editedSpace.name !== currentSpace.name ||
-        editedSpace.bgStartColor !== currentSpace.bgStartColor ||
-        editedSpace.bgEndColor !== currentSpace.bgEndColor ||
-        editedSpace.icon !== currentSpace.icon
-      );
-
-      if (currentHasChanges) {
-        setSaveSuccess(false);
-      }
+    if (saveSuccess && hasChanges()) {
+      setSaveSuccess(false);
     }
-  }, [editedSpace.name, editedSpace.bgStartColor, editedSpace.bgEndColor, editedSpace.icon, saveSuccess, currentSpace.name, currentSpace.bgStartColor, currentSpace.bgEndColor, currentSpace.icon]);
+  }, [hasChanges, saveSuccess]);
 
   // Handle space update
   const handleSave = async () => {
