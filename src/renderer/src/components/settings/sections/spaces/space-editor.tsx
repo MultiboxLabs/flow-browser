@@ -38,7 +38,7 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
       editedSpace.bgEndColor !== currentSpace.bgEndColor ||
       editedSpace.icon !== currentSpace.icon
     );
-  }, [editedSpace.name, editedSpace.bgStartColor, editedSpace.bgEndColor, editedSpace.icon, currentSpace.name, currentSpace.bgStartColor, currentSpace.bgEndColor, currentSpace.icon]);
+  }, [editedSpace, currentSpace]);
 
   // Reset save success state when changes are detected
   useEffect(() => {
