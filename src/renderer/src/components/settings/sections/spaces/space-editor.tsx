@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Save, Settings, Trash2, PaintBucket, Check } from "lucide-react";
 import type { Space } from "~/flow/interfaces/sessions/spaces";
@@ -18,6 +18,7 @@ interface SpaceEditorProps {
 export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceEditorProps) {
   // State management
   const [editedSpace, setEditedSpace] = useState<Space>({ ...space });
+  const [currentSpace, setCurrentSpace] = useState<Space>({ ...space }); // Track the current saved state
   const [activeTab, setActiveTab] = useState("basic");
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -29,6 +30,23 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
     setEditedSpace((prev) => ({ ...prev, ...updates }));
   };
 
+  // Detect if there are unsaved changes
+  const hasChanges = useCallback(() => {
+    return (
+      editedSpace.name !== currentSpace.name ||
+      editedSpace.bgStartColor !== currentSpace.bgStartColor ||
+      editedSpace.bgEndColor !== currentSpace.bgEndColor ||
+      editedSpace.icon !== currentSpace.icon
+    );
+  }, [editedSpace, currentSpace]);
+
+  // Reset save success state when changes are detected
+  useEffect(() => {
+    if (saveSuccess && hasChanges()) {
+      setSaveSuccess(false);
+    }
+  }, [hasChanges, saveSuccess]);
+
   // Handle space update
   const handleSave = async () => {
     setIsSaving(true);
@@ -37,19 +55,19 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
       // Only send the fields that have changed
       const updatedFields: Partial<Space> = {};
 
-      if (editedSpace.name !== space.name) {
+      if (editedSpace.name !== currentSpace.name) {
         updatedFields.name = editedSpace.name;
       }
 
-      if (editedSpace.bgStartColor !== space.bgStartColor) {
+      if (editedSpace.bgStartColor !== currentSpace.bgStartColor) {
         updatedFields.bgStartColor = editedSpace.bgStartColor;
       }
 
-      if (editedSpace.bgEndColor !== space.bgEndColor) {
+      if (editedSpace.bgEndColor !== currentSpace.bgEndColor) {
         updatedFields.bgEndColor = editedSpace.bgEndColor;
       }
 
-      if (editedSpace.icon !== space.icon) {
+      if (editedSpace.icon !== currentSpace.icon) {
         updatedFields.icon = editedSpace.icon;
       }
 
@@ -58,14 +76,10 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
 
         await flow.spaces.updateSpace(space.profileId, space.id, updatedFields);
         onSpacesUpdate(); // Refetch spaces after successful update
-        setSaveSuccess(true);
 
-        // Auto-close after short delay
-        setTimeout(() => {
-          if (saveSuccess) {
-            onClose();
-          }
-        }, 1500);
+        // Update current space state with the saved values
+        setCurrentSpace({ ...editedSpace });
+        setSaveSuccess(true);
       } else {
         // No changes to save
         onClose();
@@ -97,16 +111,6 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
       ...editedSpace,
       name: e.target.value
     });
-  };
-
-  // Detect if there are unsaved changes
-  const hasChanges = () => {
-    return (
-      editedSpace.name !== space.name ||
-      editedSpace.bgStartColor !== space.bgStartColor ||
-      editedSpace.bgEndColor !== space.bgEndColor ||
-      editedSpace.icon !== space.icon
-    );
   };
 
   return (
