@@ -72,7 +72,10 @@
   "mac": {
     "category": "public.app-category.productivity",
     "entitlementsInherit": "build/entitlements.mac.plist",
-    "notarize": true
+    "notarize": true,
+    "extendInfo": {
+      "CFBundleIconName": "AppIcon"
+    }
   },
   "dmg": {
     "artifactName": "${name}-${version}-${arch}.${ext}",
