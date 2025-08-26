@@ -1,6 +1,7 @@
 import { TabGroup } from "@/browser/tabs/objects/tab-group";
 import { TabFolder } from "@/browser/tabs/objects/tab-containers/tab-folder";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
+import { NormalTabGroup } from "@/browser/tabs/objects/tab-group/types/normal";
 
 // Container Child //
 type TabGroupChild = {
@@ -103,6 +104,22 @@ export class BaseTabContainer<
 
   get childCount(): number {
     return this.children.length;
+  }
+
+  public newNormalTabGroup(): NormalTabGroup {
+    const tabGroup = new NormalTabGroup({
+      browser: this.browser,
+      window: this.window,
+      space: this.space
+    });
+    this.addChild({ type: "tab-group", item: tabGroup });
+    return tabGroup;
+  }
+
+  public createTabFolder(name: string): TabFolder {
+    const folder = new TabFolder(name);
+    this.addChild({ type: "tab-folder", item: folder });
+    return folder;
   }
 
   protected baseExport(): ExportedBaseTabContainer {
