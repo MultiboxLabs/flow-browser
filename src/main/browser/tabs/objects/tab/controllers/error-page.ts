@@ -1,3 +1,8 @@
+/*
+TabErrorPageController:
+- This controller is responsible for loading error pages
+*/
+
 import { Tab } from "@/browser/tabs/objects/tab";
 import { FLAGS } from "@/modules/flags";
 

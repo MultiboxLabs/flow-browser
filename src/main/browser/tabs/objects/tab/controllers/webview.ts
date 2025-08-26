@@ -1,3 +1,9 @@
+/*
+TabWebviewController:
+- This controller is responsible for managing the webview of the tab
+- It is responsible for creating and destroying the webview
+*/
+
 import { Tab } from "@/browser/tabs/objects/tab";
 import { Session, WebContents, WebContentsView, WebPreferences } from "electron";
 

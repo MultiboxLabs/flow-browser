@@ -1,3 +1,10 @@
+/*
+TabSleepController:
+- This controller handles the sleep state of the tab
+- When the tab is asleep, the webview is detached
+- When the tab is awake, the webview is attached
+*/
+
 import { Tab } from "@/browser/tabs/objects/tab";
 
 export class TabSleepController {

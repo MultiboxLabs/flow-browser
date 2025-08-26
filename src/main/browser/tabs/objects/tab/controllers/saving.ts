@@ -1,3 +1,8 @@
+/*
+TabSavingController:
+- TBD
+*/
+
 import { Tab } from "@/browser/tabs/objects/tab";
 
 export class TabSavingController {

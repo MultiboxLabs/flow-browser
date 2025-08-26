@@ -1,3 +1,8 @@
+/*
+TabPipController:
+- This controller is responsible for managing the Picture in Picture mode of the tab
+*/
+
 import { Tab } from "@/browser/tabs/objects/tab";
 
 // This function must be self-contained: it runs in the actual tab's context

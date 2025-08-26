@@ -1,3 +1,9 @@
+/*
+TabDataController:
+- This controller stores all the data that needs to persist between browser restarts
+- Other datas will be stored in their respective controllers
+*/
+
 import { Tab } from "@/browser/tabs/objects/tab";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { WebContents } from "electron";

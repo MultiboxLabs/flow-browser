@@ -1,3 +1,9 @@
+/*
+TabNavigationController:
+- This controller is responsible for managing the navigation history of the tab
+- This includes restoring the navigation history on tab creation and syncing the navigation history with the webview
+*/
+
 import { Tab } from "@/browser/tabs/objects/tab";
 import { NavigationEntry, WebContents } from "electron";
 
