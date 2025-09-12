@@ -1,6 +1,5 @@
 import path from "path";
 import fs from "fs/promises";
-import process from "process";
 
 /** @type {(appOutDir: string) => Promise<void>} */
 export async function copyAssetsCar(appOutDir) {
