@@ -16,6 +16,7 @@ export class TabsContainerManager extends TypedEventEmitter<TabsContainerManager
   public isDestroyed: boolean = false;
 
   private readonly browser: Browser;
+  private spaceContainerMap: Map<string, TabContainer> = new Map();
 
   constructor(browser: Browser) {
     super();
@@ -58,8 +59,6 @@ export class TabsContainerManager extends TypedEventEmitter<TabsContainerManager
 
     updateSpaces();
     spacesEmitter.on("changed", updateSpaces);
-
-    const favouritesContainer = new TabContainer(spaces[0]?.id ?? "");
   }
 
   /**
@@ -69,17 +68,32 @@ export class TabsContainerManager extends TypedEventEmitter<TabsContainerManager
    * @param {SpaceData & { id: string }} space - The space data including its ID
    */
   private _setupSpace(space: SpaceData & { id: string }): void {
-    const normalContainer = new TabContainer(space.id);
+    const spaceContainer = new TabContainer(space.id);
+    this.spaceContainerMap.set(space.id, spaceContainer);
 
     // Add tab group to the correct container on create
-    const browser = this.browser;
-    const tabOrchestrator = browser.tabs;
-    tabOrchestrator.tabGroupManager.on("tab-group-created", (tabGroup) => {
-      normalContainer.addChild({
-        type: "tab-group",
-        item: tabGroup
-      });
-    });
+    // const browser = this.browser;
+    // const tabOrchestrator = browser.tabs;
+    // tabOrchestrator.tabGroupManager.on("tab-group-created", (tabGroup) => {
+    //   spaceContainer.addChild({
+    //     type: "tab-group",
+    //     item: tabGroup
+    //   });
+    // });
+  }
+
+  /**
+   * Gets the tab container for a specific space
+   * @public
+   * @param {string} spaceId - The ID of the space to get the container for
+   * @returns {TabContainer} - The tab container for the space
+   */
+  public getSpaceContainer(spaceId: string): TabContainer {
+    const spaceContainer = this.spaceContainerMap.get(spaceId);
+    if (!spaceContainer) {
+      throw new Error(`Space container not found for spaceId: ${spaceId}`);
+    }
+    return spaceContainer;
   }
 
   /**

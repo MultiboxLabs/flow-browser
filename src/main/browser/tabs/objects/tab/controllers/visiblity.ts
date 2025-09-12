@@ -1,3 +1,9 @@
+/*
+TabVisiblityController:
+- This controller is responsible for managing the visiblity of the tab
+- Methods should be called by the Tab Container.
+*/
+
 import { Tab } from "@/browser/tabs/objects/tab";
 
 export class TabVisiblityController {

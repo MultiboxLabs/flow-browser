@@ -77,7 +77,7 @@ export class TabWebviewController {
     });
 
     tab.navigation.setupWebviewNavigation(this.webContents);
-    tab.data.setupWebviewData(this.webContents);
+    tab.data.setupWebviewChangeHooks(this.webContents);
 
     tab.emit("webview-attached");
 

@@ -1,3 +1,9 @@
+/*
+TabWindowController:
+- This controller is responsible for managing the window of the tab
+- Methods should be called by the Tab Container.
+*/
+
 import { Tab } from "@/browser/tabs/objects/tab";
 import { TabbedBrowserWindow } from "@/browser/window";
 

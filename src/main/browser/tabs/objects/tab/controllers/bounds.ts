@@ -1,3 +1,9 @@
+/*
+TabBoundsController:
+- This controller is responsible for managing the bounds of the tab
+- Methods should be called by the Tab Container.
+*/
+
 import { Tab } from "@/browser/tabs/objects/tab";
 import { PageBounds } from "~/flow/types";
 

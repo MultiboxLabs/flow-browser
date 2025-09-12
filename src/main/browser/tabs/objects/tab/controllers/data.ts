@@ -1,7 +1,6 @@
 /*
 TabDataController:
-- This controller stores all the data that needs to persist between browser restarts
-- Other datas will be stored in their respective controllers
+- This controller stores all the data that needs to be synced with the frontend
 */
 
 import { Tab } from "@/browser/tabs/objects/tab";
@@ -41,6 +40,7 @@ export class TabDataController {
 
     tab.on("webview-detached", () => this.onWebviewDetached());
 
+    // Wait for every controller to be ready
     setImmediate(() => this.refreshData());
   }
 
@@ -70,7 +70,7 @@ export class TabDataController {
     const pipActive = tab.pip.active;
     setProperty("pipActive", pipActive);
 
-    // Asleep
+    // asleep
     const asleep = tab.sleep.asleep;
     setProperty("asleep", asleep);
 
@@ -78,11 +78,11 @@ export class TabDataController {
 
     const webContents = tab.webview.webContents;
     if (webContents) {
-      // Title
+      // title
       const title = webContents.getTitle();
       setProperty("title", title);
 
-      // URL
+      // url
       const url = webContents.getURL();
       setProperty("url", url);
 
@@ -91,7 +91,7 @@ export class TabDataController {
       setProperty("isLoading", isLoading);
 
       // audible
-      const audible = webContents.isAudioMuted();
+      const audible = webContents.isCurrentlyAudible();
       setProperty("audible", audible);
 
       // muted
@@ -103,12 +103,12 @@ export class TabDataController {
 
     // Process changes
     if (changed) {
-      this.tab.emit("data-changed");
+      this.emitDataChanged();
     }
     return changed;
   }
 
-  public setupWebviewData(webContents: WebContents) {
+  public setupWebviewChangeHooks(webContents: WebContents) {
     // audible
     webContents.on("audio-state-changed", () => this.refreshData());
     webContents.on("media-started-playing", () => this.refreshData());
@@ -142,7 +142,6 @@ export class TabDataController {
       // from other controllers
       window: this.window,
       pipActive: this.pipActive,
-      asleep: this.asleep,
 
       // from navigation
       navHistory: navHistory,

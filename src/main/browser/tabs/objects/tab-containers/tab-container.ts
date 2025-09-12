@@ -1,4 +1,4 @@
-import { BaseTabContainer, BaseTabContainerEvents, ExportedTabContainer } from "./base";
+import { BaseTabContainer, BaseTabContainerEvents, ExportedTabContainer, TabContainerSharedData } from "./base";
 
 type TabContainerEvents = BaseTabContainerEvents & {
   "space-changed": [spaceId: string];
@@ -7,8 +7,8 @@ type TabContainerEvents = BaseTabContainerEvents & {
 export class TabContainer extends BaseTabContainer<TabContainerEvents> {
   public spaceId: string;
 
-  constructor(spaceId: string) {
-    super();
+  constructor(spaceId: string, sharedData: TabContainerSharedData) {
+    super(sharedData);
     this.spaceId = spaceId;
   }
 

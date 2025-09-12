@@ -1,3 +1,8 @@
+/*
+TabContextMenuController:
+- This controller is responsible for creating and controlling the context menu for the tab
+*/
+
 import { Tab } from "@/browser/tabs/objects/tab";
 import { Browser } from "@/browser/browser";
 import { TabbedBrowserWindow } from "@/browser/window";
@@ -46,12 +51,15 @@ function createTabContextMenu(browser: Browser, tab: Tab, profileId: string) {
 
       // Helper function to create a new tab
       const createNewTab = async (url: string, window?: TabbedBrowserWindow) => {
-        const tabbedWindow = tab.window.get();
-        const spaceId = tab.space.get();
+        // TODO: Implement this
+        console.log("createNewTab", url, window, profileId);
 
-        const sourceTab = await browser.tabs.createTab(window ? window.id : tabbedWindow?.id, profileId, spaceId, url);
-        sourceTab.loadURL(url);
-        browser.tabs.setActiveTab(sourceTab);
+        // const tabbedWindow = tab.window.get();
+        // const spaceId = tab.space.get();
+
+        // const sourceTab = await browser.tabs.createTab(window ? window.id : tabbedWindow?.id, profileId, spaceId, url);
+        // sourceTab.loadURL(url);
+        // browser.tabs.setActiveTab(sourceTab);
       };
 
       // Create all menu sections
@@ -288,10 +296,10 @@ function combineSections(
 }
 
 export class TabContextMenuController {
-  private readonly tab: Tab;
+  // private readonly tab: Tab;
 
   constructor(tab: Tab) {
-    this.tab = tab;
+    // this.tab = tab;
 
     tab.on("webview-attached", () => {
       const browser = tab.browser;
