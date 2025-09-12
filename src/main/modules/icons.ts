@@ -10,7 +10,10 @@ import { debugError, debugPrint } from "@/modules/output";
 
 export const supportedPlatforms: NodeJS.Platform[] = [
   // macOS: through app.dock.setIcon()
-  "darwin",
+  // Temporaily disabled for macOS as it is not compatible with the new Liquid Glass icon.
+  // Will be re-enabled once a solution is found.
+  // "darwin",
+
   // Linux: through BrowserWindow.setIcon()
   "linux"
   // No support for Windows or other platforms
