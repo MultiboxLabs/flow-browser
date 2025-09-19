@@ -39,7 +39,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, macos-13, windows-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
 
     steps:
       - name: Check out Git repository
@@ -87,7 +87,7 @@ jobs:
           USE_SYSTEM_FPM: ${{ matrix.os == 'ubuntu-24.04-arm' }}
 
       - name: Build for macOS
-        if: matrix.os == 'macos-latest' || matrix.os == 'macos-13'
+        if: matrix.os == 'macos-latest'
         run: bun run build:mac -p never
 
       - name: Build for Windows
@@ -126,7 +126,6 @@ jobs:
             - [Linux](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/ubuntu-latest.zip)
             - [Linux (arm64)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/ubuntu-24.04-arm.zip)
             - [macOS](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/macos-latest.zip)
-            - [macOS (Intel)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/macos-13.zip)
             - [Windows](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/windows-latest.zip)
 
             _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_

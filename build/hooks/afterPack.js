@@ -4,6 +4,9 @@ import { copyAssetsCar } from "./components/macos.js";
 
 const vmpSignPlatforms = ["darwin"];
 
+// Set this to true if you're building for universal
+const MACOS_IS_UNIVERSAL = true;
+
 /** @type {(context: import("./types.js").PackContext) => void} */
 export async function handler(context) {
   // Header
@@ -19,9 +22,20 @@ export async function handler(context) {
 
   // macOS needs to VMP-sign the app before signing it with Apple
   if (vmpSignPlatforms.includes(process.platform)) {
-    await signAppWithVMP(context.appOutDir)
-      .then(() => true)
-      .catch(() => false);
+    let shouldSign = true;
+    if (process.platform === "darwin" && MACOS_IS_UNIVERSAL) {
+      const appOutDir = context.appOutDir;
+      // Only sign the universal build, not the unmerged builds
+      if (!appOutDir.endsWith("/mac-universal")) {
+        shouldSign = false;
+      }
+    }
+
+    if (shouldSign) {
+      await signAppWithVMP(context.appOutDir)
+        .then(() => true)
+        .catch(() => false);
+    }
   }
 
   // macOS needs to notarize the app with a path to APPLE_API_KEY

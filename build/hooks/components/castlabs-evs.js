@@ -2,6 +2,8 @@
 // https://github.com/castlabs/electron-releases/wiki/EVS
 
 import process from "process";
+import path from "node:path";
+import fs from "node:fs";
 import { spawn } from "child_process";
 
 /** @type {(appOutDir: string) => Promise<void>} */
@@ -54,4 +56,21 @@ async function signAppWithVMP(appOutDir) {
   }
 }
 
-export { signAppWithVMP };
+/** @type {(appOutDir: string) => Promise<void>} */
+async function removeWidevineSignature(appOutDir) {
+  const sigFile = path.join(
+    appOutDir,
+    "Electron.app",
+    "Contents/Frameworks/Electron Framework.framework/Versions/A/Resources",
+    "Electron Framework.sig"
+  );
+  if (fs.existsSync(sigFile)) {
+    console.log(`\nRemoving Development Widevine Signature`);
+    console.log(`${sigFile}`);
+    fs.unlinkSync(sigFile);
+  } else {
+    console.log(`\nNo Development Widevine Signature found`);
+  }
+}
+
+export { signAppWithVMP, removeWidevineSignature };

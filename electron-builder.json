@@ -100,7 +100,10 @@
     "owner": "multiboxlabs",
     "releaseType": "prerelease"
   },
-  "electronDist": "node_modules/electron/dist",
+  "electronDownload": {
+    "mirror": "https://github.com/castlabs/electron-releases/releases/download/v"
+  },
   "afterPack": "./build/hooks/afterPack.js",
-  "afterSign": "./build/hooks/afterSign.js"
+  "afterSign": "./build/hooks/afterSign.js",
+  "afterExtract": "./build/hooks/afterExtract.js"
 }
