@@ -26,15 +26,6 @@ export function getContentType(filePath: string) {
 }
 
 /**
- * Wait for a number of milliseconds
- * @param ms - The number of milliseconds to wait
- * @returns A promise that resolves after the number of milliseconds
- */
-export function waitFor(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/**
  * Get the stats of a path
  * @param path - The path to get the stats of
  * @returns The stats of the path

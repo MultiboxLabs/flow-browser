@@ -1,6 +1,7 @@
 import { fireUpdateStatusChanged } from "@/ipc/app/updates";
 import { debugPrint } from "@/modules/output";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
+import { sleep } from "@/modules/utils";
 import { getSettingValueById, onSettingsCached, settingsEmitter } from "@/saving/settings";
 import { app } from "electron";
 import { autoUpdater, ProgressInfo, UpdateInfo, UpdateCheckResult } from "electron-updater";
@@ -55,7 +56,7 @@ export async function checkForUpdates(): Promise<UpdateCheckResult | null> {
     debugPrint("AUTO_UPDATER", "[MOCK] Checking for updates");
 
     // Simulate a delay
-    await new Promise((resolve) => setTimeout(resolve, MOCK_DATA.timeForUpdateCheck));
+    await sleep(MOCK_DATA.timeForUpdateCheck);
 
     // Simulate finding an update based on mock data
     const mockUpdateInfo: UpdateInfo = {

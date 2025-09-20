@@ -1,5 +1,6 @@
 import { app, net } from "electron";
 import { FLAGS } from "@/modules/flags";
+import { sleep } from "@/modules/utils";
 
 /**
  * Sets a higher file descriptor limit for development hot reloading
@@ -62,7 +63,7 @@ export async function fetchFromDevServer(path: string, request?: Request): Promi
   }
 
   while (amountOfRequests >= MAX_REQUESTS) {
-    await new Promise((resolve) => setTimeout(resolve, getRandomTimeout()));
+    await sleep(getRandomTimeout());
   }
 
   amountOfRequests++;

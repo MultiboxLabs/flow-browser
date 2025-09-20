@@ -2,10 +2,7 @@ import { app } from "electron";
 import type { Browser } from "@/browser/browser";
 import type { TabbedBrowserWindow } from "@/browser/window";
 import { debugPrint } from "@/modules/output";
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+import { sleep } from "@/modules/utils";
 
 async function waitForAppToBeReady() {
   if (!app.isReady) {
@@ -62,4 +59,3 @@ export function processInitialUrl(browser: Browser) {
     debugPrint("INITIALIZATION", "initial URL handled");
   }
 }
-
