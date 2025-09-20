@@ -3,9 +3,9 @@ import "@/settings/main";
 import "@/modules/auto-update";
 import "@/modules/posthog";
 import "@/modules/content-blocker";
+import "@/controllers";
 import { debugPrint } from "@/modules/output";
 import { Browser } from "@/browser/browser";
-import { setupQuitHandler } from "@/modules/quit-handlers";
 import { setupPlatformIntegration } from "@/app/platform";
 import { processInitialUrl } from "@/app/urls";
 import { setupSecondInstanceHandling } from "@/app/instance";
@@ -30,6 +30,3 @@ runOnboardingOrInitialWindow();
 
 // App lifecycle events
 setupAppLifecycle(browser);
-
-// Setup quit handler
-setupQuitHandler();
