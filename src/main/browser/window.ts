@@ -13,6 +13,7 @@ import { initializePortalComponentWindows } from "@/browser/components/portal-co
 import { defaultSessionReady } from "@/browser/sessions";
 import { fireWindowStateChanged } from "@/ipc/browser/interface";
 import { debugPrint } from "@/modules/output";
+import { appMenuController } from "@/controllers/app-menu-controller";
 
 type BrowserWindowType = "normal" | "popup";
 
@@ -202,7 +203,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
   setCurrentSpace(spaceId: string) {
     this.currentSpaceId = spaceId;
     this.emit("current-space-changed", spaceId);
-    this.browser.updateMenu();
+    appMenuController.render();
 
     this.browser.tabs.setCurrentWindowSpace(this.id, spaceId);
   }

@@ -2,7 +2,7 @@
 // So we can process it ourselves by closing the focused tab.
 
 import { app, type WebContents, webContents } from "electron";
-import { menuCloseTab } from "./utility/menu/items/view";
+import { menuCloseTab } from "../controllers/app-menu-controller/menu/items/view";
 import { browser } from "@/browser";
 
 const enabled = process.platform === "win32";

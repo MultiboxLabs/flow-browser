@@ -6,7 +6,6 @@ import { ProfileManager, LoadedProfile } from "@/browser/profile-manager";
 import { WindowManager, BrowserWindowType, BrowserWindowCreationOptions } from "@/browser/window-manager";
 import { TabManager } from "@/browser/tabs/tab-manager";
 import { Tab } from "@/browser/tabs/tab";
-import { setupMenu } from "@/browser/utility/menu";
 import { settings } from "@/settings/main";
 import { onboarding } from "@/onboarding/main";
 import "@/modules/extensions/main";
@@ -27,7 +26,6 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
   private readonly tabManager: TabManager;
   private _isDestroyed: boolean = false;
   public tabs: TabManager;
-  public updateMenu: () => Promise<void>;
 
   /**
    * Creates a new Browser instance
@@ -40,9 +38,6 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
 
     // A public reference to the tab manager
     this.tabs = this.tabManager;
-
-    // Load menu
-    this.updateMenu = setupMenu(this);
   }
 
   // Profile Management - Delegated to ProfileManager
