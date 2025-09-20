@@ -1,4 +1,4 @@
-import { browser } from "@/index";
+import { browser } from "@/browser";
 import { ipcMain } from "electron";
 
 ipcMain.on("browser:load-profile", async (_event, profileId: string) => {

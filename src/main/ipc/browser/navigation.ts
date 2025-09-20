@@ -1,4 +1,4 @@
-import { browser } from "@/index";
+import { browser } from "@/browser";
 import { ipcMain } from "electron";
 
 ipcMain.on("navigation:go-to", (event, url: string, tabId?: number) => {

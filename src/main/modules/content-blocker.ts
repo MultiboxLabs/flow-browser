@@ -1,5 +1,5 @@
 import { createBetterSession } from "@/browser/utility/web-requests";
-import { browser } from "@/index";
+import { browser } from "@/browser";
 import { debugPrint } from "@/modules/output";
 import { getSettingValueById, onSettingsCached, settingsEmitter } from "@/saving/settings";
 import { ElectronBlocker } from "@ghostery/adblocker-electron";

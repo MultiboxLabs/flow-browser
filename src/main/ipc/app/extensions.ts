@@ -1,4 +1,4 @@
-import { browser } from "@/index";
+import { browser } from "@/browser";
 import { sendMessageToListeners } from "@/ipc/listeners-manager";
 import { transformStringToLocale } from "@/modules/extensions/locales";
 import {

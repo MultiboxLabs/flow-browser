@@ -1,5 +1,5 @@
 import { ipcMain } from "electron";
-import { browser } from "@/index";
+import { browser } from "@/browser";
 
 export type PageBounds = {
   x: number;

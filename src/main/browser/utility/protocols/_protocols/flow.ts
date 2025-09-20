@@ -1,5 +1,5 @@
 import { AllowedDomains, serveStaticFile } from "@/browser/utility/protocols/utils";
-import { browser } from "@/index";
+import { browser } from "@/browser";
 import { getExtensionIcon } from "@/modules/extensions/management";
 import { getFavicon } from "@/modules/favicons";
 import { normalizeURL } from "@/modules/favicons";

@@ -12,7 +12,7 @@ import {
   spacesEmitter
 } from "@/sessions/spaces";
 import { generateID } from "@/modules/utils";
-import { browser } from "@/index";
+import { browser } from "@/browser";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { sendMessageToListeners, sendMessageToListenersInWindow } from "@/ipc/listeners-manager";
 

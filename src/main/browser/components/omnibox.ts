@@ -1,6 +1,6 @@
 import { BrowserWindow, Rectangle, WebContents, WebContentsView } from "electron";
 import { debugPrint } from "@/modules/output";
-import { browser } from "@/index";
+import { browser } from "@/browser";
 import { clamp } from "@/modules/utils";
 
 const omniboxes = new Map<BrowserWindow, Omnibox>();

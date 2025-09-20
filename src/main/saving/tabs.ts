@@ -1,6 +1,6 @@
 import { Browser } from "@/browser/browser";
 import { SLEEP_MODE_URL, Tab } from "@/browser/tabs/tab";
-import { browser } from "@/index";
+import { browser } from "@/browser";
 import { getTabData } from "@/ipc/browser/tabs";
 import { ArchiveTabValueMap, SleepTabValueMap } from "@/modules/basic-settings";
 import { getDatastore } from "@/saving/datastore";

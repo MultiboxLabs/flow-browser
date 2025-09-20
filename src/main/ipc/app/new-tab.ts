@@ -1,6 +1,6 @@
 import { hideOmnibox, isOmniboxOpen, loadOmnibox, setOmniboxBounds, showOmnibox } from "@/browser/components/omnibox";
 import { TabbedBrowserWindow } from "@/browser/window";
-import { browser } from "@/index";
+import { browser } from "@/browser";
 import { getSettingValueById } from "@/saving/settings";
 import { getSpace } from "@/sessions/spaces";
 import { ipcMain } from "electron";

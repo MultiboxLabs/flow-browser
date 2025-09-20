@@ -3,7 +3,7 @@
 
 import { app, type WebContents, webContents } from "electron";
 import { menuCloseTab } from "./utility/menu/items/view";
-import { browser } from "@/index";
+import { browser } from "@/browser";
 
 const enabled = process.platform === "win32";
 

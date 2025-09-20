@@ -1,7 +1,7 @@
 import { getProfiles, ProfileData, createProfile, updateProfile, deleteProfile } from "@/sessions/profiles";
 import { generateID } from "@/modules/utils";
 import { ipcMain } from "electron";
-import { browser } from "@/index";
+import { browser } from "@/browser";
 import { getSpace } from "@/sessions/spaces";
 
 ipcMain.handle("profiles:get-all", async () => {

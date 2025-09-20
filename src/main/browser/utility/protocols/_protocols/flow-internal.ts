@@ -1,5 +1,5 @@
 import { AllowedDomains, serveStaticFile } from "@/browser/utility/protocols/utils";
-import { browser } from "@/index";
+import { browser } from "@/browser";
 import { Protocol } from "electron";
 
 const FLOW_INTERNAL_ALLOWED_DOMAINS: AllowedDomains = {

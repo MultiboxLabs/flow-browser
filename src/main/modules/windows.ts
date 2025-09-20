@@ -1,5 +1,5 @@
 import { type BrowserWindow } from "electron";
-import { browser } from "@/index";
+import { browser } from "@/browser";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { EventEmitter } from "events";
 

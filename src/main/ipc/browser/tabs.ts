@@ -1,7 +1,7 @@
 import { Tab } from "@/browser/tabs/tab";
 import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
 import { TabbedBrowserWindow } from "@/browser/window";
-import { browser } from "@/index";
+import { browser } from "@/browser";
 import { getSpace } from "@/sessions/spaces";
 import { clipboard, ipcMain, Menu, MenuItem } from "electron";
 import { TabData, TabGroupData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";

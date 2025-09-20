@@ -1,5 +1,5 @@
 import { TabbedBrowserWindow } from "@/browser/window";
-import { browser } from "@/index";
+import { browser } from "@/browser";
 import { sendMessageToListenersInWindow } from "@/ipc/listeners-manager";
 import { BrowserWindow } from "electron";
 import { ipcMain } from "electron";

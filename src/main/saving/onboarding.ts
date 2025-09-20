@@ -1,4 +1,4 @@
-import { browser } from "@/index";
+import { browser } from "@/browser";
 import { onboarding } from "@/onboarding/main";
 import { SettingsDataStore } from "@/saving/settings";
 import { app } from "electron";
