@@ -1,7 +1,7 @@
 import { MenuItemConstructorOptions } from "electron";
 import { settings } from "@/settings/main";
-import { isDefaultBrowser, setDefaultBrowser } from "@/modules/default-browser";
 import { getCurrentShortcut } from "@/modules/shortcuts";
+import { defaultBrowserController } from "@/controllers/default-browser-controller";
 
 export const createAppMenu = (): MenuItemConstructorOptions => ({
   role: "appMenu",
@@ -19,10 +19,10 @@ export const createAppMenu = (): MenuItemConstructorOptions => ({
       type: "checkbox",
       label: "Set as Default Browser",
       click: () => {
-        setDefaultBrowser();
+        defaultBrowserController.setDefaultBrowser();
       },
-      checked: isDefaultBrowser(),
-      enabled: !isDefaultBrowser()
+      checked: defaultBrowserController.isDefaultBrowser(),
+      enabled: !defaultBrowserController.isDefaultBrowser()
     },
     { role: "services" },
     { type: "separator" },
