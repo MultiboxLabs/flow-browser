@@ -2,14 +2,23 @@
 // The raw controller is used to handle the raw data operations, and operations are cached here
 
 import { RawProfilesController, ProfileData, ProfileDataSchema } from "@/controllers/profiles-controller/raw";
+import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { generateID } from "@/modules/utils";
 
 type ProfileDataWithId = ProfileData & { id: string };
 
+// Events //
+type ProfilesControllerEvents = {
+  "profile-created": [profileId: string, profileData: ProfileData];
+  "profile-deleted": [profileId: string];
+  "profile-updated": [profileId: string, updatedFields: Partial<ProfileData>];
+  "requested-all-profiles": [];
+};
+
 // Re-exporting Schema
 export { type ProfileData, ProfileDataSchema };
 
-class ProfilesController {
+class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
   private raw: RawProfilesController;
   private cache: Map<string, ProfileData>;
 
@@ -17,6 +26,8 @@ class ProfilesController {
   private _requestedAllProfilesPromise: Promise<void> | null;
 
   constructor() {
+    super();
+
     this.raw = new RawProfilesController();
     this.cache = new Map();
 
@@ -35,6 +46,7 @@ class ProfilesController {
       const promises = profileIds.map((profileId) => this.get(profileId));
       await Promise.all(promises);
       this.requestedAllProfiles = true;
+      this.emit("requested-all-profiles");
     };
     const promise = runner();
     this._requestedAllProfilesPromise = promise;
@@ -63,6 +75,7 @@ class ProfilesController {
     const result = await this.raw.create(profileId, profileName, shouldCreateSpace);
     if (result.success) {
       this._setCachedProfileData(profileId, result.profileData);
+      this.emit("profile-created", profileId, result.profileData);
       return true;
     }
     return false;
@@ -94,6 +107,7 @@ class ProfilesController {
           ...result.updatedFields
         });
       }
+      this.emit("profile-updated", profileId, result.updatedFields);
     }
     return result.success;
   }
@@ -102,6 +116,7 @@ class ProfilesController {
     const result = await this.raw.delete(profileId);
     if (result) {
       this._invalidateCache(profileId);
+      this.emit("profile-deleted", profileId);
       return true;
     }
     return false;
