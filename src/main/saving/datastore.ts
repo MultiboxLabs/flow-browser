@@ -35,6 +35,7 @@ class DataStoreError extends Error {
 class DataStore {
   public directoryPath: string;
   private accessQueue: Queue;
+  private cache: Data | null = null;
 
   /**
    * Creates a new DataStore instance
@@ -85,26 +86,34 @@ class DataStore {
       const dataFilePath = path.join(this.directoryPath, `${namespace}.json`);
       debugPrint("DATASTORE", `Accessing datastore file: ${dataFilePath}`);
 
-      // Read data
-      const oldData: Data = await fs
-        .readFile(dataFilePath, "utf8")
-        .then((fileContent) => {
-          const jsonData = JSON.parse(fileContent);
-          debugPrint("DATASTORE", `Successfully read data from ${namespace}.json`);
-          return jsonData;
-        })
-        .catch((error) => {
-          if (error instanceof SyntaxError) {
-            debugError("DATASTORE", `Invalid JSON in ${namespace}.json, resetting to empty object`);
-            return {};
-          } else if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-            debugPrint("DATASTORE", `${namespace}.json doesn't exist, creating new datastore`);
-            return {};
-          } else {
-            debugError("DATASTORE", `Error reading ${namespace}.json:`, error);
-            throw error;
-          }
-        });
+      // Read data (from cache if available)
+      let oldData: Data;
+      if (this.cache !== null) {
+        debugPrint("DATASTORE", `Using cached data for ${namespace}.json`);
+        oldData = this.cache;
+      } else {
+        oldData = await fs
+          .readFile(dataFilePath, "utf8")
+          .then((fileContent) => {
+            const jsonData = JSON.parse(fileContent);
+            debugPrint("DATASTORE", `Successfully read data from ${namespace}.json`);
+            return jsonData;
+          })
+          .catch((error) => {
+            if (error instanceof SyntaxError) {
+              debugError("DATASTORE", `Invalid JSON in ${namespace}.json, resetting to empty object`);
+              return {};
+            } else if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+              debugPrint("DATASTORE", `${namespace}.json doesn't exist, creating new datastore`);
+              return {};
+            } else {
+              debugError("DATASTORE", `Error reading ${namespace}.json:`, error);
+              throw error;
+            }
+          });
+        // Cache after first successful/handled read
+        this.cache = oldData;
+      }
 
       // Update data
       let newData: AccessResult = null;
@@ -119,6 +128,9 @@ class DataStore {
         try {
           await fs.writeFile(dataFilePath, JSON.stringify(newData, null, 2));
           debugPrint("DATASTORE", `Successfully wrote data to ${namespace}.json`);
+
+          // Update cache after writing to disk
+          this.cache = newData;
         } catch (error) {
           debugError("DATASTORE", `Failed to write to ${namespace}.json:`, error);
           throw new DataStoreError(`Failed to write to datastore file: ${namespace}.json`, error as Error);
@@ -246,7 +258,11 @@ class DataStore {
     const dataFilePath = path.join(this.directoryPath, `${this.namespace}.json`);
     return await fs
       .rm(dataFilePath)
-      .then(() => true)
+      .then(() => {
+        // Clear cache after wiping file
+        this.cache = {};
+        return true;
+      })
       .catch(() => false);
   }
 }
