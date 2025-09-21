@@ -37,15 +37,25 @@ class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
 
   // Request All Profiles //
   private _requestAllProfiles() {
+    // If the promise has already been resolved, then only the boolean will be stored
+    if (this.requestedAllProfiles) {
+      return Promise.resolve();
+    }
+
+    // The promise will be stored when it is being processed
     if (this._requestedAllProfilesPromise) {
       return this._requestedAllProfilesPromise;
     }
 
     const runner = async () => {
-      const profileIds = await this.raw.listProfiles();
-      const promises = profileIds.map((profileId) => this.get(profileId));
+      const potentialProfileIds = await this.raw.listProfiles();
+      const promises = potentialProfileIds.map((profileId) => this.get(profileId));
       await Promise.all(promises);
+
+      // Add a 'completed' boolean to the map and remove the promise to save memory
       this.requestedAllProfiles = true;
+      this._requestedAllProfilesPromise = null;
+
       this.emit("requested-all-profiles");
     };
     const promise = runner();
@@ -109,6 +119,7 @@ class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
       }
       this.emit("profile-updated", profileId, result.updatedFields);
     }
+
     return result.success;
   }
 

@@ -9,7 +9,7 @@ import z from "zod";
 const PROFILES_DIR = path.join(FLOW_DATA_DIR, "Profiles");
 
 // Types
-export type RawCreateProfileResult =
+type RawCreateProfileResult =
   | {
       success: boolean;
       profileData: ProfileData;
@@ -81,15 +81,12 @@ export class RawProfilesController {
       await fs.mkdir(profilePath, { recursive: true });
 
       // Set profile data
-      const profileData: ProfileData = {
+      const storingProfileData = {
         name: profileName,
         createdAt: getCurrentTimestamp()
       };
       const profileStore = getProfileDataStore(profileId);
-      await profileStore.setMany([
-        ["name", profileData.name],
-        ["createdAt", profileData.createdAt]
-      ]);
+      await profileStore.setMany(storingProfileData);
 
       if (shouldCreateSpace) {
         // TODO: create initial space
@@ -100,7 +97,7 @@ export class RawProfilesController {
         // });
       }
 
-      return { success: true, profileData };
+      return { success: true, profileData: reconcileProfileData(profileId, storingProfileData) };
     } catch (error) {
       debugError("PROFILES", `Error creating profile ${profileId}:`, error);
       return { success: false };
@@ -166,7 +163,7 @@ export class RawProfilesController {
    * @returns Array of profile IDs
    */
   public async listProfiles() {
-    const profilePaths = await getAllDirectories(PROFILES_DIR);
-    return profilePaths;
+    const profileIds = await getAllDirectories(PROFILES_DIR);
+    return profileIds;
   }
 }
