@@ -86,8 +86,10 @@ export class RawProfilesController {
         createdAt: getCurrentTimestamp()
       };
       const profileStore = getProfileDataStore(profileId);
-      await profileStore.set("name", profileData.name);
-      await profileStore.set("createdAt", profileData.createdAt);
+      await profileStore.setMany([
+        ["name", profileData.name],
+        ["createdAt", profileData.createdAt]
+      ]);
 
       if (shouldCreateSpace) {
         // TODO: create initial space
@@ -123,8 +125,11 @@ export class RawProfilesController {
       const updatedFields: Partial<ProfileData> = {};
 
       if (profileData.name) {
-        await profileStore.set("name", profileData.name);
         updatedFields.name = profileData.name;
+      }
+
+      if (Object.keys(updatedFields).length > 0) {
+        await profileStore.setMany(updatedFields);
       }
 
       return { success: true, updatedFields };

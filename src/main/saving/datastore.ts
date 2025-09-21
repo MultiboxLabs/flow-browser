@@ -228,6 +228,31 @@ class DataStore {
   }
 
   /**
+   * Sets multiple values in the datastore in a single write
+   * @param entries - Object map or array of [key, value] tuples
+   * @returns Promise that resolves to a boolean indicating success
+   */
+  async setMany(entries: Record<string, unknown> | Array<[string, unknown]>): Promise<boolean> {
+    const pairs: Array<[string, unknown]> = Array.isArray(entries) ? entries : Object.entries(entries);
+
+    // Filter invalid keys early
+    const validPairs = pairs.filter(([key]) => key && typeof key === "string");
+
+    if (validPairs.length === 0) {
+      // Nothing to do, avoid file write
+      return false;
+    }
+
+    await this.accessDataStore((data) => {
+      for (const [key, value] of validPairs) {
+        data[key] = value;
+      }
+      return data;
+    });
+    return true;
+  }
+
+  /**
    * Removes a value from the datastore
    * @param key - The key to remove
    * @returns Promise that resolves to a boolean indicating success
