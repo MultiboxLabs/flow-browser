@@ -29,4 +29,3 @@ export function setupAppLifecycle(browser: Browser) {
     handleOpenUrl(browser, url);
   });
 }
-
