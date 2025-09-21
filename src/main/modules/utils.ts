@@ -85,3 +85,11 @@ export function generateID(): string {
 export function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
+
+/**
+ * Get the current timestamp
+ * @returns The current timestamp
+ */
+export function getCurrentTimestamp() {
+  return Math.floor(Date.now() / 1000);
+}

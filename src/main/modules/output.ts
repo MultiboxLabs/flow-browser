@@ -12,7 +12,7 @@ const DEBUG_AREAS = {
   WEB_CONTENTS_CREATED: false, // @/browser/main.ts
   OMNIBOX: false, // @/browser/omnibox.ts
   DATASTORE: false, // @/saving/datastore.ts
-  PROFILES: false, // @/modules/profiles.ts
+  PROFILES: false, // @/controllers/profiles-controller (originally @/modules/profiles.ts)
   SPACES: false, // @/sessions/spaces.ts
   ICONS: false, // @/modules/icons.ts
   PORTAL_COMPONENTS: false, // @/browser/components/portal-component-windows.ts
