@@ -4,3 +4,4 @@ import "./default-browser-controller";
 import "./app-menu-controller";
 import "./profiles-controller";
 import "./spaces-controller";
+import "./auto-update-controller";
