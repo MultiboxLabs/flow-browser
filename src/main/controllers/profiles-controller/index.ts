@@ -12,12 +12,33 @@ export { type ProfileData, ProfileDataSchema };
 class ProfilesController {
   private raw: RawProfilesController;
   private cache: Map<string, ProfileData>;
-  private requestedAllProfiles: boolean;
+
+  public requestedAllProfiles: boolean;
+  private _requestedAllProfilesPromise: Promise<void> | null;
 
   constructor() {
     this.raw = new RawProfilesController();
     this.cache = new Map();
+
     this.requestedAllProfiles = false;
+    this._requestedAllProfilesPromise = null;
+  }
+
+  // Request All Profiles //
+  private _requestAllProfiles() {
+    if (this._requestedAllProfilesPromise) {
+      return this._requestedAllProfilesPromise;
+    }
+
+    const runner = async () => {
+      const profileIds = await this.raw.listProfiles();
+      const promises = profileIds.map((profileId) => this.get(profileId));
+      await Promise.all(promises);
+      this.requestedAllProfiles = true;
+    };
+    const promise = runner();
+    this._requestedAllProfilesPromise = promise;
+    return promise;
   }
 
   // Cache Functions //
@@ -103,10 +124,7 @@ class ProfilesController {
     }
 
     // Populate the cache
-    const profileIds = await this.raw.listProfiles();
-    const promises = profileIds.map((profileId) => this.get(profileId));
-    await Promise.all(promises);
-    this.requestedAllProfiles = true;
+    await this._requestAllProfiles();
     return await this.getAll();
   }
 }
