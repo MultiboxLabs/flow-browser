@@ -1,7 +1,7 @@
 import { profilesController, ProfileData } from "@/controllers/profiles-controller";
 import { ipcMain } from "electron";
 import { browser } from "@/browser";
-import { getSpace } from "@/sessions/spaces";
+import { spacesController } from "@/controllers/spaces-controller";
 
 ipcMain.handle("profiles:get-all", async () => {
   return await profilesController.getAll();
@@ -25,7 +25,7 @@ ipcMain.handle("profile:get-using", async (event) => {
   if (window) {
     const spaceId = window.getCurrentSpace();
     if (spaceId) {
-      const space = await getSpace(spaceId);
+      const space = await spacesController.get(spaceId);
       return space?.profileId;
     }
   }

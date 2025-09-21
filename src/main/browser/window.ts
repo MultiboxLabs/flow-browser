@@ -4,7 +4,6 @@ import { ViewManager } from "@/browser/view-manager";
 import { PageBounds } from "@/ipc/browser/page";
 import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { getLastUsedSpace } from "@/sessions/spaces";
 import { BrowserWindow, nativeTheme, WebContents } from "electron";
 import "./close-preventer";
 import { WindowEventType } from "@/modules/windows";
@@ -14,6 +13,7 @@ import { defaultSessionReady } from "@/browser/sessions";
 import { fireWindowStateChanged } from "@/ipc/browser/interface";
 import { debugPrint } from "@/modules/output";
 import { appMenuController } from "@/controllers/app-menu-controller";
+import { spacesController } from "@/controllers/spaces-controller";
 
 type BrowserWindowType = "normal" | "popup";
 
@@ -191,7 +191,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       height: 0
     };
 
-    getLastUsedSpace().then((space) => {
+    spacesController.getLastUsed().then((space) => {
       if (space && !this.currentSpaceId) {
         this.setCurrentSpace(space.id);
       }

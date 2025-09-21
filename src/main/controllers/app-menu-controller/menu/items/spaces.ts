@@ -1,5 +1,4 @@
 import { MenuItemConstructorOptions, nativeImage, NativeImage } from "electron";
-import { getSpaces } from "@/sessions/spaces";
 import { getFocusedBrowserWindowData } from "../helpers";
 import { settings } from "@/settings/main";
 import sharp from "sharp";
@@ -8,6 +7,7 @@ import path from "path";
 import { readFile } from "fs/promises";
 import { IconEntry, icons } from "@phosphor-icons/core";
 import { getFocusedWindow } from "@/modules/windows";
+import { spacesController } from "@/controllers/spaces-controller";
 
 // Types
 interface Space {
@@ -143,7 +143,7 @@ async function createSpaceMenuItem(
  */
 export async function createSpacesMenu(): Promise<MenuItemConstructorOptions> {
   try {
-    const spaces = await getSpaces();
+    const spaces = await spacesController.getAll();
 
     const focusedWindow = getFocusedWindow();
     const currentSpaceId = focusedWindow?.tabbedBrowserWindow?.getCurrentSpace() ?? null;

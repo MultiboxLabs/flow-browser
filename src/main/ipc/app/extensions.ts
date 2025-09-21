@@ -9,7 +9,7 @@ import {
   getManifest
 } from "@/modules/extensions/management";
 import { getPermissionWarnings } from "@/modules/extensions/permission-warnings";
-import { getSpace } from "@/sessions/spaces";
+import { spacesController } from "@/controllers/spaces-controller";
 import { dialog, ipcMain, IpcMainInvokeEvent, WebContents } from "electron";
 import { SharedExtensionData } from "~/types/extensions";
 
@@ -96,7 +96,7 @@ async function getCurrentProfileIdFromWebContents(webContents: WebContents): Pro
   const spaceId = window.getCurrentSpace();
   if (!spaceId) return null;
 
-  const space = await getSpace(spaceId);
+  const space = await spacesController.get(spaceId);
   if (!space) return null;
 
   return space.profileId;

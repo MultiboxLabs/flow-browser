@@ -2,7 +2,7 @@ import { hideOmnibox, isOmniboxOpen, loadOmnibox, setOmniboxBounds, showOmnibox 
 import { TabbedBrowserWindow } from "@/browser/window";
 import { browser } from "@/browser";
 import { getSettingValueById } from "@/saving/settings";
-import { getSpace } from "@/sessions/spaces";
+import { spacesController } from "@/controllers/spaces-controller";
 import { ipcMain } from "electron";
 
 export function openNewTab(tabbedBrowserWindow: TabbedBrowserWindow) {
@@ -24,7 +24,7 @@ export function openNewTab(tabbedBrowserWindow: TabbedBrowserWindow) {
       const tabManager = browser?.tabs;
       if (!tabManager) return;
 
-      getSpace(spaceId).then(async (space) => {
+      spacesController.get(spaceId).then(async (space) => {
         if (!space) return;
 
         const tab = await tabManager.createTab(tabbedBrowserWindow.id, space.profileId, spaceId);

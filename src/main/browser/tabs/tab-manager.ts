@@ -3,11 +3,11 @@ import { Tab, TabCreationOptions } from "@/browser/tabs/tab";
 import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
 import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
 import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
+import { spacesController } from "@/controllers/spaces-controller";
 import { windowTabsChanged } from "@/ipc/browser/tabs";
 import { setWindowSpace } from "@/ipc/session/spaces";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { shouldArchiveTab, shouldSleepTab } from "@/saving/tabs";
-import { getLastUsedSpace, getLastUsedSpaceFromProfile } from "@/sessions/spaces";
 import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
 
@@ -124,7 +124,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
 
     // Get profile ID and space ID if not provided
     if (!profileId) {
-      const lastUsedSpace = await getLastUsedSpace();
+      const lastUsedSpace = await spacesController.getLastUsed();
       if (lastUsedSpace) {
         profileId = lastUsedSpace.profileId;
         spaceId = lastUsedSpace.id;
@@ -133,7 +133,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
       }
     } else if (!spaceId) {
       try {
-        const lastUsedSpace = await getLastUsedSpaceFromProfile(profileId);
+        const lastUsedSpace = await spacesController.getLastUsedFromProfile(profileId);
         if (lastUsedSpace) {
           spaceId = lastUsedSpace.id;
         } else {

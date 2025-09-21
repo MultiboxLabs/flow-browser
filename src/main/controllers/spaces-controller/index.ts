@@ -8,7 +8,7 @@ import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { generateID } from "@/modules/utils";
 
 type SpaceDataWithId = SpaceData & { id: string };
-type SpaceOrderMap = { profileId: string; spaceId: string; order: number }[];
+export type SpaceOrderMap = { profileId: string; spaceId: string; order: number }[];
 
 // Events //
 type SpacesControllerEvents = {
@@ -97,7 +97,7 @@ class SpacesController extends TypedEventEmitter<SpacesControllerEvents> {
 
   public async getWithProfile(profileId: string, spaceId: string): Promise<SpaceData | null> {
     const cachedData = this._getCachedSpaceData(spaceId);
-    if (cachedData) {
+    if (cachedData && cachedData.profileId === profileId) {
       return cachedData;
     }
 

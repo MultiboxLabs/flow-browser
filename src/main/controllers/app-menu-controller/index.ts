@@ -8,15 +8,18 @@ import { createSpacesMenu } from "@/controllers/app-menu-controller/menu/items/s
 import { createViewMenu } from "@/controllers/app-menu-controller/menu/items/view";
 import { createWindowMenu } from "@/controllers/app-menu-controller/menu/items/window";
 import { MenuItem, MenuItemConstructorOptions } from "electron";
-import { spacesEmitter } from "@/sessions/spaces";
 import { shortcutsEmitter } from "@/saving/shortcuts";
 import { windowEvents, WindowEventType } from "@/modules/windows";
+import { spacesController } from "@/controllers/spaces-controller";
 
 class AppMenuController {
   constructor() {
     this.render();
 
-    spacesEmitter.on("changed", this.render);
+    spacesController.on("space-created", this.render);
+    spacesController.on("space-updated", this.render);
+    spacesController.on("space-deleted", this.render);
+
     shortcutsEmitter.on("shortcuts-changed", this.render);
     windowEvents.on(WindowEventType.FOCUSED, this.render);
   }

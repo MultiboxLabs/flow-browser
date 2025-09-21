@@ -2,7 +2,7 @@ import { Tab } from "@/browser/tabs/tab";
 import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
 import { TabbedBrowserWindow } from "@/browser/window";
 import { browser } from "@/browser";
-import { getSpace } from "@/sessions/spaces";
+import { spacesController } from "@/controllers/spaces-controller";
 import { clipboard, ipcMain, Menu, MenuItem } from "electron";
 import { TabData, TabGroupData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
 
@@ -175,10 +175,10 @@ ipcMain.handle("tabs:new-tab", async (event, url?: string, isForeground?: boolea
 
   if (!spaceId) return;
 
-  const space = await getSpace(spaceId);
+  const space = await spacesController.get(spaceId);
   if (!space) return;
 
-  const tab = await tabManager.createTab(window.id, space.profileId, space.id);
+  const tab = await tabManager.createTab(window.id, space.profileId, spaceId);
 
   if (url) {
     tab.loadURL(url);
@@ -269,7 +269,7 @@ ipcMain.handle("tabs:move-tab-to-window-space", async (event, tabId: number, spa
   const tab = tabManager.getTabById(tabId);
   if (!tab) return false;
 
-  const space = await getSpace(spaceId);
+  const space = await spacesController.get(spaceId);
   if (!space) return false;
 
   tab.setSpace(spaceId);
