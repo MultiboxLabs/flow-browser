@@ -13,7 +13,7 @@ const DEBUG_AREAS = {
   OMNIBOX: false, // @/browser/omnibox.ts
   DATASTORE: false, // @/saving/datastore.ts
   PROFILES: false, // @/controllers/profiles-controller (originally @/modules/profiles.ts)
-  SPACES: false, // @/sessions/spaces.ts
+  SPACES: false, // @/controllers/spaces-controller (originally @/sessions/spaces.ts)
   ICONS: false, // @/modules/icons.ts
   PORTAL_COMPONENTS: false, // @/browser/components/portal-component-windows.ts
   AUTO_UPDATER: false, // @/modules/auto-update.ts

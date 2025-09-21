@@ -12,6 +12,7 @@ type ProfilesControllerEvents = {
   "profile-created": [profileId: string, profileData: ProfileData];
   "profile-deleted": [profileId: string];
   "profile-updated": [profileId: string, updatedFields: Partial<ProfileData>];
+
   "requested-all-profiles": [];
 };
 
