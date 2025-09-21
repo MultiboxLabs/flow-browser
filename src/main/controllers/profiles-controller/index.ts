@@ -1,16 +1,23 @@
 // This controller handles all profile related operations
 // The raw controller is used to handle the raw data operations, and operations are cached here
 
-import { ProfileData, RawProfilesController } from "@/controllers/profiles-controller/raw";
+import { RawProfilesController, ProfileData, ProfileDataSchema } from "@/controllers/profiles-controller/raw";
 import { generateID } from "@/modules/utils";
+
+type ProfileDataWithId = ProfileData & { id: string };
+
+// Re-exporting Schema
+export { type ProfileData, ProfileDataSchema };
 
 class ProfilesController {
   private raw: RawProfilesController;
   private cache: Map<string, ProfileData>;
+  private requestedAllProfiles: boolean;
 
   constructor() {
     this.raw = new RawProfilesController();
     this.cache = new Map();
+    this.requestedAllProfiles = false;
   }
 
   // Cache Functions //
@@ -29,7 +36,7 @@ class ProfilesController {
     return this.raw.getProfilePath(profileId);
   }
 
-  // Main Functions //
+  // CRUD Functions //
   public async create(profileName: string, shouldCreateSpace: boolean = true): Promise<boolean> {
     const profileId = generateID();
     const result = await this.raw.create(profileId, profileName, shouldCreateSpace);
@@ -77,6 +84,30 @@ class ProfilesController {
       return true;
     }
     return false;
+  }
+
+  // Other Functions //
+  public async getAll(): Promise<ProfileDataWithId[]> {
+    if (this.requestedAllProfiles) {
+      const profiles: ProfileDataWithId[] = [];
+
+      // Grab all the profiles from the cache
+      this.cache.forEach((profileData, profileId) => {
+        profiles.push({ ...profileData, id: profileId });
+      });
+
+      // Sort the profiles by createdAt
+      profiles.sort((a, b) => a.createdAt - b.createdAt);
+
+      return profiles;
+    }
+
+    // Populate the cache
+    const profileIds = await this.raw.listProfiles();
+    const promises = profileIds.map((profileId) => this.get(profileId));
+    await Promise.all(promises);
+    this.requestedAllProfiles = true;
+    return await this.getAll();
   }
 }
 

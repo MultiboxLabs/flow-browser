@@ -2,9 +2,9 @@ import fs from "fs/promises";
 import { DataStoreData, getDatastore } from "@/saving/datastore";
 import z from "zod";
 import { debugError } from "@/modules/output";
-import { getProfile, getProfiles } from "@/sessions/profiles";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import path from "path";
+import { profilesController } from "@/controllers/profiles-controller";
 
 export const spacesEmitter = new TypedEventEmitter<{
   changed: [];
@@ -51,7 +51,7 @@ function onSpacesChanged() {
 
 // CRUD Operations
 export async function getSpace(spaceId: string) {
-  const profiles = await getProfiles();
+  const profiles = await profilesController.getAll();
   for (const profile of profiles) {
     const space = await getSpaceFromProfile(profile.id, spaceId);
     if (space) {
@@ -89,7 +89,7 @@ export async function createSpace(profileId: string, spaceId: string, spaceName:
   }
 
   // Make sure profile exists
-  const profile = await getProfile(profileId);
+  const profile = await profilesController.get(profileId);
   if (!profile) {
     debugError("SPACES", `Profile ${profileId} does not exist`);
     return false;
@@ -231,7 +231,7 @@ export async function getSpacesFromProfile(profileId: string) {
 
 export async function getSpaces() {
   try {
-    const profiles = await getProfiles();
+    const profiles = await profilesController.getAll();
     const profileSpaces = await Promise.all(
       profiles.map(async (profile) => {
         const profileSpaces = await getSpacesFromProfile(profile.id);

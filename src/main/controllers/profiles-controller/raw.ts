@@ -1,6 +1,6 @@
 import { debugError } from "@/modules/output";
 import { FLOW_DATA_DIR } from "@/modules/paths";
-import { getCurrentTimestamp } from "@/modules/utils";
+import { getAllDirectories, getCurrentTimestamp } from "@/modules/utils";
 import path from "path";
 import fs from "fs/promises";
 import { DataStoreData, getDatastore } from "@/saving/datastore";
@@ -28,8 +28,7 @@ type RawUpdateProfileResult =
     };
 
 // Schema
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const ProfileDataSchema = z.object({
+export const ProfileDataSchema = z.object({
   name: z.string(),
   createdAt: z.number()
 });
@@ -154,5 +153,15 @@ export class RawProfilesController {
       debugError("PROFILES", `Error deleting profile ${profileId}:`, error);
       return false;
     }
+  }
+
+  /**
+   * List all profiles
+   * Warning: Some of the values may not be valid profile IDs, use with caution.
+   * @returns Array of profile IDs
+   */
+  public async listProfiles() {
+    const profilePaths = await getAllDirectories(PROFILES_DIR);
+    return profilePaths;
   }
 }

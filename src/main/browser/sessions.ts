@@ -4,8 +4,8 @@ import { registerPreloadScript, registerProtocolsWithSession } from "@/browser/u
 import { debugPrint } from "@/modules/output";
 import { sleep } from "@/modules/utils";
 import { setAlwaysOpenExternal, shouldAlwaysOpenExternal } from "@/saving/open-external";
-import { getProfilePath } from "@/sessions/profiles";
 import { app, dialog, OpenExternalPermissionRequest, session, Session } from "electron";
+import { profilesController } from "@/controllers/profiles-controller";
 
 const sessions: Map<string, Session> = new Map();
 
@@ -62,7 +62,7 @@ function registerCallbacksWithSession(session: Session) {
 }
 
 function createSession(profileId: string) {
-  const profileSessionPath = getProfilePath(profileId);
+  const profileSessionPath = profilesController.getProfilePath(profileId);
   const profileSession = session.fromPath(profileSessionPath);
 
   registerProtocolsWithSession(profileSession);

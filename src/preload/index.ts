@@ -6,7 +6,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import { injectBrowserAction } from "electron-chrome-extensions/browser-action";
 
 // TYPE IMPORTS //
-import type { ProfileData } from "@/sessions/profiles";
+import type { ProfileData } from "@/controllers/profiles-controller";
 import type { SpaceData } from "@/sessions/spaces";
 
 // SHARED TYPES //

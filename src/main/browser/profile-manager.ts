@@ -1,7 +1,6 @@
 import { BrowserWindow, dialog, Session } from "electron";
 import { getSession } from "@/browser/sessions";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { getProfile, getProfilePath, ProfileData } from "@/sessions/profiles";
 import { BrowserEvents } from "@/browser/events";
 import { Browser } from "@/browser/browser";
 import { ElectronChromeExtensions } from "electron-chrome-extensions";
@@ -13,6 +12,7 @@ import { registerWindow, WindowType } from "@/modules/windows";
 import { getSettingValueById } from "@/saving/settings";
 import { ExtensionManager } from "@/modules/extensions/management";
 import { transformUserAgentHeader } from "@/browser/utility/user-agent";
+import { ProfileData, profilesController } from "@/controllers/profiles-controller";
 
 export const loadedProfileSessions: Set<Session> = new Set();
 
@@ -112,7 +112,7 @@ export class ProfileManager {
    */
   private async _loadProfile(profileId: string): Promise<boolean> {
     try {
-      const profileData = await getProfile(profileId);
+      const profileData = await profilesController.get(profileId);
       if (!profileData) {
         console.warn(`Profile data not found for ID: ${profileId}`);
         return false;
@@ -121,7 +121,7 @@ export class ProfileManager {
       const profileSession = getSession(profileId);
       loadedProfileSessions.add(profileSession);
 
-      const profilePath = getProfilePath(profileId);
+      const profilePath = profilesController.getProfilePath(profileId);
 
       // Remove Electron and App details to closer emulate Chrome's UA
       const oldUserAgent = profileSession.getUserAgent();
