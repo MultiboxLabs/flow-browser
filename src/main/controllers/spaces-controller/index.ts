@@ -83,6 +83,22 @@ class SpacesController extends TypedEventEmitter<SpacesControllerEvents> {
     this.cache.set(spaceId, spaceData);
   }
 
+  private _getSpacesFromCache(profileId?: string): SpaceDataWithId[] {
+    // Get all spaces in the cache
+    const spaces: SpaceDataWithId[] = [];
+    this.cache.forEach((spaceData, spaceId) => {
+      if (profileId && spaceData.profileId !== profileId) {
+        return;
+      }
+      spaces.push({ ...spaceData, id: spaceId });
+    });
+
+    // Sort the spaces by order
+    spaces.sort((a, b) => a.order - b.order);
+
+    return spaces;
+  }
+
   // Basic CRUD Functions //
   public async create(profileId: string, spaceName: string): Promise<boolean> {
     const spaceId = generateID();
@@ -188,21 +204,9 @@ class SpacesController extends TypedEventEmitter<SpacesControllerEvents> {
   // Other Functions //
   public async getAllFromProfile(profileId: string): Promise<SpaceDataWithId[]> {
     if (this.hasRequestedAllSpaces(profileId)) {
-      const spaces: SpaceDataWithId[] = [];
-
-      // Grab all the spaces from the cache
-      this.cache.forEach((spaceData, spaceId) => {
-        if (spaceData.profileId === profileId) {
-          spaces.push({ ...spaceData, id: spaceId });
-        }
-      });
-
-      // Sort the spaces by order
-      spaces.sort((a, b) => a.order - b.order);
-
+      const spaces: SpaceDataWithId[] = this._getSpacesFromCache(profileId);
       return spaces;
     }
-
     await this._requestAllSpacesFromProfile(profileId);
     return await this.getAllFromProfile(profileId);
   }
@@ -210,15 +214,14 @@ class SpacesController extends TypedEventEmitter<SpacesControllerEvents> {
   public async getAll(): Promise<SpaceDataWithId[]> {
     const profileDatas = await profilesController.getAll();
 
+    // Request all spaces from all profiles
     const promises = profileDatas.map(async (profileData) => {
-      const spaces = await this.getAllFromProfile(profileData.id);
-      return spaces;
+      await this._requestAllSpacesFromProfile(profileData.id);
     });
+    await Promise.all(promises);
 
-    const profileSpaces = await Promise.all(promises);
-
-    const spaceDatas: SpaceDataWithId[] = profileSpaces.flat();
-    spaceDatas.sort((a, b) => a.order - b.order);
+    // Get all spaces from all profiles
+    const spaceDatas: SpaceDataWithId[] = this._getSpacesFromCache();
     return spaceDatas;
   }
 }
