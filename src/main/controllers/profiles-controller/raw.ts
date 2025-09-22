@@ -5,6 +5,8 @@ import path from "path";
 import fs from "fs/promises";
 import { DataStoreData, getDatastore } from "@/saving/datastore";
 import z from "zod";
+import { profilesController } from "@/controllers/profiles-controller";
+import { spacesController } from "@/controllers/spaces-controller";
 
 const PROFILES_DIR = path.join(FLOW_DATA_DIR, "Profiles");
 
@@ -69,7 +71,7 @@ export class RawProfilesController {
     }
 
     // Check if profile already exists
-    const existingProfile = null; // TODO: this.getProfile(profileId);
+    const existingProfile = await profilesController.get(profileId);
     if (existingProfile) {
       debugError("PROFILES", `Profile ${profileId} already exists`);
       return { success: false };
@@ -89,12 +91,12 @@ export class RawProfilesController {
       await profileStore.setMany(storingProfileData);
 
       if (shouldCreateSpace) {
-        // TODO: create initial space
-        // await createSpace(profileId, generateID(), profileName).then((success) => {
-        //   if (!success) {
-        //     debugError("PROFILES", `Error creating default space for profile ${profileId}`);
-        //   }
-        // });
+        // create initial space
+        await spacesController.create(profileId, profileName).then((success) => {
+          if (!success) {
+            debugError("PROFILES", `Error creating default space for profile ${profileId}`);
+          }
+        });
       }
 
       return { success: true, profileData: reconcileProfileData(profileId, storingProfileData) };
@@ -138,9 +140,9 @@ export class RawProfilesController {
 
   public async delete(profileId: string) {
     try {
-      // TODO: Delete all spaces associated with this profile
-      // const spaces = await getSpacesFromProfile(profileId);
-      // await Promise.all(spaces.map((space) => deleteSpace(profileId, space.id)));
+      // Delete all spaces associated with this profile
+      const spaces = await spacesController.getAllFromProfile(profileId);
+      await Promise.all(spaces.map((space) => spacesController.delete(profileId, space.id)));
 
       // Delete Chromium Profile
       const profilePath = this.getProfilePath(profileId);
