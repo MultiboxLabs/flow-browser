@@ -20,7 +20,8 @@ const DEBUG_AREAS = {
   CONTENT_BLOCKER: false, // @/modules/content-blocker.ts
   WEB_REQUESTS_INTERCEPTION: false, // @/browser/utility/web-requests.ts
   WEB_REQUESTS: false, // @/browser/utility/web-requests.ts
-  MATCH_PATTERN: false // @/browser/utility/match-pattern.ts
+  MATCH_PATTERN: false, // @/browser/utility/match-pattern.ts
+  WINDOWS: true // @/controllers/windows-controller
 } as const;
 
 export type DEBUG_AREA = keyof typeof DEBUG_AREAS;

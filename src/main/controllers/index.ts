@@ -5,3 +5,4 @@ import "./app-menu-controller";
 import "./profiles-controller";
 import "./spaces-controller";
 import "./auto-update-controller";
+import "./windows-controller";

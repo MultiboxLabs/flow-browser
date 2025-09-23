@@ -1,6 +1,6 @@
 import { MenuItemConstructorOptions, nativeImage, NativeImage } from "electron";
 import { getFocusedBrowserWindowData } from "../helpers";
-import { settings } from "@/settings/main";
+import { settings } from "@/controllers/windows-controller/interfaces/settings";
 import sharp from "sharp";
 import { setWindowSpace } from "@/ipc/session/spaces";
 import path from "path";
