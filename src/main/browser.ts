@@ -1,5 +1,4 @@
 import "@/ipc/main";
-import "@/settings/main";
 import "@/modules/content-blocker";
 import "@/controllers";
 import { debugPrint } from "@/modules/output";

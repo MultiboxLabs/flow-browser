@@ -1,5 +1,5 @@
 import { MenuItemConstructorOptions } from "electron";
-import { settings } from "@/settings/main";
+import { settings } from "@/controllers/windows-controller/interfaces/settings";
 import { getCurrentShortcut } from "@/modules/shortcuts";
 import { defaultBrowserController } from "@/controllers/default-browser-controller";
 

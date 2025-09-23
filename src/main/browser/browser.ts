@@ -6,7 +6,7 @@ import { ProfileManager, LoadedProfile } from "@/browser/profile-manager";
 import { WindowManager, BrowserWindowType, BrowserWindowCreationOptions } from "@/browser/window-manager";
 import { TabManager } from "@/browser/tabs/tab-manager";
 import { Tab } from "@/browser/tabs/tab";
-import { settings } from "@/settings/main";
+import { settings } from "@/controllers/windows-controller/interfaces/settings";
 import { onboarding } from "@/onboarding/main";
 import "@/modules/extensions/main";
 import { waitForElectronComponentsToBeReady } from "@/modules/electron-components";
