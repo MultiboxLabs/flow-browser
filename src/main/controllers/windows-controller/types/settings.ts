@@ -19,9 +19,7 @@ export class SettingsWindow extends BaseWindow {
         height: 40,
         symbolColor: nativeTheme.shouldUseDarkColors ? "white" : "black",
         color: "rgba(0,0,0,0)"
-      },
-
-      vibrancy: "fullscreen-ui" // on MacOS
+      }
     });
     browserWindow.loadURL("flow-internal://settings/");
 
