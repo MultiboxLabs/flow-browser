@@ -1,5 +1,5 @@
 import { browser } from "@/browser";
-import { onboarding } from "@/onboarding/main";
+import { onboarding } from "@/controllers/windows-controller/interfaces/onboarding";
 import { SettingsDataStore } from "@/saving/settings";
 import { app } from "electron";
 
