@@ -1,6 +1,6 @@
 import { debugPrint } from "@/modules/output";
 import { hasCompletedOnboarding } from "@/saving/onboarding";
-import { onboarding } from "@/onboarding/main";
+import { onboarding } from "@/controllers/windows-controller/interfaces/onboarding";
 import { createInitialWindow } from "@/saving/tabs";
 
 export function runOnboardingOrInitialWindow() {

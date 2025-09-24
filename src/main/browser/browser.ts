@@ -7,7 +7,7 @@ import { WindowManager, BrowserWindowType, BrowserWindowCreationOptions } from "
 import { TabManager } from "@/browser/tabs/tab-manager";
 import { Tab } from "@/browser/tabs/tab";
 import { settings } from "@/controllers/windows-controller/interfaces/settings";
-import { onboarding } from "@/onboarding/main";
+import { onboarding } from "@/controllers/windows-controller/interfaces/onboarding";
 import "@/modules/extensions/main";
 import { waitForElectronComponentsToBeReady } from "@/modules/electron-components";
 import { debugPrint } from "@/modules/output";
