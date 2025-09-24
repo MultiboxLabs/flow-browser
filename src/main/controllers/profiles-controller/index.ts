@@ -2,6 +2,7 @@
 // The raw controller is used to handle the raw data operations, and operations are cached here
 
 import { RawProfilesController, ProfileData, ProfileDataSchema } from "@/controllers/profiles-controller/raw";
+import { debugError } from "@/modules/output";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { generateID } from "@/modules/utils";
 
@@ -81,8 +82,7 @@ class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
   }
 
   // CRUD Functions //
-  public async create(profileName: string, shouldCreateSpace: boolean = true): Promise<boolean> {
-    const profileId = generateID();
+  private async _create(profileId: string, profileName: string, shouldCreateSpace: boolean = true): Promise<boolean> {
     const result = await this.raw.create(profileId, profileName, shouldCreateSpace);
     if (result.success) {
       this._setCachedProfileData(profileId, result.profileData);
@@ -90,6 +90,10 @@ class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
       return true;
     }
     return false;
+  }
+  public async create(profileName: string, shouldCreateSpace: boolean = true): Promise<boolean> {
+    const profileId = generateID();
+    return await this._create(profileId, profileName, shouldCreateSpace);
   }
 
   public async get(profileId: string) {
@@ -154,6 +158,26 @@ class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
     await this._requestAllProfiles();
     return await this.getAll();
   }
+
+  /** Warning: This should not be used outside of this controller */
+  public async _setupInitialProfile(): Promise<"success" | "failed" | "already-exists"> {
+    const profileId = "main";
+    const profileName = "Main";
+
+    const profileExists = await this.get(profileId);
+    if (profileExists) {
+      return "already-exists";
+    }
+
+    const profileCreated = await this._create(profileId, profileName, false);
+    if (!profileCreated) {
+      debugError("PROFILES", `Error creating initial profile ${profileId}`);
+      return "failed";
+    }
+
+    return "success";
+  }
 }
 
 export const profilesController = new ProfilesController();
+queueMicrotask(() => profilesController._setupInitialProfile());
