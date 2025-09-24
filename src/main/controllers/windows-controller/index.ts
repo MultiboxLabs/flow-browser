@@ -1,5 +1,6 @@
 import { WindowTypeManager } from "@/controllers/windows-controller/type-manager";
 import { SettingsWindow, BaseWindow, OnboardingWindow } from "@/controllers/windows-controller/types";
+import { BrowserWindow } from "@/controllers/windows-controller/types/browser";
 import { debugPrint } from "@/modules/output";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 
@@ -14,8 +15,9 @@ class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
   private windows: Map<string, BaseWindow>;
 
   // Window Type Managers //
-  public settings: WindowTypeManager;
-  public onboarding: WindowTypeManager;
+  public settings: WindowTypeManager<typeof SettingsWindow>;
+  public onboarding: WindowTypeManager<typeof OnboardingWindow>;
+  public browser: WindowTypeManager<typeof BrowserWindow>;
 
   constructor() {
     super();
@@ -25,6 +27,7 @@ class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
     // Window Type Managers //
     this.settings = new WindowTypeManager(this, "settings", SettingsWindow, { singleton: true });
     this.onboarding = new WindowTypeManager(this, "onboarding", OnboardingWindow, { singleton: true });
+    this.browser = new WindowTypeManager(this, "browser", BrowserWindow, { singleton: true });
   }
 
   // Add & Remove //

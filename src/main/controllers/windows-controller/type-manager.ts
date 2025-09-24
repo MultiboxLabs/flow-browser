@@ -9,16 +9,16 @@ export type WindowTypeManagerOptions = {
   singleton?: boolean;
 };
 
-export class WindowTypeManager {
+export class WindowTypeManager<C extends new (...args: unknown[]) => BaseWindow> {
   private windowsController: WindowsController;
   private windowType: WindowType;
-  private windowConstructor: new () => BaseWindow;
+  private readonly windowConstructor: C;
   private options: WindowTypeManagerOptions;
 
   constructor(
     windowsController: WindowsController,
     windowType: WindowType,
-    windowConstructor: new () => BaseWindow,
+    windowConstructor: C,
     options: WindowTypeManagerOptions
   ) {
     this.windowsController = windowsController;
@@ -28,25 +28,24 @@ export class WindowTypeManager {
   }
 
   // New Function //
-  private _new(id: string) {
-    const window = new this.windowConstructor();
+  private _new(id: string, ...args: ConstructorParameters<C>): InstanceType<C> {
+    const WindowConstructor = this.windowConstructor;
+    const window = new WindowConstructor(...args) as InstanceType<C>;
     this.windowsController._addWindow(id, window);
     return window;
   }
 
-  public new(id?: string) {
+  public new(id?: string, ...args: ConstructorParameters<C>): InstanceType<C> {
     this._checkNotSingleton();
 
-    if (!id) {
-      id = generateID();
-    }
-    return this._new(id);
+    const windowId = id ?? generateID();
+    return this._new(windowId, ...args);
   }
 
   // Basic Functions //
-  public getAll() {
+  public getAll(): InstanceType<C>[] {
     const allWindows = this.windowsController.getAllWindows();
-    return allWindows.filter((window) => window.type === this.windowType);
+    return allWindows.filter((window): window is InstanceType<C> => window.type === this.windowType);
   }
 
   // Singleton Functions //
@@ -64,7 +63,7 @@ export class WindowTypeManager {
   /**
    * Gets a singleton window if it exists, otherwise creates a new one.
    */
-  public getSingletonWindow() {
+  public getSingletonWindow(...args: ConstructorParameters<C>): InstanceType<C> {
     this._checkIsSingleton();
 
     const openWindows = this.getAll();
@@ -72,13 +71,13 @@ export class WindowTypeManager {
       return openWindows[0];
     }
 
-    return this._new(generateID());
+    return this._new(generateID(), ...args);
   }
 
   /**
    * Gets an existing singleton window if it exists, otherwise returns null.
    */
-  public getExistingSingletonWindow() {
+  public getExistingSingletonWindow(): InstanceType<C> | null {
     this._checkIsSingleton();
 
     const openWindows = this.getAll();
