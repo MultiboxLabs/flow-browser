@@ -1,4 +1,4 @@
-import { type WindowType } from "@/controllers/windows-controller";
+import { windowsController, type WindowType } from "@/controllers/windows-controller";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { BrowserWindow } from "electron";
 
@@ -31,6 +31,15 @@ export class BaseWindow<
         this.show();
       });
     }
+  }
+
+  get id() {
+    // A bit of a weird way, but oh well it works
+    const id = windowsController.getIdFromWindow(this);
+    if (!id) {
+      throw new Error("Window id not found");
+    }
+    return id;
   }
 
   public show(focus: boolean = true) {
