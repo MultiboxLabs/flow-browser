@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { EventEmitter } from "events";
 
+export type EmitterEventsType = Record<string, any>;
+
 /**
  * A type-safe event emitter class.
  * Wraps the Node.js EventEmitter to provide type checking for event names and arguments.
  * @template TEvents A record mapping event names to their argument tuple types.
  */
-export class TypedEventEmitter<TEvents extends Record<string, any>> {
+export class TypedEventEmitter<TEvents extends EmitterEventsType> {
   private emitter = new EventEmitter();
   private emitterDestroyed = false;
 

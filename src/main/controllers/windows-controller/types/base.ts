@@ -2,15 +2,17 @@ import { type WindowType } from "@/controllers/windows-controller";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { BrowserWindow } from "electron";
 
-type WindowEvents = {
+export interface BaseWindowEvents {
   destroyed: [];
-};
+}
 
 export type BaseWindowOptions = {
   showAfterLoad?: boolean;
 };
 
-export class BaseWindow extends TypedEventEmitter<WindowEvents> {
+export class BaseWindow<
+  WindowEvents extends BaseWindowEvents = BaseWindowEvents
+> extends TypedEventEmitter<WindowEvents> {
   public type: WindowType;
   public readonly browserWindow: BrowserWindow;
 

@@ -1,8 +1,8 @@
 import { WindowTypeManager } from "@/controllers/windows-controller/type-manager";
-import { SettingsWindow, BaseWindow, OnboardingWindow } from "@/controllers/windows-controller/types";
-import { BrowserWindow } from "@/controllers/windows-controller/types/browser";
+import { SettingsWindow, BaseWindow, OnboardingWindow, BrowserWindow } from "@/controllers/windows-controller/types";
 import { debugPrint } from "@/modules/output";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
+import { WebContentsView, type WebContents } from "electron";
 
 export type WindowType = "browser" | "settings" | "onboarding";
 
@@ -27,7 +27,7 @@ class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
     // Window Type Managers //
     this.settings = new WindowTypeManager(this, "settings", SettingsWindow, { singleton: true });
     this.onboarding = new WindowTypeManager(this, "onboarding", OnboardingWindow, { singleton: true });
-    this.browser = new WindowTypeManager(this, "browser", BrowserWindow, { singleton: true });
+    this.browser = new WindowTypeManager(this, "browser", BrowserWindow);
   }
 
   // Add & Remove //
@@ -63,7 +63,27 @@ class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
   }
 
   public getWindowById(id: string) {
-    return this.windows.get(id);
+    const window = this.windows.get(id);
+    return window ? window : null;
+  }
+
+  public getWindowFromWebContents(webContents: WebContents): BaseWindow | null {
+    for (const window of this.windows.values()) {
+      // Check the window's main webContents
+      const windowWebContents = window.browserWindow.webContents;
+      if (windowWebContents.id === webContents.id) {
+        return window;
+      }
+
+      // Check the window's other webContents
+      const windowViews = window.browserWindow.contentView.children;
+      for (const view of windowViews) {
+        if (view instanceof WebContentsView && view.webContents.id === webContents.id) {
+          return window;
+        }
+      }
+    }
+    return null;
   }
 
   public getIdFromWindow(window: BaseWindow) {
