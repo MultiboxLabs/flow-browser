@@ -7,12 +7,12 @@ import { WebContentsView, type WebContents } from "electron";
 export type WindowType = "browser" | "settings" | "onboarding";
 
 type WindowsControllerEvents = {
-  "window-added": [id: string, window: BaseWindow];
-  "window-removed": [id: string, window: BaseWindow];
+  "window-added": [id: number, window: BaseWindow];
+  "window-removed": [id: number, window: BaseWindow];
 };
 
 class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
-  private windows: Map<string, BaseWindow>;
+  private windows: Map<number, BaseWindow>;
 
   // Window Type Managers //
   public settings: WindowTypeManager<typeof SettingsWindow>;
@@ -32,7 +32,8 @@ class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
 
   // Add & Remove //
   /** Warning: This should only be used internally! */
-  public _addWindow(id: string, window: BaseWindow) {
+  public _addWindow(window: BaseWindow) {
+    const id = window.id;
     this.windows.set(id, window);
     this.emit("window-added", id, window);
 
@@ -42,7 +43,7 @@ class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
   }
 
   /** Warning: This should only be used internally! */
-  public _removeWindow(id: string) {
+  public _removeWindow(id: number) {
     const window = this.windows.get(id);
     if (window) {
       this.windows.delete(id);
@@ -62,7 +63,7 @@ class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
     return null;
   }
 
-  public getWindowById(id: string) {
+  public getWindowById(id: number) {
     const window = this.windows.get(id);
     return window ? window : null;
   }

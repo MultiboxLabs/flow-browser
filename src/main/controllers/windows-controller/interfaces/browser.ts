@@ -7,7 +7,7 @@ const browserWindowsManager = windowsController.browser;
 
 export const browserWindowsController = {
   new: (type: BrowserWindowType = "normal") => {
-    return browserWindowsManager.new(undefined, type);
+    return browserWindowsManager.new(type);
   },
 
   getWindows: () => {
@@ -18,7 +18,7 @@ export const browserWindowsController = {
     return browserWindowsManager.getFocused();
   },
 
-  getWindowById: (id: string) => {
+  getWindowById: (id: number) => {
     return browserWindowsManager.getById(id);
   },
 

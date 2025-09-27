@@ -1,6 +1,5 @@
 import { WindowsController, WindowType } from "@/controllers/windows-controller";
 import { BaseWindow } from "@/controllers/windows-controller/types";
-import { generateID } from "@/modules/utils";
 import { type WebContents } from "electron";
 
 export type WindowTypeManagerOptions = {
@@ -30,18 +29,16 @@ export class WindowTypeManager<C extends new (...args: any[]) => BaseWindow> {
   }
 
   // New Function //
-  private _new(id: string, ...args: ConstructorParameters<C>): InstanceType<C> {
+  private _new(...args: ConstructorParameters<C>): InstanceType<C> {
     const WindowConstructor = this.windowConstructor;
     const window = new WindowConstructor(...args) as InstanceType<C>;
-    this.windowsController._addWindow(id, window);
+    this.windowsController._addWindow(window);
     return window;
   }
 
-  public new(id?: string, ...args: ConstructorParameters<C>): InstanceType<C> {
+  public new(...args: ConstructorParameters<C>): InstanceType<C> {
     this._checkNotSingleton();
-
-    const windowId = id ?? generateID();
-    return this._new(windowId, ...args);
+    return this._new(...args);
   }
 
   // Instance Validation //
@@ -67,7 +64,7 @@ export class WindowTypeManager<C extends new (...args: any[]) => BaseWindow> {
     return this.filterInstance(window);
   }
 
-  public getById(id: string): InstanceType<C> | null {
+  public getById(id: number): InstanceType<C> | null {
     const window = this.windowsController.getWindowById(id);
     return this.filterInstance(window);
   }
@@ -100,7 +97,7 @@ export class WindowTypeManager<C extends new (...args: any[]) => BaseWindow> {
       return openWindows[0];
     }
 
-    return this._new(generateID(), ...args);
+    return this._new(...args);
   }
 
   /**
