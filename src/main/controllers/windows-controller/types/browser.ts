@@ -12,7 +12,7 @@ interface BrowserWindowEvents extends BaseWindowEvents {
 }
 
 export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
-  private browserWindowType: BrowserWindowType;
+  public browserWindowType: BrowserWindowType;
 
   constructor(type: BrowserWindowType) {
     const browserWindow = new ElectronBrowserWindow({
