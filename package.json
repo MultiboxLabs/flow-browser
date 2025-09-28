@@ -30,6 +30,7 @@
     "script:upgrade-electron-to-next": "bun run scripts/electron-upgrader/next.ts"
   },
   "dependencies": {
+    "@electron-webauthn/native": "^0.0.5",
     "@ghostery/adblocker-electron": "^2.5.2",
     "@phosphor-icons/core": "^2.1.1",
     "better-sqlite3": "^12.2.0",
