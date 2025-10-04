@@ -1,5 +1,10 @@
+/*
+TabContextMenuController:
+- This controller is responsible for creating and controlling the context menu for the tab
+*/
+
+import { Tab } from "@/browser/tabs/objects/tab";
 import { Browser } from "@/browser/browser";
-import { Tab } from "@/browser/tabs/tab";
 import { TabbedBrowserWindow } from "@/browser/window";
 import contextMenu from "electron-context-menu";
 
@@ -29,14 +34,11 @@ interface MenuActions {
   [key: string]: MenuItemFunction | InspectFunction;
 }
 
-export function createTabContextMenu(
-  browser: Browser,
-  tab: Tab,
-  profileId: string,
-  tabbedWindow: TabbedBrowserWindow,
-  spaceId: string
-) {
-  const webContents = tab.webContents;
+function createTabContextMenu(browser: Browser, tab: Tab, profileId: string) {
+  const webContents = tab.webview.webContents;
+  if (!webContents) {
+    return false;
+  }
 
   contextMenu({
     window: webContents,
@@ -49,9 +51,15 @@ export function createTabContextMenu(
 
       // Helper function to create a new tab
       const createNewTab = async (url: string, window?: TabbedBrowserWindow) => {
-        const sourceTab = await browser.tabs.createTab(window ? window.id : tabbedWindow.id, profileId, spaceId);
-        sourceTab.loadURL(url);
-        browser.tabs.setActiveTab(sourceTab);
+        // TODO: Implement this
+        console.log("createNewTab", url, window, profileId);
+
+        // const tabbedWindow = tab.window.get();
+        // const spaceId = tab.space.get();
+
+        // const sourceTab = await browser.tabs.createTab(window ? window.id : tabbedWindow?.id, profileId, spaceId, url);
+        // sourceTab.loadURL(url);
+        // browser.tabs.setActiveTab(sourceTab);
       };
 
       // Create all menu sections
@@ -118,6 +126,8 @@ export function createTabContextMenu(
       return combineSections(sections, defaultActions as MenuActions);
     }
   });
+
+  return true;
 }
 
 function createOpenLinkItems(
@@ -283,4 +293,18 @@ function combineSections(
   });
 
   return combinedSections;
+}
+
+export class TabContextMenuController {
+  // private readonly tab: Tab;
+
+  constructor(tab: Tab) {
+    // this.tab = tab;
+
+    tab.on("webview-attached", () => {
+      const browser = tab.browser;
+      const profileId = tab.profileId;
+      createTabContextMenu(browser, tab, profileId);
+    });
+  }
 }

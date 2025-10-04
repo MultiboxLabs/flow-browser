@@ -5,7 +5,7 @@ import { getProfile, getProfilePath, ProfileData } from "@/sessions/profiles";
 import { BrowserEvents } from "@/browser/events";
 import { Browser } from "@/browser/browser";
 import { ElectronChromeExtensions } from "electron-chrome-extensions";
-import { NEW_TAB_URL } from "@/browser/tabs/tab-manager";
+import { NEW_TAB_URL } from "@/browser/tabs/managers/tab-manager";
 import { ExtensionInstallStatus, installChromeWebStore } from "electron-chrome-web-store";
 import path from "path";
 import { setWindowSpace } from "@/ipc/session/spaces";
