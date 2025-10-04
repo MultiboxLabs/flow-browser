@@ -12,6 +12,7 @@
         "electron-context-menu": "^4.0.5",
         "electron-updater": "^6.6.2",
         "knex": "^3.1.0",
+        "mica-electron": "^1.5.16",
         "mime-types": "^3.0.1",
         "posthog-node": "^5.0.0",
         "react-use": "^17.6.0",
@@ -1364,6 +1365,8 @@
     "mdn-data": ["mdn-data@2.0.14", "", {}, "sha512-dn6wd0uw5GsdswPFfsgMp5NSB0/aDe6fK94YJV/AJDYXL6HVLWBsxeq7js7Ad+mU2K9LAlwpk6kN2D5mwCPVow=="],
 
     "merge2": ["merge2@1.4.1", "", {}, "sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg=="],
+
+    "mica-electron": ["mica-electron@1.5.16", "", {}, "sha512-08/o9vv4cr4ozltO2U4/37R70Y6hqAjH2nr7GzpDLAdqCWkeAAge5ZPrzl+ndUDhO6IsoL2gFmpbU17Jj406Zg=="],
 
     "micromatch": ["micromatch@4.0.8", "", { "dependencies": { "braces": "^3.0.3", "picomatch": "^2.3.1" } }, "sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA=="],
 

@@ -5,13 +5,14 @@ import { PageBounds } from "@/ipc/browser/page";
 import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getLastUsedSpace } from "@/sessions/spaces";
-import { BrowserWindow, nativeTheme, WebContents } from "electron";
+import { nativeTheme, WebContents } from "electron";
 import "./close-preventer";
 import { WindowEventType } from "@/modules/windows";
 import { windowEvents } from "@/modules/windows";
 import { initializePortalComponentWindows } from "@/browser/components/portal-component-windows";
 import { defaultSessionReady } from "@/browser/sessions";
 import { fireWindowStateChanged } from "@/ipc/browser/interface";
+import { IS_WINDOWS_11, MicaBrowserWindow } from "mica-electron";
 import { debugPrint } from "@/modules/output";
 
 type BrowserWindowType = "normal" | "popup";
@@ -28,9 +29,25 @@ type BrowserWindowEvents = {
   destroy: [];
 };
 
+function applyMicaEffect(window: MicaBrowserWindow) {
+  if (window.isMaximized()) {
+    window.setSquareCorner();
+  } else {
+    window.setRoundedCorner();
+  }
+
+  if (IS_WINDOWS_11) {
+    // Window 11
+    window.setMicaAcrylicEffect();
+  } else {
+    // Window 7+
+    window.setAcrylic();
+  }
+}
+
 export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> {
   id: number;
-  window: BrowserWindow;
+  window: MicaBrowserWindow;
   public viewManager: ViewManager;
   public coreWebContents: WebContents[];
 
@@ -47,7 +64,7 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
   constructor(browser: Browser, type: BrowserWindowType, options: BrowserWindowCreationOptions = {}) {
     super();
 
-    this.window = new BrowserWindow({
+    this.window = new MicaBrowserWindow({
       minWidth: type === "normal" ? 800 : 250,
       minHeight: type === "normal" ? 400 : 200,
       width: 1280,
@@ -75,6 +92,17 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
       roundedCorners: true,
       ...(options.window || {})
     });
+
+    // Apply Mica effect on Windows
+    const useMicaElectron = process.platform === "win32" && FLAGS.USE_MICA_ELECTRON;
+    const updateMicaEffect = () => {
+      if (useMicaElectron) {
+        applyMicaEffect(this.window);
+        return true;
+      }
+      return false;
+    };
+    updateMicaEffect();
 
     // Hide the window buttons before the component is mounted
     if (type === "normal") {
@@ -106,9 +134,11 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
 
     this.window.on("maximize", () => {
       fireWindowStateChanged(this);
+      updateMicaEffect();
     });
     this.window.on("unmaximize", () => {
       fireWindowStateChanged(this);
+      updateMicaEffect();
     });
 
     // Focus on the focused tab

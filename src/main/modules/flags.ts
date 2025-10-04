@@ -3,6 +3,7 @@ import { DEBUG_AREA } from "./output";
 
 type Flags = {
   SCRUBBED_USER_AGENT: boolean;
+  USE_MICA_ELECTRON: boolean;
   ERROR_PAGE_LOAD_MODE: "replace" | "load";
   SHOW_DEBUG_PRINTS: boolean;
   SHOW_DEBUG_ERRORS: boolean | DEBUG_AREA[];
@@ -16,6 +17,9 @@ type Flags = {
 export const FLAGS: Flags = {
   // Transform the user agent
   SCRUBBED_USER_AGENT: true,
+
+  // Use Mica Electron
+  USE_MICA_ELECTRON: true,
 
   // Replace - Use window.location.replace to load the error page.
   // Load - Add the page to the history stack by loading it normally.
