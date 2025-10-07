@@ -1,6 +1,7 @@
 import { type WindowType } from "@/controllers/windows-controller";
+import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { BrowserWindow } from "electron";
+import { BrowserWindow, WebContentsView, type WebContents } from "electron";
 
 export interface BaseWindowEvents {
   destroyed: [];
@@ -37,6 +38,27 @@ export class BaseWindow<
     return this.browserWindow.id;
   }
 
+  public getAllWebContents() {
+    const webContents: WebContents[] = [];
+
+    const browserWindow = this.browserWindow;
+    const contentView = browserWindow.contentView;
+
+    // Find the window's main webContents
+    const windowWebContents = browserWindow.webContents;
+    webContents.push(windowWebContents);
+
+    // Find the window's other webContents
+    const windowViews = contentView.children;
+    for (const view of windowViews) {
+      if (view instanceof WebContentsView) {
+        webContents.push(view.webContents);
+      }
+    }
+
+    return webContents;
+  }
+
   public show(focus: boolean = true) {
     this.browserWindow.show();
     if (focus) {
@@ -54,7 +76,8 @@ export class BaseWindow<
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public sendMessage(channel: string, ...args: any[]) {
-    this.browserWindow.webContents.send(channel, ...args);
+    const foundWebContents = this.getAllWebContents();
+    return sendMessageToListenersWithWebContents(foundWebContents, channel, ...args);
   }
 
   private _setupWindow() {

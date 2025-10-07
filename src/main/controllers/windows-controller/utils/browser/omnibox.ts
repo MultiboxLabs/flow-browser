@@ -207,7 +207,7 @@ export class Omnibox {
     this.hide();
   }
 
-  setBounds(bounds: Electron.Rectangle | null) {
+  _setBounds(bounds: Electron.Rectangle | null) {
     debugPrint("OMNIBOX", `Setting bounds to: ${JSON.stringify(bounds)}`);
     this.bounds = bounds;
     this.updateBounds();
@@ -219,11 +219,10 @@ export class Omnibox {
     this.isDestroyed = true;
     this.webContents.close();
   }
-}
 
-export function setOmniboxBounds(parentWindow: BrowserWindow, bounds: Electron.Rectangle | null) {
-  const omnibox = omniboxes.get(parentWindow);
-  if (omnibox) {
+  // Extra //
+  setBounds(bounds: Electron.Rectangle | null) {
+    const parentWindow = this.window;
     if (bounds) {
       const windowBounds = parentWindow.getBounds();
 
@@ -234,35 +233,9 @@ export function setOmniboxBounds(parentWindow: BrowserWindow, bounds: Electron.R
         height: bounds.height
       };
 
-      omnibox.setBounds(newBounds);
+      this._setBounds(newBounds);
     } else {
-      omnibox.setBounds(null);
+      this._setBounds(null);
     }
   }
-}
-
-export function loadOmnibox(parentWindow: BrowserWindow, params: QueryParams | null) {
-  const omnibox = omniboxes.get(parentWindow);
-  if (omnibox) {
-    omnibox.loadInterface(params);
-  }
-}
-
-export function showOmnibox(parentWindow: BrowserWindow) {
-  const omnibox = omniboxes.get(parentWindow);
-  if (omnibox) {
-    omnibox.show();
-  }
-}
-
-export function hideOmnibox(parentWindow: BrowserWindow) {
-  const omnibox = omniboxes.get(parentWindow);
-  if (omnibox) {
-    omnibox.hide();
-  }
-}
-
-export function isOmniboxOpen(parentWindow: BrowserWindow) {
-  const omnibox = omniboxes.get(parentWindow);
-  return omnibox ? omnibox.isVisible() : false;
 }

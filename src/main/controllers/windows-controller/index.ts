@@ -2,7 +2,7 @@ import { WindowTypeManager } from "@/controllers/windows-controller/type-manager
 import { SettingsWindow, BaseWindow, OnboardingWindow, BrowserWindow } from "@/controllers/windows-controller/types";
 import { debugPrint } from "@/modules/output";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { WebContentsView, type WebContents } from "electron";
+import { type WebContents } from "electron";
 import "./close-preventer";
 
 export type WindowType = "browser" | "settings" | "onboarding";
@@ -71,16 +71,10 @@ class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
 
   public getWindowFromWebContents(webContents: WebContents): BaseWindow | null {
     for (const window of this.windows.values()) {
-      // Check the window's main webContents
-      const windowWebContents = window.browserWindow.webContents;
-      if (windowWebContents.id === webContents.id) {
-        return window;
-      }
+      const foundWebContents = window.getAllWebContents();
 
-      // Check the window's other webContents
-      const windowViews = window.browserWindow.contentView.children;
-      for (const view of windowViews) {
-        if (view instanceof WebContentsView && view.webContents.id === webContents.id) {
+      for (const wc of foundWebContents) {
+        if (wc.id === webContents.id) {
           return window;
         }
       }

@@ -1,5 +1,3 @@
-import { TabbedBrowserWindow } from "@/browser/window";
-import { sendMessageToListenersInWindow } from "@/ipc/listeners-manager";
 import { BrowserWindow as ElectronWindow } from "electron";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import { ipcMain } from "electron";
@@ -19,10 +17,8 @@ ipcMain.on("window-button:set-visibility", (event, visible: boolean) => {
   }
 });
 
-export function toggleSidebar(win: TabbedBrowserWindow) {
-  for (const webContents of win.coreWebContents) {
-    webContents.send("sidebar:on-toggle");
-  }
+export function toggleSidebar(win: BrowserWindow) {
+  win.sendMessageToCoreWebContents("sidebar:on-toggle");
 }
 
 // These methods are only available for popup windows
@@ -106,7 +102,6 @@ ipcMain.handle("interface:get-window-state", (event) => {
   return false;
 });
 
-// TODO: fixtabmanager
-export function fireWindowStateChanged(win: TabbedBrowserWindow) {
-  sendMessageToListenersInWindow(win, "interface:window-state-changed", getWindowState(win));
+export function fireWindowStateChanged(win: BrowserWindow) {
+  win.sendMessage("interface:window-state-changed", getWindowState(win));
 }
