@@ -117,13 +117,10 @@ function processWindowTabsChangedQueue() {
     const window = browserWindowsController.getWindowById(windowId);
     if (!window) continue;
 
-    // TODO: fixtabmanager
     const data = getWindowTabsData(window);
     if (!data) continue;
 
-    for (const webContents of window.coreWebContents) {
-      webContents.send("tabs:on-data-changed", data);
-    }
+    window.sendMessageToCoreWebContents("tabs:on-data-changed", data);
   }
 
   windowTabsChangedQueue.clear();

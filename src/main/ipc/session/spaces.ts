@@ -1,5 +1,5 @@
 import { ipcMain } from "electron";
-import { sendMessageToListeners, sendMessageToListenersInWindow } from "@/ipc/listeners-manager";
+import { sendMessageToListeners } from "@/ipc/listeners-manager";
 import { SpaceData, SpaceOrderMap, spacesController } from "@/controllers/spaces-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
@@ -51,7 +51,7 @@ ipcMain.handle("spaces:reorder", async (_event, orderMap: SpaceOrderMap) => {
 
 export function setWindowSpace(window: BrowserWindow, spaceId: string) {
   window.setCurrentSpace(spaceId);
-  sendMessageToListenersInWindow(window, "spaces:on-set-window-space", spaceId);
+  window.sendMessage("spaces:on-set-window-space", spaceId);
 }
 
 function fireOnSpacesChanged() {

@@ -1,4 +1,3 @@
-import { hideOmnibox, isOmniboxOpen, loadOmnibox, setOmniboxBounds, showOmnibox } from "@/browser/components/omnibox";
 import { browser } from "@/browser";
 import { getSettingValueById } from "@/saving/settings";
 import { spacesController } from "@/controllers/spaces-controller";
@@ -7,15 +6,15 @@ import { browserWindowsController } from "@/controllers/windows-controller/inter
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 
 export function openNewTab(window: BrowserWindow) {
-  const electronWindow = window.browserWindow;
+  const omnibox = window.omnibox;
 
   if (getSettingValueById("newTabMode") === "omnibox") {
-    if (isOmniboxOpen(electronWindow)) {
-      hideOmnibox(electronWindow);
+    if (omnibox.isVisible()) {
+      omnibox.hide();
     } else {
-      loadOmnibox(electronWindow, null);
-      setOmniboxBounds(electronWindow, null);
-      showOmnibox(electronWindow);
+      omnibox.loadInterface(null);
+      omnibox.setBounds(null);
+      omnibox.show();
     }
   } else {
     const spaceId = window.currentSpaceId;

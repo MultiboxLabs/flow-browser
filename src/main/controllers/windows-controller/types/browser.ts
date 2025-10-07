@@ -6,6 +6,7 @@ import { appMenuController } from "@/controllers/app-menu-controller";
 import { ViewManager } from "@/controllers/windows-controller/utils/view-manager";
 import { Omnibox } from "@/controllers/windows-controller/utils/browser/omnibox";
 import { initializePortalComponentWindows } from "@/controllers/windows-controller/utils/browser/portal-component-windows";
+import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
 
 export type BrowserWindowType = "normal" | "popup";
 
@@ -93,6 +94,11 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
 
     // Portal Components //
     initializePortalComponentWindows(this);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public sendMessageToCoreWebContents(channel: string, ...args: any[]) {
+    return sendMessageToListenersWithWebContents(this.coreWebContents, channel, ...args);
   }
 
   // macOS Traffic Lights Handling //
