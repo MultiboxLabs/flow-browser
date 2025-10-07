@@ -1,6 +1,6 @@
 import { app, Menu, MenuItem } from "electron";
-import type { Browser } from "@/browser/browser";
 import { debugPrint } from "@/modules/output";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 
 function setupWindowsUserTasks() {
   app.setUserTasks([
@@ -15,14 +15,14 @@ function setupWindowsUserTasks() {
   ]);
 }
 
-function setupMacOSDock(browser: Browser) {
+function setupMacOSDock() {
   const dockMenu = new Menu();
 
   dockMenu.append(
     new MenuItem({
       label: "New Window",
       click: () => {
-        browser.createWindow();
+        browserWindowsController.create();
       }
     })
   );
@@ -41,12 +41,12 @@ function setupMacOSDock(browser: Browser) {
   });
 }
 
-export function setupPlatformIntegration(browser: Browser) {
+export function setupPlatformIntegration() {
   if (process.platform === "win32") {
     setupWindowsUserTasks();
     debugPrint("INITIALIZATION", "setup windows user tasks finished");
   } else if (process.platform === "darwin") {
-    setupMacOSDock(browser);
+    setupMacOSDock();
     debugPrint("INITIALIZATION", "setup macOS dock finished");
   }
 }

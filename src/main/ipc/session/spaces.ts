@@ -1,8 +1,8 @@
 import { ipcMain } from "electron";
-import { browser } from "@/browser";
-import { TabbedBrowserWindow } from "@/browser/window";
 import { sendMessageToListeners, sendMessageToListenersInWindow } from "@/ipc/listeners-manager";
 import { SpaceData, SpaceOrderMap, spacesController } from "@/controllers/spaces-controller";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { BrowserWindow } from "@/controllers/windows-controller/types";
 
 ipcMain.handle("spaces:get-all", async () => {
   return await spacesController.getAll();
@@ -25,7 +25,7 @@ ipcMain.handle("spaces:update", async (_event, profileId: string, spaceId: strin
 });
 
 ipcMain.handle("spaces:set-using", async (event, profileId: string, spaceId: string) => {
-  const window = browser?.getWindowFromWebContents(event.sender);
+  const window = browserWindowsController.getWindowFromWebContents(event.sender);
   if (window) {
     window.setCurrentSpace(spaceId);
   }
@@ -34,9 +34,9 @@ ipcMain.handle("spaces:set-using", async (event, profileId: string, spaceId: str
 });
 
 ipcMain.handle("spaces:get-using", async (event) => {
-  const window = browser?.getWindowFromWebContents(event.sender);
+  const window = browserWindowsController.getWindowFromWebContents(event.sender);
   if (window) {
-    return window.getCurrentSpace();
+    return window.currentSpaceId;
   }
   return null;
 });
@@ -49,7 +49,7 @@ ipcMain.handle("spaces:reorder", async (_event, orderMap: SpaceOrderMap) => {
   return await spacesController.reorder(orderMap);
 });
 
-export function setWindowSpace(window: TabbedBrowserWindow, spaceId: string) {
+export function setWindowSpace(window: BrowserWindow, spaceId: string) {
   window.setCurrentSpace(spaceId);
   sendMessageToListenersInWindow(window, "spaces:on-set-window-space", spaceId);
 }

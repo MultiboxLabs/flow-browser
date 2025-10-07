@@ -1,42 +1,41 @@
 import { hideOmnibox, isOmniboxOpen, loadOmnibox, setOmniboxBounds, showOmnibox } from "@/browser/components/omnibox";
-import { TabbedBrowserWindow } from "@/browser/window";
 import { browser } from "@/browser";
 import { getSettingValueById } from "@/saving/settings";
 import { spacesController } from "@/controllers/spaces-controller";
 import { ipcMain } from "electron";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { BrowserWindow } from "@/controllers/windows-controller/types";
 
-export function openNewTab(tabbedBrowserWindow: TabbedBrowserWindow) {
-  const browserWindow = tabbedBrowserWindow.window;
+export function openNewTab(window: BrowserWindow) {
+  const electronWindow = window.browserWindow;
 
   if (getSettingValueById("newTabMode") === "omnibox") {
-    if (isOmniboxOpen(browserWindow)) {
-      hideOmnibox(browserWindow);
+    if (isOmniboxOpen(electronWindow)) {
+      hideOmnibox(electronWindow);
     } else {
-      loadOmnibox(browserWindow, null);
-      setOmniboxBounds(browserWindow, null);
-      showOmnibox(browserWindow);
+      loadOmnibox(electronWindow, null);
+      setOmniboxBounds(electronWindow, null);
+      showOmnibox(electronWindow);
     }
   } else {
-    if (tabbedBrowserWindow) {
-      const spaceId = tabbedBrowserWindow.getCurrentSpace();
-      if (!spaceId) return;
+    const spaceId = window.currentSpaceId;
+    if (!spaceId) return;
 
-      const tabManager = browser?.tabs;
-      if (!tabManager) return;
+    const tabManager = browser?.tabs;
+    if (!tabManager) return;
 
-      spacesController.get(spaceId).then(async (space) => {
-        if (!space) return;
+    spacesController.get(spaceId).then(async (space) => {
+      if (!space) return;
 
-        const tab = await tabManager.createTab(tabbedBrowserWindow.id, space.profileId, spaceId);
-        tabManager.setActiveTab(tab);
-      });
-    }
+      const tab = await tabManager.createTab(window.id, space.profileId, spaceId);
+      tabManager.setActiveTab(tab);
+    });
   }
 }
 
 ipcMain.on("new-tab:open", (event) => {
   const webContents = event.sender;
-  const win = browser?.getWindowFromWebContents(webContents);
+  const win = browserWindowsController.getWindowFromWebContents(webContents);
   if (!win) return;
 
   return openNewTab(win);

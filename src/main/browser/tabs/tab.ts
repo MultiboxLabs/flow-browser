@@ -3,10 +3,8 @@ import { isRectangleEqual, TabBoundsController } from "@/browser/tabs/tab-bounds
 import { TabGroupMode } from "~/types/tabs";
 import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
 import { TabManager } from "@/browser/tabs/tab-manager";
-import { TabbedBrowserWindow } from "@/browser/window";
 import { cacheFavicon } from "@/modules/favicons";
 import { FLAGS } from "@/modules/flags";
-// import { PATHS } from "@/modules/paths";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { NavigationEntry, Rectangle, Session, WebContents, WebContentsView, WebPreferences } from "electron";
 import { createTabContextMenu } from "@/browser/tabs/tab-context-menu";
@@ -14,6 +12,8 @@ import { generateID } from "@/modules/utils";
 import { persistTabToStorage, removeTabFromStorage } from "@/saving/tabs";
 import { LoadedProfile } from "@/browser/profile-manager";
 import { setWindowSpace } from "@/ipc/session/spaces";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { BrowserWindow } from "@/controllers/windows-controller/types";
 
 // Configuration
 const GLANCE_FRONT_ZINDEX = 3;
@@ -67,7 +67,7 @@ interface TabCreationDetails {
 
 export interface TabCreationOptions {
   uniqueId?: string;
-  window: TabbedBrowserWindow;
+  window: BrowserWindow;
   webContentsViewOptions?: Electron.WebContentsViewConstructorOptions;
 
   // Options
@@ -152,7 +152,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   private readonly session: Session;
   private readonly browser: Browser;
   public readonly loadedProfile: LoadedProfile;
-  private window: TabbedBrowserWindow;
+  private window: BrowserWindow;
   private readonly tabManager: TabManager;
   private readonly bounds: TabBoundsController;
 
@@ -315,7 +315,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     // Setup extensions
     const extensions = this.loadedProfile.extensions;
-    extensions.addTab(this.webContents, this.window.window);
+    extensions.addTab(this.webContents, window.browserWindow);
 
     this.on("updated", () => {
       extensions.tabUpdated(this.webContents);
@@ -334,17 +334,17 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     const updated = this.updateStateProperty("fullScreen", isFullScreen);
     if (!updated) return false;
 
-    const tabbedWindow = this.window;
-    const window = tabbedWindow.window;
-    if (window.isDestroyed()) return false;
+    const window = this.window;
+    const electronWindow = window.browserWindow;
+    if (window.destroyed) return false;
 
     if (isFullScreen) {
-      if (!window.fullScreen) {
-        window.setFullScreen(true);
+      if (!electronWindow.fullScreen) {
+        electronWindow.setFullScreen(true);
       }
     } else {
-      if (window.fullScreen) {
-        window.setFullScreen(false);
+      if (electronWindow.fullScreen) {
+        electronWindow.setFullScreen(false);
       }
 
       setTimeout(() => {
@@ -358,9 +358,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   }
 
   private setupEventListeners() {
-    const { webContents, window: tabbedWindow } = this;
+    const { webContents, window } = this;
 
-    const window = tabbedWindow.window;
+    const electronWindow = window.browserWindow;
 
     // Set zoom level limits when webContents is ready
     webContents.on("did-finish-load", () => {
@@ -373,18 +373,19 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     });
 
     webContents.on("leave-html-full-screen", () => {
-      if (window.fullScreen) {
+      if (electronWindow.fullScreen) {
         // Then it will fire "leave-full-screen", which we can use to exit fullscreen for the tab.
         // Tried other methods, didn't work as well.
-        window.setFullScreen(false);
+        electronWindow.setFullScreen(false);
       }
     });
 
+    // TODO: fixtabmanager2
     const disconnectLeaveFullScreen = tabbedWindow.connect("leave-full-screen", () => {
       this.setFullScreen(false);
     });
     this.on("destroyed", () => {
-      if (tabbedWindow.isEmitterDestroyed()) return;
+      if (window.isEmitterDestroyed()) return;
       disconnectLeaveFullScreen();
     });
 
@@ -494,17 +495,16 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     }
 
     if (isNewWindow) {
-      const newWindow = this.browser.createWindowInternal("popup", {
-        window: {
-          ...(parsedFeatures.width ? { width: +parsedFeatures.width } : {}),
-          ...(parsedFeatures.height ? { height: +parsedFeatures.height } : {}),
-          ...(parsedFeatures.top ? { top: +parsedFeatures.top } : {}),
-          ...(parsedFeatures.left ? { left: +parsedFeatures.left } : {})
-        }
+      const newWindow = browserWindowsController.instantCreate("popup", {
+        ...(parsedFeatures.width ? { width: +parsedFeatures.width } : {}),
+        ...(parsedFeatures.height ? { height: +parsedFeatures.height } : {}),
+        ...(parsedFeatures.top ? { top: +parsedFeatures.top } : {}),
+        ...(parsedFeatures.left ? { left: +parsedFeatures.left } : {})
       });
       windowId = newWindow.id;
 
       // Set space if the window already loaded
+      // TODO: fixtabmanager
       setWindowSpace(newWindow, this.spaceId);
     }
 
@@ -668,7 +668,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   /**
    * Sets the window for the tab
    */
-  public setWindow(window: TabbedBrowserWindow, index: number = TAB_ZINDEX) {
+  public setWindow(window: BrowserWindow, index: number = TAB_ZINDEX) {
     const windowChanged = this.window !== window;
     if (windowChanged) {
       // Remove view from old window
@@ -867,7 +867,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.wakeUp();
 
     // Get base bounds and current group state
-    const pageBounds = window.getPageBounds();
+    const pageBounds = window.pageBounds;
     if (this.fullScreen) {
       this.view.setBorderRadius(0);
     } else {
@@ -981,8 +981,8 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       this.webContents.close();
     }
 
-    if (this.fullScreen && !this.window.window.isDestroyed()) {
-      this.window.window.setFullScreen(false);
+    if (this.fullScreen && !this.window.destroyed) {
+      this.window.browserWindow.setFullScreen(false);
     }
 
     removeTabFromStorage(this);

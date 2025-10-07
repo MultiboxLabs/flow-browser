@@ -29,7 +29,7 @@ class AppMenuController {
 
     const template: Array<MenuItemConstructorOptions | MenuItem> = [
       ...(isMac ? [createAppMenu()] : []),
-      createFileMenu(browser),
+      createFileMenu(),
       createEditMenu(),
       createViewMenu(browser),
       await createSpacesMenu(),

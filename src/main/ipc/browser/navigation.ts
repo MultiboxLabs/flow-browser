@@ -1,12 +1,13 @@
 import { browser } from "@/browser";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { ipcMain } from "electron";
 
 ipcMain.on("navigation:go-to", (event, url: string, tabId?: number) => {
   const webContents = event.sender;
-  const window = browser?.getWindowFromWebContents(webContents);
+  const window = browserWindowsController.getWindowFromWebContents(webContents);
   if (!window) return false;
 
-  const currentSpace = window.getCurrentSpace();
+  const currentSpace = window.currentSpaceId;
   if (!currentSpace) return false;
 
   const tab = tabId ? browser?.getTabFromId(tabId) : browser?.tabs.getFocusedTab(window.id, currentSpace);

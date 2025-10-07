@@ -1,7 +1,7 @@
 import { profilesController, ProfileData } from "@/controllers/profiles-controller";
 import { ipcMain } from "electron";
-import { browser } from "@/browser";
 import { spacesController } from "@/controllers/spaces-controller";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 
 ipcMain.handle("profiles:get-all", async () => {
   return await profilesController.getAll();
@@ -21,9 +21,9 @@ ipcMain.handle("profiles:delete", async (_event, profileId: string) => {
 });
 
 ipcMain.handle("profile:get-using", async (event) => {
-  const window = browser?.getWindowFromWebContents(event.sender);
+  const window = browserWindowsController.getWindowFromWebContents(event.sender);
   if (window) {
-    const spaceId = window.getCurrentSpace();
+    const spaceId = window.currentSpaceId;
     if (spaceId) {
       const space = await spacesController.get(spaceId);
       return space?.profileId;

@@ -7,6 +7,7 @@ import { getDatastore } from "@/saving/datastore";
 import { getSettingValueById } from "@/saving/settings";
 import { app } from "electron";
 import { TabData } from "~/types/tabs";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 
 const TabsDataStore = getDatastore("tabs");
 // const TabGroupsDataStore = getDatastore("tabgroups");
@@ -15,7 +16,7 @@ const TabsDataStore = getDatastore("tabs");
 
 export async function persistTabToStorage(tab: Tab) {
   const window = tab.getWindow();
-  if (window.type !== "normal") return;
+  if (window.browserWindowType !== "normal") return;
 
   // Prevent saving tabs stuck in sleep mode
   // if (tab.url === SLEEP_MODE_URL) return;
@@ -133,9 +134,10 @@ async function createTabsFromTabDatas(browser: Browser, tabDatas: TabData[]) {
 
   // Create a new window for each window id
   for (const [, tabs] of Object.entries(windowTabs)) {
-    const window = await browser.createWindow("normal");
+    const window = await browserWindowsController.create();
 
     for (const tabData of tabs) {
+      // TODO: fixtabmanager
       browser.tabs.createTab(window.id, tabData.profileId, tabData.spaceId, undefined, {
         asleep: true,
         position: tabData.position,
@@ -158,7 +160,7 @@ export async function createInitialWindow() {
   if (tabs.length > 0) {
     await createTabsFromTabDatas(browser, tabs);
   } else {
-    await browser.createWindow();
+    await browserWindowsController.create();
   }
   return true;
 }

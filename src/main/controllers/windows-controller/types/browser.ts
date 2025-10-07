@@ -1,10 +1,20 @@
 import { defaultSessionReady } from "@/browser/sessions";
 import { BaseWindow, BaseWindowEvents } from "@/controllers/windows-controller/types/base";
-import { BrowserWindow as ElectronBrowserWindow, nativeTheme } from "electron";
+import { BrowserWindow as ElectronBrowserWindow, nativeTheme, WebContents } from "electron";
 import { type PageBounds } from "@/ipc/browser/page";
 import { appMenuController } from "@/controllers/app-menu-controller";
+import { ViewManager } from "@/controllers/windows-controller/utils/view-manager";
+import { Omnibox } from "@/controllers/windows-controller/utils/browser/omnibox";
+import { initializePortalComponentWindows } from "@/controllers/windows-controller/utils/browser/portal-component-windows";
 
 export type BrowserWindowType = "normal" | "popup";
+
+export interface BrowserWindowCreationOptions {
+  height?: number;
+  width?: number;
+  x?: number;
+  y?: number;
+}
 
 interface BrowserWindowEvents extends BaseWindowEvents {
   "page-bounds-changed": [bounds: PageBounds];
@@ -13,14 +23,24 @@ interface BrowserWindowEvents extends BaseWindowEvents {
 
 export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
   public browserWindowType: BrowserWindowType;
+  public viewManager: ViewManager;
+  public coreWebContents: WebContents[];
+  public omnibox: Omnibox;
 
-  constructor(type: BrowserWindowType) {
+  constructor(type: BrowserWindowType, options: BrowserWindowCreationOptions = {}) {
+    // const hasSizeOptions = "width" in options || "height" in options;
+    const hasPositionOptions = "x" in options || "y" in options;
+
     const browserWindow = new ElectronBrowserWindow({
       minWidth: type === "normal" ? 800 : 250,
       minHeight: type === "normal" ? 400 : 200,
 
-      width: 1280,
-      height: 720,
+      width: options.width ? options.width : 1280,
+      height: options.height ? options.height : 720,
+
+      x: options.x ? options.x : undefined,
+      y: options.y ? options.y : undefined,
+      center: hasPositionOptions ? false : true,
 
       titleBarStyle: process.platform === "darwin" ? "hidden" : undefined,
       titleBarOverlay: {
@@ -61,6 +81,18 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     super("browser", browserWindow, { showAfterLoad: true });
 
     this.browserWindowType = type;
+
+    // View Manager //
+    this.viewManager = new ViewManager(browserWindow.contentView);
+    this.coreWebContents = [browserWindow.webContents];
+
+    // Omnibox //
+    this.omnibox = new Omnibox(browserWindow);
+    this.viewManager.addOrUpdateView(this.omnibox.view, 999);
+    this.coreWebContents.push(this.omnibox.webContents);
+
+    // Portal Components //
+    initializePortalComponentWindows(this);
   }
 
   // macOS Traffic Lights Handling //

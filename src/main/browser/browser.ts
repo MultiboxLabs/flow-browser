@@ -1,16 +1,11 @@
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { TabbedBrowserWindow } from "@/browser/window";
-import { app, WebContents } from "electron";
 import { BrowserEvents } from "@/browser/events";
 import { ProfileManager, LoadedProfile } from "@/browser/profile-manager";
-import { WindowManager, BrowserWindowType, BrowserWindowCreationOptions } from "@/browser/window-manager";
 import { TabManager } from "@/browser/tabs/tab-manager";
 import { Tab } from "@/browser/tabs/tab";
 import { settings } from "@/controllers/windows-controller/interfaces/settings";
 import { onboarding } from "@/controllers/windows-controller/interfaces/onboarding";
 import "@/modules/extensions/main";
-import { waitForElectronComponentsToBeReady } from "@/modules/electron-components";
-import { debugPrint } from "@/modules/output";
 
 /**
  * Main Browser controller that coordinates browser components
@@ -22,7 +17,6 @@ import { debugPrint } from "@/modules/output";
  */
 export class Browser extends TypedEventEmitter<BrowserEvents> {
   private readonly profileManager: ProfileManager;
-  private readonly windowManager: WindowManager;
   private readonly tabManager: TabManager;
   private _isDestroyed: boolean = false;
   public tabs: TabManager;
@@ -32,7 +26,6 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
    */
   constructor() {
     super();
-    this.windowManager = new WindowManager(this);
     this.profileManager = new ProfileManager(this, this);
     this.tabManager = new TabManager(this);
 
@@ -74,74 +67,6 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
     return this.profileManager.unloadProfile(profileId);
   }
 
-  // Window Management - Delegated to WindowManager
-  /**
-   * Creates a new browser window
-   */
-  public async createWindow(
-    type: BrowserWindowType = "normal",
-    options: BrowserWindowCreationOptions = {}
-  ): Promise<TabbedBrowserWindow> {
-    // Wait for app to be ready
-    await app.whenReady();
-
-    // Wait for WidevineCDM to be ready
-    // Could fail, but we don't care
-    const isReady = await waitForElectronComponentsToBeReady();
-    if (!isReady) {
-      debugPrint("INITIALIZATION", "WidevineCDM is not ready");
-    }
-
-    // Create the window
-    return this.createWindowInternal(type, options);
-  }
-
-  /**
-   * Creates a new browser window
-   * Does not wait for app ready
-   */
-  public createWindowInternal(
-    type: BrowserWindowType,
-    options: BrowserWindowCreationOptions = {}
-  ): TabbedBrowserWindow {
-    return this.windowManager.createWindow(this, type, options);
-  }
-
-  /**
-   * Gets all windows
-   */
-  public getWindows(): TabbedBrowserWindow[] {
-    return this.windowManager.getWindows();
-  }
-
-  /**
-   * Gets the focused window
-   */
-  public getFocusedWindow(): TabbedBrowserWindow | undefined {
-    return this.windowManager.getFocusedWindow();
-  }
-
-  /**
-   * Gets a window by its ID
-   */
-  public getWindowById(windowId: number): TabbedBrowserWindow | undefined {
-    return this.windowManager.getWindowById(windowId);
-  }
-
-  /**
-   * Gets a window from WebContents
-   */
-  public getWindowFromWebContents(webContents: WebContents): TabbedBrowserWindow | null {
-    return this.windowManager.getWindowFromWebContents(webContents);
-  }
-
-  /**
-   * Destroys a window by its ID
-   */
-  public destroyWindowById(windowId: number): boolean {
-    return this.windowManager.destroyWindowById(windowId);
-  }
-
   /**
    * Checks if the browser is destroyed
    */
@@ -158,9 +83,6 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
     }
 
     try {
-      // Destroy all windows
-      this.windowManager.destroyAll();
-
       // Unload all profiles
       this.profileManager.unloadAll();
 
@@ -184,12 +106,13 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
 
   /**
    * Sends a message to all core WebContents
+   * TODO: remove this placeholder function and replace with new one
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public sendMessageToCoreWebContents(channel: string, ...args: any[]) {
-    for (const window of this.getWindows()) {
-      window.sendMessageToCoreWebContents(channel, ...args);
-    }
+    // for (const window of this.getWindows()) {
+    //   window.sendMessageToCoreWebContents(channel, ...args);
+    // }
     settings.sendMessage(channel, ...args);
     onboarding.sendMessage(channel, ...args);
   }
