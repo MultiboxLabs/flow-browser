@@ -4,6 +4,7 @@ import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
 import { TabManager } from "@/browser/tabs/tab-manager";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { Browser } from "@/browser/browser";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 
 // Interfaces and Types
 export type TabGroupEvents = {
@@ -91,8 +92,9 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
 
     tab.setSpace(this.spaceId);
 
-    const window = this.browser.getWindowById(this.windowId);
+    const window = browserWindowsController.getWindowById(this.windowId);
     if (window) {
+      // TODO: fixtabmanager
       tab.setWindow(window);
     }
   }

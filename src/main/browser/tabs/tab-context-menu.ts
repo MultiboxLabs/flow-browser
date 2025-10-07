@@ -1,6 +1,7 @@
 import { Browser } from "@/browser/browser";
 import { Tab } from "@/browser/tabs/tab";
-import { TabbedBrowserWindow } from "@/browser/window";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { BrowserWindow } from "@/controllers/windows-controller/types";
 import contextMenu from "electron-context-menu";
 
 // Define types for navigation history
@@ -33,7 +34,7 @@ export function createTabContextMenu(
   browser: Browser,
   tab: Tab,
   profileId: string,
-  tabbedWindow: TabbedBrowserWindow,
+  window: BrowserWindow,
   spaceId: string
 ) {
   const webContents = tab.webContents;
@@ -47,15 +48,19 @@ export function createTabContextMenu(
       const lookUpSelection = defaultActions.lookUpSelection({});
       const searchEngine = "Google";
 
-      // Helper function to create a new tab
-      const createNewTab = async (url: string, window?: TabbedBrowserWindow) => {
-        const sourceTab = await browser.tabs.createTab(window ? window.id : tabbedWindow.id, profileId, spaceId);
+      // Helper function to create a new tab (TODO: fixtabmanager)
+      const createNewTab = async (url: string, overrideWindow?: BrowserWindow) => {
+        const sourceTab = await browser.tabs.createTab(
+          overrideWindow ? overrideWindow.id : window.id,
+          profileId,
+          spaceId
+        );
         sourceTab.loadURL(url);
         browser.tabs.setActiveTab(sourceTab);
       };
 
       // Create all menu sections
-      const openLinkItems = createOpenLinkItems(parameters, createNewTab, browser);
+      const openLinkItems = createOpenLinkItems(parameters, createNewTab);
       const linkItems = createLinkItems(defaultActions as MenuActions);
       const navigationItems = createNavigationItems(navigationHistory, webContents, canGoBack, canGoForward);
       const extensionItems = createExtensionItems(tab, parameters);
@@ -122,8 +127,7 @@ export function createTabContextMenu(
 
 function createOpenLinkItems(
   parameters: Electron.ContextMenuParams,
-  createNewTab: (url: string, window?: TabbedBrowserWindow) => Promise<void>,
-  browser: Browser
+  createNewTab: (url: string, window?: BrowserWindow) => Promise<void>
 ): Electron.MenuItemConstructorOptions[] {
   return [
     {
@@ -135,7 +139,7 @@ function createOpenLinkItems(
     {
       label: "Open Link in New Window",
       click: async () => {
-        const newWindow = await browser.createWindow("normal");
+        const newWindow = await browserWindowsController.create();
         createNewTab(parameters.linkURL, newWindow);
       }
     }

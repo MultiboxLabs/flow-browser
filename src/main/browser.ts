@@ -20,7 +20,7 @@ processInitialUrl(browser);
 setupSecondInstanceHandling(browser);
 
 // Setup platform specific features
-setupPlatformIntegration(browser);
+setupPlatformIntegration();
 
 // Open onboarding / create initial window
 runOnboardingOrInitialWindow();

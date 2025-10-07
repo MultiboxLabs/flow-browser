@@ -1,20 +1,21 @@
 import { TabbedBrowserWindow } from "@/browser/window";
-import { browser } from "@/browser";
 import { sendMessageToListenersInWindow } from "@/ipc/listeners-manager";
-import { BrowserWindow } from "electron";
+import { BrowserWindow as ElectronWindow } from "electron";
+import { BrowserWindow } from "@/controllers/windows-controller/types";
 import { ipcMain } from "electron";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 
 ipcMain.on("window-button:set-position", (event, position: { x: number; y: number }) => {
-  const win = BrowserWindow.fromWebContents(event.sender);
+  const win = ElectronWindow.fromWebContents(event.sender);
   if (win && "setWindowButtonPosition" in win) {
     win.setWindowButtonPosition(position);
   }
 });
 
 ipcMain.on("window-button:set-visibility", (event, visible: boolean) => {
-  const tabbedWindow = browser?.getWindowFromWebContents(event.sender);
+  const tabbedWindow = browserWindowsController.getWindowFromWebContents(event.sender);
   if (tabbedWindow) {
-    tabbedWindow.setWindowButtonVisibility(visible);
+    tabbedWindow.setMacOSTrafficLights(visible);
   }
 });
 
@@ -25,85 +26,87 @@ export function toggleSidebar(win: TabbedBrowserWindow) {
 }
 
 // These methods are only available for popup windows
-function moveWindowTo(win: BrowserWindow, x: number, y: number) {
+function moveWindowTo(win: ElectronWindow, x: number, y: number) {
   win.setPosition(x, y);
 }
 
-function resizeWindowTo(win: BrowserWindow, width: number, height: number) {
+function resizeWindowTo(win: ElectronWindow, width: number, height: number) {
   win.setSize(width, height);
 }
 
 ipcMain.on("interface:move-window-by", (event, x: number, y: number) => {
-  const win = browser?.getWindowFromWebContents(event.sender);
-  if (win && win.type === "popup") {
-    const position = win.window.getPosition();
-    moveWindowTo(win.window, position[0] + x, position[1] + y);
+  const win = browserWindowsController.getWindowFromWebContents(event.sender);
+  if (win && win.browserWindowType === "popup") {
+    const electronWindow = win.browserWindow;
+    const position = electronWindow.getPosition();
+    moveWindowTo(electronWindow, position[0] + x, position[1] + y);
   }
 });
 
 ipcMain.on("interface:move-window-to", (event, x: number, y: number) => {
-  const win = browser?.getWindowFromWebContents(event.sender);
-  if (win && win.type === "popup") {
-    moveWindowTo(win.window, x, y);
+  const win = browserWindowsController.getWindowFromWebContents(event.sender);
+  if (win && win.browserWindowType === "popup") {
+    moveWindowTo(win.browserWindow, x, y);
   }
 });
 
 ipcMain.on("interface:resize-window-by", (event, width: number, height: number) => {
-  const win = browser?.getWindowFromWebContents(event.sender);
-  if (win && win.type === "popup") {
-    const size = win.window.getSize();
-    resizeWindowTo(win.window, size[0] + width, size[1] + height);
+  const win = browserWindowsController.getWindowFromWebContents(event.sender);
+  if (win && win.browserWindowType === "popup") {
+    const size = win.browserWindow.getSize();
+    resizeWindowTo(win.browserWindow, size[0] + width, size[1] + height);
   }
 });
 
 ipcMain.on("interface:resize-window-to", (event, width: number, height: number) => {
-  const win = browser?.getWindowFromWebContents(event.sender);
-  if (win && win.type === "popup") {
-    resizeWindowTo(win.window, width, height);
+  const win = browserWindowsController.getWindowFromWebContents(event.sender);
+  if (win && win.browserWindowType === "popup") {
+    resizeWindowTo(win.browserWindow, width, height);
   }
 });
 
 // Window Controls
 ipcMain.on("interface:minimize-window", (event) => {
-  const win = browser?.getWindowFromWebContents(event.sender);
+  const win = browserWindowsController.getWindowFromWebContents(event.sender);
   if (win) {
-    win.window.minimize();
+    win.browserWindow.minimize();
   }
 });
 
 ipcMain.on("interface:maximize-window", (event) => {
-  const win = browser?.getWindowFromWebContents(event.sender);
+  const win = browserWindowsController.getWindowFromWebContents(event.sender);
   if (win) {
-    if (win.window.isMaximized()) {
-      win.window.unmaximize();
+    if (win.browserWindow.isMaximized()) {
+      win.browserWindow.unmaximize();
     } else {
-      win.window.maximize();
+      win.browserWindow.maximize();
     }
   }
 });
 
 ipcMain.on("interface:close-window", (event) => {
-  const win = browser?.getWindowFromWebContents(event.sender);
+  const win = browserWindowsController.getWindowFromWebContents(event.sender);
   if (win) {
-    win.window.close();
+    win.browserWindow.close();
   }
 });
 
-function getWindowState(win: TabbedBrowserWindow) {
+function getWindowState(win: BrowserWindow) {
   return {
-    isMaximized: win.window.isMaximized(),
-    isFullscreen: win.window.isFullScreen()
+    isMaximized: win.browserWindow.isMaximized(),
+    isFullscreen: win.browserWindow.isFullScreen()
   };
 }
 
 ipcMain.handle("interface:get-window-state", (event) => {
-  const win = browser?.getWindowFromWebContents(event.sender);
+  const win = browserWindowsController.getWindowFromWebContents(event.sender);
   if (win) {
     return getWindowState(win);
   }
   return false;
 });
 
+// TODO: fixtabmanager
 export function fireWindowStateChanged(win: TabbedBrowserWindow) {
   sendMessageToListenersInWindow(win, "interface:window-state-changed", getWindowState(win));
 }

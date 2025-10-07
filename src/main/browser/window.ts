@@ -5,7 +5,6 @@ import { PageBounds } from "@/ipc/browser/page";
 import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { BrowserWindow, nativeTheme, WebContents } from "electron";
-import "./close-preventer";
 import { WindowEventType } from "@/modules/windows";
 import { windowEvents } from "@/modules/windows";
 import { initializePortalComponentWindows } from "@/browser/components/portal-component-windows";
@@ -237,7 +236,8 @@ export class TabbedBrowserWindow extends TypedEventEmitter<BrowserWindowEvents> 
     // Destroy the window
     this.isDestroyed = true;
     this.emit("destroy");
-    this.browser.destroyWindowById(this.id);
+    // function has been removed from browser
+    // this.browser.destroyWindowById(this.id);
 
     // WE CANNOT CALL REMOVECHILDVIEW AFTER DESTROY, OR IT WILL CRASH!!!!
     const windowDestroyed = this.window.isDestroyed();

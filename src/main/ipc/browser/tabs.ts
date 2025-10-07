@@ -1,10 +1,11 @@
 import { Tab } from "@/browser/tabs/tab";
 import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
-import { TabbedBrowserWindow } from "@/browser/window";
 import { browser } from "@/browser";
 import { spacesController } from "@/controllers/spaces-controller";
 import { clipboard, ipcMain, Menu, MenuItem } from "electron";
 import { TabData, TabGroupData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { BrowserWindow } from "@/controllers/windows-controller/types";
 
 export function getTabData(tab: Tab): TabData {
   return {
@@ -46,7 +47,7 @@ export function getTabGroupData(tabGroup: TabGroup): TabGroupData {
 }
 
 // IPC Handlers //
-function getWindowTabsData(window: TabbedBrowserWindow) {
+function getWindowTabsData(window: BrowserWindow) {
   const tabManager = browser?.tabs;
   if (!tabManager) return null;
 
@@ -99,7 +100,7 @@ function getWindowTabsData(window: TabbedBrowserWindow) {
 
 ipcMain.handle("tabs:get-data", async (event) => {
   const webContents = event.sender;
-  const window = browser?.getWindowFromWebContents(webContents);
+  const window = browserWindowsController.getWindowFromWebContents(webContents);
   if (!window) return null;
 
   return getWindowTabsData(window);
@@ -113,9 +114,10 @@ function processWindowTabsChangedQueue() {
   if (!browser) return;
 
   for (const windowId of Array.from(windowTabsChangedQueue)) {
-    const window = browser.getWindowById(windowId);
+    const window = browserWindowsController.getWindowById(windowId);
     if (!window) continue;
 
+    // TODO: fixtabmanager
     const data = getWindowTabsData(window);
     if (!data) continue;
 
@@ -145,7 +147,7 @@ export function windowTabsChanged(windowId: number) {
 
 ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {
   const webContents = event.sender;
-  const window = browser?.getWindowFromWebContents(webContents);
+  const window = browserWindowsController.getWindowFromWebContents(webContents);
   if (!window) return false;
 
   const tabManager = browser?.tabs;
@@ -160,14 +162,15 @@ ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {
 
 ipcMain.handle("tabs:new-tab", async (event, url?: string, isForeground?: boolean, spaceId?: string) => {
   const webContents = event.sender;
-  const window = browser?.getWindowFromWebContents(webContents) || browser?.getWindows()[0];
+  const window =
+    browserWindowsController.getWindowFromWebContents(webContents) || browserWindowsController.getWindows()[0];
   if (!window) return;
 
   const tabManager = browser?.tabs;
   if (!tabManager) return;
 
   if (!spaceId) {
-    const currentSpace = window.getCurrentSpace();
+    const currentSpace = window.currentSpaceId;
     if (!currentSpace) return;
 
     spaceId = currentSpace;
@@ -192,7 +195,7 @@ ipcMain.handle("tabs:new-tab", async (event, url?: string, isForeground?: boolea
 
 ipcMain.handle("tabs:close-tab", async (event, tabId: number) => {
   const webContents = event.sender;
-  const window = browser?.getWindowFromWebContents(webContents);
+  const window = browserWindowsController.getWindowFromWebContents(webContents);
   if (!window) return false;
 
   const tabManager = browser?.tabs;
@@ -235,7 +238,7 @@ ipcMain.handle("tabs:set-tab-muted", async (_event, tabId: number, muted: boolea
 
 ipcMain.handle("tabs:move-tab", async (event, tabId: number, newPosition: number) => {
   const webContents = event.sender;
-  const window = browser?.getWindowFromWebContents(webContents);
+  const window = browserWindowsController.getWindowFromWebContents(webContents);
   if (!window) return false;
 
   const tabManager = browser?.tabs;
@@ -260,7 +263,7 @@ ipcMain.handle("tabs:move-tab", async (event, tabId: number, newPosition: number
 
 ipcMain.handle("tabs:move-tab-to-window-space", async (event, tabId: number, spaceId: string, newPosition?: number) => {
   const webContents = event.sender;
-  const window = browser?.getWindowFromWebContents(webContents);
+  const window = browserWindowsController.getWindowFromWebContents(webContents);
   if (!window) return false;
 
   const tabManager = browser?.tabs;
@@ -285,8 +288,8 @@ ipcMain.handle("tabs:move-tab-to-window-space", async (event, tabId: number, spa
 
 ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
   const webContents = event.sender;
-  const tabbedWindow = browser?.getWindowFromWebContents(webContents);
-  if (!tabbedWindow) return;
+  const window = browserWindowsController.getWindowFromWebContents(webContents);
+  if (!window) return;
 
   const tabManager = browser?.tabs;
   if (!tabManager) return;
@@ -342,6 +345,6 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
   );
 
   contextMenu.popup({
-    window: tabbedWindow.window
+    window: window.browserWindow
   });
 });

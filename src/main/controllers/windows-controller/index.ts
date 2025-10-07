@@ -3,6 +3,7 @@ import { SettingsWindow, BaseWindow, OnboardingWindow, BrowserWindow } from "@/c
 import { debugPrint } from "@/modules/output";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { WebContentsView, type WebContents } from "electron";
+import "./close-preventer";
 
 export type WindowType = "browser" | "settings" | "onboarding";
 

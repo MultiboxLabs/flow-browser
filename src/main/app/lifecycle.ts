@@ -2,6 +2,7 @@ import { app, BrowserWindow } from "electron";
 import type { Browser } from "@/browser/browser";
 import { handleOpenUrl } from "@/app/urls";
 import { hasCompletedOnboarding } from "@/saving/onboarding";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 
 export function setupAppLifecycle(browser: Browser) {
   app.on("window-all-closed", () => {
@@ -20,12 +21,12 @@ export function setupAppLifecycle(browser: Browser) {
   app.whenReady().then(() => {
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        browser?.createWindow();
+        browserWindowsController.create();
       }
     });
   });
 
   app.on("open-url", async (_event, url) => {
-    handleOpenUrl(browser, url);
+    handleOpenUrl(false, browser, url);
   });
 }

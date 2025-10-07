@@ -4,6 +4,7 @@ import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
 import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
 import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
 import { spacesController } from "@/controllers/spaces-controller";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { windowTabsChanged } from "@/ipc/browser/tabs";
 import { setWindowSpace } from "@/ipc/session/spaces";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
@@ -109,11 +110,11 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     }
 
     if (!windowId) {
-      const focusedWindow = this.browser.getFocusedWindow();
+      const focusedWindow = browserWindowsController.getFocusedWindow();
       if (focusedWindow) {
         windowId = focusedWindow.id;
       } else {
-        const windows = this.browser.getWindows();
+        const windows = browserWindowsController.getWindows();
         if (windows.length > 0) {
           windowId = windows[0].id;
         } else {
@@ -169,7 +170,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     }
 
     // Get window
-    const window = this.browser.getWindowById(windowId);
+    const window = browserWindowsController.getWindowById(windowId);
     if (!window) {
       // Should never happen
       throw new Error("Window not found");
@@ -185,6 +186,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     const profileSession = profile.session;
 
     // Create tab
+    // TODO: fixtabmanager
     const tab = new Tab(
       {
         browser: this.browser,
@@ -242,7 +244,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
         setWindowSpace(win, tab.spaceId);
 
         // Focus window
-        win.window.focus();
+        win.browserWindow.focus();
 
         // Set active tab
         this.setActiveTab(tab);

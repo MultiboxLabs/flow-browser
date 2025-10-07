@@ -8,19 +8,11 @@ function shouldCreateNewWindow(args: string[]): boolean {
 }
 
 export function setupSecondInstanceHandling(browser: Browser) {
-  app.on("second-instance", (_event, commandLine) => {
-    if (shouldCreateNewWindow(commandLine)) {
-      browser.createWindow();
-    } else {
-      const window = browser.getWindows()[0];
-      if (window) {
-        window.window.focus();
-      }
-    }
-
+  app.on("second-instance", async (_event, commandLine) => {
     const url = commandLine.pop();
     if (url && isValidOpenerUrl(url)) {
-      handleOpenUrl(browser, url);
+      const shouldCreate = shouldCreateNewWindow(commandLine);
+      handleOpenUrl(shouldCreate, browser, url);
     }
   });
 

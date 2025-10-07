@@ -13,6 +13,7 @@ import { getSettingValueById } from "@/saving/settings";
 import { ExtensionManager } from "@/modules/extensions/management";
 import { transformUserAgentHeader } from "@/browser/utility/user-agent";
 import { ProfileData, profilesController } from "@/controllers/profiles-controller";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 
 export const loadedProfileSessions: Set<Session> = new Set();
 
@@ -155,8 +156,7 @@ export class ProfileManager {
         // Tabs
         createTab: async (tabDetails) => {
           const windowId = tabDetails.windowId;
-
-          const window = windowId ? this.browser.getWindowById(windowId) : undefined;
+          const window = windowId ? browserWindowsController.getWindowById(windowId) : undefined;
 
           const tab = await tabManager.createTab(window?.id, profileId, undefined);
           if (tabDetails.url) {
@@ -165,7 +165,9 @@ export class ProfileManager {
           if (tabDetails.active) {
             tabManager.setActiveTab(tab);
           }
-          return [tab.webContents, tab.getWindow().window];
+
+          const electronWindow = tab.getWindow().browserWindow;
+          return [tab.webContents, electronWindow];
         },
         selectTab: (tabWebContents) => {
           const tab = tabManager.getTabByWebContents(tabWebContents);
@@ -190,16 +192,13 @@ export class ProfileManager {
           const browser = this.browser;
           const tabManager = browser.tabs;
 
-          const tabbedWindow = await browser.createWindow(details.type === "normal" ? "normal" : "popup", {
-            window: {
-              height: details.height,
-              width: details.width,
-              x: details.left,
-              y: details.top
-            }
+          const window = await browserWindowsController.create(details.type === "normal" ? "normal" : "popup", {
+            height: details.height,
+            width: details.width,
+            x: details.left,
+            y: details.top
           });
-
-          const browserWindow = tabbedWindow.window;
+          const browserWindow = window.browserWindow;
 
           if (details.url) {
             const urls: string[] = Array.isArray(details.url) ? details.url : [details.url];
@@ -208,7 +207,8 @@ export class ProfileManager {
             for (const url of urls) {
               const currentTabIndex = tabIndex;
 
-              tabManager.createTab(tabbedWindow.id, profileId).then((tab) => {
+              // TODO: fixtabmanager
+              tabManager.createTab(window.id, profileId).then((tab) => {
                 tab.loadURL(url);
                 if (currentTabIndex === 0) {
                   tabManager.setActiveTab(tab);
@@ -225,11 +225,10 @@ export class ProfileManager {
 
           return browserWindow;
         },
-        removeWindow: (window) => {
-          const tabbedWindow = this.browser.getWindowById(window.id);
-          if (!tabbedWindow) return;
-
-          tabbedWindow.destroy();
+        removeWindow: (electronWindow) => {
+          const window = browserWindowsController.getWindowById(electronWindow.id);
+          if (!window) return;
+          window.destroy();
         }
       });
 

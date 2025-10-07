@@ -1,4 +1,5 @@
 import { browser } from "@/browser";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { ipcMain } from "electron";
 
 ipcMain.on("browser:load-profile", async (_event, profileId: string) => {
@@ -10,5 +11,5 @@ ipcMain.on("browser:unload-profile", async (_event, profileId: string) => {
 });
 
 ipcMain.on("browser:create-window", async () => {
-  browser?.createWindow();
+  browserWindowsController.create();
 });

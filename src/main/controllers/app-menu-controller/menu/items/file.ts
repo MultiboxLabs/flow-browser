@@ -1,10 +1,10 @@
 import { MenuItemConstructorOptions } from "electron";
-import { Browser } from "@/browser/browser";
 import { getFocusedBrowserWindowData } from "../helpers";
 import { openNewTab } from "@/ipc/app/new-tab";
 import { getCurrentShortcut } from "@/modules/shortcuts";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 
-export const createFileMenu = (browser: Browser): MenuItemConstructorOptions => ({
+export const createFileMenu = (): MenuItemConstructorOptions => ({
   label: "File",
   submenu: [
     {
@@ -24,7 +24,7 @@ export const createFileMenu = (browser: Browser): MenuItemConstructorOptions => 
       label: "New Window",
       accelerator: getCurrentShortcut("browser.newWindow"),
       click: () => {
-        browser.createWindow();
+        browserWindowsController.create();
       }
     }
   ]

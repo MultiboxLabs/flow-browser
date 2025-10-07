@@ -1,14 +1,6 @@
-import { app } from "electron";
 import type { Browser } from "@/browser/browser";
-import type { TabbedBrowserWindow } from "@/browser/window";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { debugPrint } from "@/modules/output";
-import { sleep } from "@/modules/utils";
-
-async function waitForAppToBeReady() {
-  if (!app.isReady) {
-    await app.whenReady();
-  }
-}
 
 export function isValidOpenerUrl(url: string): boolean {
   const urlObject = URL.parse(url);
@@ -20,42 +12,28 @@ export function isValidOpenerUrl(url: string): boolean {
   return true;
 }
 
-export async function handleOpenUrl(browser: Browser, url: string) {
-  await waitForAppToBeReady();
+export async function handleOpenUrl(useNewWindow: boolean, browser: Browser, url: string) {
+  // Find a window to use, show + focus it
+  const windows = browserWindowsController.getWindows();
+  const focusedWindow = browserWindowsController.getFocusedWindow();
+  const hasWindows = windows.length > 0;
 
-  let window: TabbedBrowserWindow | null = null;
+  const shouldCreate = useNewWindow || !hasWindows;
+  const window = shouldCreate ? await browserWindowsController.create() : focusedWindow ? focusedWindow : windows[0];
 
-  for (let i = 0; i < 5; i++) {
-    const focusedWindow = browser.getFocusedWindow();
-    if (focusedWindow) {
-      window = focusedWindow;
-      break;
-    }
+  window.show(true);
 
-    const firstWindow = browser.getWindows()[0];
-    if (firstWindow) {
-      window = firstWindow;
-      break;
-    }
-
-    await sleep(50);
-  }
-
-  if (!window) {
-    window = await browser.createWindow();
-  }
-
+  // Create a new tab (TODO: fixtabmanager)
   const tab = await browser.tabs.createTab(window.id);
   tab.loadURL(url);
   browser.tabs.setActiveTab(tab);
-  window.window.focus();
 }
 
 export function processInitialUrl(browser: Browser) {
   const commandLine = process.argv.slice(1);
   const targetUrl = commandLine.pop();
   if (targetUrl && isValidOpenerUrl(targetUrl)) {
-    handleOpenUrl(browser, targetUrl);
+    handleOpenUrl(false, browser, targetUrl);
     debugPrint("INITIALIZATION", "initial URL handled");
   }
 }
