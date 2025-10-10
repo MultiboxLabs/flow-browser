@@ -9,7 +9,7 @@ import {
 import { debugPrint } from "@/modules/output";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { type WebContents } from "electron";
-import "./close-preventer";
+import "./utils/close-preventer";
 
 export type WindowType = "browser" | "settings" | "onboarding" | "extension-popup";
 

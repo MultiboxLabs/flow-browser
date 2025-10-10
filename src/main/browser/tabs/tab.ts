@@ -380,8 +380,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       }
     });
 
-    // TODO: fixtabmanager2
-    const disconnectLeaveFullScreen = tabbedWindow.connect("leave-full-screen", () => {
+    const disconnectLeaveFullScreen = window.connect("leave-full-screen", () => {
       this.setFullScreen(false);
     });
     this.on("destroyed", () => {
@@ -504,7 +503,6 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       windowId = newWindow.id;
 
       // Set space if the window already loaded
-      // TODO: fixtabmanager
       setWindowSpace(newWindow, this.spaceId);
     }
 

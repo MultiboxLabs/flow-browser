@@ -137,7 +137,6 @@ async function createTabsFromTabDatas(browser: Browser, tabDatas: TabData[]) {
     const window = await browserWindowsController.create();
 
     for (const tabData of tabs) {
-      // TODO: fixtabmanager
       browser.tabs.createTab(window.id, tabData.profileId, tabData.spaceId, undefined, {
         asleep: true,
         position: tabData.position,

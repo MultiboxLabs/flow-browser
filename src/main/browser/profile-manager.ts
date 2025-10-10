@@ -207,7 +207,6 @@ export class ProfileManager {
             for (const url of urls) {
               const currentTabIndex = tabIndex;
 
-              // TODO: fixtabmanager
               tabManager.createTab(window.id, profileId).then((tab) => {
                 tab.loadURL(url);
                 if (currentTabIndex === 0) {

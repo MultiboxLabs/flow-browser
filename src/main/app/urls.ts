@@ -23,7 +23,7 @@ export async function handleOpenUrl(useNewWindow: boolean, browser: Browser, url
 
   window.show(true);
 
-  // Create a new tab (TODO: fixtabmanager)
+  // Create a new tab
   const tab = await browser.tabs.createTab(window.id);
   tab.loadURL(url);
   browser.tabs.setActiveTab(tab);
