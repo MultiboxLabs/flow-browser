@@ -1,6 +1,5 @@
 import { BrowserWindow, Rectangle, WebContents, WebContentsView } from "electron";
 import { debugPrint } from "@/modules/output";
-import { browser } from "@/browser";
 import { clamp } from "@/modules/utils";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 
@@ -189,17 +188,15 @@ export class Omnibox {
     // The user may need to access a
     // program outside of the app. Closing the popup would then add
     // inconvenience.
-    if (browser) {
-      const hasFocus = browserWindowsController.getWindows().some((win) => {
-        if (win.destroyed) {
-          return false;
-        }
-        return win.browserWindow.isFocused();
-      });
-      if (!hasFocus) {
-        debugPrint("OMNIBOX", "preventing close due to focus residing outside of the app");
-        return;
+    const hasFocus = browserWindowsController.getWindows().some((win) => {
+      if (win.destroyed) {
+        return false;
       }
+      return win.browserWindow.isFocused();
+    });
+    if (!hasFocus) {
+      debugPrint("OMNIBOX", "preventing close due to focus residing outside of the app");
+      return;
     }
 
     // All conditions passed, hide omnibox
