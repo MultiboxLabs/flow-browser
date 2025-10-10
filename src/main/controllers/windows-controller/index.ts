@@ -1,11 +1,17 @@
 import { WindowTypeManager } from "@/controllers/windows-controller/type-manager";
-import { SettingsWindow, BaseWindow, OnboardingWindow, BrowserWindow } from "@/controllers/windows-controller/types";
+import {
+  SettingsWindow,
+  BaseWindow,
+  OnboardingWindow,
+  BrowserWindow,
+  ExtensionPopupWindow
+} from "@/controllers/windows-controller/types";
 import { debugPrint } from "@/modules/output";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { type WebContents } from "electron";
 import "./close-preventer";
 
-export type WindowType = "browser" | "settings" | "onboarding";
+export type WindowType = "browser" | "settings" | "onboarding" | "extension-popup";
 
 type WindowsControllerEvents = {
   "window-added": [id: number, window: BaseWindow];
@@ -19,6 +25,7 @@ class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
   public settings: WindowTypeManager<typeof SettingsWindow>;
   public onboarding: WindowTypeManager<typeof OnboardingWindow>;
   public browser: WindowTypeManager<typeof BrowserWindow>;
+  public extensionPopup: WindowTypeManager<typeof ExtensionPopupWindow>;
 
   constructor() {
     super();
@@ -29,6 +36,7 @@ class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
     this.settings = new WindowTypeManager(this, "settings", SettingsWindow, { singleton: true });
     this.onboarding = new WindowTypeManager(this, "onboarding", OnboardingWindow, { singleton: true });
     this.browser = new WindowTypeManager(this, "browser", BrowserWindow);
+    this.extensionPopup = new WindowTypeManager(this, "extension-popup", ExtensionPopupWindow);
   }
 
   // Add & Remove //
