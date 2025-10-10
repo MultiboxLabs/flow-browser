@@ -42,13 +42,13 @@ export class WindowTypeManager<C extends new (...args: any[]) => BaseWindow> {
   }
 
   // Instance Validation //
-  public isInstanceOf(window: BaseWindow): boolean {
+  public isInstanceOf(window: BaseWindow): window is InstanceType<C> {
     return window.type === this.windowType;
   }
 
   public filterInstance(window: BaseWindow | null): InstanceType<C> | null {
     if (window && this.isInstanceOf(window)) {
-      return window as InstanceType<C>;
+      return window;
     }
     return null;
   }

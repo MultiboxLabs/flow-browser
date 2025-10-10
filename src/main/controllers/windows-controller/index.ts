@@ -16,6 +16,7 @@ export type WindowType = "browser" | "settings" | "onboarding" | "extension-popu
 type WindowsControllerEvents = {
   "window-added": [id: number, window: BaseWindow];
   "window-removed": [id: number, window: BaseWindow];
+  "window-focused": [id: number, window: BaseWindow];
 };
 
 class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
@@ -46,6 +47,7 @@ class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
     this.windows.set(id, window);
     this.emit("window-added", id, window);
 
+    window.browserWindow.on("focus", () => this.emit("window-focused", id, window));
     window.on("destroyed", () => this._removeWindow(id));
 
     debugPrint("WINDOWS", "Window added with type", window.type, "and id", id);
@@ -106,3 +108,4 @@ class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
 
 export { type WindowsController };
 export const windowsController = new WindowsController();
+export const browserWindowsManager = windowsController.browser;
