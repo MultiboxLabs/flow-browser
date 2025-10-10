@@ -1,13 +1,13 @@
 import { MenuItemConstructorOptions, nativeImage, NativeImage } from "electron";
-import { getFocusedBrowserWindowData } from "../helpers";
+import { getFocusedBrowserWindow } from "../helpers";
 import { settings } from "@/controllers/windows-controller/interfaces/settings";
 import sharp from "sharp";
 import { setWindowSpace } from "@/ipc/session/spaces";
 import path from "path";
 import { readFile } from "fs/promises";
 import { IconEntry, icons } from "@phosphor-icons/core";
-import { getFocusedWindow } from "@/modules/windows";
 import { spacesController } from "@/controllers/spaces-controller";
+import { browserWindowsManager, windowsController } from "@/controllers/windows-controller";
 
 // Types
 interface Space {
@@ -130,9 +130,9 @@ async function createSpaceMenuItem(
     label: space.name,
     accelerator: `Ctrl+${index + 1}`,
     click: () => {
-      const winData = getFocusedBrowserWindowData();
-      if (!winData?.tabbedBrowserWindow) return;
-      setWindowSpace(winData.tabbedBrowserWindow, space.id);
+      const window = getFocusedBrowserWindow();
+      if (!window) return;
+      setWindowSpace(window, space.id);
     },
     ...(iconImage ? { icon: iconImage } : {})
   };
@@ -145,10 +145,8 @@ export async function createSpacesMenu(): Promise<MenuItemConstructorOptions> {
   try {
     const spaces = await spacesController.getAll();
 
-    const focusedWindow = getFocusedWindow();
-    const currentSpaceId = focusedWindow?.tabbedBrowserWindow?.getCurrentSpace() ?? null;
-
-    if (!focusedWindow?.tabbedBrowserWindow) {
+    const focusedWindow = windowsController.getFocused();
+    if (!focusedWindow || !browserWindowsManager.isInstanceOf(focusedWindow)) {
       return {
         label: "Spaces",
         submenu: [
@@ -159,6 +157,8 @@ export async function createSpacesMenu(): Promise<MenuItemConstructorOptions> {
         ]
       };
     }
+
+    const currentSpaceId = focusedWindow.currentSpaceId;
 
     // Use Promise.allSettled to ensure all space menu items are attempted
     // even if some fail to be created

@@ -8,12 +8,12 @@ import { NEW_TAB_URL } from "@/browser/tabs/tab-manager";
 import { ExtensionInstallStatus, installChromeWebStore } from "electron-chrome-web-store";
 import path from "path";
 import { setWindowSpace } from "@/ipc/session/spaces";
-import { registerWindow, WindowType } from "@/modules/windows";
 import { getSettingValueById } from "@/saving/settings";
 import { ExtensionManager } from "@/modules/extensions/management";
 import { transformUserAgentHeader } from "@/browser/utility/user-agent";
 import { ProfileData, profilesController } from "@/controllers/profiles-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { windowsController } from "@/controllers/windows-controller";
 
 export const loadedProfileSessions: Set<Session> = new Set();
 
@@ -234,11 +234,7 @@ export class ProfileManager {
 
       extensions.on("browser-action-popup-created", (popup: PopupView) => {
         if (popup.browserWindow) {
-          registerWindow(
-            WindowType.EXTENSION_POPUP,
-            `${popup.extensionId}-${popup.browserWindow.id}`,
-            popup.browserWindow
-          );
+          windowsController.extensionPopup.new(popup.browserWindow);
         }
       });
 
