@@ -5,7 +5,7 @@ import { waitForElectronComponentsToBeReady } from "@/modules/electron-component
 import { debugPrint } from "@/modules/output";
 import { app, type WebContents } from "electron";
 
-const browserWindowsManager = windowsController.browser;
+const browserWindowsManager = () => windowsController.browser;
 let printedWidevineNotReady: boolean = false;
 
 function warnWidevineLoadFailed() {
@@ -41,35 +41,35 @@ export const browserWindowsController = {
    * Only use this if you're confident that Electron + Widevine are already ready!
    */
   instantCreate: (type: BrowserWindowType = "normal", options: BrowserWindowCreationOptions = {}) => {
-    return browserWindowsManager.new(type, options);
+    return browserWindowsManager().new(type, options);
   },
 
   /**
    * Gets all windows
    */
   getWindows: () => {
-    return browserWindowsManager.getAll();
+    return browserWindowsManager().getAll();
   },
 
   /**
    * Gets the focused window
    */
   getFocusedWindow: () => {
-    return browserWindowsManager.getFocused();
+    return browserWindowsManager().getFocused();
   },
 
   /**
    * Gets a window by its ID
    */
   getWindowById: (id: number) => {
-    return browserWindowsManager.getById(id);
+    return browserWindowsManager().getById(id);
   },
 
   /**
    * Gets a window from its WebContents
    */
   getWindowFromWebContents: (webContents: WebContents) => {
-    return browserWindowsManager.getFromWebContents(webContents);
+    return browserWindowsManager().getFromWebContents(webContents);
   },
 
   /**
@@ -78,7 +78,7 @@ export const browserWindowsController = {
    * @returns Whether the windows were destroyed
    */
   destroyAll: (force: boolean = false) => {
-    const windows = browserWindowsManager.getAll();
+    const windows = browserWindowsManager().getAll();
     for (const window of windows) {
       window.destroy(force);
     }
