@@ -1,8 +1,7 @@
 import { AllowedDomains, serveStaticFile } from "@/browser/utility/protocols/utils";
 import { browser } from "@/browser";
 import { getExtensionIcon } from "@/modules/extensions/management";
-import { getFavicon } from "@/modules/favicons";
-import { normalizeURL } from "@/modules/favicons";
+import { getFavicon, normalizeURL } from "@/modules/favicons";
 import { PATHS } from "@/modules/paths";
 import { getContentType } from "@/modules/utils";
 import { Protocol } from "electron";
