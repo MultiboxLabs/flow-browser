@@ -5,7 +5,7 @@ import { addUncaughtExceptionListener, addUnhandledRejectionListener } from "./a
 import { propertiesFromUnknownInput } from "./error-conversion";
 import { EventMessage, PostHog, PostHogOptions } from "posthog-node";
 import { randomUUID } from "crypto";
-import { createStackParser } from "@/controllers/posthog-controller/posthog-error-capture-sdk/stack-parser";
+import { createStackParser } from "./stack-parser";
 
 const SHUTDOWN_TIMEOUT = 2000;
 

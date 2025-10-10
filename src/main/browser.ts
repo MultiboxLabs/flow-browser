@@ -1,6 +1,6 @@
+import "@/controllers";
 import "@/ipc/main";
 import "@/modules/content-blocker";
-import "@/controllers";
 import { debugPrint } from "@/modules/output";
 import { Browser } from "@/browser/browser";
 import { setupPlatformIntegration } from "@/app/platform";
