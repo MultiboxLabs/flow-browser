@@ -87,6 +87,10 @@ export class BaseWindow<
     });
   }
 
+  public close() {
+    this.browserWindow.close();
+  }
+
   public destroy(force: boolean = false) {
     if (this.destroyed) {
       return false;

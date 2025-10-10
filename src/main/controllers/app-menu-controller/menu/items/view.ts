@@ -1,33 +1,28 @@
 import { MenuItemConstructorOptions } from "electron";
 import { Browser } from "@/browser/browser";
-import { hideOmnibox, isOmniboxOpen } from "@/browser/components/omnibox";
-import { WindowType } from "@/modules/windows";
-import { getFocusedBrowserWindowData, getFocusedWindowData, getTab, getTabWcFromFocusedWindow } from "../helpers";
+import { getFocusedBrowserWindow, getFocusedWindow, getTab, getTabWcFromFocusedWindow } from "../helpers";
 import { toggleSidebar } from "@/ipc/browser/interface";
 import { getCurrentShortcut } from "@/modules/shortcuts";
+import { browserWindowsManager } from "@/controllers/windows-controller";
 
 export function menuCloseTab(browser: Browser) {
-  const winData = getFocusedWindowData();
-  if (!winData) return;
+  const window = getFocusedWindow();
+  if (!window) return;
 
-  if (winData.type !== WindowType.BROWSER) {
-    if (winData.window.closable) {
-      winData.window.close();
-    }
+  if (!browserWindowsManager.isInstanceOf(window)) {
+    window.close();
     return;
   }
 
-  const browserWindow = winData.window;
-  if (browserWindow && isOmniboxOpen(browserWindow)) {
-    hideOmnibox(browserWindow);
+  if (window.omnibox.isVisible()) {
+    window.omnibox.hide();
   } else {
-    const tab = getTab(browser, winData);
+    const tab = getTab(browser, window);
     if (tab) {
       tab.destroy();
     } else {
-      if (winData.window) {
-        winData.window.close();
-      }
+      // No more tabs, close the window
+      window.close();
     }
   }
 }
@@ -39,10 +34,9 @@ export const createViewMenu = (browser: Browser): MenuItemConstructorOptions => 
       label: "Toggle Sidebar",
       accelerator: getCurrentShortcut("browser.toggleSidebar"),
       click: () => {
-        const winData = getFocusedBrowserWindowData();
-        if (!winData) return;
-        if (winData.tabbedBrowserWindow) {
-          toggleSidebar(winData.tabbedBrowserWindow);
+        const window = getFocusedBrowserWindow();
+        if (window) {
+          toggleSidebar(window);
         }
       }
     },

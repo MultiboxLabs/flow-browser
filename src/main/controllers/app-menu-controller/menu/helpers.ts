@@ -1,35 +1,32 @@
-import { getFocusedWindow, WindowData, WindowType } from "@/modules/windows";
 import { Browser } from "@/browser/browser";
+import { browserWindowsManager, windowsController } from "@/controllers/windows-controller";
+import { BaseWindow } from "@/controllers/windows-controller/types";
 import { WebContents } from "electron";
 
-export const getFocusedWindowData = () => {
-  const winData = getFocusedWindow();
-  if (!winData) return null;
-  return winData;
+export const getFocusedWindow = () => {
+  return windowsController.getFocused();
 };
 
-export const getFocusedBrowserWindowData = () => {
-  const winData = getFocusedWindowData();
-  if (!winData) return null;
+export const getFocusedBrowserWindow = () => {
+  const window = getFocusedWindow();
 
-  if (winData.type !== WindowType.BROWSER) {
-    return null;
-  }
-
-  return winData;
-};
-
-export const getTab = (browser: Browser, winData: WindowData) => {
-  if (winData.type !== WindowType.BROWSER) {
-    return null;
-  }
-
-  const window = winData.tabbedBrowserWindow;
   if (!window) return null;
+  if (!browserWindowsManager.isInstanceOf(window)) {
+    return null;
+  }
+
+  return window;
+};
+
+export const getTab = (browser: Browser, window?: BaseWindow) => {
+  if (!window) return null;
+  if (!browserWindowsManager.isInstanceOf(window)) {
+    return null;
+  }
 
   const windowId = window.id;
 
-  const spaceId = window.getCurrentSpace();
+  const spaceId = window.currentSpaceId;
   if (!spaceId) return null;
 
   const tab = browser.tabs.getFocusedTab(windowId, spaceId);
@@ -38,19 +35,19 @@ export const getTab = (browser: Browser, winData: WindowData) => {
 };
 
 export const getTabFromFocusedWindow = (browser: Browser) => {
-  const winData = getFocusedWindowData();
+  const winData = getFocusedWindow();
   if (!winData) return null;
   return getTab(browser, winData);
 };
 
-export const getTabWc = (browser: Browser, winData: WindowData): WebContents | null => {
-  const tab = getTab(browser, winData);
+export const getTabWc = (browser: Browser, window: BaseWindow): WebContents | null => {
+  const tab = getTab(browser, window);
   if (!tab) return null;
   return tab.webContents;
 };
 
 export const getTabWcFromFocusedWindow = (browser: Browser): WebContents | null => {
-  const winData = getFocusedWindowData();
-  if (!winData) return null;
-  return getTabWc(browser, winData);
+  const window = getFocusedWindow();
+  if (!window) return null;
+  return getTabWc(browser, window);
 };

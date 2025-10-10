@@ -9,8 +9,8 @@ import { createViewMenu } from "@/controllers/app-menu-controller/menu/items/vie
 import { createWindowMenu } from "@/controllers/app-menu-controller/menu/items/window";
 import { MenuItem, MenuItemConstructorOptions } from "electron";
 import { shortcutsEmitter } from "@/saving/shortcuts";
-import { windowEvents, WindowEventType } from "@/modules/windows";
 import { spacesController } from "@/controllers/spaces-controller";
+import { windowsController } from "@/controllers/windows-controller";
 
 class AppMenuController {
   constructor() {
@@ -21,7 +21,7 @@ class AppMenuController {
     spacesController.on("space-deleted", this.render);
 
     shortcutsEmitter.on("shortcuts-changed", this.render);
-    windowEvents.on(WindowEventType.FOCUSED, this.render);
+    windowsController.on("window-focused", this.render);
   }
 
   public async render() {
