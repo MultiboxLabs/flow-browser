@@ -186,7 +186,6 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     const profileSession = profile.session;
 
     // Create tab
-    // TODO: fixtabmanager
     const tab = new Tab(
       {
         browser: this.browser,

@@ -48,7 +48,7 @@ export function createTabContextMenu(
       const lookUpSelection = defaultActions.lookUpSelection({});
       const searchEngine = "Google";
 
-      // Helper function to create a new tab (TODO: fixtabmanager)
+      // Helper function to create a new tab
       const createNewTab = async (url: string, overrideWindow?: BrowserWindow) => {
         const sourceTab = await browser.tabs.createTab(
           overrideWindow ? overrideWindow.id : window.id,

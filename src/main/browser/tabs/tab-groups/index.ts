@@ -94,7 +94,6 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
 
     const window = browserWindowsController.getWindowById(this.windowId);
     if (window) {
-      // TODO: fixtabmanager
       tab.setWindow(window);
     }
   }

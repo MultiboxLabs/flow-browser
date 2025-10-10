@@ -7,6 +7,7 @@ import { ViewManager } from "@/controllers/windows-controller/utils/view-manager
 import { Omnibox } from "@/controllers/windows-controller/utils/browser/omnibox";
 import { initializePortalComponentWindows } from "@/controllers/windows-controller/utils/browser/portal-component-windows";
 import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
+import { fireWindowStateChanged } from "@/ipc/browser/interface";
 
 export type BrowserWindowType = "normal" | "popup";
 
@@ -20,6 +21,7 @@ export interface BrowserWindowCreationOptions {
 interface BrowserWindowEvents extends BaseWindowEvents {
   "page-bounds-changed": [bounds: PageBounds];
   "current-space-changed": [spaceId: string];
+  "leave-full-screen": [];
 }
 
 export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
@@ -82,6 +84,13 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     super("browser", browserWindow, { showAfterLoad: true });
 
     this.browserWindowType = type;
+
+    // "leave-full-screen" event
+    browserWindow.on("leave-full-screen", () => {
+      this.emit("leave-full-screen");
+      this._updateMacOSTrafficLights();
+      fireWindowStateChanged(this);
+    });
 
     // View Manager //
     this.viewManager = new ViewManager(browserWindow.contentView);
