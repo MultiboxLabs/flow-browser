@@ -3,6 +3,7 @@ import { Tab, TabCreationOptions } from "@/browser/tabs/tab";
 import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
 import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
 import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
+import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
 import { spacesController } from "@/controllers/spaces-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { windowTabsChanged } from "@/ipc/browser/tabs";
@@ -147,8 +148,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     }
 
     // Load profile if not already loaded
-    const browser = this.browser;
-    await browser.loadProfile(profileId);
+    await loadedProfilesController.load(profileId);
 
     // Create tab
     return this.internalCreateTab(windowId, profileId, spaceId, webContentsViewOptions, tabCreationOptions);
@@ -177,8 +177,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     }
 
     // Get loaded profile
-    const browser = this.browser;
-    const profile = browser.getLoadedProfile(profileId);
+    const profile = loadedProfilesController.get(profileId);
     if (!profile) {
       throw new Error("Profile not found");
     }
