@@ -1,8 +1,10 @@
-import { loadedProfileSessions } from "@/browser/profile-manager";
+import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
 import { sleep } from "@/modules/utils";
 
 async function flushSessionsData() {
   const promises: Promise<void>[] = [];
+
+  const loadedProfileSessions = loadedProfilesController.loadedProfileSessions;
 
   for (const session of loadedProfileSessions) {
     // Flush storage data

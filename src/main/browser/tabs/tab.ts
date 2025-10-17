@@ -10,10 +10,10 @@ import { NavigationEntry, Rectangle, Session, WebContents, WebContentsView, WebP
 import { createTabContextMenu } from "@/browser/tabs/tab-context-menu";
 import { generateID } from "@/modules/utils";
 import { persistTabToStorage, removeTabFromStorage } from "@/saving/tabs";
-import { LoadedProfile } from "@/browser/profile-manager";
 import { setWindowSpace } from "@/ipc/session/spaces";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
+import { LoadedProfile } from "@/controllers/loaded-profiles-controller";
 
 // Configuration
 const GLANCE_FRONT_ZINDEX = 3;

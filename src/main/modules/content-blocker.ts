@@ -1,9 +1,9 @@
 import { createBetterSession } from "@/browser/utility/web-requests";
-import { browser } from "@/browser";
 import { debugPrint } from "@/modules/output";
 import { getSettingValueById, onSettingsCached, settingsEmitter } from "@/saving/settings";
 import { ElectronBlocker } from "@ghostery/adblocker-electron";
 import { Session } from "electron";
+import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
 
 type BlockerInstanceType = "all" | "adsAndTrackers" | "adsOnly";
 
@@ -89,10 +89,8 @@ class ContentBlocker {
    * Updates content blocker configuration based on user settings
    */
   public async updateConfig(): Promise<void> {
-    if (!browser) return;
-
     const contentBlocker = getSettingValueById("contentBlocker") as string | undefined;
-    const profiles = browser.getLoadedProfiles();
+    const profiles = loadedProfilesController.getAll();
 
     switch (contentBlocker) {
       case "all":
@@ -122,7 +120,7 @@ class ContentBlocker {
     });
 
     // Listen for profile changes
-    browser?.on("profile-loaded", () => {
+    loadedProfilesController.on("profile-loaded", () => {
       this.updateConfig();
     });
   }

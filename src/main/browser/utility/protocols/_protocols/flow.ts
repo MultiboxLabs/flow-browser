@@ -1,5 +1,4 @@
 import { AllowedDomains, serveStaticFile } from "@/browser/utility/protocols/utils";
-import { browser } from "@/browser";
 import { getExtensionIcon } from "@/modules/extensions/management";
 import { getFavicon, normalizeURL } from "@/modules/favicons";
 import { PATHS } from "@/modules/paths";
@@ -7,6 +6,7 @@ import { getContentType } from "@/modules/utils";
 import { Protocol } from "electron";
 import path from "path";
 import fsPromises from "fs/promises";
+import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
 
 const FLOW_PROTOCOL_ALLOWED_DOMAINS: AllowedDomains = {
   about: true,
@@ -104,7 +104,7 @@ export function registerFlowProtocol(protocol: Protocol) {
       return new Response("Invalid request path", { status: 400 });
     }
 
-    const loadedProfile = browser?.getLoadedProfile(profileId);
+    const loadedProfile = loadedProfilesController.get(profileId);
     if (!loadedProfile) {
       return new Response("No loaded profile found", { status: 404 });
     }

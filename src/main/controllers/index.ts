@@ -4,7 +4,7 @@ import "./windows-controller";
 // Required by app-menu-controller, profiles-controller
 import "./spaces-controller";
 
-// Required by spaces-controller
+// Required by spaces-controller, loaded-profiles-manager
 import "./profiles-controller";
 
 // Required by windows-controller
@@ -13,7 +13,8 @@ import "./app-menu-controller";
 // Required by app-menu-controller
 import "./default-browser-controller";
 
-// None
+// No Dependents
 import "./posthog-controller";
 import "./quit-controller";
 import "./auto-update-controller";
+import "./loaded-profiles-controller";
