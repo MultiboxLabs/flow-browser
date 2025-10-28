@@ -1,7 +1,5 @@
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { BrowserEvents } from "@/browser/events";
-import { settings } from "@/controllers/windows-controller/interfaces/settings";
-import { onboarding } from "@/controllers/windows-controller/interfaces/onboarding";
 import "@/modules/extensions/main";
 
 /**
@@ -47,18 +45,5 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
       // Always destroy the emitter
       this.destroyEmitter();
     }
-  }
-
-  /**
-   * Sends a message to all core WebContents
-   * TODO: remove this placeholder function and replace with new one
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public sendMessageToCoreWebContents(channel: string, ...args: any[]) {
-    // for (const window of this.getWindows()) {
-    //   window.sendMessageToCoreWebContents(channel, ...args);
-    // }
-    settings.sendMessage(channel, ...args);
-    onboarding.sendMessage(channel, ...args);
   }
 }

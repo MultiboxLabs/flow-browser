@@ -21,7 +21,7 @@ const sharedAliases: Record<string, string> = {
 
 const commonOptions: Partial<ElectronViteConfig["main"]> = {
   build: {
-    minify: isProductionBuild() ? "esbuild" : undefined
+    minify: isProductionBuild() ? "esbuild" : false
   }
 };
 
