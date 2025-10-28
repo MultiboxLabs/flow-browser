@@ -20,6 +20,8 @@ export interface BrowserWindowCreationOptions {
   y?: number;
 }
 
+type BaseWindowInstance = InstanceType<typeof BaseWindow>;
+
 interface BrowserWindowEvents extends BaseWindowEvents {
   "page-bounds-changed": [bounds: PageBounds];
   "current-space-changed": [spaceId: string];
@@ -158,5 +160,24 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     this.emit("current-space-changed", spaceId);
     appMenuController.render();
     tabsController.setCurrentWindowSpace(this.id, spaceId);
+  }
+
+  // Override Destroy Method to Cleanup Window //
+  public destroy(...args: Parameters<BaseWindowInstance["destroy"]>) {
+    const result = super.destroy(...args);
+    if (result) {
+      // Destroy all tabs in the window
+      // Do this so that it won't run if the app is closing
+      // Technically after 500ms, the app is dead, so it won't run.
+      setTimeout(() => {
+        for (const tab of tabsController.getTabsInWindow(this.id)) {
+          tab.destroy();
+        }
+      }, 500);
+
+      this.omnibox.destroy();
+      this.viewManager.destroy();
+    }
+    return result;
   }
 }
