@@ -1,5 +1,4 @@
-import { fetchFromDevServer, isDevelopmentServerRunning } from "@/browser/utility/hot-reload";
-import { setupHotReloadFileDescriptors } from "@/browser/utility/hot-reload";
+import { fetchFromDevServer, isDevelopmentServerRunning, setupHotReloadFileDescriptors } from "./hot-reload";
 import { FLAGS } from "@/modules/flags";
 import { PATHS } from "@/modules/paths";
 import { getContentType } from "@/modules/utils";

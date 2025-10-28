@@ -1,4 +1,4 @@
-import { getSessionWithoutCreating } from "@/browser/sessions";
+import { sessionsController } from "@/controllers/sessions-controller";
 import { app, protocol, Session, session } from "electron";
 import { ElectronChromeExtensions, setPartitionSessionGrabber } from "electron-chrome-extensions";
 
@@ -8,12 +8,12 @@ const partitionSessionGrabber = (partition: string) => {
   const PROFILE_PREFIX = "profile:";
   if (partition.startsWith(PROFILE_PREFIX)) {
     const profileId = partition.slice(PROFILE_PREFIX.length);
-    const session = getSessionWithoutCreating(profileId);
-    if (session) {
-      return session;
-    } else {
+    const session = sessionsController.getIfExists(profileId);
+    if (!session) {
       throw new Error(`Session not found for profile ${profileId}`);
     }
+
+    return session;
   }
 
   return session.fromPartition(partition);

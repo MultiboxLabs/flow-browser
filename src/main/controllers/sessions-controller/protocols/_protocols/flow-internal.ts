@@ -1,5 +1,5 @@
-import { AllowedDomains, serveStaticFile } from "@/browser/utility/protocols/utils";
-import { Protocol } from "electron";
+import { AllowedDomains, serveStaticFile } from "../utils";
+import type { Protocol } from "electron";
 import { tabsController } from "@/controllers/tabs-controller";
 
 const FLOW_INTERNAL_ALLOWED_DOMAINS: AllowedDomains = {

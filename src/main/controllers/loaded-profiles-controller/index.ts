@@ -1,6 +1,6 @@
-import { getSession } from "@/browser/sessions";
-import { transformUserAgentHeader } from "@/browser/utility/user-agent";
+import { transformUserAgentHeader } from "@/modules/user-agent";
 import { ProfileData, profilesController } from "@/controllers/profiles-controller";
+import { sessionsController } from "@/controllers/sessions-controller";
 import { NEW_TAB_URL, tabsController } from "@/controllers/tabs-controller";
 import { windowsController } from "@/controllers/windows-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
@@ -105,7 +105,7 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
     }
 
     // Get the session for the profile
-    const profileSession = getSession(profileId);
+    const profileSession = sessionsController.get(profileId);
     this.loadedProfileSessions.add(profileSession);
 
     // Remove Electron and App details to closer emulate Chrome's User Agent

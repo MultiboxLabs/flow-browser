@@ -1,4 +1,4 @@
-import { matchPattern } from "@/browser/utility/match-pattern";
+import { matchPattern } from "./match-pattern";
 import { debugPrint } from "@/modules/output";
 import { Session } from "electron";
 
@@ -46,6 +46,11 @@ type WebRequestDetails =
   | OnResponseStartedListenerDetails
   | OnSendHeadersListenerDetails;
 
+/**
+ * Logs the interception details to the console for debugging purposes
+ * @param type - The type of interception
+ * @param details - The details of the interception
+ */
 function logInterception(type: string, details: WebRequestDetails) {
   if (details.url.endsWith(".pdf")) {
     debugPrint("WEB_REQUESTS_INTERCEPTION", `${type} interception:`, details);

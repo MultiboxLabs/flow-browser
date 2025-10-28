@@ -1,4 +1,3 @@
-import { defaultSessionReady } from "@/browser/sessions";
 import { BaseWindow, BaseWindowEvents } from "@/controllers/windows-controller/types/base";
 import { BrowserWindow as ElectronBrowserWindow, nativeTheme, WebContents } from "electron";
 import { type PageBounds } from "@/ipc/browser/page";
@@ -9,6 +8,7 @@ import { initializePortalComponentWindows } from "@/controllers/windows-controll
 import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
 import { fireWindowStateChanged } from "@/ipc/browser/interface";
 import { tabsController } from "@/controllers/tabs-controller";
+import { sessionsController } from "@/controllers/sessions-controller";
 
 export type BrowserWindowType = "normal" | "popup";
 
@@ -73,7 +73,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     });
 
     // Wait for default session to be ready
-    defaultSessionReady.then(() => {
+    sessionsController.whenDefaultSessionReady().then(() => {
       // Load the correct UI
       if (type === "normal") {
         browserWindow.loadURL("flow-internal://main-ui/");

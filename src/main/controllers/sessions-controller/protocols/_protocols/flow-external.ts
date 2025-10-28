@@ -1,5 +1,5 @@
-import { AllowedDomains, serveStaticFile } from "@/browser/utility/protocols/utils";
-import { Protocol } from "electron";
+import { AllowedDomains, serveStaticFile } from "../utils";
+import type { Protocol } from "electron";
 
 const FLOW_EXTERNAL_ALLOWED_DOMAINS: AllowedDomains = {
   // Dino Game - Taken from https://github.com/yell0wsuit/chrome-dino-enhanced

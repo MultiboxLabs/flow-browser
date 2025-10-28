@@ -1,9 +1,9 @@
-import { createBetterSession } from "@/browser/utility/web-requests";
 import { debugPrint } from "@/modules/output";
 import { getSettingValueById, onSettingsCached, settingsEmitter } from "@/saving/settings";
 import { ElectronBlocker } from "@ghostery/adblocker-electron";
 import { Session } from "electron";
 import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
+import { unifiedWebRequests } from "@/controllers/sessions-controller";
 
 type BlockerInstanceType = "all" | "adsAndTrackers" | "adsOnly";
 
@@ -60,7 +60,7 @@ class ContentBlocker {
 
     const blocker = await this.blockerInstancePromise;
     for (const session of this.blockedSessions) {
-      blocker.disableBlockingInSession(createBetterSession(session, SESSION_KEY));
+      blocker.disableBlockingInSession(unifiedWebRequests.createSession(session, SESSION_KEY));
     }
 
     this.blockedSessions = [];
@@ -82,7 +82,7 @@ class ContentBlocker {
     this.blockedSessions.push(session);
 
     // enable blocking in session
-    blocker.enableBlockingInSession(createBetterSession(session, SESSION_KEY));
+    blocker.enableBlockingInSession(unifiedWebRequests.createSession(session, SESSION_KEY));
   }
 
   /**

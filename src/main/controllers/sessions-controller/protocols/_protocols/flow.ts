@@ -1,12 +1,13 @@
-import { AllowedDomains, serveStaticFile } from "@/browser/utility/protocols/utils";
+import { AllowedDomains, serveStaticFile } from "../utils";
+import type { Protocol } from "electron";
 import { getExtensionIcon } from "@/modules/extensions/management";
 import { getFavicon, normalizeURL } from "@/modules/favicons";
 import { PATHS } from "@/modules/paths";
 import { getContentType } from "@/modules/utils";
-import { Protocol } from "electron";
 import path from "path";
 import fsPromises from "fs/promises";
 import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
+import { getPdfResponseFromCache, removePdfResponseFromCache } from "@/modules/pdf-cache";
 
 const FLOW_PROTOCOL_ALLOWED_DOMAINS: AllowedDomains = {
   about: true,
@@ -17,20 +18,6 @@ const FLOW_PROTOCOL_ALLOWED_DOMAINS: AllowedDomains = {
   extensions: true,
   "pdf-viewer": true
 };
-
-const PDF_CACHE = new Map<string, Response>();
-
-export function addPdfResponseToCache(key: string, response: Response) {
-  PDF_CACHE.set(key, response);
-}
-
-function getPdfResponseFromCache(key: string): Response | undefined {
-  return PDF_CACHE.get(key);
-}
-
-function removePdfResponseFromCache(key: string) {
-  PDF_CACHE.delete(key);
-}
 
 export function registerFlowProtocol(protocol: Protocol) {
   const handleDomainRequest = async (request: Request, url: URL) => {
