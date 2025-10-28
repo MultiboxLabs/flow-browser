@@ -1,4 +1,4 @@
-import { Tab } from "@/browser/tabs/tab";
+import { Tab } from "./tab";
 import { Rectangle } from "electron";
 import { performance } from "perf_hooks";
 

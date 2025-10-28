@@ -1,4 +1,4 @@
-import { browser } from "@/browser";
+import { tabsController } from "@/controllers/tabs-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { ipcMain } from "electron";
 
@@ -10,7 +10,7 @@ ipcMain.on("navigation:go-to", (event, url: string, tabId?: number) => {
   const currentSpace = window.currentSpaceId;
   if (!currentSpace) return false;
 
-  const tab = tabId ? browser?.getTabFromId(tabId) : browser?.tabs.getFocusedTab(window.id, currentSpace);
+  const tab = tabId ? tabsController.getTabById(tabId) : tabsController.getFocusedTab(window.id, currentSpace);
   if (!tab) return false;
 
   tab.loadURL(url);
@@ -18,21 +18,21 @@ ipcMain.on("navigation:go-to", (event, url: string, tabId?: number) => {
 });
 
 ipcMain.on("navigation:stop-loading-tab", (_event, tabId: number) => {
-  const tab = browser?.getTabFromId(tabId);
+  const tab = tabsController.getTabById(tabId);
   if (!tab) return;
 
   tab.webContents?.stop();
 });
 
 ipcMain.on("navigation:reload-tab", (_event, tabId: number) => {
-  const tab = browser?.getTabFromId(tabId);
+  const tab = tabsController.getTabById(tabId);
   if (!tab) return;
 
   tab.webContents?.reload();
 });
 
 ipcMain.handle("navigation:get-tab-status", async (_event, tabId: number) => {
-  const tab = browser?.getTabFromId(tabId);
+  const tab = tabsController.getTabById(tabId);
   if (!tab) return null;
 
   const tabWebContents = tab.webContents;
@@ -48,7 +48,7 @@ ipcMain.handle("navigation:get-tab-status", async (_event, tabId: number) => {
 });
 
 ipcMain.on("navigation:go-to-entry", (_event, tabId: number, index: number) => {
-  const tab = browser?.getTabFromId(tabId);
+  const tab = tabsController.getTabById(tabId);
   if (!tab) return;
 
   return tab.webContents?.navigationHistory?.goToIndex(index);

@@ -1,4 +1,4 @@
-import { BaseTabGroup } from "@/browser/tabs/tab-groups";
+import { BaseTabGroup } from "./index";
 
 export class GlanceTabGroup extends BaseTabGroup {
   public frontTabId: number = -1;

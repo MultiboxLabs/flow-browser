@@ -4,7 +4,7 @@ import "./windows-controller";
 // Required by app-menu-controller, profiles-controller
 import "./spaces-controller";
 
-// Required by spaces-controller, loaded-profiles-manager
+// Required by spaces-controller, loaded-profiles-controller
 import "./profiles-controller";
 
 // Required by windows-controller

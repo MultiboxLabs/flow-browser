@@ -1,16 +1,15 @@
 import { MenuItemConstructorOptions } from "electron";
-import { Browser } from "@/browser/browser";
 import { getTabWcFromFocusedWindow } from "../helpers";
 import { getCurrentShortcut } from "@/modules/shortcuts";
 
-export const createArchiveMenu = (browser: Browser): MenuItemConstructorOptions => ({
+export const createArchiveMenu = (): MenuItemConstructorOptions => ({
   label: "Archive", // Consider renaming to "History" or "Navigation" if more appropriate
   submenu: [
     {
       label: "Go Back",
       accelerator: getCurrentShortcut("navigation.goBack"),
       click: () => {
-        const tabWc = getTabWcFromFocusedWindow(browser);
+        const tabWc = getTabWcFromFocusedWindow();
         if (!tabWc) return;
 
         const navigationHistory = tabWc.navigationHistory;
@@ -24,7 +23,7 @@ export const createArchiveMenu = (browser: Browser): MenuItemConstructorOptions 
       label: "Go Forward",
       accelerator: getCurrentShortcut("navigation.goForward"),
       click: () => {
-        const tabWc = getTabWcFromFocusedWindow(browser);
+        const tabWc = getTabWcFromFocusedWindow();
         if (!tabWc) return;
 
         const navigationHistory = tabWc.navigationHistory;

@@ -1,6 +1,4 @@
-import { Browser } from "@/browser/browser";
-import { SLEEP_MODE_URL, Tab } from "@/browser/tabs/tab";
-import { browser } from "@/browser";
+import { SLEEP_MODE_URL, Tab } from "@/controllers/tabs-controller/tab";
 import { getTabData } from "@/ipc/browser/tabs";
 import { ArchiveTabValueMap, SleepTabValueMap } from "@/modules/basic-settings";
 import { getDatastore } from "@/saving/datastore";
@@ -8,6 +6,7 @@ import { getSettingValueById } from "@/saving/settings";
 import { app } from "electron";
 import { TabData } from "~/types/tabs";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { tabsController } from "@/controllers/tabs-controller";
 
 const TabsDataStore = getDatastore("tabs");
 // const TabGroupsDataStore = getDatastore("tabgroups");
@@ -122,7 +121,7 @@ export async function wipeTabsFromStorage() {
   return await TabsDataStore.wipe();
 }
 
-async function createTabsFromTabDatas(browser: Browser, tabDatas: TabData[]) {
+async function createTabsFromTabDatas(tabDatas: TabData[]) {
   // Group them by window id
   const windowTabs = tabDatas.reduce(
     (acc, tab) => {
@@ -137,7 +136,7 @@ async function createTabsFromTabDatas(browser: Browser, tabDatas: TabData[]) {
     const window = await browserWindowsController.create();
 
     for (const tabData of tabs) {
-      browser.tabs.createTab(window.id, tabData.profileId, tabData.spaceId, undefined, {
+      tabsController.createTab(window.id, tabData.profileId, tabData.spaceId, undefined, {
         asleep: true,
         position: tabData.position,
         navHistory: tabData.navHistory,
@@ -151,13 +150,11 @@ async function createTabsFromTabDatas(browser: Browser, tabDatas: TabData[]) {
 }
 
 export async function createInitialWindow() {
-  if (!browser) return false;
-
   await app.whenReady();
 
   const tabs = await loadTabsFromStorage();
   if (tabs.length > 0) {
-    await createTabsFromTabDatas(browser, tabs);
+    await createTabsFromTabDatas(tabs);
   } else {
     await browserWindowsController.create();
   }

@@ -1,6 +1,6 @@
 import { AllowedDomains, serveStaticFile } from "@/browser/utility/protocols/utils";
-import { browser } from "@/browser";
 import { Protocol } from "electron";
+import { tabsController } from "@/controllers/tabs-controller";
 
 const FLOW_INTERNAL_ALLOWED_DOMAINS: AllowedDomains = {
   "main-ui": true,
@@ -15,10 +15,8 @@ const activeTabFaviconCache = new Map<number, [string, Response]>();
 
 // Remove cached favicons that are no longer active
 setInterval(() => {
-  if (!browser) return;
-
   for (const [tabId, [cachedFaviconURL]] of activeTabFaviconCache.entries()) {
-    const tab = browser.getTabFromId(tabId);
+    const tab = tabsController.getTabById(tabId);
     if (!tab || tab.isDestroyed || tab.faviconURL !== cachedFaviconURL) {
       activeTabFaviconCache.delete(tabId);
     }
@@ -40,7 +38,7 @@ export function registerFlowInternalProtocol(protocol: Protocol) {
     }
 
     // Get the tab
-    const tab = browser?.getTabFromId(tabIdInt);
+    const tab = tabsController.getTabById(tabIdInt);
     if (!tab) {
       return new Response("No tab found", { status: 404 });
     }

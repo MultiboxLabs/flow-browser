@@ -1,5 +1,4 @@
 import { Menu } from "electron";
-import { browser } from "@/browser";
 import { createAppMenu } from "./menu/items/app";
 import { createArchiveMenu } from "./menu/items/archive";
 import { createEditMenu } from "./menu/items/edit";
@@ -31,9 +30,9 @@ class AppMenuController {
       ...(isMac ? [createAppMenu()] : []),
       createFileMenu(),
       createEditMenu(),
-      createViewMenu(browser),
+      createViewMenu(),
       await createSpacesMenu(),
-      createArchiveMenu(browser),
+      createArchiveMenu(),
       createWindowMenu()
     ];
 

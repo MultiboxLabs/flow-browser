@@ -3,7 +3,6 @@
 
 import { app, type WebContents, webContents } from "electron";
 import { menuCloseTab } from "@/controllers/app-menu-controller/menu/items/view";
-import { browser } from "@/browser";
 
 const enabled = process.platform === "win32";
 
@@ -19,8 +18,8 @@ function newWebContents(webContents: WebContents) {
     if (input.key === "w" && input.control) {
       event.preventDefault();
 
-      if (browser && input.type === "keyDown") {
-        menuCloseTab(browser);
+      if (input.type === "keyDown") {
+        menuCloseTab();
       }
     }
   });

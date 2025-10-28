@@ -1,19 +1,18 @@
-import { Browser } from "@/browser/browser";
-import { isRectangleEqual, TabBoundsController } from "@/browser/tabs/tab-bounds";
 import { TabGroupMode } from "~/types/tabs";
-import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
-import { TabManager } from "@/browser/tabs/tab-manager";
+import { GlanceTabGroup } from "./tab-groups/glance";
 import { cacheFavicon } from "@/modules/favicons";
 import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { NavigationEntry, Rectangle, Session, WebContents, WebContentsView, WebPreferences } from "electron";
-import { createTabContextMenu } from "@/browser/tabs/tab-context-menu";
+import { createTabContextMenu } from "./context-menu";
 import { generateID } from "@/modules/utils";
 import { persistTabToStorage, removeTabFromStorage } from "@/saving/tabs";
 import { setWindowSpace } from "@/ipc/session/spaces";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import { LoadedProfile } from "@/controllers/loaded-profiles-controller";
+import { type TabsController } from "./index";
+import { isRectangleEqual, TabBoundsController } from "./bounds";
 
 // Configuration
 const GLANCE_FRONT_ZINDEX = 3;
@@ -51,8 +50,7 @@ type TabEvents = {
 
 interface TabCreationDetails {
   // Controllers
-  browser: Browser;
-  tabManager: TabManager;
+  tabsController: TabsController;
 
   // Properties
   profileId: string;
@@ -150,10 +148,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
   // Private properties
   private readonly session: Session;
-  private readonly browser: Browser;
   public readonly loadedProfile: LoadedProfile;
   private window: BrowserWindow;
-  private readonly tabManager: TabManager;
+  private readonly tabsController: TabsController;
   private readonly bounds: TabBoundsController;
 
   /**
@@ -165,8 +162,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     // Create Details
     const {
       // Controllers
-      browser,
-      tabManager,
+      tabsController,
 
       // Properties
       profileId,
@@ -176,8 +172,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       session
     } = details;
 
-    this.browser = browser;
-    this.tabManager = tabManager;
+    this.tabsController = tabsController;
 
     this.profileId = profileId;
     this.spaceId = spaceId;
@@ -214,7 +209,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       this.position = position;
     } else {
       // Get the smallest position
-      const smallestPosition = this.tabManager.getSmallestPosition();
+      const smallestPosition = this.tabsController.getSmallestPosition();
       this.position = smallestPosition - 1;
     }
 
@@ -417,9 +412,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     // Handle devtools open url
     webContents.on("devtools-open-url", (_event, url) => {
-      this.tabManager.createTab(this.window.id, this.profileId, undefined).then((tab) => {
+      this.tabsController.createTab(this.window.id, this.profileId, undefined).then((tab) => {
         tab.loadURL(url);
-        this.tabManager.setActiveTab(tab);
+        this.tabsController.setActiveTab(tab);
       });
     });
 
@@ -466,7 +461,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     });
 
     // Handle context menu
-    createTabContextMenu(this.browser, this, this.profileId, this.window, this.spaceId);
+    createTabContextMenu(this.tabsController, this, this.profileId, this.window, this.spaceId);
   }
 
   public createNewTab(
@@ -506,26 +501,26 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       setWindowSpace(newWindow, this.spaceId);
     }
 
-    const newTab = this.tabManager.internalCreateTab(windowId, this.profileId, this.spaceId, constructorOptions);
+    const newTab = this.tabsController.internalCreateTab(windowId, this.profileId, this.spaceId, constructorOptions);
     newTab.loadURL(url);
 
     let glanced = false;
 
     // Glance if possible
     if (isForegroundTab && FLAGS.GLANCE_ENABLED) {
-      const currentTabGroup = this.tabManager.getTabGroupByTabId(this.id);
+      const currentTabGroup = this.tabsController.getTabGroupByTabId(this.id);
       if (!currentTabGroup) {
         glanced = true;
 
-        const group = this.tabManager.createTabGroup("glance", [newTab.id, this.id]) as GlanceTabGroup;
+        const group = this.tabsController.createTabGroup("glance", [newTab.id, this.id]) as GlanceTabGroup;
         group.setFrontTab(newTab.id);
 
-        this.tabManager.setActiveTab(group);
+        this.tabsController.setActiveTab(group);
       }
     }
 
     if ((isForegroundTab && !glanced) || isBackgroundTab || isNewWindow) {
-      this.tabManager.setActiveTab(newTab);
+      this.tabsController.setActiveTab(newTab);
     }
 
     return newTab.webContents;
@@ -763,7 +758,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    * Updates the layout of the tab
    */
   public updateLayout() {
-    const { visible, window, tabManager } = this;
+    const { visible, window, tabsController } = this;
 
     // Ensure visibility is updated first
     const wasVisible = this.view.getVisible();
@@ -872,7 +867,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       this.view.setBorderRadius(8);
     }
 
-    const tabGroup = tabManager.getTabGroupByTabId(this.id);
+    const tabGroup = tabsController.getTabGroupByTabId(this.id);
 
     const lastTabGroupMode = this.lastTabGroupMode;
     let newBounds: Rectangle | null = null;
