@@ -8,6 +8,7 @@ import { Omnibox } from "@/controllers/windows-controller/utils/browser/omnibox"
 import { initializePortalComponentWindows } from "@/controllers/windows-controller/utils/browser/portal-component-windows";
 import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
 import { fireWindowStateChanged } from "@/ipc/browser/interface";
+import { tabsController } from "@/controllers/tabs-controller";
 
 export type BrowserWindowType = "normal" | "popup";
 
@@ -138,9 +139,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
   public setPageBounds(bounds: PageBounds) {
     this.pageBounds = bounds;
     this.emit("page-bounds-changed", bounds);
-
-    // TODO: connect to tab manager
-    // this.browser.tabs.handlePageBoundsChanged(this.id);
+    tabsController.handlePageBoundsChanged(this.id);
   }
 
   // Current Space //
@@ -150,8 +149,6 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     this.currentSpaceId = spaceId;
     this.emit("current-space-changed", spaceId);
     appMenuController.render();
-
-    // TODO: connect to tab manager
-    // this.browser.tabs.setCurrentWindowSpace(this.id, spaceId);
+    tabsController.setCurrentWindowSpace(this.id, spaceId);
   }
 }

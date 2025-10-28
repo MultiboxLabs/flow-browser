@@ -1,7 +1,6 @@
 // This is for other controllers to interface with the onboarding window
 import { windowsController } from "@/controllers/windows-controller";
 
-// TODO: remove after browser object is removed (browserobjectdeprecated)
 const onboardingWindowManager = () => windowsController.onboarding;
 
 export const onboarding = {
