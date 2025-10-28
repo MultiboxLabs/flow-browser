@@ -9,6 +9,7 @@ import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
 import { fireWindowStateChanged } from "@/ipc/browser/interface";
 import { tabsController } from "@/controllers/tabs-controller";
 import { sessionsController } from "@/controllers/sessions-controller";
+import { spacesController } from "@/controllers/spaces-controller";
 
 export type BrowserWindowType = "normal" | "popup";
 
@@ -101,6 +102,13 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     this.omnibox = new Omnibox(browserWindow);
     this.viewManager.addOrUpdateView(this.omnibox.view, 999);
     this.coreWebContents.push(this.omnibox.webContents);
+
+    // Set Initial Space //
+    spacesController.getLastUsed().then((space) => {
+      if (space && !this.currentSpaceId) {
+        this.setCurrentSpace(space.id);
+      }
+    });
 
     // Portal Components //
     initializePortalComponentWindows(this);
