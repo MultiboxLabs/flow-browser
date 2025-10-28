@@ -14,10 +14,10 @@ export const browser: Browser = new Browser();
 debugPrint("INITIALIZATION", "browser object created");
 
 // Handle initial URL (runs asynchronously)
-processInitialUrl(browser);
+processInitialUrl();
 
 // Setup second instance handler
-setupSecondInstanceHandling(browser);
+setupSecondInstanceHandling();
 
 // Setup platform specific features
 setupPlatformIntegration();
@@ -26,4 +26,4 @@ setupPlatformIntegration();
 runOnboardingOrInitialWindow();
 
 // App lifecycle events
-setupAppLifecycle(browser);
+setupAppLifecycle();

@@ -1,22 +1,21 @@
-import { Browser } from "@/browser/browser";
-import { Tab, TabCreationOptions } from "@/browser/tabs/tab";
-import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
-import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
-import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
-import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
-import { spacesController } from "@/controllers/spaces-controller";
-import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
-import { windowTabsChanged } from "@/ipc/browser/tabs";
-import { setWindowSpace } from "@/ipc/session/spaces";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
+import { Tab, TabCreationOptions } from "./tab";
+import { BaseTabGroup, TabGroup } from "./tab-groups";
+import { windowTabsChanged } from "@/ipc/browser/tabs";
 import { shouldArchiveTab, shouldSleepTab } from "@/saving/tabs";
+import { GlanceTabGroup } from "./tab-groups/glance";
+import { SplitTabGroup } from "./tab-groups/split";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { spacesController } from "@/controllers/spaces-controller";
+import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
+import { setWindowSpace } from "@/ipc/session/spaces";
 import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
 
 export const NEW_TAB_URL = "flow://new-tab";
 const ARCHIVE_CHECK_INTERVAL_MS = 10 * 1000;
 
-type TabManagerEvents = {
+type TabsControllerEvents = {
   "tab-created": [Tab];
   "tab-changed": [Tab];
   "tab-removed": [Tab];
@@ -27,34 +26,32 @@ type TabManagerEvents = {
 
 type WindowSpaceReference = `${number}-${string}`;
 
-// Tab Class
-export class TabManager extends TypedEventEmitter<TabManagerEvents> {
+class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   // Public properties
   public tabs: Map<number, Tab>;
-  public isDestroyed: boolean = false;
 
   // Window Space Maps
-  public windowActiveSpaceMap: Map<number, string> = new Map();
-  public spaceActiveTabMap: Map<WindowSpaceReference, Tab | TabGroup> = new Map();
-  public spaceFocusedTabMap: Map<WindowSpaceReference, Tab> = new Map();
-  public spaceActivationHistory: Map<WindowSpaceReference, number[]> = new Map();
+  public windowActiveSpaceMap: Map<number, string>;
+  public spaceActiveTabMap: Map<WindowSpaceReference, Tab | TabGroup>;
+  public spaceFocusedTabMap: Map<WindowSpaceReference, Tab>;
+  public spaceActivationHistory: Map<WindowSpaceReference, number[]>;
 
   // Tab Groups
   public tabGroups: Map<number, TabGroup>;
   private tabGroupCounter: number = 0;
 
-  // Private properties
-  private readonly browser: Browser;
-
-  /**
-   * Creates a new tab manager instance
-   */
-  constructor(browser: Browser) {
+  constructor() {
     super();
 
     this.tabs = new Map();
+
+    this.windowActiveSpaceMap = new Map();
+    this.spaceActiveTabMap = new Map();
+    this.spaceFocusedTabMap = new Map();
+    this.spaceActivationHistory = new Map();
+
     this.tabGroups = new Map();
-    this.browser = browser;
+    this.tabGroupCounter = 0;
 
     // Setup event listeners
     this.on("active-tab-changed", (windowId, spaceId) => {
@@ -106,10 +103,6 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     webContentsViewOptions?: Electron.WebContentsViewConstructorOptions,
     tabCreationOptions: Partial<TabCreationOptions> = {}
   ) {
-    if (this.isDestroyed) {
-      throw new Error("TabManager has been destroyed");
-    }
-
     if (!windowId) {
       const focusedWindow = browserWindowsController.getFocusedWindow();
       if (focusedWindow) {
@@ -165,10 +158,6 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     webContentsViewOptions?: Electron.WebContentsViewConstructorOptions,
     tabCreationOptions: Partial<TabCreationOptions> = {}
   ) {
-    if (this.isDestroyed) {
-      throw new Error("TabManager has been destroyed");
-    }
-
     // Get window
     const window = browserWindowsController.getWindowById(windowId);
     if (!window) {
@@ -187,8 +176,7 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     // Create tab
     const tab = new Tab(
       {
-        browser: this.browser,
-        tabManager: this,
+        tabsController: this,
         profileId: profileId,
         spaceId: spaceId,
         session: profileSession,
@@ -616,10 +604,10 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     let tabGroup: TabGroup;
     switch (mode) {
       case "glance":
-        tabGroup = new GlanceTabGroup(this.browser, this, id, initialTabs as [Tab, ...Tab[]]);
+        tabGroup = new GlanceTabGroup(this, id, initialTabs as [Tab, ...Tab[]]);
         break;
       case "split":
-        tabGroup = new SplitTabGroup(this.browser, this, id, initialTabs as [Tab, ...Tab[]]);
+        tabGroup = new SplitTabGroup(this, id, initialTabs as [Tab, ...Tab[]]);
         break;
       default:
         throw new Error(`Invalid tab group mode: ${mode}`);
@@ -706,45 +694,45 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     return this.tabGroups.get(tabGroupId);
   }
 
-  /**
-   * Destroy the tab manager
-   */
-  public destroy() {
-    if (this.isDestroyed) {
-      // Avoid throwing error if already destroyed, just return.
-      console.warn("TabManager destroy called multiple times.");
-      return;
-    }
+  // /**
+  //  * Destroy the tab manager
+  //  */
+  // public destroy() {
+  //   if (this.isDestroyed) {
+  //     // Avoid throwing error if already destroyed, just return.
+  //     console.warn("TabManager destroy called multiple times.");
+  //     return;
+  //   }
 
-    this.isDestroyed = true;
-    this.emit("destroyed");
-    this.destroyEmitter(); // Destroys internal event emitter listeners
+  //   this.isDestroyed = true;
+  //   this.emit("destroyed");
+  //   this.destroyEmitter(); // Destroys internal event emitter listeners
 
-    // Destroy groups first to handle tab transitions cleanly
-    // Create a copy of IDs as destroying modifies the map
-    const groupIds = Array.from(this.tabGroups.keys());
-    for (const groupId of groupIds) {
-      this.destroyTabGroup(groupId);
-    }
+  //   // Destroy groups first to handle tab transitions cleanly
+  //   // Create a copy of IDs as destroying modifies the map
+  //   const groupIds = Array.from(this.tabGroups.keys());
+  //   for (const groupId of groupIds) {
+  //     this.destroyTabGroup(groupId);
+  //   }
 
-    // Destroy remaining individual tabs
-    // Create a copy of values as destroying modifies the map
-    const tabsToDestroy = Array.from(this.tabs.values());
-    for (const tab of tabsToDestroy) {
-      // Check if tab still exists (might have been destroyed by group)
-      if (this.tabs.has(tab.id) && !tab.isDestroyed) {
-        tab.destroy(); // Tab destroy should trigger removeTab via 'destroyed' event
-      }
-    }
+  //   // Destroy remaining individual tabs
+  //   // Create a copy of values as destroying modifies the map
+  //   const tabsToDestroy = Array.from(this.tabs.values());
+  //   for (const tab of tabsToDestroy) {
+  //     // Check if tab still exists (might have been destroyed by group)
+  //     if (this.tabs.has(tab.id) && !tab.isDestroyed) {
+  //       tab.destroy(); // Tab destroy should trigger removeTab via 'destroyed' event
+  //     }
+  //   }
 
-    // Clear maps
-    this.tabs.clear();
-    this.tabGroups.clear();
-    this.windowActiveSpaceMap.clear();
-    this.spaceActiveTabMap.clear();
-    this.spaceFocusedTabMap.clear();
-    this.spaceActivationHistory.clear();
-  }
+  //   // Clear maps
+  //   this.tabs.clear();
+  //   this.tabGroups.clear();
+  //   this.windowActiveSpaceMap.clear();
+  //   this.spaceActiveTabMap.clear();
+  //   this.spaceFocusedTabMap.clear();
+  //   this.spaceActivationHistory.clear();
+  // }
 
   /**
    * Helper method to remove an item ID from all activation history lists
@@ -765,3 +753,6 @@ export class TabManager extends TypedEventEmitter<TabManagerEvents> {
     // Method doesn't need to return anything, just modifies the map
   }
 }
+
+export { type TabsController };
+export const tabsController = new TabsController();

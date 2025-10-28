@@ -1,4 +1,4 @@
-import { BaseTabGroup } from "@/browser/tabs/tab-groups";
+import { BaseTabGroup } from "./index";
 
 export class SplitTabGroup extends BaseTabGroup {
   public mode: "split" = "split" as const;

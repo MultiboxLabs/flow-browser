@@ -1,11 +1,11 @@
-import { Tab } from "@/browser/tabs/tab";
-import { BaseTabGroup, TabGroup } from "@/browser/tabs/tab-groups";
-import { browser } from "@/browser";
+import { BaseTabGroup, TabGroup } from "@/controllers/tabs-controller/tab-groups";
 import { spacesController } from "@/controllers/spaces-controller";
 import { clipboard, ipcMain, Menu, MenuItem } from "electron";
 import { TabData, TabGroupData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
+import { Tab } from "@/controllers/tabs-controller/tab";
+import { tabsController } from "@/controllers/tabs-controller";
 
 export function getTabData(tab: Tab): TabData {
   return {
@@ -48,13 +48,10 @@ export function getTabGroupData(tabGroup: TabGroup): TabGroupData {
 
 // IPC Handlers //
 function getWindowTabsData(window: BrowserWindow) {
-  const tabManager = browser?.tabs;
-  if (!tabManager) return null;
-
   const windowId = window.id;
 
-  const tabs = tabManager.getTabsInWindow(windowId);
-  const tabGroups = tabManager.getTabGroupsInWindow(windowId);
+  const tabs = tabsController.getTabsInWindow(windowId);
+  const tabGroups = tabsController.getTabGroupsInWindow(windowId);
 
   const tabDatas = tabs.map((tab) => getTabData(tab));
   const tabGroupDatas = tabGroups.map((tabGroup) => getTabGroupData(tabGroup));
@@ -75,12 +72,12 @@ function getWindowTabsData(window: BrowserWindow) {
   const activeTabs: WindowActiveTabIds = {};
 
   for (const spaceId of windowSpaces) {
-    const focusedTab = tabManager.getFocusedTab(windowId, spaceId);
+    const focusedTab = tabsController.getFocusedTab(windowId, spaceId);
     if (focusedTab) {
       focusedTabs[spaceId] = focusedTab.id;
     }
 
-    const activeTab = tabManager.getActiveTab(windowId, spaceId);
+    const activeTab = tabsController.getActiveTab(windowId, spaceId);
     if (activeTab) {
       if (activeTab instanceof BaseTabGroup) {
         activeTabs[spaceId] = activeTab.tabs.map((tab) => tab.id);
@@ -111,7 +108,6 @@ let windowTabsChangedQueueTimeout: NodeJS.Timeout | null = null;
 
 function processWindowTabsChangedQueue() {
   if (windowTabsChangedQueue.size === 0) return;
-  if (!browser) return;
 
   for (const windowId of Array.from(windowTabsChangedQueue)) {
     const window = browserWindowsController.getWindowById(windowId);
@@ -147,13 +143,10 @@ ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {
   const window = browserWindowsController.getWindowFromWebContents(webContents);
   if (!window) return false;
 
-  const tabManager = browser?.tabs;
-  if (!tabManager) return false;
-
-  const tab = tabManager.getTabById(tabId);
+  const tab = tabsController.getTabById(tabId);
   if (!tab) return false;
 
-  tabManager.setActiveTab(tab);
+  tabsController.setActiveTab(tab);
   return true;
 });
 
@@ -162,9 +155,6 @@ ipcMain.handle("tabs:new-tab", async (event, url?: string, isForeground?: boolea
   const window =
     browserWindowsController.getWindowFromWebContents(webContents) || browserWindowsController.getWindows()[0];
   if (!window) return;
-
-  const tabManager = browser?.tabs;
-  if (!tabManager) return;
 
   if (!spaceId) {
     const currentSpace = window.currentSpaceId;
@@ -178,14 +168,14 @@ ipcMain.handle("tabs:new-tab", async (event, url?: string, isForeground?: boolea
   const space = await spacesController.get(spaceId);
   if (!space) return;
 
-  const tab = await tabManager.createTab(window.id, space.profileId, spaceId);
+  const tab = await tabsController.createTab(window.id, space.profileId, spaceId);
 
   if (url) {
     tab.loadURL(url);
   }
 
   if (isForeground) {
-    tabManager.setActiveTab(tab);
+    tabsController.setActiveTab(tab);
   }
   return true;
 });
@@ -195,10 +185,7 @@ ipcMain.handle("tabs:close-tab", async (event, tabId: number) => {
   const window = browserWindowsController.getWindowFromWebContents(webContents);
   if (!window) return false;
 
-  const tabManager = browser?.tabs;
-  if (!tabManager) return false;
-
-  const tab = tabManager.getTabById(tabId);
+  const tab = tabsController.getTabById(tabId);
   if (!tab) return false;
 
   tab.destroy();
@@ -206,24 +193,16 @@ ipcMain.handle("tabs:close-tab", async (event, tabId: number) => {
 });
 
 ipcMain.handle("tabs:disable-picture-in-picture", async (event, goBackToTab: boolean) => {
-  if (!browser) return false;
-
   const sender = event.sender;
-
-  const tab = browser.tabs.getTabByWebContents(sender);
+  const tab = tabsController.getTabByWebContents(sender);
   if (!tab) return false;
 
-  const disabled = browser.tabs.disablePictureInPicture(tab.id, goBackToTab);
+  const disabled = tabsController.disablePictureInPicture(tab.id, goBackToTab);
   return disabled;
 });
 
 ipcMain.handle("tabs:set-tab-muted", async (_event, tabId: number, muted: boolean) => {
-  if (!browser) return false;
-
-  const tabManager = browser.tabs;
-  if (!tabManager) return false;
-
-  const tab = tabManager.getTabById(tabId);
+  const tab = tabsController.getTabById(tabId);
   if (!tab) return false;
 
   tab.webContents.setAudioMuted(muted);
@@ -238,15 +217,12 @@ ipcMain.handle("tabs:move-tab", async (event, tabId: number, newPosition: number
   const window = browserWindowsController.getWindowFromWebContents(webContents);
   if (!window) return false;
 
-  const tabManager = browser?.tabs;
-  if (!tabManager) return false;
-
-  const tab = tabManager.getTabById(tabId);
+  const tab = tabsController.getTabById(tabId);
   if (!tab) return false;
 
   let targetTabs: Tab[] = [tab];
 
-  const tabGroup = tabManager.getTabGroupByTabId(tab.id);
+  const tabGroup = tabsController.getTabGroupByTabId(tab.id);
   if (tabGroup) {
     targetTabs = tabGroup.tabs;
   }
@@ -263,10 +239,7 @@ ipcMain.handle("tabs:move-tab-to-window-space", async (event, tabId: number, spa
   const window = browserWindowsController.getWindowFromWebContents(webContents);
   if (!window) return false;
 
-  const tabManager = browser?.tabs;
-  if (!tabManager) return false;
-
-  const tab = tabManager.getTabById(tabId);
+  const tab = tabsController.getTabById(tabId);
   if (!tab) return false;
 
   const space = await spacesController.get(spaceId);
@@ -279,7 +252,7 @@ ipcMain.handle("tabs:move-tab-to-window-space", async (event, tabId: number, spa
     tab.updateStateProperty("position", newPosition);
   }
 
-  tabManager.setActiveTab(tab);
+  tabsController.setActiveTab(tab);
   return true;
 });
 
@@ -288,10 +261,7 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
   const window = browserWindowsController.getWindowFromWebContents(webContents);
   if (!window) return;
 
-  const tabManager = browser?.tabs;
-  if (!tabManager) return;
-
-  const tab = tabManager.getTabById(tabId);
+  const tab = tabsController.getTabById(tabId);
   if (!tab) return;
 
   const isTabVisible = tab.visible;
@@ -324,7 +294,7 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
       click: () => {
         if (tab.asleep) {
           tab.wakeUp();
-          tabManager.setActiveTab(tab);
+          tabsController.setActiveTab(tab);
         } else {
           tab.putToSleep();
         }

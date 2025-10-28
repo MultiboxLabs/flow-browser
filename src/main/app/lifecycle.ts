@@ -1,10 +1,9 @@
 import { app, BrowserWindow } from "electron";
-import type { Browser } from "@/browser/browser";
 import { handleOpenUrl } from "@/app/urls";
 import { hasCompletedOnboarding } from "@/saving/onboarding";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 
-export function setupAppLifecycle(browser: Browser) {
+export function setupAppLifecycle() {
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin") {
       app.quit();
@@ -27,6 +26,6 @@ export function setupAppLifecycle(browser: Browser) {
   });
 
   app.on("open-url", async (_event, url) => {
-    handleOpenUrl(false, browser, url);
+    handleOpenUrl(false, url);
   });
 }

@@ -1,8 +1,8 @@
-import { Browser } from "@/browser/browser";
-import { Tab } from "@/browser/tabs/tab";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import contextMenu from "electron-context-menu";
+import { Tab } from "./tab";
+import { TabsController } from "./index";
 
 // Define types for navigation history
 interface NavigationHistory {
@@ -31,7 +31,7 @@ interface MenuActions {
 }
 
 export function createTabContextMenu(
-  browser: Browser,
+  tabsController: TabsController,
   tab: Tab,
   profileId: string,
   window: BrowserWindow,
@@ -50,13 +50,13 @@ export function createTabContextMenu(
 
       // Helper function to create a new tab
       const createNewTab = async (url: string, overrideWindow?: BrowserWindow) => {
-        const sourceTab = await browser.tabs.createTab(
+        const sourceTab = await tabsController.createTab(
           overrideWindow ? overrideWindow.id : window.id,
           profileId,
           spaceId
         );
         sourceTab.loadURL(url);
-        browser.tabs.setActiveTab(sourceTab);
+        tabsController.setActiveTab(sourceTab);
       };
 
       // Create all menu sections

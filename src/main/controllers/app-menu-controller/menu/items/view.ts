@@ -1,11 +1,10 @@
 import { MenuItemConstructorOptions } from "electron";
-import { Browser } from "@/browser/browser";
 import { getFocusedBrowserWindow, getFocusedWindow, getTab, getTabWcFromFocusedWindow } from "../helpers";
 import { toggleSidebar } from "@/ipc/browser/interface";
 import { getCurrentShortcut } from "@/modules/shortcuts";
 import { browserWindowsManager } from "@/controllers/windows-controller";
 
-export function menuCloseTab(browser: Browser) {
+export function menuCloseTab() {
   const window = getFocusedWindow();
   if (!window) return;
 
@@ -17,7 +16,7 @@ export function menuCloseTab(browser: Browser) {
   if (window.omnibox.isVisible()) {
     window.omnibox.hide();
   } else {
-    const tab = getTab(browser, window);
+    const tab = getTab(window);
     if (tab) {
       tab.destroy();
     } else {
@@ -27,7 +26,7 @@ export function menuCloseTab(browser: Browser) {
   }
 }
 
-export const createViewMenu = (browser: Browser): MenuItemConstructorOptions => ({
+export const createViewMenu = (): MenuItemConstructorOptions => ({
   label: "View",
   submenu: [
     {
@@ -45,7 +44,7 @@ export const createViewMenu = (browser: Browser): MenuItemConstructorOptions => 
       label: "Reload",
       accelerator: getCurrentShortcut("tab.reload"),
       click: () => {
-        const tabWc = getTabWcFromFocusedWindow(browser);
+        const tabWc = getTabWcFromFocusedWindow();
         if (!tabWc) return;
         tabWc.reload();
       }
@@ -54,7 +53,7 @@ export const createViewMenu = (browser: Browser): MenuItemConstructorOptions => 
       label: "Force Reload",
       accelerator: getCurrentShortcut("tab.forceReload"),
       click: () => {
-        const tabWc = getTabWcFromFocusedWindow(browser);
+        const tabWc = getTabWcFromFocusedWindow();
         if (!tabWc) return;
         tabWc.reloadIgnoringCache();
       }
@@ -63,14 +62,14 @@ export const createViewMenu = (browser: Browser): MenuItemConstructorOptions => 
       label: "Close Tab",
       accelerator: getCurrentShortcut("tab.close"),
       click: () => {
-        menuCloseTab(browser);
+        menuCloseTab();
       }
     },
     {
       label: "Toggle Developer Tools",
       accelerator: getCurrentShortcut("tab.toggleDevTools"),
       click: () => {
-        const tabWc = getTabWcFromFocusedWindow(browser);
+        const tabWc = getTabWcFromFocusedWindow();
         if (!tabWc) return;
         tabWc.toggleDevTools();
       }

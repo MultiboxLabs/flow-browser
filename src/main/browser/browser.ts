@@ -1,7 +1,5 @@
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { BrowserEvents } from "@/browser/events";
-import { TabManager } from "@/browser/tabs/tab-manager";
-import { Tab } from "@/browser/tabs/tab";
 import { settings } from "@/controllers/windows-controller/interfaces/settings";
 import { onboarding } from "@/controllers/windows-controller/interfaces/onboarding";
 import "@/modules/extensions/main";
@@ -15,19 +13,13 @@ import "@/modules/extensions/main";
  * - Providing a unified API for browser operations
  */
 export class Browser extends TypedEventEmitter<BrowserEvents> {
-  private readonly tabManager: TabManager;
   private _isDestroyed: boolean = false;
-  public tabs: TabManager;
 
   /**
    * Creates a new Browser instance
    */
   constructor() {
     super();
-    this.tabManager = new TabManager(this);
-
-    // A public reference to the tab manager
-    this.tabs = this.tabManager;
   }
 
   /**
@@ -55,13 +47,6 @@ export class Browser extends TypedEventEmitter<BrowserEvents> {
       // Always destroy the emitter
       this.destroyEmitter();
     }
-  }
-
-  /**
-   * Get tab from ID
-   */
-  public getTabFromId(tabId: number): Tab | undefined {
-    return this.tabManager.getTabById(tabId);
   }
 
   /**

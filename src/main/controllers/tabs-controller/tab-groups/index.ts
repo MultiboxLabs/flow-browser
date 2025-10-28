@@ -1,10 +1,9 @@
-import { Tab } from "@/browser/tabs/tab";
-import { GlanceTabGroup } from "@/browser/tabs/tab-groups/glance";
-import { SplitTabGroup } from "@/browser/tabs/tab-groups/split";
-import { TabManager } from "@/browser/tabs/tab-manager";
-import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { Browser } from "@/browser/browser";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { Tab } from "../tab";
+import { TypedEventEmitter } from "@/modules/typed-event-emitter";
+import { type GlanceTabGroup } from "./glance";
+import { type SplitTabGroup } from "./split";
+import { type TabsController } from "@/controllers/tabs-controller";
 
 // Interfaces and Types
 export type TabGroupEvents = {
@@ -15,8 +14,8 @@ export type TabGroupEvents = {
   destroy: [];
 };
 
-function getTabFromId(tabManager: TabManager, id: number): Tab | null {
-  const tab = tabManager.getTabById(id);
+function getTabFromId(tabsController: TabsController, id: number): Tab | null {
+  const tab = tabsController.getTabById(id);
   if (!tab) {
     return null;
   }
@@ -34,15 +33,13 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
   public profileId: string;
   public spaceId: string;
 
-  protected browser: Browser;
-  protected tabManager: TabManager;
+  protected tabsController: TabsController;
   protected tabIds: number[] = [];
 
-  constructor(browser: Browser, tabManager: TabManager, id: number, initialTabs: [Tab, ...Tab[]]) {
+  constructor(tabsController: TabsController, id: number, initialTabs: [Tab, ...Tab[]]) {
     super();
 
-    this.browser = browser;
-    this.tabManager = tabManager;
+    this.tabsController = tabsController;
     this.id = id;
 
     const initialTab = initialTabs[0];
@@ -117,7 +114,7 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
       return false;
     }
 
-    const tab = getTabFromId(this.tabManager, tabId);
+    const tab = getTabFromId(this.tabsController, tabId);
     if (tab === null) {
       return false;
     }
@@ -150,11 +147,11 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
     };
     const onActiveTabChanged = (windowId: number, spaceId: string) => {
       if (windowId === this.windowId && spaceId === this.spaceId) {
-        const activeTab = this.tabManager.getActiveTab(windowId, spaceId);
+        const activeTab = this.tabsController.getActiveTab(windowId, spaceId);
         if (activeTab === tab) {
           // Set this tab group as active instead of just the tab
           // @ts-expect-error: the base class won't be used directly anyways
-          this.tabManager.setActiveTab(this);
+          this.tabsController.setActiveTab(this);
         }
       }
     };
@@ -174,7 +171,7 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
     const disconnect2 = this.connect("tab-removed", onTabRemoved);
     const disconnect3 = tab.connect("space-changed", onTabSpaceChanged);
     const disconnect4 = tab.connect("window-changed", onTabWindowChanged);
-    const disconnect5 = this.tabManager.connect("active-tab-changed", onActiveTabChanged);
+    const disconnect5 = this.tabsController.connect("active-tab-changed", onActiveTabChanged);
     const disconnect6 = this.connect("destroy", onDestroy);
 
     // Sync tab space and window
@@ -190,7 +187,7 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
     }
 
     // Clear the groupId on the tab being removed
-    const tab = getTabFromId(this.tabManager, tabId);
+    const tab = getTabFromId(this.tabsController, tabId);
     if (tab && tab.groupId === this.id) {
       tab.groupId = null;
     }
@@ -203,10 +200,10 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
   public get tabs(): Tab[] {
     this.errorIfDestroyed();
 
-    const tabManager = this.tabManager;
+    const tabsController = this.tabsController;
     return this.tabIds
       .map((id) => {
-        return getTabFromId(tabManager, id);
+        return getTabFromId(tabsController, id);
       })
       .filter((tab) => tab !== null);
   }

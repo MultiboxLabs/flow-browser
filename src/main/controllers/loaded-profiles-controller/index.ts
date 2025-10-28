@@ -1,8 +1,7 @@
-import { browser } from "@/browser";
 import { getSession } from "@/browser/sessions";
-import { NEW_TAB_URL } from "@/browser/tabs/tab-manager";
 import { transformUserAgentHeader } from "@/browser/utility/user-agent";
 import { ProfileData, profilesController } from "@/controllers/profiles-controller";
+import { NEW_TAB_URL, tabsController } from "@/controllers/tabs-controller";
 import { windowsController } from "@/controllers/windows-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { setWindowSpace } from "@/ipc/session/spaces";
@@ -13,8 +12,6 @@ import { dialog, BrowserWindow as ElectronBrowserWindow, Session } from "electro
 import { ElectronChromeExtensions } from "electron-chrome-extensions";
 import { ExtensionInstallStatus, installChromeWebStore } from "electron-chrome-web-store";
 import path from "path";
-
-const tabManager = browser.tabs;
 
 type LoadedProfilesControllerEvents = {
   "profile-loaded": [profileId: string];
@@ -128,7 +125,7 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
       session: profileSession,
       registerCrxProtocolInDefaultSession: false,
       assignTabDetails: (tabDetails, tabWebContents) => {
-        const tab = tabManager.getTabByWebContents(tabWebContents);
+        const tab = tabsController.getTabByWebContents(tabWebContents);
         if (!tab) return;
 
         tabDetails.title = tab.title;
@@ -143,19 +140,19 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
         const windowId = tabDetails.windowId;
         const window = windowId ? browserWindowsController.getWindowById(windowId) : undefined;
 
-        const tab = await tabManager.createTab(window?.id, profileId, undefined);
+        const tab = await tabsController.createTab(window?.id, profileId, undefined);
         if (tabDetails.url) {
           tab.loadURL(tabDetails.url);
         }
         if (tabDetails.active) {
-          tabManager.setActiveTab(tab);
+          tabsController.setActiveTab(tab);
         }
 
         const electronWindow = tab.getWindow().browserWindow;
         return [tab.webContents, electronWindow];
       },
       selectTab: (tabWebContents) => {
-        const tab = tabManager.getTabByWebContents(tabWebContents);
+        const tab = tabsController.getTabByWebContents(tabWebContents);
         if (!tab) return;
 
         // Set the space for the window
@@ -163,10 +160,10 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
         setWindowSpace(window, tab.spaceId);
 
         // Set the active tab
-        tabManager.setActiveTab(tab);
+        tabsController.setActiveTab(tab);
       },
       removeTab: (tabWebContents) => {
-        const tab = tabManager.getTabByWebContents(tabWebContents);
+        const tab = tabsController.getTabByWebContents(tabWebContents);
         if (!tab) return;
 
         tab.destroy();
@@ -189,10 +186,10 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
           for (const url of urls) {
             const currentTabIndex = tabIndex;
 
-            tabManager.createTab(window.id, profileId).then((tab) => {
+            tabsController.createTab(window.id, profileId).then((tab) => {
               tab.loadURL(url);
               if (currentTabIndex === 0) {
-                tabManager.setActiveTab(tab);
+                tabsController.setActiveTab(tab);
               }
             });
 
@@ -302,7 +299,7 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
     this.emit("profile-unloaded", profileId);
 
     // Destroy all tabs in the profile
-    tabManager.getTabsInProfile(profileId).forEach((tab) => {
+    tabsController.getTabsInProfile(profileId).forEach((tab) => {
       tab.destroy();
     });
   }
