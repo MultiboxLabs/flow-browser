@@ -5,7 +5,7 @@ import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { NavigationEntry, Rectangle, Session, WebContents, WebContentsView, WebPreferences } from "electron";
 import { createTabContextMenu } from "./context-menu";
-import { generateID } from "@/modules/utils";
+import { generateID, getCurrentTimestamp } from "@/modules/utils";
 import { persistTabToStorage, removeTabFromStorage } from "@/saving/tabs";
 import { setWindowSpace } from "@/ipc/session/spaces";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
@@ -264,7 +264,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     });
 
     // Set creation time
-    this.createdAt = Math.floor(Date.now() / 1000);
+    this.createdAt = getCurrentTimestamp();
     this.lastActiveAt = this.createdAt;
 
     // Setup window
@@ -845,7 +845,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     const justHidden = wasVisible && !visible;
     const justShown = !wasVisible && visible;
     if (justHidden || visible) {
-      this.updateStateProperty("lastActiveAt", Math.floor(Date.now() / 1000));
+      this.updateStateProperty("lastActiveAt", getCurrentTimestamp());
     }
 
     if (!visible) return;

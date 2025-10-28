@@ -7,6 +7,7 @@ import { app } from "electron";
 import { TabData } from "~/types/tabs";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { tabsController } from "@/controllers/tabs-controller";
+import { getCurrentTimestamp } from "@/modules/utils";
 
 const TabsDataStore = getDatastore("tabs");
 // const TabGroupsDataStore = getDatastore("tabgroups");
@@ -82,7 +83,7 @@ export function shouldArchiveTab(lastActiveAt: number) {
 
   if (typeof archiveTabAfterSeconds !== "number") return false;
 
-  const now = Math.floor(Date.now() / 1000);
+  const now = getCurrentTimestamp();
   const diff = now - lastActiveAt;
   return diff > archiveTabAfterSeconds;
 }
@@ -93,7 +94,7 @@ export function shouldSleepTab(lastActiveAt: number) {
 
   if (typeof sleepTabAfterSeconds !== "number") return false;
 
-  const now = Math.floor(Date.now() / 1000);
+  const now = getCurrentTimestamp();
   const diff = now - lastActiveAt;
   return diff > sleepTabAfterSeconds;
 }

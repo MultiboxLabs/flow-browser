@@ -4,7 +4,7 @@
 
 // Import everything
 import "@/controllers";
-import "@/ipc/main";
+import "@/ipc";
 import "@/modules/content-blocker";
 import "@/modules/extensions/main";
 import { setupPlatformIntegration } from "@/app/platform";
