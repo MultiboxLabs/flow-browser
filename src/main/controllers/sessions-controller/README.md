@@ -12,7 +12,7 @@ This handles the raw sessions from `electron` and configure them so they are use
 - `./protocols` - Handles all the custom protocols and let them be registered to sessions
 - `./web-requests` - Handles the web requests for the sessions
 
-## Notes
+## External Usage
 
 - The only thing that should be required outside of this controller is the `index.ts` file.
 - All other files are internal and should not be used outside of this controller.
