@@ -20,7 +20,11 @@ class AppMenuController {
     spacesController.on("space-deleted", this.render);
 
     shortcutsEmitter.on("shortcuts-changed", this.render);
-    windowsController.on("window-focused", this.render);
+
+    // This module hasn't loaded yet, so we have to wait
+    setImmediate(() => {
+      windowsController.on("window-focused", this.render);
+    });
   }
 
   public async render() {
