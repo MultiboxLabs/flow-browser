@@ -1,7 +1,10 @@
 import { resolve } from "path";
-import { defineConfig, ElectronViteConfig, externalizeDepsPlugin } from "electron-vite";
+import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { generateRoutes } from "./scripts/frontend-routes-generator/generator";
+
+const routes = await generateRoutes();
 
 function isProductionBuild() {
   return process.env.PRODUCTION_BUILD === "true";
@@ -19,41 +22,50 @@ const sharedAliases: Record<string, string> = {
   "~": resolve("src/shared")
 };
 
-const commonOptions: Partial<ElectronViteConfig["main"]> = {
+const commonOptions = {
   build: {
     minify: isProductionBuild() ? "esbuild" : false
   }
-};
+} as const;
 
 export default defineConfig({
   main: {
+    ...commonOptions,
     plugins: [externalizeDepsPlugin({ exclude: ["electron-context-menu"] })],
     resolve: {
       alias: {
         ...mainAliases,
         ...sharedAliases
       }
-    },
-    ...commonOptions
+    }
   },
   preload: {
+    ...commonOptions,
     plugins: [externalizeDepsPlugin({ exclude: ["electron-chrome-extensions"] })],
     resolve: {
       alias: {
         ...mainAliases,
         ...sharedAliases
       }
-    },
-    ...commonOptions
+    }
   },
   renderer: {
+    ...commonOptions,
     resolve: {
       alias: {
         ...rendererAliases,
         ...sharedAliases
       }
     },
-    plugins: [react(), tailwindcss()],
-    ...commonOptions
+    build: {
+      ...commonOptions.build,
+      rollupOptions: {
+        input: {
+          index: resolve("src/renderer/index.html"),
+          ...routes
+        }
+      }
+    },
+    plugins: [react(), tailwindcss()]
   }
 });
