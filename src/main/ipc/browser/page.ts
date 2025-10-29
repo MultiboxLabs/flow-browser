@@ -1,5 +1,5 @@
 import { ipcMain } from "electron";
-import { browser } from "@/index";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 
 export type PageBounds = {
   x: number;
@@ -14,7 +14,7 @@ export type PageBoundsWithWindow = PageBounds & {
 
 ipcMain.on("page:set-bounds", async (event, bounds: PageBounds) => {
   const webContents = event.sender;
-  const window = browser?.getWindowFromWebContents(webContents);
+  const window = browserWindowsController.getWindowFromWebContents(webContents);
   if (!window) return;
 
   window.setPageBounds(bounds);

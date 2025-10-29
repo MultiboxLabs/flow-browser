@@ -3,10 +3,10 @@ import path from "path";
 import { PATHS } from "./paths";
 import fs from "fs";
 import sharp from "sharp";
-import { getWindows, windowEvents, WindowEventType } from "./windows";
 import z from "zod";
 import { SettingsDataStore } from "@/saving/settings";
 import { debugError, debugPrint } from "@/modules/output";
+import { windowsController } from "@/controllers/windows-controller";
 
 export const supportedPlatforms: NodeJS.Platform[] = [
   // macOS: through app.dock.setIcon()
@@ -171,10 +171,10 @@ function updateAppIcon() {
     app.dock?.setIcon(currentIcon);
     debugPrint("ICONS", "Updated dock icon on macOS.");
   } else if (process.platform === "linux") {
-    const windows = getWindows();
+    const windows = windowsController.getAllWindows();
     debugPrint("ICONS", `Updating icon for ${windows.length} windows on Linux.`);
-    for (const { window } of windows) {
-      window.setIcon(currentIcon);
+    for (const window of windows) {
+      window.browserWindow.setIcon(currentIcon);
     }
   } else {
     debugPrint("ICONS", "Platform not supported for icon update, skipping.");
@@ -220,7 +220,7 @@ app.whenReady().then(() => {
   updateAppIcon();
 });
 
-windowEvents.on(WindowEventType.ADDED, (id) => {
+windowsController.on("window-added", (id) => {
   debugPrint("ICONS", `Window added (ID: ${id}), ensuring icon is updated.`);
   updateAppIcon();
 });

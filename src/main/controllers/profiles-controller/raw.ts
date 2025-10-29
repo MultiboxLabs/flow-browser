@@ -1,0 +1,171 @@
+import { debugError } from "@/modules/output";
+import { FLOW_DATA_DIR } from "@/modules/paths";
+import { getAllDirectories, getCurrentTimestamp } from "@/modules/utils";
+import path from "path";
+import fs from "fs/promises";
+import { DataStoreData, getDatastore } from "@/saving/datastore";
+import z from "zod";
+import { profilesController } from "@/controllers/profiles-controller";
+import { spacesController } from "@/controllers/spaces-controller";
+
+const PROFILES_DIR = path.join(FLOW_DATA_DIR, "Profiles");
+
+// Types
+type RawCreateProfileResult =
+  | {
+      success: boolean;
+      profileData: ProfileData;
+    }
+  | {
+      success: false;
+    };
+
+type RawUpdateProfileResult =
+  | {
+      success: true;
+      updatedFields: Partial<ProfileData>;
+    }
+  | {
+      success: false;
+    };
+
+// Schema
+export const ProfileDataSchema = z.object({
+  name: z.string(),
+  createdAt: z.number()
+});
+export type ProfileData = z.infer<typeof ProfileDataSchema>;
+
+// Private functions
+function getProfileDataStore(profileId: string) {
+  return getDatastore("main", ["profiles", profileId]);
+}
+
+function reconcileProfileData(profileId: string, data: DataStoreData): ProfileData {
+  let defaultName = profileId;
+  if (profileId === "main") {
+    defaultName = "Main";
+  }
+
+  return {
+    name: data.name ?? defaultName,
+    createdAt: data.createdAt ?? getCurrentTimestamp()
+  };
+}
+
+// Controller
+export class RawProfilesController {
+  public getProfilePath(profileId: string) {
+    return path.join(PROFILES_DIR, profileId);
+  }
+
+  public async create(
+    profileId: string,
+    profileName: string,
+    shouldCreateSpace: boolean = true
+  ): Promise<RawCreateProfileResult> {
+    // Validate profileId to prevent directory traversal attacks or invalid characters
+    if (!/^[a-zA-Z0-9_-]+$/.test(profileId)) {
+      debugError("PROFILES", `Invalid profile ID: ${profileId}`);
+      return { success: false };
+    }
+
+    // Check if profile already exists
+    const existingProfile = await profilesController.get(profileId);
+    if (existingProfile) {
+      debugError("PROFILES", `Profile ${profileId} already exists`);
+      return { success: false };
+    }
+
+    try {
+      // Create profile directory (Holds Chromium Profile Data)
+      const profilePath = this.getProfilePath(profileId);
+      await fs.mkdir(profilePath, { recursive: true });
+
+      // Set profile data
+      const storingProfileData = {
+        name: profileName,
+        createdAt: getCurrentTimestamp()
+      };
+      const profileStore = getProfileDataStore(profileId);
+      await profileStore.setMany(storingProfileData);
+
+      if (shouldCreateSpace) {
+        // create initial space
+        await spacesController.create(profileId, profileName).then((success) => {
+          if (!success) {
+            debugError("PROFILES", `Error creating default space for profile ${profileId}`);
+          }
+        });
+      }
+
+      return { success: true, profileData: reconcileProfileData(profileId, storingProfileData) };
+    } catch (error) {
+      debugError("PROFILES", `Error creating profile ${profileId}:`, error);
+      return { success: false };
+    }
+  }
+
+  public async get(profileId: string) {
+    const profileDir = this.getProfilePath(profileId);
+
+    const stats = await fs.stat(profileDir).catch(() => null);
+    if (!stats) return null;
+    if (!stats.isDirectory()) return null;
+
+    const profileStore = getProfileDataStore(profileId);
+    const profileData = await profileStore.getFullData().then((data) => reconcileProfileData(profileId, data));
+    return profileData;
+  }
+
+  public async update(profileId: string, profileData: Partial<ProfileData>): Promise<RawUpdateProfileResult> {
+    try {
+      const profileStore = getProfileDataStore(profileId);
+      const updatedFields: Partial<ProfileData> = {};
+
+      if (profileData.name) {
+        updatedFields.name = profileData.name;
+      }
+
+      if (Object.keys(updatedFields).length > 0) {
+        await profileStore.setMany(updatedFields);
+      }
+
+      return { success: true, updatedFields };
+    } catch (error) {
+      debugError("PROFILES", `Error updating profile ${profileId}:`, error);
+      return { success: false };
+    }
+  }
+
+  public async delete(profileId: string) {
+    try {
+      // Delete all spaces associated with this profile
+      const spaces = await spacesController.getAllFromProfile(profileId);
+      await Promise.all(spaces.map((space) => spacesController.delete(profileId, space.id)));
+
+      // Delete Chromium Profile
+      const profilePath = this.getProfilePath(profileId);
+      await fs.rm(profilePath, { recursive: true, force: true });
+
+      // Delete Profile Data
+      const profileStore = getProfileDataStore(profileId);
+      await profileStore.wipe();
+
+      return true;
+    } catch (error) {
+      debugError("PROFILES", `Error deleting profile ${profileId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * List all profiles
+   * Warning: Some of the values may not be valid profile IDs, use with caution.
+   * @returns Array of profile IDs
+   */
+  public async listProfiles() {
+    const profileIds = await getAllDirectories(PROFILES_DIR);
+    return profileIds;
+  }
+}

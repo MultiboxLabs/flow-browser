@@ -3,6 +3,10 @@ import { defineConfig, ElectronViteConfig, externalizeDepsPlugin } from "electro
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
+function isProductionBuild() {
+  return process.env.PRODUCTION_BUILD === "true";
+}
+
 const mainAliases: Record<string, string> = {
   "@": resolve("src/main")
 };
@@ -17,7 +21,7 @@ const sharedAliases: Record<string, string> = {
 
 const commonOptions: Partial<ElectronViteConfig["main"]> = {
   build: {
-    minify: "esbuild"
+    minify: isProductionBuild() ? "esbuild" : false
   }
 };
 

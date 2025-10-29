@@ -12,15 +12,16 @@ const DEBUG_AREAS = {
   WEB_CONTENTS_CREATED: false, // @/browser/main.ts
   OMNIBOX: false, // @/browser/omnibox.ts
   DATASTORE: false, // @/saving/datastore.ts
-  PROFILES: false, // @/modules/profiles.ts
-  SPACES: false, // @/sessions/spaces.ts
+  PROFILES: false, // @/controllers/profiles-controller (originally @/modules/profiles.ts)
+  SPACES: false, // @/controllers/spaces-controller (originally @/sessions/spaces.ts)
   ICONS: false, // @/modules/icons.ts
   PORTAL_COMPONENTS: false, // @/browser/components/portal-component-windows.ts
   AUTO_UPDATER: false, // @/modules/auto-update.ts
   CONTENT_BLOCKER: false, // @/modules/content-blocker.ts
   WEB_REQUESTS_INTERCEPTION: false, // @/browser/utility/web-requests.ts
   WEB_REQUESTS: false, // @/browser/utility/web-requests.ts
-  MATCH_PATTERN: false // @/browser/utility/match-pattern.ts
+  MATCH_PATTERN: false, // @/browser/utility/match-pattern.ts
+  WINDOWS: true // @/controllers/windows-controller
 } as const;
 
 export type DEBUG_AREA = keyof typeof DEBUG_AREAS;

@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useMemo, useCallback } from "react";
+import { useUnmount } from "react-use";
 
 interface RouterContextProps {
   protocol: string;
@@ -35,7 +36,7 @@ export function RouterProvider({ children }: RouterProviderProps) {
     hash: ""
   });
 
-  const updateLocationState = () => {
+  const updateLocationState = useCallback(() => {
     const location = window.location;
     setRouterState({
       protocol: location.protocol,
@@ -46,35 +47,38 @@ export function RouterProvider({ children }: RouterProviderProps) {
       search: location.search,
       hash: location.hash
     });
-  };
+  }, []);
 
-  useEffect(() => {
+  // Original history methods
+  const originalPushState = useMemo(() => history.pushState, []);
+  const originalReplaceState = useMemo(() => history.replaceState, []);
+
+  useMemo(() => {
     // Initial location state
     updateLocationState();
 
     // Listen for location changes
     window.addEventListener("popstate", updateLocationState);
 
-    // Listen for manual pushState/replaceState calls
-    const originalPushState = history.pushState;
-    const originalReplaceState = history.replaceState;
-
+    // Override history methods
     history.pushState = function (...args) {
       originalPushState.apply(this, args);
       updateLocationState();
     };
-
     history.replaceState = function (...args) {
       originalReplaceState.apply(this, args);
       updateLocationState();
     };
+  }, [originalPushState, originalReplaceState, updateLocationState]);
 
-    return () => {
-      window.removeEventListener("popstate", updateLocationState);
-      history.pushState = originalPushState;
-      history.replaceState = originalReplaceState;
-    };
-  }, []);
+  useUnmount(() => {
+    // Remove event listener
+    window.removeEventListener("popstate", updateLocationState);
+
+    // Restore back to original history methods
+    history.pushState = originalPushState;
+    history.replaceState = originalReplaceState;
+  });
 
   return <RouterContext.Provider value={routerState}>{children}</RouterContext.Provider>;
 }

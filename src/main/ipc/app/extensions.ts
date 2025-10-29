@@ -1,4 +1,3 @@
-import { browser } from "@/index";
 import { sendMessageToListeners } from "@/ipc/listeners-manager";
 import { transformStringToLocale } from "@/modules/extensions/locales";
 import {
@@ -9,9 +8,11 @@ import {
   getManifest
 } from "@/modules/extensions/management";
 import { getPermissionWarnings } from "@/modules/extensions/permission-warnings";
-import { getSpace } from "@/sessions/spaces";
+import { spacesController } from "@/controllers/spaces-controller";
 import { dialog, ipcMain, IpcMainInvokeEvent, WebContents } from "electron";
 import { SharedExtensionData } from "~/types/extensions";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
 
 function translateManifestString(extensionPath: string, str: string) {
   const re = /^__MSG_(.+?)__$/;
@@ -69,9 +70,7 @@ async function generateSharedExtensionData(
 }
 
 async function getExtensionDataFromProfile(profileId: string): Promise<SharedExtensionData[]> {
-  if (!browser) return [];
-
-  const loadedProfile = browser.getLoadedProfile(profileId);
+  const loadedProfile = loadedProfilesController.get(profileId);
   if (!loadedProfile) {
     return [];
   }
@@ -88,15 +87,13 @@ async function getExtensionDataFromProfile(profileId: string): Promise<SharedExt
 }
 
 async function getCurrentProfileIdFromWebContents(webContents: WebContents): Promise<string | null> {
-  if (!browser) return null;
-
-  const window = browser.getWindowFromWebContents(webContents);
+  const window = browserWindowsController.getWindowFromWebContents(webContents);
   if (!window) return null;
 
-  const spaceId = window.getCurrentSpace();
+  const spaceId = window.currentSpaceId;
   if (!spaceId) return null;
 
-  const space = await getSpace(spaceId);
+  const space = await spacesController.get(spaceId);
   if (!space) return null;
 
   return space.profileId;
@@ -115,12 +112,10 @@ ipcMain.handle(
 ipcMain.handle(
   "extensions:set-extension-enabled",
   async (event: IpcMainInvokeEvent, extensionId: string, enabled: boolean): Promise<boolean> => {
-    if (!browser) return false;
-
     const profileId = await getCurrentProfileIdFromWebContents(event.sender);
     if (!profileId) return false;
 
-    const loadedProfile = browser.getLoadedProfile(profileId);
+    const loadedProfile = loadedProfilesController.get(profileId);
     if (!loadedProfile) return false;
 
     const { extensionsManager } = loadedProfile;
@@ -133,18 +128,16 @@ ipcMain.handle(
 ipcMain.handle(
   "extensions:uninstall-extension",
   async (event: IpcMainInvokeEvent, extensionId: string): Promise<boolean> => {
-    if (!browser) return false;
-
     const profileId = await getCurrentProfileIdFromWebContents(event.sender);
     if (!profileId) return false;
 
-    const loadedProfile = browser.getLoadedProfile(profileId);
+    const loadedProfile = loadedProfilesController.get(profileId);
     if (!loadedProfile) return false;
 
     const { extensionsManager } = loadedProfile;
     if (!extensionsManager) return false;
 
-    const window = browser.getWindowFromWebContents(event.sender);
+    const window = browserWindowsController.getWindowFromWebContents(event.sender);
     if (!window) return false;
 
     const extensionData = extensionsManager.getExtensionDataFromCache(extensionId);
@@ -156,7 +149,7 @@ ipcMain.handle(
 
     const extensionIcon = await getExtensionIcon(sharedExtensionData.path);
 
-    const returnValue = await dialog.showMessageBox(window.window, {
+    const returnValue = await dialog.showMessageBox(window.browserWindow, {
       icon: extensionIcon ?? undefined,
       title: "Uninstall Extension",
       message: `Are you sure you want to uninstall "${sharedExtensionData.name}"?`,
@@ -174,12 +167,10 @@ ipcMain.handle(
 ipcMain.handle(
   "extensions:set-extension-pinned",
   async (event: IpcMainInvokeEvent, extensionId: string, pinned: boolean): Promise<boolean> => {
-    if (!browser) return false;
-
     const profileId = await getCurrentProfileIdFromWebContents(event.sender);
     if (!profileId) return false;
 
-    const loadedProfile = browser.getLoadedProfile(profileId);
+    const loadedProfile = loadedProfilesController.get(profileId);
     if (!loadedProfile) return false;
 
     const { extensionsManager } = loadedProfile;
@@ -190,8 +181,6 @@ ipcMain.handle(
 );
 
 export async function fireOnExtensionsUpdated(profileId: string) {
-  if (!browser) return;
-
   const extensions = await getExtensionDataFromProfile(profileId);
   sendMessageToListeners("extensions:on-updated", profileId, extensions);
 }

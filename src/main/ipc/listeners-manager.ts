@@ -3,8 +3,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { TabbedBrowserWindow } from "@/browser/window";
-import { ipcMain, WebContents, WebContentsView } from "electron";
+import { ipcMain, WebContents } from "electron";
 
 type ListenerMap = Map<string, [WebContents, () => void]>;
 
@@ -41,32 +40,6 @@ export function sendMessageToListeners(channel: string, ...args: any[]) {
       continue;
     }
     sendMessageToWebContents(webContents, channel, ...args);
-  }
-}
-
-export function sendMessageToListenersInWindow(window: TabbedBrowserWindow, channel: string, ...args: any[]) {
-  const webContentsSet = getConnectedWebContents(channel);
-  const win = window.window;
-
-  if (win.isDestroyed()) {
-    return;
-  }
-
-  const webContentsInWindow: WebContents[] = [];
-  if (!win.webContents.isDestroyed()) {
-    webContentsInWindow.push(win.webContents);
-  }
-
-  for (const child of win.contentView.children) {
-    if (child instanceof WebContentsView && !child.webContents.isDestroyed()) {
-      webContentsInWindow.push(child.webContents);
-    }
-  }
-
-  for (const webContents of webContentsInWindow) {
-    if (webContentsSet.has(webContents)) {
-      sendMessageToWebContents(webContents, channel, ...args);
-    }
   }
 }
 
