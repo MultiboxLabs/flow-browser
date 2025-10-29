@@ -65,7 +65,7 @@ createRoot(document.getElementById("root")!).render(
   for (const route of routes) {
     routesMap.set(route, path.join(FRONTEND_PATH, `route-${route}.html`));
   }
+
   const routesInput = Object.fromEntries(routesMap.entries());
-  console.log(routesInput);
   return routesInput;
 }

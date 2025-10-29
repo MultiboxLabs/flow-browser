@@ -23,7 +23,9 @@ export function registerFlowExternalProtocol(protocol: Protocol) {
 
     const allowedPath = FLOW_EXTERNAL_ALLOWED_DOMAINS[hostname];
     const extraDir = allowedPath === true ? undefined : allowedPath;
-    return await serveStaticFile(pathname, extraDir, undefined, request);
+    return await serveStaticFile(pathname, extraDir, undefined, request, {
+      overrideRouteName: extraDir ? undefined : hostname
+    });
   };
 
   protocol.handle("flow-external", async (request) => {

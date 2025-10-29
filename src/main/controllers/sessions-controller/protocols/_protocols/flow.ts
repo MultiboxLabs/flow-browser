@@ -30,7 +30,9 @@ export function registerFlowProtocol(protocol: Protocol) {
 
     const allowedPath = FLOW_PROTOCOL_ALLOWED_DOMAINS[hostname];
     const extraDir = allowedPath === true ? undefined : allowedPath;
-    return await serveStaticFile(pathname, extraDir, undefined, request);
+    return await serveStaticFile(pathname, extraDir, undefined, request, {
+      overrideRouteName: extraDir ? undefined : hostname
+    });
   };
 
   const handleFaviconRequest = async (_request: Request, url: URL) => {

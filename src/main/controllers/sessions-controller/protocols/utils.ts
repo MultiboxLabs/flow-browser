@@ -10,11 +10,16 @@ export interface AllowedDomains {
   [key: string]: true | string;
 }
 
+export interface ServeStaticFileOptions {
+  overrideRouteName?: string;
+}
+
 export async function serveStaticFile(
   filePath: string,
   extraDir?: string,
   baseDir: string = PATHS.VITE_WEBUI,
-  request?: Request
+  request?: Request,
+  options: ServeStaticFileOptions = {}
 ) {
   let transformedPath = filePath;
   if (transformedPath.startsWith("/")) {
@@ -25,7 +30,12 @@ export async function serveStaticFile(
   }
 
   if (!transformedPath) {
-    return await serveStaticFile("index.html", extraDir, baseDir, request);
+    return await serveStaticFile(
+      options.overrideRouteName ? `route-${options.overrideRouteName}.html` : "index.html",
+      extraDir,
+      baseDir,
+      request
+    );
   }
 
   if (extraDir) {
