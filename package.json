@@ -70,7 +70,7 @@
     "cross-env": "^10.1.0",
     "d3-drag": "^3.0.0",
     "d3-selection": "^3.0.0",
-    "electron": "github:castlabs/electron-releases#v37.1.0+wvcus",
+    "electron": "github:castlabs/electron-releases#v37.6.0+wvcus",
     "electron-builder": "^26.0.12",
     "electron-vite": "^3.1.0",
     "eslint": "^9.26.0",
