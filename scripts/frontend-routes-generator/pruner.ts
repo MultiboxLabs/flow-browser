@@ -8,17 +8,23 @@ async function pruneRoutes() {
   // Grab all the routes
   const routes = await getDirectories(ROUTES_PATH);
 
-  // Remove all the route-*.html files
   for (const route of routes) {
+    // Remove all the route-*.html files
     const htmlPath = path.join(FRONTEND_PATH, `route-${route}.html`);
     await fs.rm(htmlPath).catch(emptyFn);
-  }
 
-  // Remove all the main.tsx files
-  for (const route of routes) {
+    // Remove all the main.tsx files
     const entrypointPath = path.join(ROUTES_PATH, route, "main.tsx");
     await fs.rm(entrypointPath).catch(emptyFn);
   }
 }
 
-pruneRoutes();
+pruneRoutes()
+  .then(() => {
+    console.log("Routes pruned successfully");
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error("Failed to prune routes:", err);
+    process.exit(1);
+  });

@@ -50,8 +50,13 @@ export function registerActiveFaviconRoutes(app: HonoApp) {
     }
 
     // Fetch the favicon from the profile
-    const faviconResponse = await profile.session.fetch(faviconURL);
-    activeTabFaviconCache.set(tabIdInt, [faviconURL, faviconResponse.clone()]);
-    return faviconResponse;
+    try {
+      const faviconResponse = await profile.session.fetch(faviconURL);
+      activeTabFaviconCache.set(tabIdInt, [faviconURL, faviconResponse.clone()]);
+      return faviconResponse;
+    } catch (error) {
+      console.error(`Failed to fetch favicon for tab ${tabIdInt}:`, error);
+      return c.text("Failed to fetch favicon", 500);
+    }
   });
 }

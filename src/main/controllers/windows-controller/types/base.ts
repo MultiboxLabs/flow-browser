@@ -31,12 +31,12 @@ export class BaseWindow<
     this.options = options;
     this.finishedLoading = false;
 
-    browserWindow.webContents.on("did-finish-load", () => {
+    browserWindow.once("ready-to-show", () => {
       this.finishedLoading = true;
       this.emit("loaded");
 
       if (options.showAfterLoad) {
-        this.show();
+        this.showImmediately();
       }
     });
 

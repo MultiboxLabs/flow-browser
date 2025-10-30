@@ -73,7 +73,12 @@ createRoot(document.getElementById("root")!).render(
 }
 
 if (process.argv.includes("--run-as-script")) {
-  generateRoutes().then((routes) => {
-    console.log("Generated frontend routes:", routes);
-  });
+  generateRoutes()
+    .then((routes) => {
+      console.log("Generated frontend routes:", routes);
+    })
+    .catch((error) => {
+      console.error("Error generating frontend routes:", error);
+      process.exit(1);
+    });
 }
