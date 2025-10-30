@@ -5,7 +5,7 @@ import { registerPdfCacheRoutes } from "./pdf-cache";
 import { transformPathForRequest } from "../../utils";
 import { type Protocol } from "electron";
 import { Hono } from "hono/tiny";
-import { registerDomainsRoutes } from "../../domains";
+import { registerStaticDomainsRoutes } from "../../static-domains";
 
 // Create Hono App
 const app = new Hono({
@@ -20,7 +20,7 @@ registerExtensionIconRoutes(app);
 registerPdfCacheRoutes(app);
 
 // Catch-all Route
-registerDomainsRoutes("flow", app);
+registerStaticDomainsRoutes("flow", app);
 
 // Export Protocol Handler
 export function registerFlowProtocol(protocol: Protocol) {

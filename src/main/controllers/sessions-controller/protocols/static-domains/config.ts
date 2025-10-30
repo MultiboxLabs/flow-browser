@@ -1,27 +1,6 @@
-import type { Hono } from "hono/tiny";
-import type { Context } from "hono";
-import { serveStaticFile } from "./utils";
+import type { StaticDomainInfo } from "./types";
 
-type SubdirectoryActualDomainInfo = {
-  type: "subdirectory";
-  subdirectory: string;
-};
-type RoutedActualDomainInfo = {
-  type: "route";
-  route: string;
-};
-
-type ActualDomainInfo = SubdirectoryActualDomainInfo | RoutedActualDomainInfo;
-
-type CustomProtocol = "flow" | "flow-internal" | "flow-external";
-
-type DomainInfo = {
-  protocol: CustomProtocol;
-  hostname: string;
-  actual: ActualDomainInfo;
-};
-
-const CUSTOM_DOMAINS: DomainInfo[] = [
+export const STATIC_DOMAINS: StaticDomainInfo[] = [
   // flow-internal
   {
     protocol: "flow-internal",
@@ -151,41 +130,3 @@ const CUSTOM_DOMAINS: DomainInfo[] = [
     }
   }
 ];
-
-export function registerDomainsRoutes(protocol: CustomProtocol, app: Hono) {
-  const domainInfos = CUSTOM_DOMAINS.filter((domainInfo) => domainInfo.protocol === protocol);
-  if (domainInfos.length === 0) {
-    return;
-  }
-
-  const handler = async (c: Context) => {
-    const domain = c.req.param("domain");
-    const path = c.req.param("path") ?? "/";
-
-    for (const domainInfo of domainInfos) {
-      if (domainInfo.hostname !== domain) {
-        continue;
-      }
-
-      const actualType = domainInfo.actual.type;
-      if (actualType === "route") {
-        return await serveStaticFile(path, undefined, undefined, c.req.raw, {
-          overrideRouteName: domainInfo.actual.route
-        });
-      } else if (actualType === "subdirectory") {
-        return await serveStaticFile(path, domainInfo.actual.subdirectory, undefined, c.req.raw);
-      }
-    }
-
-    // Invalid domain, show error page
-    // -300 is ERR_INVALID_URL (https://github.com/ccnokes/chrome-network-errors/blob/master/index.js)
-    const errorPageURL = new URL("flow://error");
-    errorPageURL.searchParams.set("errorCode", "-300");
-    errorPageURL.searchParams.set("url", c.req.url);
-    errorPageURL.searchParams.set("initial", "1");
-    return c.redirect(errorPageURL.toString());
-  };
-
-  app.get("/:domain", handler);
-  app.get("/:domain/:path{.+}", handler);
-}

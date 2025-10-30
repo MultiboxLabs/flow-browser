@@ -1,4 +1,8 @@
-import { fetchFromDevServer, isDevelopmentServerRunning, setupHotReloadFileDescriptors } from "./hot-reload";
+import {
+  fetchFromDevServer,
+  isDevelopmentServerRunning,
+  setupHotReloadFileDescriptors
+} from "./static-domains/hot-reload";
 import { FLAGS } from "@/modules/flags";
 import { PATHS } from "@/modules/paths";
 import { getContentType } from "@/modules/utils";
