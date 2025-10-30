@@ -83,6 +83,7 @@
     "jju": "^1.4.0",
     "lucide-react": "^0",
     "motion": "^12.11.0",
+    "nuqs": "^2.7.2",
     "prettier": "^3.5.3",
     "radix-ui": "^1.4.2",
     "react": "^19.1.0",
@@ -94,7 +95,6 @@
     "tailwindcss-animate": "^1.0.7",
     "tw-animate-css": "^1.2.9",
     "typescript": "^5.8.3",
-    "use-query-params": "^2.2.1",
     "vite": "^6.3.5"
   },
   "pnpm": {
