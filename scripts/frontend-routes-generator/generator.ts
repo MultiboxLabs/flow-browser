@@ -71,3 +71,9 @@ createRoot(document.getElementById("root")!).render(
   const routesInput = Object.fromEntries(routesMap.entries());
   return routesInput;
 }
+
+if (process.argv.includes("--run-as-script")) {
+  generateRoutes().then((routes) => {
+    console.log("Generated frontend routes:", routes);
+  });
+}
