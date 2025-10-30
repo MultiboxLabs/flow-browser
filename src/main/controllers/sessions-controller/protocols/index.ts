@@ -2,8 +2,7 @@ import { registerFlowProtocol } from "./_protocols/flow";
 import { registerFlowInternalProtocol } from "./_protocols/flow-internal";
 import { registerFlowExternalProtocol } from "./_protocols/flow-external";
 import { protocol, Session } from "electron";
-
-export type Protocols = "flow" | "flow-internal" | "flow-external";
+import type { CustomProtocol } from "./types";
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -21,7 +20,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 // Register protocols for normal sessions
-export function registerProtocolsWithSession(session: Session, protocols: Protocols[]) {
+export function registerProtocolsWithSession(session: Session, protocols: CustomProtocol[]) {
   const protocol = session.protocol;
 
   if (protocols.includes("flow")) {

@@ -6,7 +6,7 @@ const onboardingWindowManager = () => windowsController.onboarding;
 export const onboarding = {
   show: async () => {
     const window = onboardingWindowManager().getSingletonWindow();
-    window.show();
+    await window.show();
   },
   hide: () => {
     const window = onboardingWindowManager().getSingletonWindow();

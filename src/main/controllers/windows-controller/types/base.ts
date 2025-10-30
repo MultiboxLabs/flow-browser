@@ -4,11 +4,13 @@ import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { BrowserWindow, WebContentsView, type WebContents } from "electron";
 
 export interface BaseWindowEvents {
+  loaded: [];
   destroyed: [];
 }
 
 export type BaseWindowOptions = {
   showAfterLoad?: boolean;
+  deferShowUntilAfterLoad?: boolean;
 };
 
 export class BaseWindow<
@@ -16,6 +18,8 @@ export class BaseWindow<
 > extends TypedEventEmitter<WindowEvents> {
   public type: WindowType;
   public readonly browserWindow: BrowserWindow;
+  private options: BaseWindowOptions;
+  private finishedLoading: boolean;
 
   public destroyed: boolean = false;
 
@@ -24,14 +28,19 @@ export class BaseWindow<
 
     this.type = type;
     this.browserWindow = browserWindow;
+    this.options = options;
+    this.finishedLoading = false;
+
+    browserWindow.once("ready-to-show", () => {
+      this.finishedLoading = true;
+      this.emit("loaded");
+
+      if (options.showAfterLoad) {
+        this.showImmediately();
+      }
+    });
 
     this._setupWindow();
-
-    if (options.showAfterLoad) {
-      browserWindow.webContents.on("did-finish-load", () => {
-        this.show();
-      });
-    }
   }
 
   get id() {
@@ -59,11 +68,18 @@ export class BaseWindow<
     return webContents;
   }
 
-  public show(focus: boolean = true) {
+  public showImmediately(focus: boolean = true) {
     this.browserWindow.show();
     if (focus) {
       this.browserWindow.focus();
     }
+  }
+
+  public async show(focus: boolean = true) {
+    if (this.options.deferShowUntilAfterLoad && !this.finishedLoading) {
+      await this.waitUntil("loaded");
+    }
+    return this.showImmediately(focus);
   }
 
   public hide() {

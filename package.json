@@ -19,7 +19,7 @@
     "start:nightly": "bun run scripts/temp-change-name/command --name 'Flow Nightly' electron-vite preview",
     "dev": "electron-vite dev",
     "dev:watch": "electron-vite dev --watch",
-    "build": "bun run typecheck && cross-env PRODUCTION_BUILD=true electron-vite build",
+    "build": "bun run typecheck && cross-env PRODUCTION_BUILD=true electron-vite build && bun run script:prune-frontend-routes",
     "build:unpack": "bun run build && electron-builder --dir",
     "build:win": "bun run build && electron-builder --win",
     "build:mac": "bun run build && electron-builder --mac",
@@ -27,6 +27,8 @@
     "script:use-stock-electron": "bun run scripts/use-stock-electron.ts",
     "script:upgrade-electron-to-current": "bun run scripts/electron-upgrader/current.ts",
     "script:upgrade-electron-to-next": "bun run scripts/electron-upgrader/next.ts",
+    "script:generate-frontend-routes": "bun run scripts/frontend-routes-generator/generator.ts --run-as-script",
+    "script:prune-frontend-routes": "bun run scripts/frontend-routes-generator/pruner.ts",
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
@@ -77,9 +79,11 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
+    "hono": "^4.10.3",
     "jju": "^1.4.0",
     "lucide-react": "^0",
     "motion": "^12.11.0",
+    "nuqs": "^2.7.2",
     "prettier": "^3.5.3",
     "radix-ui": "^1.4.2",
     "react": "^19.1.0",
@@ -91,7 +95,6 @@
     "tailwindcss-animate": "^1.0.7",
     "tw-animate-css": "^1.2.9",
     "typescript": "^5.8.3",
-    "use-query-params": "^2.2.1",
     "vite": "^6.3.5"
   },
   "pnpm": {
