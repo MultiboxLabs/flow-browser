@@ -5,6 +5,7 @@ import { getContentType } from "@/modules/utils";
 import { app } from "electron";
 import path from "path";
 import fsPromises from "fs/promises";
+import { getPathNoStrict } from "hono/utils/url";
 
 export interface AllowedDomains {
   [key: string]: true | string;
@@ -76,4 +77,16 @@ export async function serveStaticFile(
     console.error("Error serving file:", error);
     return new Response("File not found", { status: 404 });
   }
+}
+
+export function transformPathForRequest(request: Request) {
+  const realPath = getPathNoStrict(request);
+  if (!realPath) {
+    return realPath;
+  }
+
+  const url = URL.parse(request.url);
+  const hostname = url?.hostname;
+
+  return `/${hostname}${realPath}`;
 }

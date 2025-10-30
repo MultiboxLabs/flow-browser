@@ -3,9 +3,6 @@ import path from "path";
 import fs from "fs/promises";
 import { FRONTEND_PATH, ROUTES_PATH, getDirectories } from "./common";
 
-// Neat trick to prune routes before generating new ones :)
-import "./pruner";
-
 // Code //
 
 export async function generateRoutes() {

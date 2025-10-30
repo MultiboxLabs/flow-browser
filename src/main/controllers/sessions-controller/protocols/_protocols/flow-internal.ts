@@ -1,3 +1,6 @@
+// TODO: Fix Bug
+// TypeError: Response.clone: Body has already been consumed on handleActiveFaviconRequest
+
 import { AllowedDomains, serveStaticFile } from "../utils";
 import type { Protocol } from "electron";
 import { tabsController } from "@/controllers/tabs-controller";

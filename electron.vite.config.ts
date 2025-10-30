@@ -31,7 +31,7 @@ const commonOptions = {
 export default defineConfig({
   main: {
     ...commonOptions,
-    plugins: [externalizeDepsPlugin({ exclude: ["electron-context-menu"] })],
+    plugins: [externalizeDepsPlugin({ exclude: ["electron-context-menu", "hono"] })],
     resolve: {
       alias: {
         ...mainAliases,

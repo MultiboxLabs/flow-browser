@@ -98,3 +98,4 @@ These dependencies are either used in the build process, or they are only used i
 - cmdk - Used for building command menus.
 - string-similarity-js - Use for fuzzy matching.
 - use-query-params - Use for managing query parameters in the URL.
+- hono - Used for handling and routing custom protocols.

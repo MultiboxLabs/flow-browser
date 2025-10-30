@@ -106,3 +106,12 @@ export async function getAllDirectories(parentPath: string): Promise<string[]> {
     return [];
   }
 }
+
+/**
+ * Turns a buffer into an array buffer.
+ * @param buffer - The Buffer Object
+ * @returns The converted ArrayBuffer.
+ */
+export function bufferToArrayBuffer(buffer: Buffer) {
+  return new Uint8Array(buffer).buffer;
+}
