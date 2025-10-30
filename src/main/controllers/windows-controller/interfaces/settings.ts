@@ -6,7 +6,7 @@ const settingsWindowManager = () => windowsController.settings;
 export const settings = {
   show: async () => {
     const window = settingsWindowManager().getSingletonWindow();
-    window.show();
+    await window.show();
   },
   hide: () => {
     const window = settingsWindowManager().getSingletonWindow();

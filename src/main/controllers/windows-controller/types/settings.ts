@@ -28,6 +28,6 @@ export class SettingsWindow extends BaseWindow {
       browserWindow.hide();
     });
 
-    super("settings", browserWindow);
+    super("settings", browserWindow, { deferShowUntilAfterLoad: true });
   }
 }
