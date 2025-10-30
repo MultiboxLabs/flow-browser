@@ -10,6 +10,5 @@ const ThemeProvider = THEME_PROVIDER_ENABLED ? ThemeProviderComponent : Fragment
 export const RouteConfig: RouteConfigType = {
   Providers: ({ children }: { children: ReactNode }) => {
     return <ThemeProvider>{children}</ThemeProvider>;
-  },
-  Fallback: null
+  }
 };

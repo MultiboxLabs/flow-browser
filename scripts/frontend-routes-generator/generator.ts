@@ -13,7 +13,7 @@ export async function generateRoutes() {
   for (const route of routes) {
     const htmlPath = path.join(FRONTEND_PATH, `route-${route}.html`);
     const content = `
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -25,7 +25,8 @@ export async function generateRoutes() {
     <script type="module" src="/src/routes/${route}/main.tsx"></script>
   </body>
 </html>
-`;
+`.trim();
+
     await fs.writeFile(htmlPath, content);
   }
 
@@ -33,32 +34,31 @@ export async function generateRoutes() {
   for (const route of routes) {
     const entrypointPath = path.join(ROUTES_PATH, route, "main.tsx");
     const content = `
-import { Fragment, StrictMode as ReactStrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import "../../index.css";
-import Route from "./route";
 import { PlatformProvider } from "@/components/main/platform";
-import { QueryParamProvider } from "use-query-params";
-import { WindowHistoryAdapter } from "use-query-params/adapters/window";
 import { UmamiScriptLoader } from "@/components/analytics/umami";
+import { Fragment, StrictMode as ReactStrictMode } from "react";
 import { Toaster } from "sonner";
+import { createRoot } from "react-dom/client";
+import { RouteConfig } from "./config";
+import PageComponent from "./page";
+import "../../index.css";
 
 const STRICT_MODE_ENABLED = false;
 const StrictMode = STRICT_MODE_ENABLED ? ReactStrictMode : Fragment;
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <UmamiScriptLoader />
-
-    <QueryParamProvider adapter={WindowHistoryAdapter}>
-      <PlatformProvider>
-        <Route />
+    <PlatformProvider>
+      <RouteConfig.Providers>
+        <PageComponent />
         <Toaster richColors />
-      </PlatformProvider>
-    </QueryParamProvider>
+        <UmamiScriptLoader />
+      </RouteConfig.Providers>
+    </PlatformProvider>
   </StrictMode>
 );
-`;
+`.trim();
+
     await fs.writeFile(entrypointPath, content);
   }
 
