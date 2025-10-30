@@ -61,7 +61,6 @@ export default defineConfig({
       ...commonOptions.build,
       rollupOptions: {
         input: {
-          index: resolve("src/renderer/index.html"),
           ...routes
         }
       }

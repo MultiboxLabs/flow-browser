@@ -40,15 +40,20 @@ import Route from "./route";
 import { PlatformProvider } from "@/components/main/platform";
 import { QueryParamProvider } from "use-query-params";
 import { WindowHistoryAdapter } from "use-query-params/adapters/window";
+import { UmamiScriptLoader } from "@/components/analytics/umami";
+import { Toaster } from "sonner";
 
 const STRICT_MODE_ENABLED = false;
 const StrictMode = STRICT_MODE_ENABLED ? ReactStrictMode : Fragment;
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
+    <UmamiScriptLoader />
+
     <QueryParamProvider adapter={WindowHistoryAdapter}>
       <PlatformProvider>
         <Route />
+        <Toaster richColors />
       </PlatformProvider>
     </QueryParamProvider>
   </StrictMode>
