@@ -35,11 +35,12 @@ function isRouteEntrypoint(pathComponent: string) {
 export async function serveStaticDomainFile(c: Context, pathStr: string, options: ServeOptions = {}) {
   const notFound = c.text("Not found", 404);
 
+  // Prevent path traversal attacks
   if (/(?:^|[/\\])\.\.(?:$|[/\\])/.test(pathStr)) {
-    // Path traversal detected
     return notFound;
   }
 
+  // Remove empty path components and trailing slashes
   const pathComponents = pathStr
     .split("/")
     .map((p) => p.trim())

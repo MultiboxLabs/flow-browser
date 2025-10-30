@@ -6,7 +6,6 @@
 
 import type { Hono } from "hono/tiny";
 import type { Context } from "hono";
-// import { serveStaticFile } from "../utils";
 import type { CustomProtocol } from "../types";
 import { STATIC_DOMAINS } from "./config";
 import { serveStaticDomainFile } from "@/controllers/sessions-controller/protocols/static-domains/serve-static";
@@ -31,14 +30,10 @@ export function registerStaticDomainsRoutes(protocol: CustomProtocol, app: Hono)
         return await serveStaticDomainFile(c, path, {
           overrideRouteName: domainInfo.actual.route
         });
-        // return await serveStaticFile(path, undefined, undefined, c.req.raw, {
-        //   overrideRouteName: domainInfo.actual.route
-        // });
       } else if (actualType === "subdirectory") {
         return await serveStaticDomainFile(c, path, {
           extraBaseDir: domainInfo.actual.subdirectory
         });
-        // return await serveStaticFile(path, domainInfo.actual.subdirectory, undefined, c.req.raw);
       }
     }
 
