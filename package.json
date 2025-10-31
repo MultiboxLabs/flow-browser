@@ -42,7 +42,6 @@
     "knex": "^3.1.0",
     "mime-types": "^3.0.1",
     "posthog-node": "^5.0.0",
-    "react-use": "^17.6.0",
     "sharp": "^0.34.1",
     "sharp-ico": "^0.1.5",
     "zod": "^3.24.4"
@@ -88,6 +87,7 @@
     "radix-ui": "^1.4.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-use": "^17.6.0",
     "sonner": "^2.0.3",
     "string-similarity-js": "^2.1.4",
     "tailwind-merge": "^3.3.0",

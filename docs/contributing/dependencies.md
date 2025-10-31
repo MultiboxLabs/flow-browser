@@ -23,7 +23,6 @@ These dependencies are bundled into the `node_modules` of the app. These should 
 - electron-updater - Handles updating the app.
 - mime-types - Provide mime types.
 - posthog-node - Provide analytics.
-- react-use - React Hooks. **[TODO: Move to DevDependencies?]**
 - zod - Handles Data Validation.
 - sharp - Image Processing.
 - sharp-ico - Image Processing for ICO files.
@@ -70,6 +69,8 @@ These dependencies are either used in the build process, or they are only used i
 - radix-ui - UI Components for the frontend.
 - motion - Animations for the frontend.
 - sonner - Toast Notifications for the frontend.
+- react-use - React Hooks.
+- nuqs - Use for managing query parameters in the URL.
 
 ## Tailwind CSS Dependencies for the Frontend
 
@@ -97,5 +98,4 @@ These dependencies are either used in the build process, or they are only used i
 - clsx - A tiny package for constructing `className` strings conditionally.
 - cmdk - Used for building command menus.
 - string-similarity-js - Use for fuzzy matching.
-- nuqs - Use for managing query parameters in the URL.
-- hono - Used for handling and routing custom protocols.
+- hono - Used for handling and routing custom protocols. (Used and bundled into the main process)
