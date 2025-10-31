@@ -7,15 +7,42 @@ import type { CustomProtocol } from "./types";
 protocol.registerSchemesAsPrivileged([
   {
     scheme: "flow",
-    privileges: { standard: true, secure: true, bypassCSP: true, codeCache: true, supportFetchAPI: true }
+    privileges: {
+      standard: true,
+      secure: true,
+      bypassCSP: false,
+      allowServiceWorkers: false,
+      supportFetchAPI: false,
+      corsEnabled: true,
+      stream: false,
+      codeCache: true
+    }
   },
   {
     scheme: "flow-internal",
-    privileges: { standard: true, secure: true, bypassCSP: true, codeCache: true, supportFetchAPI: true }
+    privileges: {
+      standard: true,
+      secure: true,
+      bypassCSP: false,
+      allowServiceWorkers: false,
+      supportFetchAPI: false,
+      corsEnabled: true,
+      stream: false,
+      codeCache: true
+    }
   },
   {
     scheme: "flow-external",
-    privileges: { standard: true, secure: true }
+    privileges: {
+      standard: true,
+      secure: true,
+      bypassCSP: false,
+      allowServiceWorkers: false,
+      supportFetchAPI: false,
+      corsEnabled: true,
+      stream: true,
+      codeCache: true
+    }
   }
 ]);
 
