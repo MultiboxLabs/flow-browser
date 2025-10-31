@@ -34,7 +34,7 @@ async function loadShortcuts() {
       modifiedShortcuts.set(key, modifiedShortcutData);
       hasChanged = true;
     } else {
-      console.error(`Invalid shortcut data for ${key}:`, parseResult.toString());
+      console.error(`Invalid shortcut data for ${key}:`, parseResult.summary);
     }
   }
 

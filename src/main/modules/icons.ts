@@ -248,7 +248,7 @@ async function cacheCurrentIcon() {
       debugPrint("ICONS", "Successfully parsed and validated icon ID:", currentIconId);
       await setAppIcon(currentIconId);
     } else {
-      debugError("ICONS", "Failed to parse icon ID from settings:", iconId, parseResult.toString());
+      debugError("ICONS", "Failed to parse icon ID from settings:", iconId, parseResult.summary);
       // Optionally set a default icon if parsing fails
       currentIconId = "default";
       await setAppIcon(currentIconId);
@@ -283,7 +283,7 @@ export async function setCurrentIconId(iconId: IconId) {
       return false;
     }
   } else {
-    debugError("ICONS", "Failed to parse provided icon ID:", iconId, parseResult.toString());
+    debugError("ICONS", "Failed to parse provided icon ID:", iconId, parseResult.summary);
     return false;
   }
 }
