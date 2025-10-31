@@ -4,7 +4,7 @@ import { getAllDirectories, getCurrentTimestamp } from "@/modules/utils";
 import path from "path";
 import fs from "fs/promises";
 import { DataStoreData, getDatastore } from "@/saving/datastore";
-import z from "zod";
+import { type } from "arktype";
 import { profilesController } from "@/controllers/profiles-controller";
 import { spacesController } from "@/controllers/spaces-controller";
 
@@ -30,11 +30,11 @@ type RawUpdateProfileResult =
     };
 
 // Schema
-export const ProfileDataSchema = z.object({
-  name: z.string(),
-  createdAt: z.number()
+export const ProfileDataSchema = type({
+  name: "string",
+  createdAt: "number"
 });
-export type ProfileData = z.infer<typeof ProfileDataSchema>;
+export type ProfileData = typeof ProfileDataSchema.infer;
 
 // Private functions
 function getProfileDataStore(profileId: string) {
