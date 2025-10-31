@@ -23,7 +23,7 @@ These dependencies are bundled into the `node_modules` of the app. These should 
 - electron-updater - Handles updating the app.
 - mime-types - Provide mime types.
 - posthog-node - Provide analytics.
-- zod - Handles Data Validation.
+- arktype - Handles Data Validation. (Better alternative to zod)
 - sharp - Image Processing.
 - sharp-ico - Image Processing for ICO files.
 

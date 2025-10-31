@@ -3,7 +3,7 @@ import { spacesController } from "@/controllers/spaces-controller";
 import { debugError } from "@/modules/output";
 import { getAllDirectories } from "@/modules/utils";
 import { DataStoreData, getDatastore } from "@/saving/datastore";
-import z from "zod";
+import { type } from "arktype";
 
 // Types
 type RawCreateSpaceResult =
@@ -25,16 +25,16 @@ type RawUpdateSpaceResult =
     };
 
 // Schema
-export const SpaceDataSchema = z.object({
-  name: z.string(),
-  profileId: z.string(),
-  bgStartColor: z.string().optional(),
-  bgEndColor: z.string().optional(),
-  icon: z.string().optional(),
-  lastUsed: z.number().default(0),
-  order: z.number().default(999)
+export const SpaceDataSchema = type({
+  name: "string",
+  profileId: "string",
+  bgStartColor: "string | undefined",
+  bgEndColor: "string | undefined",
+  icon: "string | undefined",
+  lastUsed: "number",
+  order: "number"
 });
-export type SpaceData = z.infer<typeof SpaceDataSchema>;
+export type SpaceData = typeof SpaceDataSchema.infer;
 
 // Private functions
 function getSpaceDataStore(profileId: string, spaceId: string) {

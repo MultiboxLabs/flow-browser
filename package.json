@@ -34,6 +34,7 @@
   "dependencies": {
     "@ghostery/adblocker-electron": "^2.5.2",
     "@phosphor-icons/core": "^2.1.1",
+    "arktype": "^2.1.25",
     "better-sqlite3": "^12.2.0",
     "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.7.5",
     "electron-chrome-web-store": "npm:@iamevan/electron-chrome-web-store@0.11.2",
@@ -43,8 +44,7 @@
     "mime-types": "^3.0.1",
     "posthog-node": "^5.0.0",
     "sharp": "^0.34.1",
-    "sharp-ico": "^0.1.5",
-    "zod": "^3.24.4"
+    "sharp-ico": "^0.1.5"
   },
   "devDependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^1.6.1",

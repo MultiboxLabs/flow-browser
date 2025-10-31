@@ -3,7 +3,7 @@ import path from "path";
 import { PATHS } from "./paths";
 import fs from "fs";
 import sharp from "sharp";
-import z from "zod";
+import { type } from "arktype";
 import { SettingsDataStore } from "@/saving/settings";
 import { debugError, debugPrint } from "@/modules/output";
 import { windowsController } from "@/controllers/windows-controller";
@@ -107,7 +107,8 @@ export const icons = [
 ] as const satisfies IconData[];
 
 export type IconId = (typeof icons)[number]["id"];
-const IconIdSchema = z.enum(icons.map((icon) => icon.id) as [IconId, ...IconId[]]);
+const iconIds = icons.map((icon) => icon.id);
+const IconIdSchema = type.enumerated(...iconIds);
 
 async function transformAppIcon(imagePath: string): Promise<Buffer> {
   debugPrint("ICONS", "Transforming app icon:", imagePath);
@@ -241,13 +242,13 @@ async function cacheCurrentIcon() {
       return;
     }
 
-    const parseResult = IconIdSchema.safeParse(iconId);
-    if (parseResult.success) {
-      currentIconId = parseResult.data;
+    const parseResult = IconIdSchema(iconId);
+    if (!(parseResult instanceof type.errors)) {
+      currentIconId = parseResult;
       debugPrint("ICONS", "Successfully parsed and validated icon ID:", currentIconId);
       await setAppIcon(currentIconId);
     } else {
-      debugError("ICONS", "Failed to parse icon ID from settings:", iconId, parseResult.error);
+      debugError("ICONS", "Failed to parse icon ID from settings:", iconId, parseResult.summary);
       // Optionally set a default icon if parsing fails
       currentIconId = "default";
       await setAppIcon(currentIconId);
@@ -267,8 +268,8 @@ export function getCurrentIconId() {
 }
 export async function setCurrentIconId(iconId: IconId) {
   debugPrint("ICONS", "Attempting to set current icon ID to:", iconId);
-  const parseResult = IconIdSchema.safeParse(iconId);
-  if (parseResult.success) {
+  const parseResult = IconIdSchema(iconId);
+  if (!(parseResult instanceof type.errors)) {
     debugPrint("ICONS", "Parsed icon ID successfully:", iconId);
     try {
       await SettingsDataStore.set("currentIcon", iconId);
@@ -282,7 +283,7 @@ export async function setCurrentIconId(iconId: IconId) {
       return false;
     }
   } else {
-    debugError("ICONS", "Failed to parse provided icon ID:", iconId, parseResult.error);
+    debugError("ICONS", "Failed to parse provided icon ID:", iconId, parseResult.summary);
     return false;
   }
 }
