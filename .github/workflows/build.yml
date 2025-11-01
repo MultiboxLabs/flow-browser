@@ -123,12 +123,21 @@ jobs:
         with:
           message: |
             ### Build artifacts for all platforms are ready! 🚀
-            Download the artifacts from:
+            Download the artifacts for:
             - [Linux](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/ubuntu-latest.zip)
             - [Linux (arm64)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/ubuntu-24.04-arm.zip)
             - [macOS](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/macos-latest.zip)
             - [macOS (Intel)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/macos-15-intel.zip)
             - [Windows](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/windows-latest.zip)
+
+            <details>
+            <summary>One-line installer (Unstable):</summary>
+
+            ```bash
+            bunx flow-debug-build --open ${{ github.run_id }}
+            ```
+
+            </details>
 
             _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
           comment-tag: build

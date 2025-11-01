@@ -25,6 +25,7 @@ const electronBuilderConfig: Configuration = {
   },
   files: [
     "!**/.vscode/*",
+    "!build/**",
     "!src/*",
     "!electron.vite.config.{js,ts,mjs,cjs}",
     "!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc,dev-app-update.yml}",
@@ -89,7 +90,7 @@ const electronBuilderConfig: Configuration = {
   },
   mac: {
     category: "public.app-category.productivity",
-    entitlementsInherit: "build/entitlements.mac.plist",
+    entitlementsInherit: "./build/entitlements.mac.plist",
     notarize: true,
     extendInfo: {
       CFBundleIconName: "AppIcon"
@@ -97,14 +98,14 @@ const electronBuilderConfig: Configuration = {
   },
   dmg: {
     artifactName: "${name}-${version}-${arch}.${ext}",
-    background: "build/dmg-background.tiff",
-    icon: "build/volume-icon.icns"
+    background: "./build/dmg-background.tiff",
+    icon: "./build/volume-icon.icns"
   },
   linux: {
     target: ["AppImage", "deb", "flatpak"],
     category: "Network;WebBrowser;",
     executableArgs: ["--ozone-platform-hint=auto"],
-    icon: "build/icon.png"
+    icon: "icon.png"
   },
   appImage: {
     artifactName: "${name}-${version}-${arch}.${ext}"
