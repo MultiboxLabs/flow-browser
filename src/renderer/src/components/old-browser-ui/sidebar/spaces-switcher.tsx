@@ -2,10 +2,10 @@ import { SidebarMenuItem, SidebarMenuButton } from "@/components/ui/resizable-si
 import { Space } from "~/flow/interfaces/sessions/spaces";
 import { cn } from "@/lib/utils";
 import { useSpaces } from "@/components/providers/spaces-provider";
-import { SIDEBAR_HOVER_COLOR, SIDEBAR_HOVER_COLOR_PLAIN } from "@/components/browser-ui/browser-sidebar";
+import { SIDEBAR_HOVER_COLOR, SIDEBAR_HOVER_COLOR_PLAIN } from "@/components/old-browser-ui/browser-sidebar";
 import { SpaceIcon } from "@/lib/phosphor-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { TabGroupSourceData } from "@/components/browser-ui/sidebar/content/sidebar-tab-groups";
+import type { TabGroupSourceData } from "@/components/old-browser-ui/sidebar/content/sidebar-tab-groups";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 
 type SpaceButtonProps = {

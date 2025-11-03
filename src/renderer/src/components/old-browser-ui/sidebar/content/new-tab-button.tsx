@@ -2,7 +2,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { SidebarMenuButton } from "@/components/ui/resizable-sidebar";
 import { PlusIcon } from "lucide-react";
-import { SIDEBAR_HOVER_COLOR } from "@/components/browser-ui/browser-sidebar";
+import { SIDEBAR_HOVER_COLOR } from "@/components/old-browser-ui/browser-sidebar";
 import { cn } from "@/lib/utils";
 
 const MotionSidebarMenuButton = motion(SidebarMenuButton);
