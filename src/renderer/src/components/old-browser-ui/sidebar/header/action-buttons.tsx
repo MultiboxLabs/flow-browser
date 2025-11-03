@@ -1,6 +1,6 @@
-import { BrowserActionList } from "@/components/browser-ui/browser-action";
-import { SIDEBAR_HOVER_COLOR } from "@/components/browser-ui/browser-sidebar";
-import { GoBackButton, GoForwardButton } from "@/components/browser-ui/sidebar/header/navigation-buttons";
+import { BrowserActionList } from "@/components/old-browser-ui/browser-action";
+import { SIDEBAR_HOVER_COLOR } from "@/components/old-browser-ui/browser-sidebar";
+import { GoBackButton, GoForwardButton } from "@/components/old-browser-ui/sidebar/header/navigation-buttons";
 import { RefreshCWIcon, RefreshCWIconHandle } from "@/components/icons/refresh-cw";
 import { useTabs } from "@/components/providers/tabs-provider";
 import {

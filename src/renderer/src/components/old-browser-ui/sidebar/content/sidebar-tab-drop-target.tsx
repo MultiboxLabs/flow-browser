@@ -1,5 +1,5 @@
-import { TabGroupSourceData } from "@/components/browser-ui/sidebar/content/sidebar-tab-groups";
-import { DropIndicator } from "@/components/browser-ui/sidebar/content/space-sidebar";
+import { TabGroupSourceData } from "@/components/old-browser-ui/sidebar/content/sidebar-tab-groups";
+import { DropIndicator } from "@/components/old-browser-ui/sidebar/content/space-sidebar";
 import { useEffect, useRef, useState } from "react";
 import { Space } from "~/flow/interfaces/sessions/spaces";
 import {

@@ -1,7 +1,7 @@
 import { PortalComponent } from "@/components/portal/portal";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { SidebarSide } from "@/components/browser-ui/main";
+import { SidebarSide } from "@/components/old-browser-ui/main";
 import { cn } from "@/lib/utils";
 import { useSpaces } from "@/components/providers/spaces-provider";
 

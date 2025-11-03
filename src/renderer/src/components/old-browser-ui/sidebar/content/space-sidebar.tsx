@@ -1,6 +1,6 @@
-import { NewTabButton } from "@/components/browser-ui/sidebar/content/new-tab-button";
-import { SidebarTabGroups } from "@/components/browser-ui/sidebar/content/sidebar-tab-groups";
-import { SpaceTitle } from "@/components/browser-ui/sidebar/content/space-title";
+import { NewTabButton } from "@/components/old-browser-ui/sidebar/content/new-tab-button";
+import { SidebarTabGroups } from "@/components/old-browser-ui/sidebar/content/sidebar-tab-groups";
+import { SpaceTitle } from "@/components/old-browser-ui/sidebar/content/space-title";
 import { useTabs } from "@/components/providers/tabs-provider";
 import { Button } from "@/components/ui/button";
 import { SidebarGroup, SidebarMenu, useSidebar } from "@/components/ui/resizable-sidebar";
@@ -9,7 +9,7 @@ import { cn, hex_is_light } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useMemo, useRef } from "react";
 import { DropIndicator as BaseDropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/list-item";
-import { SidebarTabDropTarget } from "@/components/browser-ui/sidebar/content/sidebar-tab-drop-target";
+import { SidebarTabDropTarget } from "@/components/old-browser-ui/sidebar/content/sidebar-tab-drop-target";
 
 const ENABLE_SECTION_DEVIDER = true;
 

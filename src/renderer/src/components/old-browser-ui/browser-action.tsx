@@ -1,4 +1,4 @@
-import { SIDEBAR_HOVER_COLOR } from "@/components/browser-ui/browser-sidebar";
+import { SIDEBAR_HOVER_COLOR } from "@/components/old-browser-ui/browser-sidebar";
 import { useBrowserAction } from "@/components/providers/browser-action-provider";
 import { useExtensions } from "@/components/providers/extensions-provider";
 import { useSpaces } from "@/components/providers/spaces-provider";
