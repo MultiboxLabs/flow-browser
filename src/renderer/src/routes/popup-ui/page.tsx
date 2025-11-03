@@ -1,4 +1,4 @@
-import { BrowserUI } from "@/components/old-browser-ui/main";
+import { BrowserUI } from "@/components/browser-ui/main";
 
 function Page() {
   return <BrowserUI type="popup" />;

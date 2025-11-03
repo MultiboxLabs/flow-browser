@@ -85,7 +85,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       }
     });
 
-    super("browser", browserWindow, { showAfterLoad: true });
+    super("browser", browserWindow, { showAfterLoad: true, showDelay: 50 });
 
     this.browserWindowType = type;
 
