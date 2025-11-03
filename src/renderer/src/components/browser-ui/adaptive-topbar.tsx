@@ -1,6 +1,7 @@
 import { usePlatform } from "@/components/main/platform";
 import { createContext, useContext, useMemo } from "react";
 
+// Context //
 interface AdaptiveTopbarContextValue {
   topbarHeight: number;
   topbarVisible: boolean;
@@ -39,6 +40,7 @@ export function AdaptiveTopbarProvider({ children }: AdaptiveTopbarProviderProps
   );
 }
 
+// Component //
 export function AdaptiveTopbar() {
   const { topbarHeight, topbarVisible } = useAdaptiveTopbar();
   if (!topbarVisible) return null;
