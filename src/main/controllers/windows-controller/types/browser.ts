@@ -10,6 +10,7 @@ import { fireWindowStateChanged } from "@/ipc/browser/interface";
 import { tabsController } from "@/controllers/tabs-controller";
 import { sessionsController } from "@/controllers/sessions-controller";
 import { spacesController } from "@/controllers/spaces-controller";
+import { hex_is_light } from "@/modules/utils";
 
 export type BrowserWindowType = "normal" | "popup";
 
@@ -105,12 +106,30 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     this.viewManager.addOrUpdateView(this.omnibox.view, 999);
     this.coreWebContents.push(this.omnibox.webContents);
 
-    // Set Initial Space //
+    // Current Space //
     spacesController.getLastUsed().then((space) => {
       if (space && !this.currentSpaceId) {
         this.setCurrentSpace(space.id);
       }
     });
+
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const window = this;
+    function onSpaceChanged() {
+      const spaceId = window.currentSpaceId;
+      if (!spaceId) return;
+      spacesController.get(spaceId).then((space) => {
+        if (!space) return;
+
+        browserWindow.setTitleBarOverlay({
+          height: 30,
+          symbolColor: hex_is_light(space.bgStartColor || "#ffffff") ? "black" : "white",
+          color: "rgba(0,0,0,0)"
+        });
+      });
+    }
+    onSpaceChanged();
+    this.on("current-space-changed", onSpaceChanged);
 
     // Portal Components //
     initializePortalComponentWindows(this);
