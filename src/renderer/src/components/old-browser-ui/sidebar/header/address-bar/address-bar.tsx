@@ -1,5 +1,5 @@
-import { AddressBarCopyLinkButton } from "@/components/browser-ui/sidebar/header/address-bar/copy-link-button";
-import { PinnedBrowserActions } from "@/components/browser-ui/sidebar/header/address-bar/pinned-browser-actions";
+import { AddressBarCopyLinkButton } from "@/components/old-browser-ui/sidebar/header/address-bar/copy-link-button";
+import { PinnedBrowserActions } from "@/components/old-browser-ui/sidebar/header/address-bar/pinned-browser-actions";
 import { useTabs } from "@/components/providers/tabs-provider";
 import { SidebarGroup, useSidebar } from "@/components/ui/resizable-sidebar";
 import { simplifyUrl } from "@/lib/url";

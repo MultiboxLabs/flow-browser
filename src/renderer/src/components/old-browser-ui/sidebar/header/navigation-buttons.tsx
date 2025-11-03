@@ -1,7 +1,10 @@
-import { NavigationEntryWithIndex, SidebarActionButton } from "@/components/browser-ui/sidebar/header/action-buttons";
+import {
+  NavigationEntryWithIndex,
+  SidebarActionButton
+} from "@/components/old-browser-ui/sidebar/header/action-buttons";
 import { useRef, useState, useEffect } from "react";
 import { useTabs } from "@/components/providers/tabs-provider";
-import { SIDEBAR_HOVER_COLOR } from "@/components/browser-ui/browser-sidebar";
+import { SIDEBAR_HOVER_COLOR } from "@/components/old-browser-ui/browser-sidebar";
 import { ArrowLeftIcon, ArrowLeftIconHandle } from "@/components/icons/arrow-left";
 import { ArrowRightIcon, ArrowRightIconHandle } from "@/components/icons/arrow-right";
 import { PopoverTrigger } from "@/components/ui/popover";

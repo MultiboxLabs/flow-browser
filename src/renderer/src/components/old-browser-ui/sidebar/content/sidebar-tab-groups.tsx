@@ -12,7 +12,7 @@ import {
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { attachClosestEdge, extractClosestEdge, Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import { TabData } from "~/types/tabs";
-import { DropIndicator } from "@/components/browser-ui/sidebar/content/space-sidebar";
+import { DropIndicator } from "@/components/old-browser-ui/sidebar/content/space-sidebar";
 
 const MotionSidebarMenuButton = motion(SidebarMenuButton);
 

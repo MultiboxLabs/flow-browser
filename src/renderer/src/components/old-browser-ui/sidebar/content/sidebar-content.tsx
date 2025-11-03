@@ -6,7 +6,7 @@ import {
   HorizontalScrollerContainerClasses
 } from "@/components/horizonal-scroller/horizonal-scroller";
 import { cn } from "@/lib/utils";
-import { SpaceSidebar } from "@/components/browser-ui/sidebar/content/space-sidebar";
+import { SpaceSidebar } from "@/components/old-browser-ui/sidebar/content/space-sidebar";
 
 // Very glitchy when enabled
 const ONLY_SHOW_NEARBY_SPACES: boolean = false;

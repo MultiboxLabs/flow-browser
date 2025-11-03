@@ -1,4 +1,4 @@
-import { SidebarSide } from "@/components/browser-ui/main";
+import { SidebarSide } from "@/components/old-browser-ui/main";
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useRef } from "react";
 
