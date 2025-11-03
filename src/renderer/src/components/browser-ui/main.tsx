@@ -1,21 +1,35 @@
 import { SpacesProvider } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import { AdaptiveTopbar, AdaptiveTopbarProvider, useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
-import { useMemo } from "react";
-import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar";
+import {
+  BrowserSidebar,
+  type BrowserSidebarMode,
+  BrowserSidebarProvider,
+  useBrowserSidebar
+} from "@/components/browser-ui/browser-sidebar";
+import { AnimatePresence } from "motion/react";
+import { useEffect } from "react";
 
 export type BrowserUIType = "main" | "popup";
 
-function InternalBrowserUI({ type }: { type: BrowserUIType }) {
-  // Temporary sidebar mode logic for testing
-  const sidebarMode: "attached-left" | "attached-right" | "floating" | "hidden" = useMemo(() => {
-    if (type === "main") {
-      return "attached-left";
-    }
-    return "attached-right";
-  }, [type]);
+interface PresenceSidebarProps {
+  sidebarMode: BrowserSidebarMode;
+  targetSidebarMode: BrowserSidebarMode;
+}
+export function PresenceSidebar({ sidebarMode, targetSidebarMode }: PresenceSidebarProps) {
+  return <AnimatePresence>{sidebarMode === targetSidebarMode && <BrowserSidebar key="sidebar" />}</AnimatePresence>;
+}
 
+function InternalBrowserUI({ type }: { type: BrowserUIType }) {
+  const { mode: sidebarMode, setVisible } = useBrowserSidebar();
   const { topbarVisible } = useAdaptiveTopbar();
+
+  useEffect(() => {
+    // Popup Windows don't have a sidebar
+    if (type === "popup") {
+      setVisible(false);
+    }
+  }, [type]);
 
   return (
     <div
@@ -28,10 +42,10 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
     >
       <AdaptiveTopbar />
       <div className="flex-1 w-full flex flex-row items-center justify-center">
-        {sidebarMode === "attached-left" && <BrowserSidebar />}
+        <PresenceSidebar sidebarMode={sidebarMode} targetSidebarMode="attached-left" />
         <div
           className={cn(
-            "flex-1 h-full p-3",
+            "flex-1 h-full p-3 transition-[padding] duration-150 ease-in-out",
             topbarVisible && "pt-0",
             sidebarMode === "attached-left" ? "pl-0" : "pl-3",
             sidebarMode === "attached-right" ? "pr-0" : "pr-3"
@@ -41,7 +55,7 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
             <div className="w-full h-full rounded-lg shadow-xl bg-white/20"></div>
           </div>
         </div>
-        {sidebarMode === "attached-right" && <BrowserSidebar />}
+        <PresenceSidebar sidebarMode={sidebarMode} targetSidebarMode="attached-right" />
       </div>
     </div>
   );
@@ -50,9 +64,11 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
 export function BrowserUI({ type }: { type: BrowserUIType }) {
   return (
     <AdaptiveTopbarProvider>
-      <SpacesProvider windowType={type}>
-        <InternalBrowserUI type={type} />
-      </SpacesProvider>
+      <BrowserSidebarProvider>
+        <SpacesProvider windowType={type}>
+          <InternalBrowserUI type={type} />
+        </SpacesProvider>
+      </BrowserSidebarProvider>
     </AdaptiveTopbarProvider>
   );
 }
