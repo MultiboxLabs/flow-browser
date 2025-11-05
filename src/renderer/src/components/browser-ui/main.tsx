@@ -2,11 +2,11 @@ import { SpacesProvider } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import { AdaptiveTopbar, AdaptiveTopbarProvider, useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 import {
-  BrowserSidebar,
   type BrowserSidebarMode,
   BrowserSidebarProvider,
   useBrowserSidebar
-} from "@/components/browser-ui/browser-sidebar";
+} from "@/components/browser-ui/browser-sidebar/provider";
+import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar/component";
 import { AnimatePresence } from "motion/react";
 import { useEffect } from "react";
 
@@ -29,12 +29,12 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
     if (type === "popup") {
       setVisible(false);
     }
-  }, [type]);
+  }, [setVisible, type]);
 
   return (
     <div
       className={cn(
-        "w-screen h-screen",
+        "w-screen h-screen overflow-hidden",
         "bg-gradient-to-br from-space-background-start/75 to-space-background-end/75",
         "flex flex-col",
         "app-drag"
@@ -43,14 +43,7 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
       <AdaptiveTopbar />
       <div className="flex-1 w-full flex flex-row items-center justify-center">
         <PresenceSidebar sidebarMode={sidebarMode} targetSidebarMode="attached-left" />
-        <div
-          className={cn(
-            "flex-1 h-full p-3 transition-[padding] duration-150 ease-in-out",
-            topbarVisible && "pt-0",
-            sidebarMode === "attached-left" ? "pl-0" : "pl-3",
-            sidebarMode === "attached-right" ? "pr-0" : "pr-3"
-          )}
-        >
+        <div className={cn("flex-1 h-full p-3", topbarVisible && "pt-0")}>
           <div className="w-full h-full flex items-center justify-center remove-app-drag">
             <div className="w-full h-full rounded-lg shadow-xl bg-white/20"></div>
           </div>
@@ -63,12 +56,12 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
 
 export function BrowserUI({ type }: { type: BrowserUIType }) {
   return (
-    <AdaptiveTopbarProvider>
-      <BrowserSidebarProvider>
+    <BrowserSidebarProvider>
+      <AdaptiveTopbarProvider>
         <SpacesProvider windowType={type}>
           <InternalBrowserUI type={type} />
         </SpacesProvider>
-      </BrowserSidebarProvider>
-    </AdaptiveTopbarProvider>
+      </AdaptiveTopbarProvider>
+    </BrowserSidebarProvider>
   );
 }
