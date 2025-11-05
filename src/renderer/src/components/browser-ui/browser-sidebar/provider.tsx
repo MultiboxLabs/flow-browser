@@ -41,8 +41,8 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
   const [isVisible, setVisible] = useState(false);
 
   // Running Animation //
-  const [runningAnimationId, setRunningAnimationId] = useState<string>(null);
-  const isAnimating = runningAnimationId !== "";
+  const [runningAnimationId, setRunningAnimationId] = useState<string | null>(null);
+  const isAnimating = runningAnimationId !== null;
 
   const startAnimation = useCallback(() => {
     const animationId = generateUUID();
@@ -54,9 +54,9 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
     (animationId: string) => {
       setRunningAnimationId((prev) => {
         if (prev === animationId) {
-          return "";
+          return null;
         }
-        return null;
+        return prev;
       });
     },
     [setRunningAnimationId]
