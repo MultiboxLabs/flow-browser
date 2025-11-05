@@ -1,3 +1,4 @@
+import { useSettings } from "@/components/providers/settings-provider";
 import { generateUUID } from "@/lib/utils";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useMount } from "react-use";
@@ -10,7 +11,6 @@ interface BrowserSidebarContextValue {
   setVisible: (isVisible: boolean) => void;
 
   attachedDirection: AttachedDirection;
-  setAttachedDirection: (attachedDirection: AttachedDirection) => void;
 
   isAnimating: boolean;
   startAnimation: () => string;
@@ -34,8 +34,10 @@ interface BrowserSidebarProviderProps {
 }
 
 export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps) {
+  const { getSetting } = useSettings();
+  const attachedDirection = getSetting<AttachedDirection>("sidebarSide") ?? "left";
+
   // States //
-  const [attachedDirection, setAttachedDirection] = useState<AttachedDirection>("left");
   const [isVisible, setVisible] = useState(false);
 
   // Running Animation //
@@ -87,7 +89,6 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
         setVisible,
 
         attachedDirection,
-        setAttachedDirection,
 
         isAnimating,
         startAnimation,
