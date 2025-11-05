@@ -4,17 +4,18 @@ import { cn } from "@/lib/utils";
 import { usePresence } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useMount } from "react-use";
-import { useBrowserSidebar } from "./provider";
+import { type AttachedDirection, useBrowserSidebar } from "./provider";
+import { type SidebarVariant } from "@/components/browser-ui/main";
 
 // Component //
-function SidebarInner() {
-  const { attachedDirection, isAnimating } = useBrowserSidebar();
+function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
+  const { isAnimating } = useBrowserSidebar();
   const { platform } = usePlatform();
 
   return (
     <>
-      {attachedDirection === "left" && platform === "darwin" && (
-        <SidebarWindowControlsMacOS isAnimating={isAnimating} />
+      {direction === "left" && platform === "darwin" && (
+        <SidebarWindowControlsMacOS offset={variant === "floating" ? 11 : 5} isAnimating={isAnimating} />
       )}
       <p>Hello Testing</p>
     </>
@@ -24,8 +25,8 @@ function SidebarInner() {
 const SIDEBAR_ANIMATE_TIME = 150;
 const SIDEBAR_ANIMATE_CLASS = "duration-150 ease-in-out";
 
-export function BrowserSidebar() {
-  const { isVisible, attachedDirection, startAnimation, stopAnimation } = useBrowserSidebar();
+export function BrowserSidebar({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
+  const { isVisible, startAnimation, stopAnimation } = useBrowserSidebar();
 
   // Animation Readiness //
   // This is needed so that on the first few frames, the width will start from 0 instead of the full width.
@@ -73,21 +74,25 @@ export function BrowserSidebar() {
       className={cn(
         "h-full overflow-hidden w-[20%]",
         "transition-margin",
+        variant === "floating" && "fixed left-0 top-0 p-2",
         SIDEBAR_ANIMATE_CLASS,
-        attachedDirection === "left" && (currentlyVisible ? "ml-0" : "-ml-[20%]"),
-        attachedDirection === "right" && (currentlyVisible ? "mr-0" : "-mr-[20%]")
+        direction === "left" && (currentlyVisible ? "ml-0" : "-ml-[20%]"),
+        direction === "right" && (currentlyVisible ? "mr-0" : "-mr-[20%]")
       )}
     >
-      <div className={cn("w-full h-full", "transition-transform", SIDEBAR_ANIMATE_CLASS, "flex flex-col")}>
+      <div
+        className={cn(
+          "w-full h-full",
+          "transition-transform",
+          SIDEBAR_ANIMATE_CLASS,
+          "flex flex-col",
+          variant === "floating" && "rounded-lg border border-sidebar-border bg-space-background-start"
+        )}
+      >
         <div
-          className={cn(
-            "m-4 flex-1",
-            "flex flex-col",
-            attachedDirection === "left" && "mr-0",
-            attachedDirection === "right" && "ml-0"
-          )}
+          className={cn("m-4 flex-1", "flex flex-col", direction === "left" && "mr-0", direction === "right" && "ml-0")}
         >
-          <SidebarInner />
+          <SidebarInner direction={direction} variant={variant} />
         </div>
       </div>
     </div>

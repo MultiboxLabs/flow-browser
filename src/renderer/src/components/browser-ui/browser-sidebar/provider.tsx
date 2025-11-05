@@ -5,7 +5,7 @@ import { useMount } from "react-use";
 
 // Context //
 export type AttachedDirection = "left" | "right";
-export type BrowserSidebarMode = `attached-${AttachedDirection}` | "floating" | "hidden";
+export type BrowserSidebarMode = `attached-${AttachedDirection}` | `floating-${AttachedDirection}` | "hidden";
 interface BrowserSidebarContextValue {
   isVisible: boolean;
   setVisible: (isVisible: boolean) => void;
@@ -39,6 +39,31 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
 
   // States //
   const [isVisible, setVisible] = useState(false);
+
+  // Floating Sidebar //
+  const [isFloating, setIsFloating] = useState(false);
+  const isFloatingRef = useRef(isFloating);
+  isFloatingRef.current = isFloating;
+
+  useEffect(() => {
+    let lastLocation: [number, number] = [0, 0];
+    const mouseMoveListener = (event: MouseEvent) => {
+      lastLocation = [event.clientX, event.clientY];
+      if (isFloatingRef.current === false && event.clientX < 10) {
+        setTimeout(() => {
+          if (lastLocation[0] < 10) {
+            setIsFloating(true);
+          }
+        }, 50);
+      } else if (isFloatingRef.current === true && event.clientX > 250) {
+        setIsFloating(false);
+      }
+    };
+    document.addEventListener("mousemove", mouseMoveListener);
+    return () => {
+      document.removeEventListener("mousemove", mouseMoveListener);
+    };
+  }, []);
 
   // Running Animation //
   const [runningAnimationId, setRunningAnimationId] = useState<string | null>(null);
@@ -81,11 +106,18 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
     };
   }, [isVisibleRef, setVisible]);
 
+  let mode: BrowserSidebarMode = "hidden";
+  if (isVisible) {
+    mode = `attached-${attachedDirection}`;
+  } else if (isFloating) {
+    mode = `floating-${attachedDirection}`;
+  }
+
   // Provider //
   return (
     <BrowserSidebarContext.Provider
       value={{
-        isVisible,
+        isVisible: isFloating ? true : isVisible,
         setVisible,
 
         attachedDirection,
@@ -94,7 +126,7 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
         startAnimation,
         stopAnimation,
 
-        mode: isVisible ? `attached-${attachedDirection}` : "hidden"
+        mode
       }}
     >
       {children}
