@@ -1,10 +1,13 @@
+import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
+import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
 import { usePlatform } from "@/components/main/platform";
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 // Context //
 interface AdaptiveTopbarContextValue {
   topbarHeight: number;
   topbarVisible: boolean;
+  isFullscreen: boolean;
 }
 
 const AdaptiveTopbarContext = createContext<AdaptiveTopbarContextValue | null>(null);
@@ -23,26 +26,61 @@ interface AdaptiveTopbarProviderProps {
 
 export function AdaptiveTopbarProvider({ children }: AdaptiveTopbarProviderProps) {
   const { platform } = usePlatform();
+  const { attachedDirection } = useBrowserSidebar();
 
   const topbarHeight = useMemo<number>(() => {
     if (platform === "win32") {
       return 30;
     }
+
+    // The macOS Window Controls are on the left side, so we will add a padding for it if the sidebar is on the right side.
+    if (platform === "darwin" && attachedDirection === "right") {
+      return 34;
+    }
+
     return 0;
-  }, [platform]);
+  }, [platform, attachedDirection]);
 
   const topbarVisible = useMemo<boolean>(() => {
     return topbarHeight > 0;
   }, [topbarHeight]);
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  useEffect(() => {
+    let updated = false;
+    flow.interface.getWindowState().then((state) => {
+      if (!updated) {
+        setIsFullscreen(state.isFullscreen);
+      }
+    });
+    const removeListener = flow.interface.onWindowStateChanged((state) => {
+      setIsFullscreen(state.isFullscreen);
+      console.log("isFullscreen", state);
+      updated = true;
+    });
+    return () => {
+      removeListener();
+    };
+  }, []);
+
+  const currentlyVisible = !isFullscreen && topbarVisible;
+
   return (
-    <AdaptiveTopbarContext.Provider value={{ topbarHeight, topbarVisible }}>{children}</AdaptiveTopbarContext.Provider>
+    <AdaptiveTopbarContext.Provider value={{ topbarHeight, topbarVisible: currentlyVisible, isFullscreen }}>
+      {children}
+    </AdaptiveTopbarContext.Provider>
   );
 }
 
 // Component //
 export function AdaptiveTopbar() {
-  const { topbarHeight, topbarVisible } = useAdaptiveTopbar();
+  const { topbarHeight, topbarVisible, isFullscreen } = useAdaptiveTopbar();
   if (!topbarVisible) return null;
-  return <div className="w-full" style={{ height: topbarHeight }}></div>;
+  if (isFullscreen) return null;
+  return (
+    <div className="w-full flex flex-row items-center" style={{ height: topbarHeight }}>
+      <div className="w-3" />
+      <SidebarWindowControlsMacOS />
+    </div>
+  );
 }
