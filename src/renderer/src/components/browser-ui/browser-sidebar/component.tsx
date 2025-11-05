@@ -52,7 +52,6 @@ export function BrowserSidebar() {
         if (removingRef.current) {
           safeToRemove();
           stopAnimation(animId);
-          console.log("bye");
         }
       }, SIDEBAR_ANIMATE_TIME);
     } else {
