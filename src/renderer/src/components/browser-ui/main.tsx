@@ -9,6 +9,7 @@ import {
 import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar/component";
 import { AnimatePresence } from "motion/react";
 import { useEffect } from "react";
+import { SettingsProvider } from "@/components/providers/settings-provider";
 
 export type BrowserUIType = "main" | "popup";
 
@@ -56,12 +57,14 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
 
 export function BrowserUI({ type }: { type: BrowserUIType }) {
   return (
-    <BrowserSidebarProvider>
-      <AdaptiveTopbarProvider>
-        <SpacesProvider windowType={type}>
-          <InternalBrowserUI type={type} />
-        </SpacesProvider>
-      </AdaptiveTopbarProvider>
-    </BrowserSidebarProvider>
+    <SettingsProvider>
+      <BrowserSidebarProvider>
+        <AdaptiveTopbarProvider>
+          <SpacesProvider windowType={type}>
+            <InternalBrowserUI type={type} />
+          </SpacesProvider>
+        </AdaptiveTopbarProvider>
+      </BrowserSidebarProvider>
+    </SettingsProvider>
   );
 }
