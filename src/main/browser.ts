@@ -12,6 +12,9 @@ import { processInitialUrl } from "@/app/urls";
 import { setupSecondInstanceHandling } from "@/app/instance";
 import { runOnboardingOrInitialWindow } from "@/app/onboarding";
 import { setupAppLifecycle } from "@/app/lifecycle";
+import electronDragClick from "electron-drag-click";
+
+electronDragClick();
 
 // Handle initial URL (runs asynchronously)
 processInitialUrl();

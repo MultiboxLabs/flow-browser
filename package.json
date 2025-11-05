@@ -39,6 +39,7 @@
     "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.7.5",
     "electron-chrome-web-store": "npm:@iamevan/electron-chrome-web-store@0.11.2",
     "electron-context-menu": "^4.0.5",
+    "electron-drag-click": "^1.0.6",
     "electron-updater": "^6.6.2",
     "knex": "^3.1.0",
     "mime-types": "^3.0.1",
@@ -107,6 +108,8 @@
     "@tailwindcss/oxide",
     "better-sqlite3",
     "electron",
+    "electron-drag-click",
+    "electron-winstaller",
     "esbuild",
     "lodepng",
     "sharp"
