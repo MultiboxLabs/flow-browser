@@ -26,6 +26,7 @@ type BaseWindowInstance = InstanceType<typeof BaseWindow>;
 interface BrowserWindowEvents extends BaseWindowEvents {
   "page-bounds-changed": [bounds: PageBounds];
   "current-space-changed": [spaceId: string];
+  "enter-full-screen": [];
   "leave-full-screen": [];
 }
 
@@ -84,11 +85,17 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       } else if (type === "popup") {
         browserWindow.loadURL("flow-internal://popup-ui/");
       }
+      browserWindow.webContents.openDevTools({ mode: "detach" });
     });
 
     super("browser", browserWindow, { showAfterLoad: true, showDelay: 50 });
 
     this.browserWindowType = type;
+
+    browserWindow.on("enter-full-screen", () => {
+      this.emit("enter-full-screen");
+      fireWindowStateChanged(this);
+    });
 
     // "leave-full-screen" event
     browserWindow.on("leave-full-screen", () => {

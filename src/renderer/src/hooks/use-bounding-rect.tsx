@@ -1,8 +1,13 @@
-import { useState, useLayoutEffect, RefObject, useCallback, useRef, useMemo } from "react";
+import { useState, useLayoutEffect, RefObject, useCallback, useRef, useMemo, useEffect } from "react";
 import { usePortalContext } from "@/components/portal/portal";
 
 export interface UseBoundingRectOptions {
   throttleMs?: number;
+
+  /**
+   * This option can be changed during lifecycle of the component to enable or disable the loop.
+   */
+  observingWithLoop?: boolean;
 }
 
 export function useBoundingRect<T extends HTMLElement>(
@@ -16,6 +21,9 @@ export function useBoundingRect<T extends HTMLElement>(
   const lastUpdateTimeRef = useRef(0);
   const pendingUpdateRef = useRef<number | null>(null);
   const lastRectRef = useRef<DOMRect | null>(null);
+
+  const observingWithLoopRef = useRef(false);
+  observingWithLoopRef.current = options.observingWithLoop ?? false;
 
   const updateRect = useCallback(() => {
     const target = ref.current;
@@ -45,11 +53,21 @@ export function useBoundingRect<T extends HTMLElement>(
     }
     // If there's already a pending update, we don't need to do anything
     // The timeout will use lastRectRef.current which contains the latest values
+
+    if (observingWithLoopRef.current === true) {
+      requestAnimationFrame(updateRect);
+    }
   }, [ref, throttleMs]);
 
   const throttledUpdate = useCallback(() => {
     requestAnimationFrame(updateRect);
   }, [updateRect]);
+
+  useEffect(() => {
+    if (options.observingWithLoop === true) {
+      throttledUpdate();
+    }
+  }, [options.observingWithLoop, throttledUpdate]);
 
   useLayoutEffect(() => {
     const target = ref.current;
