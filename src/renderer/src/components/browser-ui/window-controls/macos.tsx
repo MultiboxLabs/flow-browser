@@ -2,7 +2,13 @@ import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { useEffect, useRef } from "react";
 import { useMount, useUnmount } from "react-use";
 
-export function SidebarWindowControlsMacOS({ isAnimating = false }: { isAnimating?: boolean }) {
+export function SidebarWindowControlsMacOS({
+  offset = 5,
+  isAnimating = false
+}: {
+  offset?: number;
+  isAnimating?: boolean;
+}) {
   const titlebarRef = useRef<HTMLDivElement>(null);
   const titlebarBounds = useBoundingRect(titlebarRef, { observingWithLoop: isAnimating });
 
@@ -10,10 +16,10 @@ export function SidebarWindowControlsMacOS({ isAnimating = false }: { isAnimatin
     if (titlebarBounds) {
       flow.interface.setWindowButtonPosition({
         x: titlebarBounds.left,
-        y: Math.max(titlebarBounds.top - 5, 9)
+        y: Math.max(titlebarBounds.top - offset, 9)
       });
     }
-  }, [titlebarBounds]);
+  }, [titlebarBounds, offset]);
 
   useMount(() => {
     flow.interface.setWindowButtonVisibility(true);

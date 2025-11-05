@@ -55,7 +55,6 @@ export function AdaptiveTopbarProvider({ children }: AdaptiveTopbarProviderProps
     });
     const removeListener = flow.interface.onWindowStateChanged((state) => {
       setIsFullscreen(state.isFullscreen);
-      console.log("isFullscreen", state);
       updated = true;
     });
     return () => {

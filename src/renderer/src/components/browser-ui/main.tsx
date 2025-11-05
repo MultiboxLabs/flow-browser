@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { AdaptiveTopbar, AdaptiveTopbarProvider, useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 import {
   type BrowserSidebarMode,
+  type AttachedDirection,
   BrowserSidebarProvider,
   useBrowserSidebar
 } from "@/components/browser-ui/browser-sidebar/provider";
@@ -12,13 +13,25 @@ import { useEffect } from "react";
 import { SettingsProvider } from "@/components/providers/settings-provider";
 
 export type BrowserUIType = "main" | "popup";
+export type SidebarVariant = "attached" | "floating";
 
 interface PresenceSidebarProps {
   sidebarMode: BrowserSidebarMode;
-  targetSidebarMode: BrowserSidebarMode;
+  targetSidebarModes: BrowserSidebarMode[];
+  direction: AttachedDirection;
 }
-export function PresenceSidebar({ sidebarMode, targetSidebarMode }: PresenceSidebarProps) {
-  return <AnimatePresence>{sidebarMode === targetSidebarMode && <BrowserSidebar key="sidebar" />}</AnimatePresence>;
+export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction }: PresenceSidebarProps) {
+  return (
+    <AnimatePresence>
+      {targetSidebarModes.includes(sidebarMode) && (
+        <BrowserSidebar
+          key="sidebar"
+          direction={direction}
+          variant={sidebarMode.startsWith("floating") ? "floating" : "attached"}
+        />
+      )}
+    </AnimatePresence>
+  );
 }
 
 function InternalBrowserUI({ type }: { type: BrowserUIType }) {
@@ -43,13 +56,21 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
     >
       <AdaptiveTopbar />
       <div className="flex-1 w-full flex flex-row items-center justify-center">
-        <PresenceSidebar sidebarMode={sidebarMode} targetSidebarMode="attached-left" />
+        <PresenceSidebar
+          sidebarMode={sidebarMode}
+          targetSidebarModes={["attached-left", "floating-left"]}
+          direction="left"
+        />
         <div className={cn("flex-1 h-full p-3", topbarVisible && "pt-0")}>
           <div className="w-full h-full flex items-center justify-center remove-app-drag">
             <div className="w-full h-full rounded-lg shadow-xl bg-white/20"></div>
           </div>
         </div>
-        <PresenceSidebar sidebarMode={sidebarMode} targetSidebarMode="attached-right" />
+        <PresenceSidebar
+          sidebarMode={sidebarMode}
+          targetSidebarModes={["attached-right", "floating-right"]}
+          direction="right"
+        />
       </div>
     </div>
   );
