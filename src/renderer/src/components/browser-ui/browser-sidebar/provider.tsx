@@ -9,6 +9,34 @@ export const MIN_SIDEBAR_WIDTH = 15;
 export const DEFAULT_SIDEBAR_SIZE = 20;
 export const MAX_SIDEBAR_WIDTH = 30;
 
+// Helper Functions //
+function getInitialSidebarSize() {
+  try {
+    const savedSize = localStorage.getItem("BROWSER_SIDEBAR_SIZE");
+    if (savedSize !== null) {
+      const parsedSize = parseFloat(savedSize);
+      // Validate the saved size is within bounds
+      if (!isNaN(parsedSize) && parsedSize >= MIN_SIDEBAR_WIDTH && parsedSize <= MAX_SIDEBAR_WIDTH) {
+        return parsedSize;
+      }
+    }
+  } catch (error) {
+    // If localStorage is unavailable or corrupted, use default
+    console.warn("Failed to load sidebar size from localStorage:", error);
+  }
+  return DEFAULT_SIDEBAR_SIZE;
+}
+
+export function saveSidebarSize(size: number) {
+  try {
+    localStorage.setItem("BROWSER_SIDEBAR_SIZE", size.toString());
+    return true;
+  } catch (error) {
+    console.warn("Failed to save sidebar size to localStorage:", error);
+    return false;
+  }
+}
+
 // Context //
 export type AttachedDirection = "left" | "right";
 export type BrowserSidebarMode = `attached-${AttachedDirection}` | `floating-${AttachedDirection}` | "hidden";
@@ -47,7 +75,8 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
   const attachedDirectionRef = useRef(attachedDirection);
   attachedDirectionRef.current = attachedDirection;
 
-  const recordedSidebarSizeRef = useRef(DEFAULT_SIDEBAR_SIZE);
+  // Load sidebar size from localStorage, fallback to default
+  const recordedSidebarSizeRef = useRef(getInitialSidebarSize());
 
   // States //
   const [isVisible, setVisible] = useState(false);

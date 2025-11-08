@@ -2,9 +2,15 @@ import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-contr
 import { usePlatform } from "@/components/main/platform";
 import { cn } from "@/lib/utils";
 import { usePresence } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMount } from "react-use";
-import { type AttachedDirection, useBrowserSidebar, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH } from "./provider";
+import {
+  type AttachedDirection,
+  useBrowserSidebar,
+  MIN_SIDEBAR_WIDTH,
+  MAX_SIDEBAR_WIDTH,
+  saveSidebarSize
+} from "./provider";
 import { type SidebarVariant } from "@/components/browser-ui/main";
 import { ResizablePanel } from "@/components/ui/resizable";
 import { type ImperativePanelHandle } from "react-resizable-panels";
@@ -84,12 +90,21 @@ export function BrowserSidebar({
 
   // Sidebar Panel Size //
   // Note: change in panel size does not trigger a re-render! instead, this only records the size for the next render. (which should be when the user is toggling sidebar)
-  const currentPanelSize = panelRef.current?.getSize();
-  useMemo(() => {
-    if (currentPanelSize) {
+  const updateSidebarSize = useCallback(() => {
+    const currentPanelSize = panelRef.current?.getSize();
+    if (currentPanelSize && recordedSidebarSizeRef.current !== currentPanelSize) {
       recordedSidebarSizeRef.current = currentPanelSize;
+
+      // Persist sidebar size to localStorage
+      saveSidebarSize(currentPanelSize);
     }
-  }, [currentPanelSize, recordedSidebarSizeRef]);
+  }, [recordedSidebarSizeRef]);
+
+  // Update sidebar size immediately and then every second
+  updateSidebarSize();
+  useEffect(() => {
+    setInterval(updateSidebarSize, 1000);
+  }, [updateSidebarSize]);
 
   // Render Component //
   const commonClassName = cn(
