@@ -41,9 +41,7 @@ export function AdaptiveTopbarProvider({ children }: AdaptiveTopbarProviderProps
     return 0;
   }, [platform, attachedDirection]);
 
-  const topbarVisible = useMemo<boolean>(() => {
-    return topbarHeight > 0;
-  }, [topbarHeight]);
+  const topbarVisible = topbarHeight > 0;
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   useEffect(() => {
@@ -77,7 +75,7 @@ export function AdaptiveTopbar() {
   if (!topbarVisible) return null;
   if (isFullscreen) return null;
   return (
-    <div className="w-full flex flex-row items-center" style={{ height: topbarHeight }}>
+    <div className="w-full flex flex-row items-center" style={{ height: `${topbarHeight}px` }}>
       <div className="w-3" />
       <SidebarWindowControlsMacOS />
     </div>
