@@ -24,18 +24,19 @@ interface PresenceSidebarProps {
 }
 export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction, order }: PresenceSidebarProps) {
   const shouldRender = targetSidebarModes.includes(sidebarMode);
+  const isFloating = sidebarMode.startsWith("floating");
   return (
     <AnimatePresence>
-      {direction === "right" && shouldRender && <ResizableHandle withHandle />}
+      {direction === "right" && shouldRender && !isFloating && <ResizableHandle withHandle />}
       {shouldRender && (
         <BrowserSidebar
           key="sidebar"
           direction={direction}
-          variant={sidebarMode.startsWith("floating") ? "floating" : "attached"}
+          variant={isFloating ? "floating" : "attached"}
           order={order}
         />
       )}
-      {direction === "left" && shouldRender && <ResizableHandle withHandle />}
+      {direction === "left" && shouldRender && !isFloating && <ResizableHandle withHandle />}
     </AnimatePresence>
   );
 }
