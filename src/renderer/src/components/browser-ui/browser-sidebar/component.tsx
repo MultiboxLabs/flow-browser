@@ -98,7 +98,7 @@ export function BrowserSidebar({
   const commonClassName = cn(
     "h-full overflow-hidden w-[var(--panel-size)]",
     "transition-[margin]",
-    variant === "floating" && "fixed left-0 top-0 p-2",
+    variant === "floating" && (direction === "left" ? "fixed left-0 top-0 p-2" : "fixed right-0 top-0 p-2"),
     SIDEBAR_ANIMATE_CLASS,
     direction === "left" && (currentlyVisible ? "ml-0" : "-ml-[var(--panel-size)]"),
     direction === "right" && (currentlyVisible ? "mr-0" : "-mr-[var(--panel-size)]"),
