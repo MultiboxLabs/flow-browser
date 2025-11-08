@@ -5,6 +5,5 @@ import { ReactNode } from "react";
 export const RouteConfig: RouteConfigType = {
   Providers: ({ children }: { children: ReactNode }) => {
     return <PortalsProvider>{children}</PortalsProvider>;
-  },
-  Fallback: null
+  }
 };

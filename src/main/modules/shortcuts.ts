@@ -58,6 +58,12 @@ const typedShortcuts = [
 
   // Browser
   {
+    id: "browser.openSettings",
+    name: "Open Settings",
+    shortcut: "CommandOrControl+,",
+    category: "Browser"
+  },
+  {
     id: "browser.newWindow",
     name: "New Window",
     shortcut: "CommandOrControl+N",

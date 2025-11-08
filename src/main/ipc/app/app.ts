@@ -1,4 +1,4 @@
-import { isDefaultBrowser, setDefaultBrowser } from "@/modules/default-browser";
+import { defaultBrowserController } from "@/controllers/default-browser-controller";
 import { app, clipboard } from "electron";
 import { ipcMain } from "electron";
 
@@ -14,9 +14,9 @@ ipcMain.on("app:write-text-to-clipboard", (_event, text: string) => {
 });
 
 ipcMain.handle("app:set-default-browser", async () => {
-  return await setDefaultBrowser();
+  return await defaultBrowserController.setDefaultBrowser();
 });
 
 ipcMain.handle("app:get-default-browser", async () => {
-  return isDefaultBrowser();
+  return defaultBrowserController.isDefaultBrowser();
 });

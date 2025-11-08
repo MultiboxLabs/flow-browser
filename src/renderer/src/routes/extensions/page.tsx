@@ -3,20 +3,19 @@ import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
-import { useRouter } from "@/router/provider";
 import { ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 
 import ExtensionCard from "./components/extension-card";
 import ExtensionDetails from "./components/extension-details";
 import { ExtensionsProvider, useExtensions } from "@/components/providers/extensions-provider";
-import { toast } from "sonner";
+import { useQueryState } from "nuqs";
 
 const CHROME_WEB_STORE_URL = "https://chromewebstore.google.com/category/extensions?utm_source=ext_sidebar";
 
 function ExtensionsPage() {
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
-  const router = useRouter();
-  const selectedExtensionId = new URLSearchParams(router.search).get("id");
+  const [selectedExtensionId, setSelectedExtensionId] = useQueryState("id");
 
   const { extensions } = useExtensions();
 
@@ -51,11 +50,11 @@ function ExtensionsPage() {
   };
 
   const handleDetailsClick = (id: string) => {
-    window.history.pushState(null, "", `/?id=${id}`);
+    setSelectedExtensionId(id);
   };
 
   const handleBack = () => {
-    window.history.pushState(null, "", "/");
+    setSelectedExtensionId(null);
   };
 
   const selectedExtension = extensions.find((ext) => ext.id === selectedExtensionId);

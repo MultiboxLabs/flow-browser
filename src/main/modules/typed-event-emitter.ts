@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { EventEmitter } from "events";
 
+export type EmitterEventsType = Record<string, any>;
+
 /**
  * A type-safe event emitter class.
  * Wraps the Node.js EventEmitter to provide type checking for event names and arguments.
  * @template TEvents A record mapping event names to their argument tuple types.
  */
-export class TypedEventEmitter<TEvents extends Record<string, any>> {
+export class TypedEventEmitter<TEvents extends EmitterEventsType> {
   private emitter = new EventEmitter();
   private emitterDestroyed = false;
 
@@ -97,6 +99,22 @@ export class TypedEventEmitter<TEvents extends Record<string, any>> {
 
     this.on(eventName, handler as any);
     return disconnect;
+  }
+
+  /**
+   * Wait for an event to be emitted and return a Promise that resolves with the event arguments.
+   * @template TEventName The name of the event to wait for.
+   * @param {TEventName} eventName The name of the event.
+   * @returns {Promise<TEvents[TEventName]>} A Promise that resolves with the event arguments when the event is emitted.
+   */
+  waitUntil<TEventName extends keyof TEvents & string>(eventName: TEventName): Promise<TEvents[TEventName]> {
+    this.assertNotDestroyed();
+
+    return new Promise<TEvents[TEventName]>((resolve) => {
+      this.once(eventName, (...args: TEvents[TEventName]) => {
+        resolve(args as TEvents[TEventName]);
+      });
+    });
   }
 
   /**

@@ -1,12 +1,12 @@
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getDatastore } from "@/saving/datastore";
-import { z } from "zod";
+import { type } from "arktype";
 
 // Modified Shortcut Data //
-const ModifiedShortcutData = z.object({
-  newShortcut: z.string()
+const ModifiedShortcutData = type({
+  newShortcut: "string"
 });
-type ModifiedShortcutData = z.infer<typeof ModifiedShortcutData>;
+type ModifiedShortcutData = typeof ModifiedShortcutData.infer;
 
 // Data Store //
 export const ShortcutsDataStore = getDatastore("shortcuts");
@@ -28,15 +28,14 @@ async function loadShortcuts() {
 
   for (const key of Object.keys(rawModifiedShortcuts)) {
     const rawModifiedShortcutData = rawModifiedShortcuts[key];
-    const parseResult = ModifiedShortcutData.safeParse(rawModifiedShortcutData);
-    if (!parseResult.success) {
-      console.error(`Invalid shortcut data for ${key}:`, parseResult.error);
-      continue;
+    const parseResult = ModifiedShortcutData(rawModifiedShortcutData);
+    if (!(parseResult instanceof type.errors)) {
+      const modifiedShortcutData = parseResult;
+      modifiedShortcuts.set(key, modifiedShortcutData);
+      hasChanged = true;
+    } else {
+      console.error(`Invalid shortcut data for ${key}:`, parseResult.summary);
     }
-
-    const modifiedShortcutData = parseResult.data;
-    modifiedShortcuts.set(key, modifiedShortcutData);
-    hasChanged = true;
   }
 
   if (hasChanged) {
@@ -48,12 +47,12 @@ loadShortcuts();
 
 // Update Modified Shortcuts //
 export async function updateModifiedShortcut(id: string, rawModifiedShortcutData: ModifiedShortcutData | unknown) {
-  const parseResult = ModifiedShortcutData.safeParse(rawModifiedShortcutData);
-  if (!parseResult.success) {
+  const parseResult = ModifiedShortcutData(rawModifiedShortcutData);
+  if (parseResult instanceof type.errors) {
     return false;
   }
 
-  const modifiedShortcutData = parseResult.data;
+  const modifiedShortcutData = parseResult;
 
   const success = await ShortcutsDataStore.set(id, modifiedShortcutData)
     .then(() => true)

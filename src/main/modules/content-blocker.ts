@@ -1,9 +1,9 @@
-import { createBetterSession } from "@/browser/utility/web-requests";
-import { browser } from "@/index";
 import { debugPrint } from "@/modules/output";
 import { getSettingValueById, onSettingsCached, settingsEmitter } from "@/saving/settings";
 import { ElectronBlocker } from "@ghostery/adblocker-electron";
 import { Session } from "electron";
+import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
+import { unifiedWebRequests } from "@/controllers/sessions-controller";
 
 type BlockerInstanceType = "all" | "adsAndTrackers" | "adsOnly";
 
@@ -60,7 +60,7 @@ class ContentBlocker {
 
     const blocker = await this.blockerInstancePromise;
     for (const session of this.blockedSessions) {
-      blocker.disableBlockingInSession(createBetterSession(session, SESSION_KEY));
+      blocker.disableBlockingInSession(unifiedWebRequests.createSession(session, SESSION_KEY));
     }
 
     this.blockedSessions = [];
@@ -82,17 +82,15 @@ class ContentBlocker {
     this.blockedSessions.push(session);
 
     // enable blocking in session
-    blocker.enableBlockingInSession(createBetterSession(session, SESSION_KEY));
+    blocker.enableBlockingInSession(unifiedWebRequests.createSession(session, SESSION_KEY));
   }
 
   /**
    * Updates content blocker configuration based on user settings
    */
   public async updateConfig(): Promise<void> {
-    if (!browser) return;
-
     const contentBlocker = getSettingValueById("contentBlocker") as string | undefined;
-    const profiles = browser.getLoadedProfiles();
+    const profiles = loadedProfilesController.getAll();
 
     switch (contentBlocker) {
       case "all":
@@ -122,7 +120,7 @@ class ContentBlocker {
     });
 
     // Listen for profile changes
-    browser?.on("profile-loaded", () => {
+    loadedProfilesController.on("profile-loaded", () => {
       this.updateConfig();
     });
   }

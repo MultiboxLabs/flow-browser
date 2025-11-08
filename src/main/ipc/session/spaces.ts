@@ -1,72 +1,62 @@
 import { ipcMain } from "electron";
-import {
-  getSpaces,
-  getSpacesFromProfile,
-  createSpace,
-  deleteSpace,
-  updateSpace,
-  SpaceData,
-  setSpaceLastUsed,
-  getLastUsedSpace,
-  reorderSpaces,
-  spacesEmitter
-} from "@/sessions/spaces";
-import { generateID } from "@/modules/utils";
-import { browser } from "@/index";
-import { TabbedBrowserWindow } from "@/browser/window";
-import { sendMessageToListeners, sendMessageToListenersInWindow } from "@/ipc/listeners-manager";
+import { sendMessageToListeners } from "@/ipc/listeners-manager";
+import { SpaceData, SpaceOrderMap, spacesController } from "@/controllers/spaces-controller";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { BrowserWindow } from "@/controllers/windows-controller/types";
 
 ipcMain.handle("spaces:get-all", async () => {
-  return await getSpaces();
+  return await spacesController.getAll();
 });
 
 ipcMain.handle("spaces:get-from-profile", async (_event, profileId: string) => {
-  return await getSpacesFromProfile(profileId);
+  return await spacesController.getAllFromProfile(profileId);
 });
 
 ipcMain.handle("spaces:create", async (_event, profileId: string, spaceName: string) => {
-  return await createSpace(profileId, generateID(), spaceName);
+  return await spacesController.create(profileId, spaceName);
 });
 
 ipcMain.handle("spaces:delete", async (_event, profileId: string, spaceId: string) => {
-  return await deleteSpace(profileId, spaceId);
+  return await spacesController.delete(profileId, spaceId);
 });
 
 ipcMain.handle("spaces:update", async (_event, profileId: string, spaceId: string, spaceData: Partial<SpaceData>) => {
-  return await updateSpace(profileId, spaceId, spaceData);
+  return await spacesController.update(profileId, spaceId, spaceData);
 });
 
 ipcMain.handle("spaces:set-using", async (event, profileId: string, spaceId: string) => {
-  const window = browser?.getWindowFromWebContents(event.sender);
+  const window = browserWindowsController.getWindowFromWebContents(event.sender);
   if (window) {
     window.setCurrentSpace(spaceId);
   }
 
-  return await setSpaceLastUsed(profileId, spaceId);
+  return await spacesController.setLastUsed(profileId, spaceId);
 });
 
 ipcMain.handle("spaces:get-using", async (event) => {
-  const window = browser?.getWindowFromWebContents(event.sender);
+  const window = browserWindowsController.getWindowFromWebContents(event.sender);
   if (window) {
-    return window.getCurrentSpace();
+    return window.currentSpaceId;
   }
   return null;
 });
 
 ipcMain.handle("spaces:get-last-used", async () => {
-  return await getLastUsedSpace();
+  return await spacesController.getLastUsed();
 });
 
-ipcMain.handle("spaces:reorder", async (_event, orderMap: { profileId: string; spaceId: string; order: number }[]) => {
-  return await reorderSpaces(orderMap);
+ipcMain.handle("spaces:reorder", async (_event, orderMap: SpaceOrderMap) => {
+  return await spacesController.reorder(orderMap);
 });
 
-export function setWindowSpace(window: TabbedBrowserWindow, spaceId: string) {
+export function setWindowSpace(window: BrowserWindow, spaceId: string) {
   window.setCurrentSpace(spaceId);
-  sendMessageToListenersInWindow(window, "spaces:on-set-window-space", spaceId);
+  window.sendMessage("spaces:on-set-window-space", spaceId);
 }
 
 function fireOnSpacesChanged() {
   sendMessageToListeners("spaces:on-changed");
 }
-spacesEmitter.on("changed", fireOnSpacesChanged);
+spacesController.on("space-created", fireOnSpacesChanged);
+spacesController.on("space-updated", fireOnSpacesChanged);
+spacesController.on("space-deleted", fireOnSpacesChanged);

@@ -1,25 +1,19 @@
+import { autoUpdateController } from "@/controllers/auto-update-controller";
 import { sendMessageToListeners } from "@/ipc/listeners-manager";
-import {
-  isAutoUpdateSupported,
-  getUpdateStatus,
-  checkForUpdates,
-  downloadUpdate,
-  installUpdate
-} from "@/modules/auto-update";
 import { ipcMain } from "electron";
 import { UpdateStatus } from "~/types/updates";
 
 ipcMain.handle("updates:is-auto-update-supported", () => {
-  return isAutoUpdateSupported(process.platform);
+  return autoUpdateController.isAutoUpdateSupported(process.platform);
 });
 
 ipcMain.handle("updates:get-update-status", () => {
-  return getUpdateStatus();
+  return autoUpdateController.getUpdateStatus();
 });
 
 ipcMain.handle("updates:check-for-updates", async () => {
   try {
-    const result = await checkForUpdates();
+    const result = await autoUpdateController.checkForUpdates();
     if (result?.isUpdateAvailable) {
       return true;
     }
@@ -30,13 +24,16 @@ ipcMain.handle("updates:check-for-updates", async () => {
 });
 
 ipcMain.handle("updates:download-update", () => {
-  return downloadUpdate();
+  return autoUpdateController.downloadUpdate();
 });
 
 ipcMain.handle("updates:install-update", () => {
-  return installUpdate();
+  return autoUpdateController.installUpdate();
 });
 
 export function fireUpdateStatusChanged(updateStatus: UpdateStatus) {
   sendMessageToListeners("updates:on-update-status-changed", updateStatus);
 }
+autoUpdateController.on("status-changed", () => {
+  fireUpdateStatusChanged(autoUpdateController.getUpdateStatus());
+});

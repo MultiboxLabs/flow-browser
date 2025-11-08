@@ -1,7 +1,7 @@
 import { sendMessageToListeners } from "@/ipc/listeners-manager";
 import { BasicSettings, BasicSettingCards } from "@/modules/basic-settings";
 import { getSettingValueById, setSettingValueById } from "@/saving/settings";
-import { settings } from "@/settings/main";
+import { settings } from "@/controllers/windows-controller/interfaces/settings";
 import { ipcMain } from "electron";
 
 ipcMain.on("settings:open", () => {

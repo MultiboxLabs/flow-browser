@@ -1,5 +1,5 @@
-import { browser } from "@/index";
-import { onboarding } from "@/onboarding/main";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { onboarding } from "@/controllers/windows-controller/interfaces/onboarding";
 import { SettingsDataStore } from "@/saving/settings";
 import { app } from "electron";
 
@@ -15,8 +15,8 @@ export async function setOnboardingCompleted() {
   await SettingsDataStore.set(ONBOARDING_KEY, ONBOARDING_VERSION);
   onboarding.hide();
 
-  if (browser?.getWindows().length === 0) {
-    browser?.createWindow();
+  if (browserWindowsController.getWindows().length === 0) {
+    browserWindowsController.create();
   }
 }
 

@@ -1,5 +1,4 @@
 import { randomUUID } from "crypto";
-import fs from "fs";
 import fsPromises from "fs/promises";
 import mimeTypes from "mime-types";
 import path from "path";
@@ -9,9 +8,9 @@ import path from "path";
  * @param filePath - The path to check
  * @returns True if the file exists, false otherwise
  */
-export async function isFileExists(filePath: string) {
+export async function doesFileExist(filePath: string) {
   return await fsPromises
-    .access(filePath, fs.constants.F_OK)
+    .access(filePath, fsPromises.constants.F_OK)
     .then(() => true)
     .catch(() => false);
 }
@@ -23,15 +22,6 @@ export async function isFileExists(filePath: string) {
  */
 export function getContentType(filePath: string) {
   return mimeTypes.lookup(filePath) || "text/plain";
-}
-
-/**
- * Wait for a number of milliseconds
- * @param ms - The number of milliseconds to wait
- * @returns A promise that resolves after the number of milliseconds
- */
-export function waitFor(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -93,4 +83,35 @@ export function generateID(): string {
  */
 export function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * Get the current timestamp
+ * @returns The current timestamp
+ */
+export function getCurrentTimestamp() {
+  return Math.floor(Date.now() / 1000);
+}
+
+/**
+ * Get all immediate subdirectories of a parent path
+ * @param parentPath - The parent directory to scan
+ * @returns Array of directory names
+ */
+export async function getAllDirectories(parentPath: string): Promise<string[]> {
+  try {
+    const entries = await fsPromises.readdir(parentPath, { withFileTypes: true });
+    return entries.filter((entry) => entry.isDirectory()).map((dir) => dir.name);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Turns a buffer into an array buffer.
+ * @param buffer - The Buffer Object
+ * @returns The converted ArrayBuffer.
+ */
+export function bufferToArrayBuffer(buffer: Buffer) {
+  return new Uint8Array(buffer).buffer;
 }

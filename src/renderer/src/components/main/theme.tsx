@@ -1,4 +1,4 @@
-import { useEffect, useState, createContext, useContext, useMemo } from "react";
+import { useEffect, useLayoutEffect, useState, createContext, useContext, useMemo } from "react";
 
 type Theme = "light" | "dark" | "system";
 
@@ -17,6 +17,17 @@ export function useTheme() {
     throw new Error("useTheme must be used within a ThemeProvider");
   }
   return context;
+}
+
+// Helper function to apply theme class synchronously
+function applyThemeClass(theme: "light" | "dark") {
+  if (theme === "dark") {
+    document.documentElement.classList.add("dark");
+    document.documentElement.classList.remove("light");
+  } else {
+    document.documentElement.classList.add("light");
+    document.documentElement.classList.remove("dark");
+  }
 }
 
 export function ThemeProvider({
@@ -57,15 +68,11 @@ export function ThemeProvider({
     return theme === "system" ? resolvedTheme : theme;
   }, [theme, resolvedTheme]);
 
-  useEffect(() => {
+  // Use useLayoutEffect to apply theme synchronously before browser paint
+  // This prevents flicker when theme changes or forceTheme is provided
+  useLayoutEffect(() => {
     // Apply theme class to document
-    if (appliedTheme === "dark") {
-      document.documentElement.classList.add("dark");
-      document.documentElement.classList.remove("light");
-    } else {
-      document.documentElement.classList.add("light");
-      document.documentElement.classList.remove("dark");
-    }
+    applyThemeClass(appliedTheme);
 
     if (persist) {
       // Save theme to localStorage
