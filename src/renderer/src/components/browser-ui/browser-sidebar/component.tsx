@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { usePresence } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMount } from "react-use";
-import { type AttachedDirection, useBrowserSidebar } from "./provider";
+import { type AttachedDirection, useBrowserSidebar, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH } from "./provider";
 import { type SidebarVariant } from "@/components/browser-ui/main";
 import { ResizablePanel } from "@/components/ui/resizable";
 import { type ImperativePanelHandle } from "react-resizable-panels";
@@ -27,11 +27,6 @@ function SidebarInner({ direction, variant }: { direction: AttachedDirection; va
 const SIDEBAR_ANIMATE_TIME = 100;
 const SIDEBAR_ANIMATE_CLASS = "duration-100 ease-in-out";
 
-const MIN_SIDEBAR_WIDTH = 15;
-const DEFAULT_SIDEBAR_SIZE = 20;
-const MAX_SIDEBAR_WIDTH = 30;
-let recordedSidebarSize = DEFAULT_SIDEBAR_SIZE;
-
 export function BrowserSidebar({
   direction,
   variant,
@@ -41,7 +36,9 @@ export function BrowserSidebar({
   variant: SidebarVariant;
   order: number;
 }) {
-  const { isVisible, startAnimation, stopAnimation } = useBrowserSidebar();
+  const isFloating = variant === "floating";
+
+  const { isVisible, startAnimation, stopAnimation, recordedSidebarSizeRef } = useBrowserSidebar();
   const divRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<ImperativePanelHandle>(null);
 
@@ -90,23 +87,24 @@ export function BrowserSidebar({
   const currentPanelSize = panelRef.current?.getSize();
   useMemo(() => {
     if (currentPanelSize) {
-      recordedSidebarSize = currentPanelSize;
+      recordedSidebarSizeRef.current = currentPanelSize;
     }
-  }, [currentPanelSize]);
+  }, [currentPanelSize, recordedSidebarSizeRef]);
 
   // Render Component //
   const commonClassName = cn(
     "h-full overflow-hidden w-[var(--panel-size)]",
     "transition-[margin]",
-    variant === "floating" && (direction === "left" ? "fixed left-0 top-0 p-2" : "fixed right-0 top-0 p-2"),
+    isFloating && (direction === "left" ? "fixed left-0 top-0 p-2" : "fixed right-0 top-0 p-2"),
     SIDEBAR_ANIMATE_CLASS,
     direction === "left" && (currentlyVisible ? "ml-0" : "-ml-[var(--panel-size)]"),
     direction === "right" && (currentlyVisible ? "mr-0" : "-mr-[var(--panel-size)]"),
+    // Remove flex so the sidebar hiding animation can play correctly
     !currentlyVisible && "!flex-[unset]"
   );
 
   const commonStyle = {
-    "--panel-size": `${recordedSidebarSize}%`
+    "--panel-size": `${recordedSidebarSizeRef.current}%`
   } as React.CSSProperties;
 
   const content = (
@@ -116,18 +114,23 @@ export function BrowserSidebar({
         "transition-transform",
         SIDEBAR_ANIMATE_CLASS,
         "flex flex-col",
-        variant === "floating" && "rounded-lg border border-sidebar-border bg-space-background-start"
+        isFloating && "rounded-lg border border-sidebar-border bg-space-background-start"
       )}
     >
       <div
-        className={cn("m-4 flex-1", "flex flex-col", direction === "left" && "mr-0", direction === "right" && "ml-0")}
+        className={cn(
+          "m-4 flex-1",
+          "flex flex-col",
+          direction === "left" && !isFloating && "mr-0",
+          direction === "right" && !isFloating && "ml-0"
+        )}
       >
         <SidebarInner direction={direction} variant={variant} />
       </div>
     </div>
   );
 
-  return variant === "floating" ? (
+  return isFloating ? (
     <div id="sidebar" ref={divRef} className={commonClassName} style={commonStyle}>
       {content}
     </div>
@@ -136,7 +139,7 @@ export function BrowserSidebar({
       id="sidebar"
       ref={panelRef}
       order={order}
-      defaultSize={recordedSidebarSize}
+      defaultSize={recordedSidebarSizeRef.current}
       className={commonClassName}
       style={commonStyle}
       minSize={MIN_SIDEBAR_WIDTH}
