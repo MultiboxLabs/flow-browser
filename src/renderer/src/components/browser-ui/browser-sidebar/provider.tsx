@@ -71,15 +71,23 @@ interface BrowserSidebarProviderProps {
 export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps) {
   const { getSetting } = useSettings();
 
-  const attachedDirection = getSetting<AttachedDirection>("sidebarSide") ?? "left";
+  const attachedDirectionSetting = getSetting<AttachedDirection>("sidebarSide");
+  const attachedDirection = attachedDirectionSetting ?? "left";
+
   const attachedDirectionRef = useRef(attachedDirection);
   attachedDirectionRef.current = attachedDirection;
 
   // Load sidebar size from localStorage, fallback to default
   const recordedSidebarSizeRef = useRef(getInitialSidebarSize());
 
-  // States //
+  // Visibility State //
+  // Wait until the attached direction is loaded before rendering the sidebar first time.
   const [isVisible, setVisible] = useState(false);
+  const hasFirstRenderedRef = useRef(false);
+  if (!hasFirstRenderedRef.current && attachedDirectionSetting) {
+    hasFirstRenderedRef.current = true;
+    setVisible(true);
+  }
 
   // Floating Sidebar //
   const isFloating = useFloatingSidebarTrigger(attachedDirectionRef);
