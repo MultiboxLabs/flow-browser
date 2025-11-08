@@ -11,6 +11,7 @@ import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar/componen
 import { AnimatePresence } from "motion/react";
 import { useEffect } from "react";
 import { SettingsProvider } from "@/components/providers/settings-provider";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 
 export type BrowserUIType = "main" | "popup";
 export type SidebarVariant = "attached" | "floating";
@@ -19,17 +20,22 @@ interface PresenceSidebarProps {
   sidebarMode: BrowserSidebarMode;
   targetSidebarModes: BrowserSidebarMode[];
   direction: AttachedDirection;
+  order: number;
 }
-export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction }: PresenceSidebarProps) {
+export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction, order }: PresenceSidebarProps) {
+  const shouldRender = targetSidebarModes.includes(sidebarMode);
   return (
     <AnimatePresence>
-      {targetSidebarModes.includes(sidebarMode) && (
+      {direction === "right" && shouldRender && <ResizableHandle withHandle />}
+      {shouldRender && (
         <BrowserSidebar
           key="sidebar"
           direction={direction}
           variant={sidebarMode.startsWith("floating") ? "floating" : "attached"}
+          order={order}
         />
       )}
+      {direction === "left" && shouldRender && <ResizableHandle withHandle />}
     </AnimatePresence>
   );
 }
@@ -54,24 +60,28 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
         "app-drag"
       )}
     >
-      <AdaptiveTopbar />
-      <div className="flex-1 w-full flex flex-row items-center justify-center">
-        <PresenceSidebar
-          sidebarMode={sidebarMode}
-          targetSidebarModes={["attached-left", "floating-left"]}
-          direction="left"
-        />
-        <div className={cn("flex-1 h-full p-3", topbarVisible && "pt-0")}>
-          <div className="w-full h-full flex items-center justify-center remove-app-drag">
-            <div className="w-full h-full rounded-lg shadow-xl bg-white/20"></div>
-          </div>
+      <ResizablePanelGroup direction="horizontal" className="flex-1 flex !flex-col">
+        <AdaptiveTopbar />
+        <div className="flex-1 w-full flex flex-row items-center justify-center remove-app-drag">
+          <PresenceSidebar
+            sidebarMode={sidebarMode}
+            targetSidebarModes={["attached-left", "floating-left"]}
+            direction="left"
+            order={1}
+          />
+          <ResizablePanel id="main" order={2} className={cn("flex-1 h-full p-3", topbarVisible && "pt-0")}>
+            <div className="w-full h-full flex items-center justify-center remove-app-drag">
+              <div className="w-full h-full rounded-lg shadow-xl bg-white/20"></div>
+            </div>
+          </ResizablePanel>
+          <PresenceSidebar
+            sidebarMode={sidebarMode}
+            targetSidebarModes={["attached-right", "floating-right"]}
+            direction="right"
+            order={3}
+          />
         </div>
-        <PresenceSidebar
-          sidebarMode={sidebarMode}
-          targetSidebarModes={["attached-right", "floating-right"]}
-          direction="right"
-        />
-      </div>
+      </ResizablePanelGroup>
     </div>
   );
 }

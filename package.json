@@ -44,6 +44,7 @@
     "knex": "^3.1.0",
     "mime-types": "^3.0.1",
     "posthog-node": "^5.0.0",
+    "react-resizable-panels": "^3.0.6",
     "sharp": "^0.34.1",
     "sharp-ico": "^0.1.5"
   },

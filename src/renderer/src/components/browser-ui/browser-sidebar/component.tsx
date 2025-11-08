@@ -2,10 +2,12 @@ import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-contr
 import { usePlatform } from "@/components/main/platform";
 import { cn } from "@/lib/utils";
 import { usePresence } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMount } from "react-use";
 import { type AttachedDirection, useBrowserSidebar } from "./provider";
 import { type SidebarVariant } from "@/components/browser-ui/main";
+import { ResizablePanel } from "@/components/ui/resizable";
+import { type ImperativePanelHandle } from "react-resizable-panels";
 
 // Component //
 function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
@@ -22,11 +24,26 @@ function SidebarInner({ direction, variant }: { direction: AttachedDirection; va
   );
 }
 
-const SIDEBAR_ANIMATE_TIME = 150;
-const SIDEBAR_ANIMATE_CLASS = "duration-150 ease-in-out";
+const SIDEBAR_ANIMATE_TIME = 100;
+const SIDEBAR_ANIMATE_CLASS = "duration-100 ease-in-out";
 
-export function BrowserSidebar({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
+const MIN_SIDEBAR_WIDTH = 15;
+const DEFAULT_SIDEBAR_SIZE = 20;
+const MAX_SIDEBAR_WIDTH = 30;
+let recordedSidebarSize = DEFAULT_SIDEBAR_SIZE;
+
+export function BrowserSidebar({
+  direction,
+  variant,
+  order
+}: {
+  direction: AttachedDirection;
+  variant: SidebarVariant;
+  order: number;
+}) {
   const { isVisible, startAnimation, stopAnimation } = useBrowserSidebar();
+  const divRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<ImperativePanelHandle>(null);
 
   // Animation Readiness //
   // This is needed so that on the first few frames, the width will start from 0 instead of the full width.
@@ -68,33 +85,64 @@ export function BrowserSidebar({ direction, variant }: { direction: AttachedDire
     }, SIDEBAR_ANIMATE_TIME);
   });
 
+  // Sidebar Panel Size //
+  // Note: change in panel size does not trigger a re-render! instead, this only records the size for the next render. (which should be when the user is toggling sidebar)
+  const currentPanelSize = panelRef.current?.getSize();
+  useMemo(() => {
+    if (currentPanelSize) {
+      recordedSidebarSize = currentPanelSize;
+    }
+  }, [currentPanelSize]);
+
   // Render Component //
-  return (
+  const commonClassName = cn(
+    "h-full overflow-hidden w-[var(--panel-size)]",
+    "transition-[margin]",
+    variant === "floating" && "fixed left-0 top-0 p-2",
+    SIDEBAR_ANIMATE_CLASS,
+    direction === "left" && (currentlyVisible ? "ml-0" : "-ml-[var(--panel-size)]"),
+    direction === "right" && (currentlyVisible ? "mr-0" : "-mr-[var(--panel-size)]"),
+    !currentlyVisible && "!flex-[unset]"
+  );
+
+  const commonStyle = {
+    "--panel-size": `${recordedSidebarSize}%`
+  } as React.CSSProperties;
+
+  const content = (
     <div
       className={cn(
-        "h-full overflow-hidden w-[20%]",
-        "transition-margin",
-        variant === "floating" && "fixed left-0 top-0 p-2",
+        "w-full h-full",
+        "transition-transform",
         SIDEBAR_ANIMATE_CLASS,
-        direction === "left" && (currentlyVisible ? "ml-0" : "-ml-[20%]"),
-        direction === "right" && (currentlyVisible ? "mr-0" : "-mr-[20%]")
+        "flex flex-col",
+        variant === "floating" && "rounded-lg border border-sidebar-border bg-space-background-start"
       )}
     >
       <div
-        className={cn(
-          "w-full h-full",
-          "transition-transform",
-          SIDEBAR_ANIMATE_CLASS,
-          "flex flex-col",
-          variant === "floating" && "rounded-lg border border-sidebar-border bg-space-background-start"
-        )}
+        className={cn("m-4 flex-1", "flex flex-col", direction === "left" && "mr-0", direction === "right" && "ml-0")}
       >
-        <div
-          className={cn("m-4 flex-1", "flex flex-col", direction === "left" && "mr-0", direction === "right" && "ml-0")}
-        >
-          <SidebarInner direction={direction} variant={variant} />
-        </div>
+        <SidebarInner direction={direction} variant={variant} />
       </div>
     </div>
+  );
+
+  return variant === "floating" ? (
+    <div id="sidebar" ref={divRef} className={commonClassName} style={commonStyle}>
+      {content}
+    </div>
+  ) : (
+    <ResizablePanel
+      id="sidebar"
+      ref={panelRef}
+      order={order}
+      defaultSize={recordedSidebarSize}
+      className={commonClassName}
+      style={commonStyle}
+      minSize={MIN_SIDEBAR_WIDTH}
+      maxSize={MAX_SIDEBAR_WIDTH}
+    >
+      {content}
+    </ResizablePanel>
   );
 }
