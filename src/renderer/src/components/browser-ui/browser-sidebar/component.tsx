@@ -14,6 +14,7 @@ import {
 import { type SidebarVariant } from "@/components/browser-ui/main";
 import { ResizablePanel } from "@/components/ui/resizable";
 import { type ImperativePanelHandle } from "react-resizable-panels";
+import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 
 // Component //
 function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
@@ -45,6 +46,8 @@ export function BrowserSidebar({
   const isFloating = variant === "floating";
 
   const { isVisible, startAnimation, stopAnimation, recordedSidebarSizeRef } = useBrowserSidebar();
+  const { topbarHeight } = useAdaptiveTopbar();
+
   const divRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<ImperativePanelHandle>(null);
 
@@ -110,7 +113,9 @@ export function BrowserSidebar({
   const commonClassName = cn(
     "h-full overflow-hidden w-[var(--panel-size)]",
     "transition-[margin]",
-    isFloating && (direction === "left" ? "fixed left-0 top-0 p-2" : "fixed right-0 top-0 p-2"),
+    isFloating && (direction === "left" ? "fixed left-0 p-2" : "fixed right-0 p-2"),
+    isFloating && `top-[var(--offset-top)] h-[max(100vh-var(--offset-top),0px)]`,
+    isFloating && topbarHeight > 0 && `pt-[calc(8px-var(--offset-top))]`,
     SIDEBAR_ANIMATE_CLASS,
     direction === "left" && (currentlyVisible ? "ml-0" : "-ml-[var(--panel-size)]"),
     direction === "right" && (currentlyVisible ? "mr-0" : "-mr-[var(--panel-size)]"),
@@ -119,7 +124,8 @@ export function BrowserSidebar({
   );
 
   const commonStyle = {
-    "--panel-size": `${recordedSidebarSizeRef.current}%`
+    "--panel-size": `${recordedSidebarSizeRef.current}%`,
+    "--offset-top": `${topbarHeight}px`
   } as React.CSSProperties;
 
   const content = (
