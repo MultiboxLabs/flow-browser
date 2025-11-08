@@ -1,3 +1,4 @@
+import { useFloatingSidebarTrigger } from "@/components/browser-ui/browser-sidebar/floating-sidebar-trigger";
 import { useSettings } from "@/components/providers/settings-provider";
 import { generateUUID } from "@/lib/utils";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
@@ -35,35 +36,16 @@ interface BrowserSidebarProviderProps {
 
 export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps) {
   const { getSetting } = useSettings();
+
   const attachedDirection = getSetting<AttachedDirection>("sidebarSide") ?? "left";
+  const attachedDirectionRef = useRef(attachedDirection);
+  attachedDirectionRef.current = attachedDirection;
 
   // States //
   const [isVisible, setVisible] = useState(false);
 
   // Floating Sidebar //
-  const [isFloating, setIsFloating] = useState(false);
-  const isFloatingRef = useRef(isFloating);
-  isFloatingRef.current = isFloating;
-
-  useEffect(() => {
-    let lastLocation: [number, number] = [0, 0];
-    const mouseMoveListener = (event: MouseEvent) => {
-      lastLocation = [event.clientX, event.clientY];
-      if (isFloatingRef.current === false && event.clientX < 10) {
-        setTimeout(() => {
-          if (lastLocation[0] < 10) {
-            setIsFloating(true);
-          }
-        }, 50);
-      } else if (isFloatingRef.current === true && event.clientX > 250) {
-        setIsFloating(false);
-      }
-    };
-    document.addEventListener("mousemove", mouseMoveListener);
-    return () => {
-      document.removeEventListener("mousemove", mouseMoveListener);
-    };
-  }, []);
+  const isFloating = useFloatingSidebarTrigger(attachedDirectionRef);
 
   // Running Animation //
   const [runningAnimationId, setRunningAnimationId] = useState<string | null>(null);
