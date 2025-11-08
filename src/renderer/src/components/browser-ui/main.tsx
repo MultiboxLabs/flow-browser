@@ -16,6 +16,14 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 export type BrowserUIType = "main" | "popup";
 export type SidebarVariant = "attached" | "floating";
 
+function SidebarResizeHandle() {
+  return (
+    <ResizableHandle className="remove-app-drag h-full w-0 -mx-1.5 bg-transparent group relative">
+      <div className="absolute inset-y-5 w-1.5 bg-transparent rounded-full transition-all duration-200 group-hover:bg-white/30 group-active:bg-white/50" />
+    </ResizableHandle>
+  );
+}
+
 interface PresenceSidebarProps {
   sidebarMode: BrowserSidebarMode;
   targetSidebarModes: BrowserSidebarMode[];
@@ -27,7 +35,7 @@ export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction, or
   const isFloating = sidebarMode.startsWith("floating");
   return (
     <AnimatePresence>
-      {direction === "right" && shouldRender && !isFloating && <ResizableHandle withHandle />}
+      {direction === "right" && shouldRender && !isFloating && <SidebarResizeHandle />}
       {shouldRender && (
         <BrowserSidebar
           key="sidebar"
@@ -36,7 +44,7 @@ export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction, or
           order={order}
         />
       )}
-      {direction === "left" && shouldRender && !isFloating && <ResizableHandle withHandle />}
+      {direction === "left" && shouldRender && !isFloating && <SidebarResizeHandle />}
     </AnimatePresence>
   );
 }
@@ -63,7 +71,7 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
     >
       <ResizablePanelGroup direction="horizontal" className="flex-1 flex !flex-col">
         <AdaptiveTopbar />
-        <div className="flex-1 w-full flex flex-row items-center justify-center remove-app-drag">
+        <div className="flex-1 w-full flex flex-row items-center justify-center">
           <PresenceSidebar
             sidebarMode={sidebarMode}
             targetSidebarModes={["attached-left", "floating-left"]}
