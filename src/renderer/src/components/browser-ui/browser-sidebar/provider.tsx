@@ -4,6 +4,11 @@ import { generateUUID } from "@/lib/utils";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useMount } from "react-use";
 
+// Configuration //
+export const MIN_SIDEBAR_WIDTH = 15;
+export const DEFAULT_SIDEBAR_SIZE = 20;
+export const MAX_SIDEBAR_WIDTH = 30;
+
 // Context //
 export type AttachedDirection = "left" | "right";
 export type BrowserSidebarMode = `attached-${AttachedDirection}` | `floating-${AttachedDirection}` | "hidden";
@@ -18,6 +23,7 @@ interface BrowserSidebarContextValue {
   stopAnimation: (animationId: string) => void;
 
   mode: BrowserSidebarMode;
+  recordedSidebarSizeRef: React.RefObject<number>;
 }
 
 const BrowserSidebarContext = createContext<BrowserSidebarContextValue | null>(null);
@@ -40,6 +46,8 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
   const attachedDirection = getSetting<AttachedDirection>("sidebarSide") ?? "left";
   const attachedDirectionRef = useRef(attachedDirection);
   attachedDirectionRef.current = attachedDirection;
+
+  const recordedSidebarSizeRef = useRef(DEFAULT_SIDEBAR_SIZE);
 
   // States //
   const [isVisible, setVisible] = useState(false);
@@ -108,7 +116,8 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
         startAnimation,
         stopAnimation,
 
-        mode
+        mode,
+        recordedSidebarSizeRef
       }}
     >
       {children}
