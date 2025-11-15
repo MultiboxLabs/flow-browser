@@ -58,20 +58,23 @@ export function OnboardingCreateSpace({
   }, []);
 
   // Create the space in the main profile
-  const createSpace = async () => {
+  const createSpace = async (name?: string) => {
     if (!mainProfile || isCreating || createSuccess) return;
 
     setIsCreating(true);
     setErrorMessage(null);
 
     try {
+      // Use the provided name or the current spaceName
+      const spaceToCreate = name || spaceName;
+
       // Create the space with just the name
-      const created = await flow.spaces.createSpace(mainProfile.id, spaceName);
+      const created = await flow.spaces.createSpace(mainProfile.id, spaceToCreate);
 
       if (created) {
         // Get all spaces to find the one we just created
         const spaces = await flow.spaces.getSpacesFromProfile(mainProfile.id);
-        const newSpace = spaces.find((s) => s.name === spaceName);
+        const newSpace = spaces.find((s) => s.name === spaceToCreate);
 
         if (newSpace) {
           // Save the space ID for the next steps
@@ -93,6 +96,17 @@ export function OnboardingCreateSpace({
       setErrorMessage("Couldn't create space. Please try again.");
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  // Handle skip action
+  const handleSkip = async () => {
+    if (mainProfile && !hasSpaces) {
+      // If we have a main profile but no spaces, create a default one
+      await createSpace(DEFAULT_SPACE_NAME);
+    } else {
+      // Otherwise just advance
+      advance();
     }
   };
 
@@ -129,7 +143,7 @@ export function OnboardingCreateSpace({
             <div className="text-white text-lg font-medium mb-1">Something went wrong</div>
             <div className="text-gray-400 max-w-md mb-4">{errorMessage}</div>
             <Button
-              onClick={advance}
+              onClick={handleSkip}
               className="remove-app-drag cursor-pointer px-6 py-2 bg-[#0066FF]/10 hover:bg-[#0066FF]/20 text-white backdrop-blur-md border border-[#0066FF]/30"
             >
               Skip & Continue
@@ -143,7 +157,7 @@ export function OnboardingCreateSpace({
               {"We couldn't find the main profile for space creation. You can create spaces later from settings."}
             </div>
             <Button
-              onClick={advance}
+              onClick={handleSkip}
               className="remove-app-drag cursor-pointer px-6 py-2 bg-[#0066FF]/10 hover:bg-[#0066FF]/20 text-white backdrop-blur-md border border-[#0066FF]/30"
             >
               Skip & Continue
@@ -157,7 +171,7 @@ export function OnboardingCreateSpace({
               You already have spaces in your main profile. You can manage them in settings.
             </div>
             <Button
-              onClick={advance}
+              onClick={handleSkip}
               className="remove-app-drag cursor-pointer px-6 py-2 bg-[#0066FF]/10 hover:bg-[#0066FF]/20 text-white backdrop-blur-md border border-[#0066FF]/30"
             >
               Continue
@@ -188,7 +202,7 @@ export function OnboardingCreateSpace({
             {/* Create Button */}
             <div className="pt-4 flex justify-center">
               <Button
-                onClick={createSpace}
+                onClick={() => createSpace()}
                 disabled={isCreating || !spaceName.trim()}
                 className="remove-app-drag cursor-pointer px-8 py-3 bg-[#0066FF] hover:bg-[#0055DD] text-white backdrop-blur-md border border-[#0066FF]/50"
               >
@@ -216,7 +230,7 @@ export function OnboardingCreateSpace({
             transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
           >
             <Button
-              onClick={advance}
+              onClick={handleSkip}
               variant="ghost"
               className="remove-app-drag cursor-pointer text-white/70 hover:text-white"
             >
