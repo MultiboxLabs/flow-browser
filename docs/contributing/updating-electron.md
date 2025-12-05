@@ -9,10 +9,10 @@ We use [Castlabs's Electron for Content Security](https://github.com/castlabs/el
 
 ```json
 // Template
-"electron": "github:castlabs/electron-releases#<version>",
+"electron": "https://github.com/castlabs/electron-releases#<version>",
 
 // Example
-"electron": "github:castlabs/electron-releases#v35.3.0+wvcus",
+"electron": "https://github.com/castlabs/electron-releases#v35.3.0+wvcus",
 ```
 
 3. Run `bun install` to update `bun.lock` file.
@@ -21,10 +21,10 @@ We use [Castlabs's Electron for Content Security](https://github.com/castlabs/el
 
 ```json
 // Template
-"electron": ["electron@git+ssh://github.com/castlabs/electron-releases#<commit_hash>", "..."],
+"electron": ["electron@github:castlabs/electron-releases#<short_commit_hash>", "...", "castlabs-electron-releases-<short_commit_hash>"],
 
 // Example
-"electron": ["electron@git+ssh://github.com/castlabs/electron-releases#c3d0eae09e098fbf33873ecbb95a8ca0fb5e48f5", "..."],
+"electron": ["electron@github:castlabs/electron-releases#4fab3f1", "...", "castlabs-electron-releases-4fab3f1"],
 ```
 
 5. Run `bun install` again to make sure the `bun.lock` file isn't overwritten.
