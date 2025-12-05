@@ -4,8 +4,9 @@ import * as jju from "jju";
 import { BunLock } from "@/_types/bun-lock";
 import { PackageJson } from "@/_types/package-json";
 
-const DEP_PREFIX = "github:castlabs/electron-releases#";
-const HASH_PREFIX = "electron@git+ssh://github.com/castlabs/electron-releases#";
+const DEP_PREFIX = "https://github.com/castlabs/electron-releases#";
+const LOCK_PREFIX = "electron@github:castlabs/electron-releases#";
+const LOCK_SUFFIX = "castlabs-electron-releases-";
 
 /**
  * Updates the package.json file to set the electron dependency to use the specified version
@@ -15,7 +16,7 @@ const HASH_PREFIX = "electron@git+ssh://github.com/castlabs/electron-releases#";
  * @throws {Error} Throws an error if the package.json file cannot be read or written
  * @example
  * updatePackageJson("v36.4.0+wvcus");
- * // Updates package.json electron dependency to "github:castlabs/electron-releases#v36.4.0+wvcus"
+ * // Updates package.json electron dependency to "https://github.com/castlabs/electron-releases#v36.4.0+wvcus"
  */
 export function updatePackageJson(electronVersion: string) {
   const packageJsonPath = path.join(process.cwd(), "package.json");
@@ -78,10 +79,12 @@ export function updateBunLock(electronVersion: string, commitHash: string) {
   // Update the packages electron entry
   if (bunLock.packages && bunLock.packages.electron) {
     const electronEntry = bunLock.packages.electron;
-    // Update the git URL in the electron package entry
-    electronEntry[0] = `${HASH_PREFIX}${commitHash}`;
-    // Update the commit hash at the end
-    electronEntry[2] = commitHash;
+    // Get short commit hash (first 7 characters)
+    const shortCommitHash = commitHash.substring(0, 7);
+    // Update the git URL in the electron package entry with short hash
+    electronEntry[0] = `${LOCK_PREFIX}${shortCommitHash}`;
+    // Update the package identifier at the end
+    electronEntry[2] = `${LOCK_SUFFIX}${shortCommitHash}`;
   }
 
   // Write back to bun.lock with preserved formatting
