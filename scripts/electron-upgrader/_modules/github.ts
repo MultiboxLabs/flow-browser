@@ -1,8 +1,8 @@
 /** The major version number for next major version electron releases */
-const NEXT_MAJOR_VERSION = 39;
+const NEXT_MAJOR_VERSION = 40;
 
 /** The major version number for current major version electron releases */
-const CURRENT_MAJOR_VERSION = 38;
+const CURRENT_MAJOR_VERSION = 39;
 
 /** The GitHub repository containing electron releases */
 const ELECTRON_REPOSITORY = "castlabs/electron-releases";
