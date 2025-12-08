@@ -1,5 +1,6 @@
 import { signAppWithVMP } from "./components/castlabs-evs.js";
 import { createNotarizationApiKeyFile } from "./components/notarization.js";
+import { applyElectronFuses } from "./components/electron-fuses.js";
 import { copyAssetsCar } from "./components/macos.js";
 
 const vmpSignPlatforms = ["darwin"];
@@ -9,6 +10,11 @@ export async function handler(context) {
   // Header
   console.log("\n---------");
   console.log("Executing afterPack hook");
+
+  // Apply electron fuses
+  await applyElectronFuses(context.appOutDir)
+    .then(() => true)
+    .catch(() => false);
 
   // macOS needs to add the Assets.car containing the Liquid Glass icon
   if (process.platform === "darwin") {
