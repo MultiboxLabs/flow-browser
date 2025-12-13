@@ -147,9 +147,11 @@ export class Omnibox {
     this.view.setVisible(true);
 
     const tryFocus = () => {
-      debugPrint("OMNIBOX", "Attempting to focus omnibox");
-      this.window.focus();
-      this.webContents.focus();
+      if (this.view.getVisible()) {
+        debugPrint("OMNIBOX", "Attempting to focus omnibox");
+        this.window.focus();
+        this.webContents.focus();
+      }
     };
 
     this.ignoreBlurEvents = true;
