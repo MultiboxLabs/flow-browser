@@ -232,9 +232,9 @@ export function OmniboxMain() {
 
           {matches.length > 0 && (
             <CommandList
-              className="flex-1 px-1.5 py-2 overflow-y-auto"
+              className="flex-1 px-1.5 py-2 overflow-y-auto no-scrollbar"
               style={{
-                scrollbarWidth: "thin",
+                // scrollbarWidth: "thin",
                 scrollbarColor: theme === "dark" ? "rgba(255,255,255,0.2) transparent" : "rgba(0,0,0,0.2) transparent",
                 maxHeight: calculateMaxListHeight()
               }}
