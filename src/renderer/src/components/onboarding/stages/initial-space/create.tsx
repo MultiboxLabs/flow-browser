@@ -106,7 +106,11 @@ export function OnboardingCreateSpace({
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Create Your Space</h1>
-        <p className="text-gray-400 text-lg">{"Let's start by giving your space a name"}</p>
+        <p className="text-gray-400 text-lg">
+          {
+            "Spaces are separate workspaces that let you organise tabs by purpose, so each context (like work, study, or personal) stays focused and clutter-free."
+          }
+        </p>
       </motion.div>
 
       <motion.div
