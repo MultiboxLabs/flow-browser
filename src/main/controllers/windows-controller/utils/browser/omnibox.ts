@@ -13,6 +13,7 @@ export class Omnibox {
 
   private window: BrowserWindow;
   private bounds: Electron.Rectangle | null = null;
+  private ignoreBlurEvents: boolean = false;
 
   private isDestroyed: boolean = false;
 
@@ -29,6 +30,14 @@ export class Omnibox {
 
     // on focus lost, hide omnibox
     onmiboxWC.on("blur", () => {
+      // Required cuz it (somehow) sends the blur event as soon as you opened the omnibox
+      // Without this, the omnibox would be hidden as soon as you opened it.
+      // This behaviour isn't on macOS.
+      if (this.ignoreBlurEvents) {
+        debugPrint("OMNIBOX", "Ignoring blur event");
+        return;
+      }
+
       debugPrint("OMNIBOX", "WebContents blur event received");
       this.maybeHide();
     });
@@ -143,8 +152,13 @@ export class Omnibox {
       this.webContents.focus();
     };
 
+    this.ignoreBlurEvents = true;
+
     tryFocus();
     setTimeout(tryFocus, 100);
+    setTimeout(() => {
+      this.ignoreBlurEvents = false;
+    }, 150);
   }
 
   refocus() {
