@@ -1,7 +1,7 @@
 {
   "name": "flow-browser",
   "productName": "Flow",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "description": "A modern privacy-focused browser with a minimalistic design.",
   "main": "./out/main/index.js",
   "author": {
