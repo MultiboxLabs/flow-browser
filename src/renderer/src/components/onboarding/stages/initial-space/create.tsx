@@ -211,7 +211,7 @@ export function OnboardingCreateSpace({
       </motion.div>
 
       {/* Bottom skip button - only show when in setup mode and not in error/success states */}
-      {!isLoading && !errorMessage && !hasSpaces && !createSuccess && (
+      {!isLoading && !createSuccess && (errorMessage || hasSpaces) && (
         <div className="my-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
