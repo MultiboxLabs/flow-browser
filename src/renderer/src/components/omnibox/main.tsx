@@ -33,7 +33,7 @@ function getIconForType(type: AutocompleteMatch["type"], match: AutocompleteMatc
       }
       return <Zap className="h-5 w-5 text-purple-500" />;
     case "open-tab":
-      return <Terminal className="h-5 w-5 text-teal-500" />;
+      return <Terminal className="h-5 w-5 text-teal-600 dark:text-teal-500" />;
     case "zero-suggest":
     default:
       return <Link className="h-5 w-5 text-gray-500" />;
