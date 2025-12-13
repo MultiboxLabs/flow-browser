@@ -194,24 +194,19 @@ export function OmniboxMain() {
 
   return (
     <div
-      className="flex flex-col justify-start items-center min-h-screen max-h-screen w-full overflow-hidden"
+      className="flex flex-col justify-start items-center min-h-screen max-h-screen w-full overflow-hidden p-[1px]"
       ref={containerRef}
     >
-      <motion.div
-        className="w-full h-full mx-auto"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: isOpen ? 1 : 0 }}
-        transition={{ duration: 0.15, ease: "easeInOut" }}
-        style={{ maxHeight: "100vh" }}
-      >
+      <div className="w-full h-full mx-auto" style={{ maxHeight: "100vh", opacity: isOpen ? 1 : 0 }}>
         <Command
           className={cn(
             "rounded-xl border backdrop-blur-xl overflow-hidden",
-            "border-[#e0e0e0] dark:border-[#383838]",
+            "border-[#949494] dark:border-[#383838]",
             "bg-white/80 dark:bg-[#1c1c1c]/80",
             "transition-all duration-150",
             "flex flex-col",
-            matches.length > 0 ? "h-screen" : "max-h-screen"
+            "h-[calc(100vh-2px)]",
+            "shadow-[0_0_0_0.5px_transparent] dark:shadow-[0_0_0_0.5px_black]"
           )}
           loop
           value={selectedValue}
@@ -314,7 +309,7 @@ export function OmniboxMain() {
             </div>
           )}
         </Command>
-      </motion.div>
+      </div>
     </div>
   );
 }
