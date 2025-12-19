@@ -9,7 +9,7 @@ import {
 } from "@/components/browser-ui/browser-sidebar/provider";
 import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar/component";
 import { AnimatePresence } from "motion/react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SettingsProvider } from "@/components/providers/settings-provider";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 
@@ -17,10 +17,20 @@ export type BrowserUIType = "main" | "popup";
 export type SidebarVariant = "attached" | "floating";
 
 function SidebarResizeHandle() {
+  const [isDown, setIsDown] = useState(false);
+
   return (
-    <ResizableHandle className="remove-app-drag h-full w-0 -mx-1.5 bg-transparent group relative">
-      <div className="absolute inset-y-5 w-1.5 bg-transparent rounded-full transition-all duration-200 group-hover:bg-white/30 group-active:bg-white/50" />
-    </ResizableHandle>
+    <div className="w-3 h-full remove-app-drag py-4 px-1 group">
+      <ResizableHandle
+        className={cn(
+          "w-full h-full rounded-full",
+          isDown ? "!bg-white/80" : "bg-transparent",
+          "group-hover:bg-white/50 transition-[background-color] duration-200"
+        )}
+        onPointerDown={() => setIsDown(true)}
+        onPointerUp={() => setIsDown(false)}
+      />
+    </div>
   );
 }
 
@@ -35,7 +45,7 @@ export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction, or
   const isFloating = sidebarMode.startsWith("floating");
   return (
     <AnimatePresence>
-      {direction === "right" && shouldRender && !isFloating && <SidebarResizeHandle />}
+      {/* {direction === "right" && shouldRender && !isFloating && <SidebarResizeHandle />} */}
       {shouldRender && (
         <BrowserSidebar
           key="sidebar"
@@ -44,7 +54,7 @@ export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction, or
           order={order}
         />
       )}
-      {direction === "left" && shouldRender && !isFloating && <SidebarResizeHandle />}
+      {/* {direction === "left" && shouldRender && !isFloating && <SidebarResizeHandle />} */}
     </AnimatePresence>
   );
 }
@@ -78,9 +88,19 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
             direction="left"
             order={1}
           />
-          <ResizablePanel id="main" order={2} className={cn("flex-1 h-full p-3", topbarVisible && "pt-0")}>
+          <ResizablePanel id="main" order={2} className={cn("flex-1 h-full py-3", topbarVisible && "pt-0")}>
             <div className="w-full h-full flex items-center justify-center remove-app-drag">
+              {sidebarMode !== "attached-left" ? (
+                <div className="w-3" />
+              ) : (
+                <SidebarResizeHandle key="left-sidebar-resize-handle" />
+              )}
               <div className="w-full h-full rounded-lg shadow-xl bg-white/20"></div>
+              {sidebarMode !== "attached-right" ? (
+                <div className="w-3" />
+              ) : (
+                <SidebarResizeHandle key="right-sidebar-resize-handle" />
+              )}
             </div>
           </ResizablePanel>
           <PresenceSidebar
