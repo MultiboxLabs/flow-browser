@@ -1,5 +1,3 @@
-import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
-import { usePlatform } from "@/components/main/platform";
 import { cn } from "@/lib/utils";
 import { usePresence } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -15,21 +13,9 @@ import { type SidebarVariant } from "@/components/browser-ui/main";
 import { ResizablePanel } from "@/components/ui/resizable";
 import { type ImperativePanelHandle } from "react-resizable-panels";
 import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
+import { SidebarInner } from "./inner";
 
 // Component //
-function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
-  const { isAnimating } = useBrowserSidebar();
-  const { platform } = usePlatform();
-
-  return (
-    <>
-      {direction === "left" && platform === "darwin" && (
-        <SidebarWindowControlsMacOS offset={variant === "floating" ? 11 : 5} isAnimating={isAnimating} />
-      )}
-      <p>Hello Testing</p>
-    </>
-  );
-}
 
 const SIDEBAR_ANIMATE_TIME = 100;
 const SIDEBAR_ANIMATE_CLASS = "duration-100 ease-in-out";
@@ -140,8 +126,9 @@ export function BrowserSidebar({
     >
       <div
         className={cn(
-          "m-4 flex-1",
+          "m-3 flex-1",
           "flex flex-col",
+          "select-none",
           direction === "left" && !isFloating && "mr-0",
           direction === "right" && !isFloating && "ml-0"
         )}

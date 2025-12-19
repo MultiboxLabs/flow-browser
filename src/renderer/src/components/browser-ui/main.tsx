@@ -1,4 +1,4 @@
-import { SpacesProvider } from "@/components/providers/spaces-provider";
+import { SpacesProvider, useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import { AdaptiveTopbar, AdaptiveTopbarProvider, useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 import {
@@ -9,7 +9,7 @@ import {
 } from "@/components/browser-ui/browser-sidebar/provider";
 import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar/component";
 import { AnimatePresence } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SettingsProvider } from "@/components/providers/settings-provider";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 
@@ -45,7 +45,6 @@ export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction, or
   const isFloating = sidebarMode.startsWith("floating");
   return (
     <AnimatePresence>
-      {/* {direction === "right" && shouldRender && !isFloating && <SidebarResizeHandle />} */}
       {shouldRender && (
         <BrowserSidebar
           key="sidebar"
@@ -54,7 +53,6 @@ export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction, or
           order={order}
         />
       )}
-      {/* {direction === "left" && shouldRender && !isFloating && <SidebarResizeHandle />} */}
     </AnimatePresence>
   );
 }
@@ -62,6 +60,9 @@ export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction, or
 function InternalBrowserUI({ type }: { type: BrowserUIType }) {
   const { mode: sidebarMode, setVisible } = useBrowserSidebar();
   const { topbarVisible } = useAdaptiveTopbar();
+
+  const { isCurrentSpaceLight } = useSpaces();
+  const spaceInjectedClasses = useMemo(() => cn(isCurrentSpaceLight ? "" : "dark"), [isCurrentSpaceLight]);
 
   useEffect(() => {
     // Popup Windows don't have a sidebar
@@ -76,7 +77,8 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
         "w-screen h-screen overflow-hidden",
         "bg-gradient-to-br from-space-background-start/75 to-space-background-end/75",
         "flex flex-col",
-        "app-drag"
+        "app-drag",
+        spaceInjectedClasses
       )}
     >
       <ResizablePanelGroup direction="horizontal" className="flex-1 flex !flex-col">
