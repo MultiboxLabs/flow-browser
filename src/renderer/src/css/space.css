@@ -1,0 +1,17 @@
+.dimmed-space-background-start {
+  background: linear-gradient(
+    to bottom right,
+    color-mix(in oklab, var(--space-background-start), black 20%),
+    color-mix(in oklab, var(--space-background-start), black 20%)
+  );
+}
+
+.\*\:dimmed-space-background-start {
+  :is(& > *) {
+    background: linear-gradient(
+      to bottom right,
+      color-mix(in oklab, var(--space-background-start), black 20%),
+      color-mix(in oklab, var(--space-background-start), black 20%)
+    );
+  }
+}

@@ -1,6 +1,7 @@
 import { debugPrint } from "@/modules/output";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { sleep } from "@/modules/utils";
+import { getVersionUpdatedFrom, markUpdateStarted } from "@/saving/ephemeral";
 import { getSettingValueById, onSettingsCached, settingsEmitter } from "@/saving/settings";
 import { app } from "electron";
 import { autoUpdater, ProgressInfo, UpdateInfo, UpdateCheckResult } from "electron-updater";
@@ -35,6 +36,7 @@ type AutoUpdateControllerEvents = {
 };
 
 export class AutoUpdateController extends TypedEventEmitter<AutoUpdateControllerEvents> {
+  public hasUpdated: boolean = false;
   private availableUpdate: UpdateInfo | null = null;
   private downloadProgress: ProgressInfo | null = null;
   private updateDownloaded: boolean = false;
@@ -177,6 +179,7 @@ export class AutoUpdateController extends TypedEventEmitter<AutoUpdateController
 
   public installUpdate(): boolean {
     if (this.updateDownloaded) {
+      markUpdateStarted(app.getVersion());
       autoUpdater.quitAndInstall();
       return true;
     }
@@ -218,3 +221,14 @@ export const autoUpdateController = new AutoUpdateController();
 
 // Initialize the controller
 autoUpdateController.initialize();
+
+// Check for pending update
+const updatedFromVersion = await getVersionUpdatedFrom().catch(() => undefined);
+if (updatedFromVersion) {
+  debugPrint("AUTO_UPDATER", `Update from version ${updatedFromVersion}`);
+  const currentVersion = app.getVersion();
+  if (currentVersion !== updatedFromVersion) {
+    autoUpdateController.hasUpdated = true;
+    // TODO: do something with this information
+  }
+}

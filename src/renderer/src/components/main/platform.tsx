@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 /**
  * Supported platform types that the application can detect and run on.
@@ -18,6 +18,8 @@ interface PlatformContextType {
   platform: Platform;
   /** CSS class name for platform-specific styling */
   platformClassName: PlatformClassName;
+  /** Browser window border radius value */
+  browserBorderRadius: string;
 }
 
 /**
@@ -113,9 +115,21 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const platformClassName = `platform-${platform}` as PlatformClassName;
+  const browserBorderRadius = useMemo(() => {
+    if (platform === "win32") {
+      return "8px";
+    } else if (platform === "darwin") {
+      return "16px";
+    } else if (platform === "linux") {
+      return "0px";
+    } else {
+      return "0px";
+    }
+  }, [platform]);
+
   return (
-    <PlatformContext.Provider value={{ platform, platformClassName }}>
-      <div className={platformClassName}>{children}</div>
+    <PlatformContext.Provider value={{ platform, platformClassName, browserBorderRadius }}>
+      <PlatformConsumer>{children}</PlatformConsumer>
     </PlatformContext.Provider>
   );
 }
@@ -141,6 +155,14 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
  * ```
  */
 export function PlatformConsumer({ children }: { children: React.ReactNode }) {
-  const { platformClassName } = usePlatform();
-  return <div className={platformClassName}>{children}</div>;
+  const { platformClassName, browserBorderRadius } = usePlatform();
+
+  return (
+    <div
+      className={platformClassName}
+      style={{ "--browser-window-radius": browserBorderRadius } as React.CSSProperties}
+    >
+      {children}
+    </div>
+  );
 }

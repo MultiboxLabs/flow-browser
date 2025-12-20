@@ -1,0 +1,12 @@
+/* Reposition the App */
+.app-drag {
+  -webkit-app-region: drag;
+}
+.remove-app-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Prevent dragging of images */
+.user-drag-none {
+  -webkit-user-drag: none;
+}

@@ -1,0 +1,25 @@
+@import "./drag.css";
+@import "./space.css";
+@import "./update-animation.css";
+@import "./fonts/fonts.css";
+
+/* No Scrollbar */
+/* Add these styles to hide scrollbars while allowing scroll */
+
+/* For Webkit browsers (Chrome, Safari) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* For IE, Edge */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+/* Ensure the element itself is still scrollable */
+.no-scrollbar {
+  overflow: auto; /* Or scroll, depending on your needs */
+}

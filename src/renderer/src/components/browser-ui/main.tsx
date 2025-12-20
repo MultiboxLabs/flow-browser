@@ -1,4 +1,4 @@
-import { SpacesProvider, useSpaces } from "@/components/providers/spaces-provider";
+import { SpacesProvider } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import { AdaptiveTopbar, AdaptiveTopbarProvider, useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 import {
@@ -9,9 +9,11 @@ import {
 } from "@/components/browser-ui/browser-sidebar/provider";
 import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar/component";
 import { AnimatePresence } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { SettingsProvider } from "@/components/providers/settings-provider";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { UpdateEffect } from "@/components/browser-ui/update-effect";
+import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
 
 export type BrowserUIType = "main" | "popup";
 export type SidebarVariant = "attached" | "floating";
@@ -61,9 +63,6 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
   const { mode: sidebarMode, setVisible } = useBrowserSidebar();
   const { topbarVisible } = useAdaptiveTopbar();
 
-  const { isCurrentSpaceLight } = useSpaces();
-  const spaceInjectedClasses = useMemo(() => cn(isCurrentSpaceLight ? "" : "dark"), [isCurrentSpaceLight]);
-
   useEffect(() => {
     // Popup Windows don't have a sidebar
     if (type === "popup") {
@@ -76,9 +75,9 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
       className={cn(
         "w-screen h-screen overflow-hidden",
         "bg-gradient-to-br from-space-background-start/75 to-space-background-end/75",
+        "transition-colors duration-150",
         "flex flex-col",
-        "app-drag",
-        spaceInjectedClasses
+        "app-drag"
       )}
     >
       <ResizablePanelGroup direction="horizontal" className="flex-1 flex !flex-col">
@@ -113,20 +112,26 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
           />
         </div>
       </ResizablePanelGroup>
+
+      {/* TODO: Implement update effect */}
+      {/* eslint-disable-next-line no-constant-binary-expression */}
+      {false && <UpdateEffect />}
     </div>
   );
 }
 
 export function BrowserUI({ type }: { type: BrowserUIType }) {
   return (
-    <SettingsProvider>
-      <BrowserSidebarProvider>
-        <AdaptiveTopbarProvider>
-          <SpacesProvider windowType={type}>
-            <InternalBrowserUI type={type} />
-          </SpacesProvider>
-        </AdaptiveTopbarProvider>
-      </BrowserSidebarProvider>
-    </SettingsProvider>
+    <AppUpdatesProvider>
+      <SettingsProvider>
+        <BrowserSidebarProvider>
+          <AdaptiveTopbarProvider>
+            <SpacesProvider windowType={type}>
+              <InternalBrowserUI type={type} />
+            </SpacesProvider>
+          </AdaptiveTopbarProvider>
+        </BrowserSidebarProvider>
+      </SettingsProvider>
+    </AppUpdatesProvider>
   );
 }
