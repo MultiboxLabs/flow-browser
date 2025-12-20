@@ -10,6 +10,7 @@ interface UseSidebarResizeProps {
   maxResizeWidth?: string;
   setIsDraggingRail: (isDraggingRail: boolean) => void;
   isRightSide?: boolean;
+  onWindowResize?: (width: string) => void;
 }
 
 function parseWidth(width: string): { value: number; unit: "rem" | "px" } {
@@ -37,10 +38,11 @@ export function useSidebarResize({
   onToggle,
   currentWidth,
   isCollapsed,
-  minResizeWidth = "14rem",
-  maxResizeWidth = "20rem",
+  minResizeWidth = "224px",
+  maxResizeWidth = "352px",
   setIsDraggingRail,
-  isRightSide = false
+  isRightSide = false,
+  onWindowResize
 }: UseSidebarResizeProps) {
   const dragRef = React.useRef<HTMLButtonElement>(null);
   const isDragging = React.useRef(false);
@@ -74,6 +76,24 @@ export function useSidebarResize({
     },
     [enableDrag, isCollapsed, currentWidth]
   );
+
+  // Add window resize listener to maintain pixel width
+  React.useEffect(() => {
+    if (isCollapsed) return;
+
+    const handleWindowResize = () => {
+      // The sidebar width stays the same in pixels when window resizes
+      // No action needed, but we could add logic here if needed
+      if (onWindowResize) {
+        onWindowResize(currentWidth);
+      }
+    };
+
+    window.addEventListener("resize", handleWindowResize);
+    return () => {
+      window.removeEventListener("resize", handleWindowResize);
+    };
+  }, [currentWidth, isCollapsed, onWindowResize]);
 
   React.useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {

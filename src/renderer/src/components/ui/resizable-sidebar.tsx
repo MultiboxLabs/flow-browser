@@ -16,15 +16,15 @@ import { mergeButtonRefs } from "@/lib/merge-button-refs";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
-const SIDEBAR_WIDTH = "16rem";
-const SIDEBAR_WIDTH_MOBILE = "18rem";
-const SIDEBAR_WIDTH_ICON = "3rem";
+const SIDEBAR_WIDTH = "256px";
+const SIDEBAR_WIDTH_MOBILE = "288px";
+const SIDEBAR_WIDTH_ICON = "48px";
 const SIDEBAR_KEYBOARD_SHORTCUT_ENABLED = false;
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
 // Sidebar Resizing Constants
-const MIN_SIDEBAR_WIDTH = "14rem";
-const MAX_SIDEBAR_WIDTH = "22rem";
+const MIN_SIDEBAR_WIDTH = "224px";
+const MAX_SIDEBAR_WIDTH = "352px";
 
 type SidebarContextProps = {
   state: "expanded" | "collapsed";
