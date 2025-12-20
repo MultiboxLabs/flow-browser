@@ -223,12 +223,15 @@ export const autoUpdateController = new AutoUpdateController();
 autoUpdateController.initialize();
 
 // Check for pending update
-const updatedFromVersion = await getVersionUpdatedFrom().catch(() => undefined);
-if (updatedFromVersion) {
-  debugPrint("AUTO_UPDATER", `Update from version ${updatedFromVersion}`);
-  const currentVersion = app.getVersion();
-  if (currentVersion !== updatedFromVersion) {
-    autoUpdateController.hasUpdated = true;
-    // TODO: do something with this information
-  }
-}
+getVersionUpdatedFrom()
+  .catch(() => undefined)
+  .then((updatedFromVersion) => {
+    if (updatedFromVersion) {
+      debugPrint("AUTO_UPDATER", `Update from version ${updatedFromVersion}`);
+      const currentVersion = app.getVersion();
+      if (currentVersion !== updatedFromVersion) {
+        autoUpdateController.hasUpdated = true;
+        // TODO: do something with this information
+      }
+    }
+  });
