@@ -1,0 +1,66 @@
+/* Full-screen “sheen” layer */
+.browser-update-animation {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+
+  /* same vibe, different construction */
+  --sheen-a: rgba(255, 255, 255, 0.55);
+  --sheen-b: rgba(255, 255, 255, 0.15);
+
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 0%,
+    var(--sheen-b) 28%,
+    var(--sheen-a) 50%,
+    var(--sheen-b) 72%,
+    rgba(255, 255, 255, 0) 100%
+  );
+
+  opacity: 0;
+  transform: translate3d(0, -50%, 0);
+  will-change: transform, opacity;
+  isolation: isolate;
+}
+
+/* Border container */
+.browser-update-animation-border {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--browser-window-radius);
+}
+
+/* Glowy border ring */
+.browser-update-animation-border::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+
+  --ring: 2px;
+  --glow: rgba(255, 255, 255, 0.5);
+  --top: var(--background-top, 30%);
+
+  background: radial-gradient(
+    120% 70% at 50% var(--top),
+    var(--glow) 0%,
+    rgba(255, 255, 255, 0.35) 55%,
+    rgba(255, 255, 255, 0) 78%
+  );
+
+  padding: var(--ring);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+
+  filter: saturate(1.05) blur(0.1px);
+  opacity: 0.95;
+}
