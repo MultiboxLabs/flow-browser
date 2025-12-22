@@ -3,6 +3,7 @@ import { AttachedDirection, useBrowserSidebar } from "./provider";
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
 import { usePlatform } from "@/components/main/platform";
 import { AddressBar } from "./_components/address-bar";
+import { PinGrid } from "./_components/pin-grid";
 
 import { useMemo } from "react";
 import { useSpaces } from "@/components/providers/spaces-provider";
@@ -25,6 +26,7 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
       )}
       <div className="w-full h-full gap-2 flex flex-col">
         <AddressBar />
+        <PinGrid />
       </div>
     </div>
   );
