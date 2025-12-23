@@ -27,13 +27,48 @@ function getInitialSidebarSize() {
   return DEFAULT_SIDEBAR_SIZE;
 }
 
-export function saveSidebarSize(size: number) {
+// Debounced save function
+let saveSidebarSizeTimeout: NodeJS.Timeout | null = null;
+let pendingSidebarSize: number | null = null;
+
+function saveToLocalStorage(size: number) {
   try {
     localStorage.setItem("BROWSER_SIDEBAR_SIZE", size.toString());
     return true;
   } catch (error) {
     console.warn("Failed to save sidebar size to localStorage:", error);
     return false;
+  }
+}
+
+export function saveSidebarSize(size: number) {
+  // Store the pending size
+  pendingSidebarSize = size;
+
+  // Clear any existing timeout
+  if (saveSidebarSizeTimeout !== null) {
+    clearTimeout(saveSidebarSizeTimeout);
+  }
+
+  // Set a new timeout to save after 50ms
+  saveSidebarSizeTimeout = setTimeout(() => {
+    if (pendingSidebarSize !== null) {
+      saveToLocalStorage(pendingSidebarSize);
+      pendingSidebarSize = null;
+    }
+    saveSidebarSizeTimeout = null;
+  }, 50);
+}
+
+// Flush any pending saves immediately (for cleanup/unload scenarios)
+export function flushSidebarSize() {
+  if (saveSidebarSizeTimeout !== null) {
+    clearTimeout(saveSidebarSizeTimeout);
+    saveSidebarSizeTimeout = null;
+  }
+  if (pendingSidebarSize !== null) {
+    saveToLocalStorage(pendingSidebarSize);
+    pendingSidebarSize = null;
   }
 }
 
@@ -122,6 +157,20 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
     // Remove window buttons until the window controls component takes over.
     flow.interface.setWindowButtonVisibility(false);
   });
+
+  useEffect(() => {
+    // Flush any pending sidebar size saves before page unload
+    const handleBeforeUnload = () => {
+      flushSidebarSize();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      // Also flush on unmount
+      flushSidebarSize();
+    };
+  }, []);
 
   // Listeners //
   const isVisibleRef = useRef(isVisible);

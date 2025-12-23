@@ -150,6 +150,7 @@ export function BrowserSidebar({
       style={commonStyle}
       minSizePixels={MIN_SIDEBAR_WIDTH}
       maxSizePixels={MAX_SIDEBAR_WIDTH}
+      onResize={updateSidebarSize}
     >
       {content}
     </PixelBasedResizablePanel>
