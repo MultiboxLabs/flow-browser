@@ -58,6 +58,7 @@
     "@electron-toolkit/eslint-config-ts": "^3.1.0",
     "@electron-toolkit/tsconfig": "^2.0.0",
     "@headlessui/react": "^2.2.3",
+    "@iamevan/react-resizable-panels": "^3.0.7",
     "@pdfslick/react": "^3.0.0",
     "@phosphor-icons/react": "^2.1.7",
     "@tailwindcss/typography": "^0.5.16",

@@ -1,13 +1,13 @@
 import { useFloatingSidebarTrigger } from "@/components/browser-ui/browser-sidebar/floating-sidebar-trigger";
 import { useSettings } from "@/components/providers/settings-provider";
 import { generateUUID } from "@/lib/utils";
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useMount } from "react-use";
 
 // Configuration //
-export const MIN_SIDEBAR_WIDTH = 15;
-export const DEFAULT_SIDEBAR_SIZE = 20;
-export const MAX_SIDEBAR_WIDTH = 30;
+export const MIN_SIDEBAR_WIDTH = 150;
+export const DEFAULT_SIDEBAR_SIZE = 200;
+export const MAX_SIDEBAR_WIDTH = 500;
 
 // Helper Functions //
 function getInitialSidebarSize() {
@@ -78,7 +78,10 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
   attachedDirectionRef.current = attachedDirection;
 
   // Load sidebar size from localStorage, fallback to default
-  const recordedSidebarSizeRef = useRef(getInitialSidebarSize());
+  const recordedSidebarSizeRef = useRef(DEFAULT_SIDEBAR_SIZE);
+  useMemo(() => {
+    recordedSidebarSizeRef.current = getInitialSidebarSize();
+  }, []);
 
   // Visibility State //
   // Wait until the attached direction is loaded before rendering the sidebar first time.

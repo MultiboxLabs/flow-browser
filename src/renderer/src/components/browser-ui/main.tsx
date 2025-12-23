@@ -11,7 +11,8 @@ import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar/componen
 import { AnimatePresence } from "motion/react";
 import { useEffect, useState } from "react";
 import { SettingsProvider } from "@/components/providers/settings-provider";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { ResizableHandle, ResizablePanel } from "@/components/ui/resizable";
+import { ResizablePanelGroupWithProvider } from "@/components/ui/resizable-extras";
 import { UpdateEffect } from "@/components/browser-ui/update-effect";
 import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
 
@@ -80,7 +81,7 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
         "app-drag"
       )}
     >
-      <ResizablePanelGroup direction="horizontal" className="flex-1 flex !flex-col">
+      <ResizablePanelGroupWithProvider direction="horizontal" className="flex-1 flex !flex-col">
         <AdaptiveTopbar />
         <div className="flex-1 w-full flex flex-row items-center justify-center">
           <PresenceSidebar
@@ -111,7 +112,7 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
             order={3}
           />
         </div>
-      </ResizablePanelGroup>
+      </ResizablePanelGroupWithProvider>
 
       {/* TODO: Implement update effect */}
       {/* eslint-disable-next-line no-constant-binary-expression */}

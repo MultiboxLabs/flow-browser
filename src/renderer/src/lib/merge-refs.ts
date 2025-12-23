@@ -1,4 +1,4 @@
-export function mergeRefs<T extends HTMLElement>(refs: Array<React.Ref<T> | undefined>): React.RefCallback<T> {
+export function mergeRefs<T>(refs: Array<React.Ref<T> | undefined>): React.RefCallback<T> {
   return (value) => {
     for (const ref of refs) {
       if (typeof ref === "function") {

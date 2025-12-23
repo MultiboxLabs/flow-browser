@@ -10,10 +10,9 @@ import {
   saveSidebarSize
 } from "./provider";
 import { type SidebarVariant } from "@/components/browser-ui/main";
-import { ResizablePanel } from "@/components/ui/resizable";
-import { type ImperativePanelHandle } from "react-resizable-panels";
 import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 import { SidebarInner } from "./inner";
+import { type ImperativeResizablePanelWrapperHandle, PixelBasedResizablePanel } from "@/components/ui/resizable-extras";
 
 // Component //
 
@@ -35,7 +34,7 @@ export function BrowserSidebar({
   const { topbarHeight } = useAdaptiveTopbar();
 
   const divRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<ImperativePanelHandle>(null);
+  const panelRef = useRef<ImperativeResizablePanelWrapperHandle>(null);
 
   // Animation Readiness //
   // This is needed so that on the first few frames, the width will start from 0 instead of the full width.
@@ -80,7 +79,7 @@ export function BrowserSidebar({
   // Sidebar Panel Size //
   // Note: change in panel size does not trigger a re-render! instead, this only records the size for the next render. (which should be when the user is toggling sidebar)
   const updateSidebarSize = useCallback(() => {
-    const currentPanelSize = panelRef.current?.getSize();
+    const currentPanelSize = panelRef.current?.getSizePixels();
     if (currentPanelSize && recordedSidebarSizeRef.current !== currentPanelSize) {
       recordedSidebarSizeRef.current = currentPanelSize;
 
@@ -90,7 +89,6 @@ export function BrowserSidebar({
   }, [recordedSidebarSizeRef]);
 
   // Update sidebar size immediately and then every second
-  updateSidebarSize();
   useEffect(() => {
     setInterval(updateSidebarSize, 1000);
   }, [updateSidebarSize]);
@@ -110,7 +108,7 @@ export function BrowserSidebar({
   );
 
   const commonStyle = {
-    "--panel-size": `${recordedSidebarSizeRef.current}%`,
+    "--panel-size": `${recordedSidebarSizeRef.current}px`,
     "--offset-top": `${topbarHeight}px`
   } as React.CSSProperties;
 
@@ -143,17 +141,17 @@ export function BrowserSidebar({
       {content}
     </div>
   ) : (
-    <ResizablePanel
+    <PixelBasedResizablePanel
       id="sidebar"
-      ref={panelRef}
+      wrapperRef={panelRef}
       order={order}
-      defaultSize={recordedSidebarSizeRef.current}
+      defaultSizePixels={recordedSidebarSizeRef.current}
       className={commonClassName}
       style={commonStyle}
-      minSize={MIN_SIDEBAR_WIDTH}
-      maxSize={MAX_SIDEBAR_WIDTH}
+      minSizePixels={MIN_SIDEBAR_WIDTH}
+      maxSizePixels={MAX_SIDEBAR_WIDTH}
     >
       {content}
-    </ResizablePanel>
+    </PixelBasedResizablePanel>
   );
 }

@@ -15,7 +15,7 @@ export function AddressBar() {
         isPlaceholder ? "text-white/60" : "text-white"
       )}
     >
-      <SearchIcon strokeWidth={2} className="size-4" />
+      <SearchIcon strokeWidth={2} className="h-4" />
       <p className={cn("font-[inter] text-sm font-medium truncate")}>
         {isPlaceholder ? "Search or Enter URL..." : "w3schools.com"}
       </p>
