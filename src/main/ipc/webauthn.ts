@@ -1,5 +1,5 @@
 import * as webauthn from "@electron-webauthn/native";
-import { ipcMain } from "electron";
+import { BrowserWindow, ipcMain } from "electron";
 
 // Helper function to convert BufferSource to Buffer
 function toBuffer(data: BufferSource | undefined): Buffer {
@@ -56,12 +56,18 @@ ipcMain.handle(
         transports: cred.transports
       })) ?? [];
 
+    const windowHandle = BrowserWindow.getFocusedWindow()?.getNativeWindowHandle();
+    if (!windowHandle) {
+      return null;
+    }
+
     const credential = await webauthn.get({
       challenge: toBuffer(publicKeyOptions.challenge),
       rpId: publicKeyOptions.rpId,
       timeout: publicKeyOptions.timeout,
       userVerification: publicKeyOptions.userVerification,
-      allowCredentials: allowCredentials
+      allowCredentials: allowCredentials,
+      windowHandle
     });
 
     const publicKeyCredential: PublicKeyCredential = {
