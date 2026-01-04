@@ -35,6 +35,8 @@ import { FlowTabsAPI } from "~/flow/interfaces/browser/tabs";
 import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
+import type { AssertCredentialErrorCodes, AssertCredentialResult, CreateCredentialResult } from "~/types/fido2-types";
+import { WebauthnUtils } from "./webauthn/webauthn-utils";
 
 // API CHECKS //
 function isProtocol(protocol: string) {
@@ -99,10 +101,26 @@ if (SHOULD_PATCH_PASSKEYS) {
 
   const patchedCredentialsContainer: PatchedCredentialsContainer = {
     create: async (options) => {
-      return ipcRenderer.invoke("webauthn:create", options);
+      const serialized: CreateCredentialResult | null = await ipcRenderer.invoke("webauthn:create", options);
+      if (!serialized) return null;
+
+      // TODO: Implement create
+      return null;
     },
+    // @ts-expect-error: just not gonna bother with the error types
     get: async (options) => {
-      return ipcRenderer.invoke("webauthn:get", options);
+      const serialized: AssertCredentialResult | AssertCredentialErrorCodes | null = await ipcRenderer.invoke(
+        "webauthn:get",
+        options
+      );
+
+      if (!serialized) return null;
+      if (typeof serialized === "string") {
+        return serialized;
+      }
+
+      const publicKeyCredential = WebauthnUtils.mapCredentialAssertResult(serialized);
+      return publicKeyCredential;
     },
     isAvailable: async () => {
       return ipcRenderer.invoke("webauthn:is-available");
@@ -137,12 +155,28 @@ if (SHOULD_PATCH_PASSKEYS) {
         credentials.get = async (options) => {
           if (options) {
             // Conditional mediation is not supported yet
-            if (options.mediation === "conditional") {
-              return null;
-            }
+            // if (options.mediation === "conditional") {
+            //   return null;
+            // }
 
             if (options.publicKey) {
-              return await patchedCredentials.get(options);
+              const result = await patchedCredentials.get(options);
+
+              // Cannot throw errors in patchedCredentials, so we need to handle the errors here.
+              const errorCode = result as unknown as AssertCredentialErrorCodes;
+              if (errorCode === "NotAllowedError") {
+                // Mirror Chromium's error message.
+                throw new DOMException(
+                  "The operation either timed out or was not allowed. See: https://www.w3.org/TR/webauthn-2/#sctn-privacy-considerations-client.",
+                  "NotAllowedError"
+                );
+              } else if (errorCode === "SecurityError") {
+                throw new DOMException("The calling domain is not a valid domain.", "SecurityError");
+              } else if (errorCode === "NotSupportedError") {
+                throw new DOMException("The user agent does not support this operation.", "NotSupportedError");
+              }
+
+              return result;
             }
           }
 

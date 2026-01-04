@@ -4,6 +4,8 @@
 	<dict>
 		<key>com.apple.application-identifier</key>
 		<string>LP64XSF5PS.dev.iamevan.flow</string>
+		<key>com.apple.security.hardened-runtime</key>
+		<true/>
 		<key>com.apple.security.cs.allow-jit</key>
 		<true/>
 		<key>com.apple.security.cs.allow-unsigned-executable-memory</key>

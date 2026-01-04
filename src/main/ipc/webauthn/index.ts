@@ -1,0 +1,163 @@
+import { isPublicSuffix } from "@/ipc/webauthn/psl-check";
+import { isRpIdAllowedForOrigin } from "@/ipc/webauthn/rpid-validator";
+import { BrowserWindow, ipcMain } from "electron";
+import * as webauthn from "electron-webauthn";
+import type { AssertCredentialErrorCodes, AssertCredentialResult } from "~/types/fido2-types";
+
+/**
+ * Convert a BufferSource (ArrayBuffer | ArrayBufferView) to a Node/Bun Buffer.
+ * Zero-copy when possible (shares memory with the underlying ArrayBuffer).
+ */
+export function bufferSourceToBuffer(src: BufferSource): Buffer {
+  if (Buffer.isBuffer(src)) return src;
+
+  // ArrayBuffer / SharedArrayBuffer
+  if (src instanceof ArrayBuffer || (typeof SharedArrayBuffer !== "undefined" && src instanceof SharedArrayBuffer)) {
+    return Buffer.from(src);
+  }
+
+  // ArrayBufferView: Uint8Array, DataView, etc.
+  // (DataView is also an ArrayBufferView)
+  if (ArrayBuffer.isView(src)) {
+    return Buffer.from(src.buffer, src.byteOffset, src.byteLength);
+  }
+
+  throw new TypeError("Expected BufferSource (ArrayBuffer or ArrayBufferView)");
+}
+
+/**
+ * Convert an ArrayBuffer to a base64url string.
+ */
+function bufferToBase64Url(buffer: Buffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+ipcMain.handle("webauthn:create", async (_event, options: CredentialCreationOptions | undefined): Promise<null> => {
+  // TODO: Implement create
+  console.log("create", options);
+
+  return null;
+});
+
+ipcMain.handle(
+  "webauthn:get",
+  async (
+    event,
+    options: CredentialRequestOptions | undefined
+  ): Promise<AssertCredentialResult | AssertCredentialErrorCodes | null> => {
+    // TODO: implement timeout
+
+    if (!options) {
+      return null;
+    }
+
+    // Conditional mediation is not supported yet
+    if (options.mediation === "conditional") {
+      return "NotSupportedError";
+    }
+
+    const publicKeyOptions = options.publicKey;
+    if (!publicKeyOptions) {
+      return null;
+    }
+
+    const rpId = publicKeyOptions.rpId;
+    if (!rpId) {
+      return null;
+    }
+
+    const senderFrame = event.senderFrame;
+    if (!senderFrame) {
+      return null;
+    }
+
+    const currentOrigin = senderFrame.origin;
+    if (!currentOrigin) {
+      return null;
+    }
+
+    const isRpIdAllowed = isRpIdAllowedForOrigin(currentOrigin, rpId, { isPublicSuffix });
+    if (!isRpIdAllowed.ok) {
+      return "NotAllowedError";
+    }
+
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) {
+      return null;
+    }
+
+    const challenge = bufferSourceToBuffer(publicKeyOptions.challenge);
+
+    const allowedCredentialsArray: Buffer[] = [];
+    const allowedCredentials = publicKeyOptions.allowCredentials;
+    if (allowedCredentials) {
+      for (const allowedCredential of allowedCredentials) {
+        if (allowedCredential.type !== "public-key") continue;
+        allowedCredentialsArray.push(bufferSourceToBuffer(allowedCredential.id));
+      }
+    }
+
+    const userVerification: webauthn.UserVerificationPreference = publicKeyOptions.userVerification ?? "preferred";
+    const getResult = await webauthn
+      .getCredential(
+        rpId,
+        challenge,
+        win.getNativeWindowHandle(),
+        currentOrigin,
+        allowedCredentialsArray,
+        userVerification
+      )
+      .catch((error: Error) => {
+        console.error("Error getting credential", error);
+        if (error.message.startsWith("The operation couldn’t be completed.")) {
+          return "NotAllowedError";
+        }
+        return null;
+      });
+
+    if (!getResult || typeof getResult === "string") {
+      return getResult;
+    }
+
+    const result: AssertCredentialResult = {
+      credentialId: bufferToBase64Url(getResult.id),
+      clientDataJSON: bufferToBase64Url(getResult.clientDataJSON),
+      authenticatorData: bufferToBase64Url(getResult.authenticatorData),
+      signature: bufferToBase64Url(getResult.signature),
+      userHandle: bufferToBase64Url(getResult.userHandle),
+      extensions: {}
+    };
+
+    // Add PRF extension results if available
+    if (getResult.prf && (getResult.prf[0] || getResult.prf[1])) {
+      result.extensions!.prf = {
+        results: {
+          first: bufferToBase64Url(getResult.prf[0]!),
+          second: getResult.prf[1] ? bufferToBase64Url(getResult.prf[1]) : undefined
+        }
+      };
+    }
+
+    // Add largeBlob extension results if available
+    if (getResult.largeBlob) {
+      result.extensions!.largeBlob = {
+        blob: bufferToBase64Url(getResult.largeBlob)
+      };
+    }
+
+    return result;
+  }
+);
+
+ipcMain.handle("webauthn:is-available", async (): Promise<boolean> => {
+  // const isSupported = await webauthn.isSupported();
+  // console.log("webauthn:is-available", isSupported);
+  // return isSupported;
+  return true;
+});

@@ -5,3 +5,6 @@ out
 .eslintcache
 *.log*
 .env
+.yalc
+yalc.lock
+test.sh
