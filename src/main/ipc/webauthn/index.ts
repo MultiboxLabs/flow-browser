@@ -86,9 +86,21 @@ ipcMain.handle(
       return null;
     }
 
+    const topFrame = senderFrame.top;
+    if (!topFrame) {
+      // Some weird case where the top frame is not available, its unsafe to continue
+      return null;
+    }
+
     const currentOrigin = senderFrame.origin;
     if (!currentOrigin) {
       return null;
+    }
+
+    const isMainFrame = topFrame === senderFrame;
+    let topFrameOrigin: string | undefined;
+    if (!isMainFrame) {
+      topFrameOrigin = topFrame.origin;
     }
 
     const isRpIdAllowed = isRpIdAllowedForOrigin(currentOrigin, rpId, { isPublicSuffix });
@@ -127,6 +139,31 @@ ipcMain.handle(
       }
     }
 
+    let prf: webauthn.PRFInput | undefined;
+    let prfByCredential: Record<string, webauthn.PRFInput> | undefined;
+
+    const prfExtension = publicKeyOptions.extensions?.prf;
+    if (prfExtension && (prfExtension.eval || prfExtension.evalByCredential)) {
+      extensions.push("prf");
+
+      if (prfExtension.eval) {
+        prf = {
+          first: bufferSourceToBuffer(prfExtension.eval.first),
+          second: prfExtension.eval.second ? bufferSourceToBuffer(prfExtension.eval.second) : undefined
+        };
+      }
+
+      if (prfExtension.evalByCredential) {
+        prfByCredential = {};
+        for (const [credId, value] of Object.entries(prfExtension.evalByCredential)) {
+          prfByCredential[credId] = {
+            first: bufferSourceToBuffer(value.first),
+            second: value.second ? bufferSourceToBuffer(value.second) : undefined
+          };
+        }
+      }
+    }
+
     const userVerification: webauthn.UserVerificationPreference = publicKeyOptions.userVerification ?? "preferred";
     const getResult = await webauthn
       .getCredential(
@@ -137,7 +174,7 @@ ipcMain.handle(
         extensions,
         allowedCredentialsArray,
         userVerification,
-        { largeBlobDataToWrite: largeBlobWriteBuffer }
+        { largeBlobDataToWrite: largeBlobWriteBuffer, prf, prfByCredential, topFrameOrigin }
       )
       .catch((error: Error) => {
         console.error("Error getting credential", error);
@@ -171,9 +208,10 @@ ipcMain.handle(
     }
 
     // Add largeBlob extension results if available
-    if (getResult.largeBlob) {
+    if (getResult.largeBlob || getResult.largeBlobWritten) {
       result.extensions!.largeBlob = {
-        blob: bufferToBase64Url(getResult.largeBlob)
+        blob: getResult.largeBlob ? bufferToBase64Url(getResult.largeBlob) : undefined,
+        written: getResult.largeBlobWritten !== null ? getResult.largeBlobWritten : undefined
       };
     }
 
