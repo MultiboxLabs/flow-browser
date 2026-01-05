@@ -42,6 +42,15 @@ ipcMain.handle("webauthn:create", async (_event, options: CredentialCreationOpti
   // TODO: Implement create
   console.log("create", options);
 
+  if (!options) {
+    return null;
+  }
+
+  const publicKeyOptions = options.publicKey;
+  if (!publicKeyOptions) {
+    return null;
+  }
+
   return null;
 });
 
@@ -83,6 +92,7 @@ ipcMain.handle(
     }
 
     const isRpIdAllowed = isRpIdAllowedForOrigin(currentOrigin, rpId, { isPublicSuffix });
+    console.log("isRpIdAllowed", isRpIdAllowed.ok);
     if (!isRpIdAllowed.ok) {
       return "NotAllowedError";
     }
@@ -103,6 +113,20 @@ ipcMain.handle(
       }
     }
 
+    let largeBlobWriteBuffer: Buffer | undefined;
+
+    const extensions: webauthn.CredentialAssertionExtensions[] = [];
+    if (publicKeyOptions.extensions?.largeBlob) {
+      const largeBlobConfig = publicKeyOptions.extensions.largeBlob;
+      if (largeBlobConfig.read) {
+        extensions.push("largeBlobRead");
+      }
+      if (largeBlobConfig.write) {
+        extensions.push("largeBlobWrite");
+        largeBlobWriteBuffer = bufferSourceToBuffer(largeBlobConfig.write);
+      }
+    }
+
     const userVerification: webauthn.UserVerificationPreference = publicKeyOptions.userVerification ?? "preferred";
     const getResult = await webauthn
       .getCredential(
@@ -110,8 +134,10 @@ ipcMain.handle(
         challenge,
         win.getNativeWindowHandle(),
         currentOrigin,
+        extensions,
         allowedCredentialsArray,
-        userVerification
+        userVerification,
+        { largeBlobDataToWrite: largeBlobWriteBuffer }
       )
       .catch((error: Error) => {
         console.error("Error getting credential", error);

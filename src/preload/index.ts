@@ -38,6 +38,8 @@ import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts
 import type { AssertCredentialErrorCodes, AssertCredentialResult, CreateCredentialResult } from "~/types/fido2-types";
 import { WebauthnUtils } from "./webauthn/webauthn-utils";
 
+// const isIFrame = !process.isMainFrame;
+
 // API CHECKS //
 function isProtocol(protocol: string) {
   return location.protocol === protocol;
@@ -92,117 +94,122 @@ if (hasPermission("browser")) {
 }
 
 // PASSKEYS PATCH //
-const SHOULD_PATCH_PASSKEYS = "navigator" in globalThis && "credentials" in globalThis.navigator;
-if (SHOULD_PATCH_PASSKEYS) {
-  type PatchedCredentialsContainer = Pick<CredentialsContainer, "create" | "get"> & {
-    isAvailable: () => Promise<boolean>;
-    isConditionalMediationAvailable: () => Promise<boolean>;
-  };
+function tryPatchPasskeys() {
+  const SHOULD_PATCH_PASSKEYS = "navigator" in globalThis && "credentials" in globalThis.navigator;
+  if (SHOULD_PATCH_PASSKEYS) {
+    type PatchedCredentialsContainer = Pick<CredentialsContainer, "create" | "get"> & {
+      isAvailable: () => Promise<boolean>;
+      isConditionalMediationAvailable: () => Promise<boolean>;
+    };
 
-  const patchedCredentialsContainer: PatchedCredentialsContainer = {
-    create: async (options) => {
-      const serialized: CreateCredentialResult | null = await ipcRenderer.invoke("webauthn:create", options);
-      if (!serialized) return null;
+    const patchedCredentialsContainer: PatchedCredentialsContainer = {
+      create: async (options) => {
+        const serialized: CreateCredentialResult | null = await ipcRenderer.invoke("webauthn:create", options);
+        if (!serialized) return null;
 
-      // TODO: Implement create
-      return null;
-    },
-    // @ts-expect-error: just not gonna bother with the error types
-    get: async (options) => {
-      const serialized: AssertCredentialResult | AssertCredentialErrorCodes | null = await ipcRenderer.invoke(
-        "webauthn:get",
-        options
-      );
+        // TODO: Implement create
+        return null;
+      },
+      // @ts-expect-error: just not gonna bother with the error types
+      get: async (options) => {
+        const serialized: AssertCredentialResult | AssertCredentialErrorCodes | null = await ipcRenderer.invoke(
+          "webauthn:get",
+          options
+        );
 
-      if (!serialized) return null;
-      if (typeof serialized === "string") {
-        return serialized;
+        if (!serialized) return null;
+        if (typeof serialized === "string") {
+          return serialized;
+        }
+
+        const publicKeyCredential = WebauthnUtils.mapCredentialAssertResult(serialized);
+        return publicKeyCredential;
+      },
+      isAvailable: async () => {
+        return ipcRenderer.invoke("webauthn:is-available");
+      },
+      isConditionalMediationAvailable: async () => {
+        return false;
       }
+    };
+    contextBridge.exposeInMainWorld("electronCredentials", patchedCredentialsContainer);
 
-      const publicKeyCredential = WebauthnUtils.mapCredentialAssertResult(serialized);
-      return publicKeyCredential;
-    },
-    isAvailable: async () => {
-      return ipcRenderer.invoke("webauthn:is-available");
-    },
-    isConditionalMediationAvailable: async () => {
-      return false;
-    }
-  };
-  contextBridge.exposeInMainWorld("electronCredentials", patchedCredentialsContainer);
+    const tinyPasskeysScript = () => {
+      if ("electronCredentials" in globalThis) {
+        const patchedCredentials: typeof patchedCredentialsContainer = globalThis.electronCredentials;
 
-  const tinyPasskeysScript = () => {
-    if ("electronCredentials" in globalThis) {
-      const patchedCredentials: typeof patchedCredentialsContainer = globalThis.electronCredentials;
+        if ("navigator" in globalThis && "credentials" in globalThis.navigator) {
+          const credentials = globalThis.navigator.credentials;
+          const oldCredentialsCreate = credentials.create.bind(credentials);
+          const oldCredentialsGet = credentials.get.bind(credentials);
 
-      if ("navigator" in globalThis && "credentials" in globalThis.navigator) {
-        const credentials = globalThis.navigator.credentials;
-        const oldCredentialsCreate = credentials.create.bind(credentials);
-        const oldCredentialsGet = credentials.get.bind(credentials);
-
-        // navigator.credentials.create()
-        credentials.create = async (options) => {
-          if (options) {
-            if (options.publicKey) {
-              return await patchedCredentials.create(options);
-            }
-          }
-
-          return await oldCredentialsCreate(options);
-        };
-
-        // navigator.credentials.get()
-        credentials.get = async (options) => {
-          if (options) {
-            // Conditional mediation is not supported yet
-            // if (options.mediation === "conditional") {
-            //   return null;
-            // }
-
-            if (options.publicKey) {
-              const result = await patchedCredentials.get(options);
-
-              // Cannot throw errors in patchedCredentials, so we need to handle the errors here.
-              const errorCode = result as unknown as AssertCredentialErrorCodes;
-              if (errorCode === "NotAllowedError") {
-                // Mirror Chromium's error message.
-                throw new DOMException(
-                  "The operation either timed out or was not allowed. See: https://www.w3.org/TR/webauthn-2/#sctn-privacy-considerations-client.",
-                  "NotAllowedError"
-                );
-              } else if (errorCode === "SecurityError") {
-                throw new DOMException("The calling domain is not a valid domain.", "SecurityError");
-              } else if (errorCode === "NotSupportedError") {
-                throw new DOMException("The user agent does not support this operation.", "NotSupportedError");
+          // navigator.credentials.create()
+          credentials.create = async (options) => {
+            if (options) {
+              if (options.publicKey) {
+                return await patchedCredentials.create(options);
               }
-
-              return result;
             }
-          }
 
-          return await oldCredentialsGet(options);
-        };
+            return await oldCredentialsCreate(options);
+          };
+
+          // navigator.credentials.get()
+          credentials.get = async (options) => {
+            if (options) {
+              // Conditional mediation is not supported yet
+              // if (options.mediation === "conditional") {
+              //   return null;
+              // }
+
+              if (options.publicKey) {
+                const result = await patchedCredentials.get(options);
+
+                // Cannot throw errors in patchedCredentials, so we need to handle the errors here.
+                const errorCode = result as unknown as AssertCredentialErrorCodes;
+                if (errorCode === "NotAllowedError") {
+                  // Mirror Chromium's error message.
+                  throw new DOMException(
+                    "The operation either timed out or was not allowed. See: https://www.w3.org/TR/webauthn-2/#sctn-privacy-considerations-client.",
+                    "NotAllowedError"
+                  );
+                } else if (errorCode === "SecurityError") {
+                  throw new DOMException("The calling domain is not a valid domain.", "SecurityError");
+                } else if (errorCode === "NotSupportedError") {
+                  throw new DOMException("The user agent does not support this operation.", "NotSupportedError");
+                }
+
+                return result;
+              }
+            }
+
+            return await oldCredentialsGet(options);
+          };
+        }
+
+        if (
+          "PublicKeyCredential" in globalThis &&
+          "isUserVerifyingPlatformAuthenticatorAvailable" in globalThis.PublicKeyCredential
+        ) {
+          // PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+          globalThis.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = patchedCredentials.isAvailable;
+
+          // PublicKeyCredential.isConditionalMediationAvailable()
+          globalThis.PublicKeyCredential.isConditionalMediationAvailable =
+            patchedCredentials.isConditionalMediationAvailable;
+        }
+
+        delete globalThis.electronCredentials;
       }
-
-      if (
-        "PublicKeyCredential" in globalThis &&
-        "isUserVerifyingPlatformAuthenticatorAvailable" in globalThis.PublicKeyCredential
-      ) {
-        // PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-        globalThis.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = patchedCredentials.isAvailable;
-
-        // PublicKeyCredential.isConditionalMediationAvailable()
-        globalThis.PublicKeyCredential.isConditionalMediationAvailable =
-          patchedCredentials.isConditionalMediationAvailable;
-      }
-
-      delete globalThis.electronCredentials;
-    }
-  };
-  contextBridge.executeInMainWorld({
-    func: tinyPasskeysScript
-  });
+    };
+    contextBridge.executeInMainWorld({
+      func: tinyPasskeysScript
+    });
+    return true;
+  }
+  return false;
 }
+tryPatchPasskeys();
 
 // INTERNAL FUNCTIONS //
 function getOSFromPlatform(platform: NodeJS.Platform) {
