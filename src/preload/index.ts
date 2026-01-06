@@ -35,7 +35,12 @@ import { FlowTabsAPI } from "~/flow/interfaces/browser/tabs";
 import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
-import type { AssertCredentialErrorCodes, AssertCredentialResult, CreateCredentialResult } from "~/types/fido2-types";
+import type {
+  AssertCredentialErrorCodes,
+  AssertCredentialResult,
+  CreateCredentialErrorCodes,
+  CreateCredentialResult
+} from "~/types/fido2-types";
 import { WebauthnUtils } from "./webauthn/webauthn-utils";
 
 // const isIFrame = !process.isMainFrame;
@@ -105,10 +110,14 @@ function tryPatchPasskeys() {
     const patchedCredentialsContainer: PatchedCredentialsContainer = {
       create: async (options) => {
         const serialized: CreateCredentialResult | null = await ipcRenderer.invoke("webauthn:create", options);
-        if (!serialized) return null;
 
-        // TODO: Implement create
-        return null;
+        if (!serialized) return null;
+        if (typeof serialized === "string") {
+          return serialized;
+        }
+
+        const publicKeyCredential = WebauthnUtils.mapCredentialRegistrationResult(serialized);
+        return publicKeyCredential;
       },
       // @ts-expect-error: just not gonna bother with the error types
       get: async (options) => {
@@ -147,7 +156,28 @@ function tryPatchPasskeys() {
           credentials.create = async (options) => {
             if (options) {
               if (options.publicKey) {
-                return await patchedCredentials.create(options);
+                const result = await patchedCredentials.create(options);
+
+                // Cannot throw errors in patchedCredentials, so we need to handle the errors here.
+                const errorCode = result as unknown as CreateCredentialErrorCodes;
+                if (errorCode === "NotAllowedError") {
+                  // Mirror Chromium's error message.
+                  throw new DOMException(
+                    "The operation either timed out or was not allowed. See: https://www.w3.org/TR/webauthn-2/#sctn-privacy-considerations-client.",
+                    "NotAllowedError"
+                  );
+                } else if (errorCode === "SecurityError") {
+                  throw new DOMException("The calling domain is not a valid domain.", "SecurityError");
+                } else if (errorCode === "NotSupportedError") {
+                  throw new DOMException("The user agent does not support this operation.", "NotSupportedError");
+                } else if (errorCode === "InvalidStateError") {
+                  throw new DOMException(
+                    "The user attempted to register an authenticator that contains one of the credentials already registered with the relying party.",
+                    "InvalidStateError"
+                  );
+                }
+
+                return result;
               }
             }
 
@@ -175,6 +205,10 @@ function tryPatchPasskeys() {
                   );
                 } else if (errorCode === "SecurityError") {
                   throw new DOMException("The calling domain is not a valid domain.", "SecurityError");
+                } else if (errorCode === "TypeError") {
+                  throw new DOMException("Failed to parse arguments.", "TypeError");
+                } else if (errorCode === "AbortError") {
+                  throw new DOMException("The operation was aborted.", "AbortError");
                 } else if (errorCode === "NotSupportedError") {
                   throw new DOMException("The user agent does not support this operation.", "NotSupportedError");
                 }

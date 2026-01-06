@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@ghostery/adblocker-electron": "^2.5.2",
+    "@oslojs/webauthn": "^1.0.0",
     "@phosphor-icons/core": "^2.1.1",
     "arktype": "^2.1.25",
     "better-sqlite3": "^12.5.0",

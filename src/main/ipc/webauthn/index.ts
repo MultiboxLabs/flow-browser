@@ -2,7 +2,12 @@ import { isPublicSuffix } from "@/ipc/webauthn/psl-check";
 import { isRpIdAllowedForOrigin } from "@/ipc/webauthn/rpid-validator";
 import { BrowserWindow, ipcMain } from "electron";
 import * as webauthn from "electron-webauthn";
-import type { AssertCredentialErrorCodes, AssertCredentialResult } from "~/types/fido2-types";
+import type {
+  AssertCredentialErrorCodes,
+  AssertCredentialResult,
+  CreateCredentialErrorCodes,
+  CreateCredentialResult
+} from "~/types/fido2-types";
 
 /**
  * Convert a BufferSource (ArrayBuffer | ArrayBufferView) to a Node/Bun Buffer.
@@ -38,46 +43,20 @@ function bufferToBase64Url(buffer: Buffer): string {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-ipcMain.handle("webauthn:create", async (_event, options: CredentialCreationOptions | undefined): Promise<null> => {
-  // TODO: Implement create
-  console.log("create", options);
-
-  if (!options) {
-    return null;
-  }
-
-  const publicKeyOptions = options.publicKey;
-  if (!publicKeyOptions) {
-    return null;
-  }
-
-  return null;
-});
-
 ipcMain.handle(
-  "webauthn:get",
+  "webauthn:create",
   async (
     event,
-    options: CredentialRequestOptions | undefined
-  ): Promise<AssertCredentialResult | AssertCredentialErrorCodes | null> => {
-    // TODO: implement timeout
+    options: CredentialCreationOptions | undefined
+  ): Promise<CreateCredentialResult | CreateCredentialErrorCodes | null> => {
+    console.log("create", options);
 
     if (!options) {
       return null;
     }
 
-    // Conditional mediation is not supported yet
-    if (options.mediation === "conditional") {
-      return "NotSupportedError";
-    }
-
     const publicKeyOptions = options.publicKey;
     if (!publicKeyOptions) {
-      return null;
-    }
-
-    const rpId = publicKeyOptions.rpId;
-    if (!rpId) {
       return null;
     }
 
@@ -103,8 +82,12 @@ ipcMain.handle(
       topFrameOrigin = topFrame.origin;
     }
 
+    let rpId: string = senderFrame.origin;
+    if (publicKeyOptions.rp.id) {
+      rpId = publicKeyOptions.rp.id;
+    }
+
     const isRpIdAllowed = isRpIdAllowedForOrigin(currentOrigin, rpId, { isPublicSuffix });
-    console.log("isRpIdAllowed", isRpIdAllowed.ok);
     if (!isRpIdAllowed.ok) {
       return "NotAllowedError";
     }
@@ -116,106 +99,198 @@ ipcMain.handle(
 
     const challenge = bufferSourceToBuffer(publicKeyOptions.challenge);
 
-    const allowedCredentialsArray: Buffer[] = [];
-    const allowedCredentials = publicKeyOptions.allowCredentials;
-    if (allowedCredentials) {
-      for (const allowedCredential of allowedCredentials) {
-        if (allowedCredential.type !== "public-key") continue;
-        allowedCredentialsArray.push(bufferSourceToBuffer(allowedCredential.id));
+    // Prepare extensions array
+    const extensions: webauthn.CredentialCreationExtensions[] = [];
+    if (publicKeyOptions.extensions?.largeBlob) {
+      extensions.push("largeBlob");
+    }
+    if (publicKeyOptions.extensions?.prf) {
+      extensions.push("prf");
+    }
+
+    // Prepare attestation preference
+    type CredentialAttestationPreference = "direct" | "enterprise" | "indirect" | "none";
+    const attestation: CredentialAttestationPreference = publicKeyOptions.attestation || "none";
+
+    // Prepare exclude credentials
+    const excludeCredentials: webauthn.ExcludeCredential[] = [];
+    if (publicKeyOptions.excludeCredentials) {
+      for (const excludeCredential of publicKeyOptions.excludeCredentials) {
+        if (excludeCredential.type !== "public-key") continue;
+        excludeCredentials.push({
+          id: bufferSourceToBuffer(excludeCredential.id),
+          transports: excludeCredential.transports
+        });
       }
     }
 
-    let largeBlobWriteBuffer: Buffer | undefined;
+    // Prepare authenticator selection
+    const residentKeyRequired =
+      publicKeyOptions.authenticatorSelection?.residentKey === "required" ||
+      publicKeyOptions.authenticatorSelection?.requireResidentKey === true;
+    type CredentialUserVerificationPreference = "required" | "preferred" | "discouraged";
+    const userVerification: CredentialUserVerificationPreference =
+      publicKeyOptions.authenticatorSelection?.userVerification ?? "preferred";
 
-    const extensions: webauthn.CredentialAssertionExtensions[] = [];
+    // Prepare additional options
+    interface CreateCredentialAdditionalOptions {
+      topFrameOrigin?: string;
+      userDisplayName?: string;
+      largeBlobSupport?: "required" | "preferred" | "unspecified";
+      prf?: webauthn.PRFInput;
+    }
+    const additionalOptions: CreateCredentialAdditionalOptions = {
+      topFrameOrigin,
+      userDisplayName: publicKeyOptions.user.displayName
+    };
+
+    // Handle largeBlob extension
     if (publicKeyOptions.extensions?.largeBlob) {
       const largeBlobConfig = publicKeyOptions.extensions.largeBlob;
-      if (largeBlobConfig.read) {
-        extensions.push("largeBlobRead");
-      }
-      if (largeBlobConfig.write) {
-        extensions.push("largeBlobWrite");
-        largeBlobWriteBuffer = bufferSourceToBuffer(largeBlobConfig.write);
+      if (largeBlobConfig.support === "required") {
+        additionalOptions.largeBlobSupport = "required";
+      } else if (largeBlobConfig.support === "preferred") {
+        additionalOptions.largeBlobSupport = "preferred";
       }
     }
 
-    let prf: webauthn.PRFInput | undefined;
-    let prfByCredential: Record<string, webauthn.PRFInput> | undefined;
-
-    const prfExtension = publicKeyOptions.extensions?.prf;
-    if (prfExtension && (prfExtension.eval || prfExtension.evalByCredential)) {
-      extensions.push("prf");
-
-      if (prfExtension.eval) {
-        prf = {
-          first: bufferSourceToBuffer(prfExtension.eval.first),
-          second: prfExtension.eval.second ? bufferSourceToBuffer(prfExtension.eval.second) : undefined
-        };
-      }
-
-      if (prfExtension.evalByCredential) {
-        prfByCredential = {};
-        for (const [credId, value] of Object.entries(prfExtension.evalByCredential)) {
-          prfByCredential[credId] = {
-            first: bufferSourceToBuffer(value.first),
-            second: value.second ? bufferSourceToBuffer(value.second) : undefined
-          };
-        }
-      }
+    // Handle PRF extension
+    if (publicKeyOptions.extensions?.prf?.eval) {
+      const prfEval = publicKeyOptions.extensions.prf.eval;
+      additionalOptions.prf = {
+        first: bufferSourceToBuffer(prfEval.first),
+        second: prfEval.second ? bufferSourceToBuffer(prfEval.second) : undefined
+      };
     }
 
-    const userVerification: webauthn.UserVerificationPreference = publicKeyOptions.userVerification ?? "preferred";
-    const getResult = await webauthn
-      .getCredential(
+    // Convert pubKeyCredParams to the format expected by electron-webauthn
+    const supportedAlgorithmIdentifiers = publicKeyOptions.pubKeyCredParams.map((param) => ({
+      type: "public-key" as const,
+      algorithm: param.alg
+    }));
+
+    const createResult = await webauthn
+      .createCredential(
         rpId,
         challenge,
+        publicKeyOptions.user.name,
+        bufferSourceToBuffer(publicKeyOptions.user.id),
         win.getNativeWindowHandle(),
         currentOrigin,
         extensions,
-        allowedCredentialsArray,
+        attestation,
+        supportedAlgorithmIdentifiers,
+        excludeCredentials,
+        residentKeyRequired,
         userVerification,
-        { largeBlobDataToWrite: largeBlobWriteBuffer, prf, prfByCredential, topFrameOrigin }
+        additionalOptions
       )
       .catch((error: Error) => {
-        console.error("Error getting credential", error);
+        console.error("Error creating credential", error);
+        console.log("error.message", error.message);
+        if (error.message.includes("(com.apple.AuthenticationServices.AuthorizationError error 1006.)")) {
+          // MatchedExcludedCredential
+          return "InvalidStateError";
+        }
         if (error.message.startsWith("The operation couldn’t be completed.")) {
           return "NotAllowedError";
         }
         return null;
       });
 
-    if (!getResult || typeof getResult === "string") {
-      return getResult;
+    if (typeof createResult === "string") {
+      return createResult;
     }
 
-    const result: AssertCredentialResult = {
-      credentialId: bufferToBase64Url(getResult.id),
-      clientDataJSON: bufferToBase64Url(getResult.clientDataJSON),
-      authenticatorData: bufferToBase64Url(getResult.authenticatorData),
-      signature: bufferToBase64Url(getResult.signature),
-      userHandle: bufferToBase64Url(getResult.userHandle),
+    if (!createResult) {
+      return null;
+    }
+
+    // TODO: The electron-webauthn library currently returns an empty object.
+    // Once the library is updated to return actual credential data, we need to:
+    // 1. Parse the result and convert buffers to base64url strings
+    // 2. Return a CreateCredentialResult object with all required fields
+    // 3. Update the preload to use WebauthnUtils.mapCredentialRegistrationResult()
+    const result: CreateCredentialResult = {
+      credentialId: bufferToBase64Url(createResult.credentialId),
+      clientDataJSON: bufferToBase64Url(createResult.clientDataJSON),
+      attestationObject: bufferToBase64Url(createResult.attestationObject),
+      authData: bufferToBase64Url(createResult.authenticatorData),
+      publicKey: bufferToBase64Url(createResult.publicKey),
+      publicKeyAlgorithm: createResult.publicKeyAlgorithm,
+      transports: createResult.transports,
       extensions: {}
     };
 
-    // Add PRF extension results if available
-    if (getResult.prf && (getResult.prf[0] || getResult.prf[1])) {
-      result.extensions!.prf = {
-        results: {
-          first: bufferToBase64Url(getResult.prf[0]!),
-          second: getResult.prf[1] ? bufferToBase64Url(getResult.prf[1]) : undefined
-        }
-      };
-    }
-
-    // Add largeBlob extension results if available
-    if (getResult.largeBlob || getResult.largeBlobWritten) {
-      result.extensions!.largeBlob = {
-        blob: getResult.largeBlob ? bufferToBase64Url(getResult.largeBlob) : undefined,
-        written: getResult.largeBlobWritten !== null ? getResult.largeBlobWritten : undefined
+    // credProps extension
+    if (publicKeyOptions.extensions?.credProps) {
+      result.extensions.credProps = {
+        rk: createResult.isResidentKey
       };
     }
 
     return result;
+  }
+);
+
+ipcMain.handle(
+  "webauthn:get",
+  async (
+    event,
+    options: CredentialRequestOptions | undefined
+  ): Promise<AssertCredentialResult | AssertCredentialErrorCodes | null> => {
+    // TODO: implement timeout
+
+    if (!options) {
+      return null;
+    }
+
+    const publicKeyOptions = options.publicKey;
+
+    // Conditional mediation is not supported yet
+    if (options.mediation === "conditional") {
+      return "NotSupportedError";
+    }
+
+    const senderFrame = event.senderFrame;
+    if (!senderFrame) {
+      return null;
+    }
+
+    const topFrame = senderFrame.top;
+    if (!topFrame) {
+      // Some weird case where the top frame is not available, its unsafe to continue
+      return null;
+    }
+
+    const currentOrigin = senderFrame.origin;
+    if (!currentOrigin) {
+      return null;
+    }
+
+    const isMainFrame = topFrame === senderFrame;
+    let topFrameOrigin: string | undefined;
+    if (!isMainFrame) {
+      topFrameOrigin = topFrame.origin;
+    }
+
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) {
+      return null;
+    }
+
+    const result = await webauthn.getCredential(publicKeyOptions, {
+      currentOrigin,
+      topFrameOrigin,
+      isPublicSuffix,
+      nativeWindowHandle: win.getNativeWindowHandle()
+    });
+
+    if (result.success === false) {
+      return result.error;
+    }
+
+    return result.data;
   }
 );
 
