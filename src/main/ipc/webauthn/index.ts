@@ -1,7 +1,6 @@
+import { getWebauthnAddon } from "@/ipc/webauthn/module";
 import { isPublicSuffix } from "@/ipc/webauthn/psl-check";
-import { isRpIdAllowedForOrigin } from "@/ipc/webauthn/rpid-validator";
 import { BrowserWindow, ipcMain } from "electron";
-import * as webauthn from "electron-webauthn";
 import type {
   AssertCredentialErrorCodes,
   AssertCredentialResult,
@@ -30,26 +29,16 @@ export function bufferSourceToBuffer(src: BufferSource): Buffer {
   throw new TypeError("Expected BufferSource (ArrayBuffer or ArrayBufferView)");
 }
 
-/**
- * Convert an ArrayBuffer to a base64url string.
- */
-function bufferToBase64Url(buffer: Buffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
 ipcMain.handle(
   "webauthn:create",
   async (
     event,
     options: CredentialCreationOptions | undefined
   ): Promise<CreateCredentialResult | CreateCredentialErrorCodes | null> => {
-    console.log("create", options);
+    const webauthn = await getWebauthnAddon();
+    if (!webauthn) {
+      return "NotSupportedError";
+    }
 
     if (!options) {
       return null;
@@ -82,175 +71,23 @@ ipcMain.handle(
       topFrameOrigin = topFrame.origin;
     }
 
-    let rpId: string = senderFrame.origin;
-    if (publicKeyOptions.rp.id) {
-      rpId = publicKeyOptions.rp.id;
-    }
-
-    const isRpIdAllowed = isRpIdAllowedForOrigin(currentOrigin, rpId, { isPublicSuffix });
-    if (!isRpIdAllowed.ok) {
-      return "NotAllowedError";
-    }
-
     const win = BrowserWindow.fromWebContents(event.sender);
     if (!win) {
       return null;
     }
 
-    const challenge = bufferSourceToBuffer(publicKeyOptions.challenge);
-
-    // Prepare extensions array
-    const extensions: webauthn.CredentialCreationExtensions[] = [];
-    if (publicKeyOptions.extensions?.largeBlob) {
-      extensions.push("largeBlob");
-    }
-    if (publicKeyOptions.extensions?.prf) {
-      extensions.push("prf");
-    }
-
-    // Prepare attestation preference
-    type CredentialAttestationPreference = "direct" | "enterprise" | "indirect" | "none";
-    const attestation: CredentialAttestationPreference = publicKeyOptions.attestation || "none";
-
-    // Prepare exclude credentials
-    const excludeCredentials: webauthn.ExcludeCredential[] = [];
-    if (publicKeyOptions.excludeCredentials) {
-      for (const excludeCredential of publicKeyOptions.excludeCredentials) {
-        if (excludeCredential.type !== "public-key") continue;
-        excludeCredentials.push({
-          id: bufferSourceToBuffer(excludeCredential.id),
-          transports: excludeCredential.transports
-        });
-      }
-    }
-
-    // Prepare authenticator selection
-    const residentKeyRequired =
-      publicKeyOptions.authenticatorSelection?.residentKey === "required" ||
-      publicKeyOptions.authenticatorSelection?.requireResidentKey === true;
-    type CredentialUserVerificationPreference = "required" | "preferred" | "discouraged";
-    const userVerification: CredentialUserVerificationPreference =
-      publicKeyOptions.authenticatorSelection?.userVerification ?? "preferred";
-
-    // Prepare additional options
-    interface CreateCredentialAdditionalOptions {
-      topFrameOrigin?: string;
-      userDisplayName?: string;
-      largeBlobSupport?: "required" | "preferred" | "unspecified";
-      prf?: webauthn.PRFInput;
-    }
-    const additionalOptions: CreateCredentialAdditionalOptions = {
+    const result = await webauthn.createCredential(publicKeyOptions, {
+      currentOrigin,
       topFrameOrigin,
-      userDisplayName: publicKeyOptions.user.displayName
-    };
+      isPublicSuffix,
+      nativeWindowHandle: win.getNativeWindowHandle()
+    });
 
-    // Handle largeBlob extension
-    if (publicKeyOptions.extensions?.largeBlob) {
-      const largeBlobConfig = publicKeyOptions.extensions.largeBlob;
-      if (largeBlobConfig.support === "required") {
-        additionalOptions.largeBlobSupport = "required";
-      } else if (largeBlobConfig.support === "preferred") {
-        additionalOptions.largeBlobSupport = "preferred";
-      }
+    if (result.success === false) {
+      return result.error;
     }
 
-    // Handle PRF extension
-    if (publicKeyOptions.extensions?.prf?.eval) {
-      const prfEval = publicKeyOptions.extensions.prf.eval;
-      additionalOptions.prf = {
-        first: bufferSourceToBuffer(prfEval.first),
-        second: prfEval.second ? bufferSourceToBuffer(prfEval.second) : undefined
-      };
-    }
-
-    // Convert pubKeyCredParams to the format expected by electron-webauthn
-    const supportedAlgorithmIdentifiers = publicKeyOptions.pubKeyCredParams.map((param) => ({
-      type: "public-key" as const,
-      algorithm: param.alg
-    }));
-
-    const createResult = await webauthn
-      .createCredential(
-        rpId,
-        challenge,
-        publicKeyOptions.user.name,
-        bufferSourceToBuffer(publicKeyOptions.user.id),
-        win.getNativeWindowHandle(),
-        currentOrigin,
-        extensions,
-        attestation,
-        supportedAlgorithmIdentifiers,
-        excludeCredentials,
-        residentKeyRequired,
-        userVerification,
-        additionalOptions
-      )
-      .catch((error: Error) => {
-        console.error("Error creating credential", error);
-        console.log("error.message", error.message);
-        if (error.message.includes("(com.apple.AuthenticationServices.AuthorizationError error 1006.)")) {
-          // MatchedExcludedCredential
-          return "InvalidStateError";
-        }
-        if (error.message.startsWith("The operation couldn’t be completed.")) {
-          return "NotAllowedError";
-        }
-        return null;
-      });
-
-    if (typeof createResult === "string") {
-      return createResult;
-    }
-
-    if (!createResult) {
-      return null;
-    }
-
-    // TODO: The electron-webauthn library currently returns an empty object.
-    // Once the library is updated to return actual credential data, we need to:
-    // 1. Parse the result and convert buffers to base64url strings
-    // 2. Return a CreateCredentialResult object with all required fields
-    // 3. Update the preload to use WebauthnUtils.mapCredentialRegistrationResult()
-    const result: CreateCredentialResult = {
-      credentialId: bufferToBase64Url(createResult.credentialId),
-      clientDataJSON: bufferToBase64Url(createResult.clientDataJSON),
-      attestationObject: bufferToBase64Url(createResult.attestationObject),
-      authData: bufferToBase64Url(createResult.authenticatorData),
-      publicKey: bufferToBase64Url(createResult.publicKey),
-      publicKeyAlgorithm: createResult.publicKeyAlgorithm,
-      transports: createResult.transports,
-      extensions: {}
-    };
-
-    // credProps extension
-    if (publicKeyOptions.extensions?.credProps) {
-      result.extensions.credProps = {
-        rk: createResult.isResidentKey
-      };
-    }
-
-    // largeBlob extension
-    if (createResult.isLargeBlobSupported !== null) {
-      result.extensions.largeBlob = {
-        supported: createResult.isLargeBlobSupported
-      };
-    }
-
-    // prf extension
-    if (createResult.isPRFSupported !== null) {
-      const prfFirst = createResult.prfFirst;
-      const prfSecond = createResult.prfSecond;
-
-      result.extensions.prf = {
-        enabled: createResult.isPRFSupported,
-        results: {
-          first: prfFirst ? bufferToBase64Url(prfFirst) : undefined,
-          second: prfSecond ? bufferToBase64Url(prfSecond) : undefined
-        }
-      };
-    }
-
-    return result;
+    return result.data;
   }
 );
 
@@ -260,7 +97,10 @@ ipcMain.handle(
     event,
     options: CredentialRequestOptions | undefined
   ): Promise<AssertCredentialResult | AssertCredentialErrorCodes | null> => {
-    // TODO: implement timeout
+    const webauthn = await getWebauthnAddon();
+    if (!webauthn) {
+      return "NotSupportedError";
+    }
 
     if (!options) {
       return null;
@@ -316,8 +156,9 @@ ipcMain.handle(
 );
 
 ipcMain.handle("webauthn:is-available", async (): Promise<boolean> => {
-  // const isSupported = await webauthn.isSupported();
-  // console.log("webauthn:is-available", isSupported);
-  // return isSupported;
+  const webauthn = await getWebauthnAddon();
+  if (!webauthn) {
+    return false;
+  }
   return true;
 });

@@ -221,10 +221,12 @@ export interface AssertCredentialResult {
  * Error codes for asserting a credential.
  */
 export type CreateCredentialErrorCodes =
+  | "TypeError"
+  | "AbortError"
   | "NotAllowedError"
   | "SecurityError"
-  | "NotSupportedError"
-  | "InvalidStateError";
+  | "InvalidStateError"
+  | "NotSupportedError";
 
 /**
  * Error codes for asserting a credential.

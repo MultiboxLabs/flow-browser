@@ -147,6 +147,21 @@ function tryPatchPasskeys() {
       if ("electronCredentials" in globalThis) {
         const patchedCredentials: typeof patchedCredentialsContainer = globalThis.electronCredentials;
 
+        let shouldUseMacOSWebauthnAddon_cached: boolean | null = null;
+        async function shouldUseMacOSWebauthnAddon(): Promise<boolean> {
+          if (shouldUseMacOSWebauthnAddon_cached !== null) {
+            return shouldUseMacOSWebauthnAddon_cached;
+          }
+
+          if (await patchedCredentials.isAvailable()) {
+            shouldUseMacOSWebauthnAddon_cached = true;
+            return true;
+          } else {
+            shouldUseMacOSWebauthnAddon_cached = false;
+            return false;
+          }
+        }
+
         if ("navigator" in globalThis && "credentials" in globalThis.navigator) {
           const credentials = globalThis.navigator.credentials;
           const oldCredentialsCreate = credentials.create.bind(credentials);
@@ -154,7 +169,7 @@ function tryPatchPasskeys() {
 
           // navigator.credentials.create()
           credentials.create = async (options) => {
-            if (options) {
+            if (options && (await shouldUseMacOSWebauthnAddon())) {
               if (options.publicKey) {
                 const result = await patchedCredentials.create(options);
 
@@ -186,11 +201,11 @@ function tryPatchPasskeys() {
 
           // navigator.credentials.get()
           credentials.get = async (options) => {
-            if (options) {
+            if (options && (await shouldUseMacOSWebauthnAddon())) {
               // Conditional mediation is not supported yet
-              // if (options.mediation === "conditional") {
-              //   return null;
-              // }
+              if (options.mediation === "conditional") {
+                throw new DOMException("The user agent does not support this operation.", "NotSupportedError");
+              }
 
               if (options.publicKey) {
                 const result = await patchedCredentials.get(options);
@@ -225,12 +240,27 @@ function tryPatchPasskeys() {
           "PublicKeyCredential" in globalThis &&
           "isUserVerifyingPlatformAuthenticatorAvailable" in globalThis.PublicKeyCredential
         ) {
+          const PublicKeyCredential = globalThis.PublicKeyCredential;
+
           // PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-          globalThis.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = patchedCredentials.isAvailable;
+          const oldIsUserVerifyingPlatformAuthenticatorAvailable =
+            PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable.bind(PublicKeyCredential);
+          PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = async () => {
+            if (await patchedCredentials.isAvailable()) {
+              return await patchedCredentials.isAvailable();
+            }
+            return await oldIsUserVerifyingPlatformAuthenticatorAvailable();
+          };
 
           // PublicKeyCredential.isConditionalMediationAvailable()
-          globalThis.PublicKeyCredential.isConditionalMediationAvailable =
-            patchedCredentials.isConditionalMediationAvailable;
+          const oldIsConditionalMediationAvailable =
+            PublicKeyCredential.isConditionalMediationAvailable.bind(PublicKeyCredential);
+          PublicKeyCredential.isConditionalMediationAvailable = async () => {
+            if (await patchedCredentials.isAvailable()) {
+              return await patchedCredentials.isConditionalMediationAvailable();
+            }
+            return await oldIsConditionalMediationAvailable();
+          };
         }
 
         delete globalThis.electronCredentials;
