@@ -123,7 +123,7 @@ export class WebauthnUtils {
       if (result.extensions.prf.enabled !== undefined) {
         prfResults.enabled = result.extensions.prf.enabled;
       }
-      if (result.extensions.prf.results) {
+      if (result.extensions.prf.results?.first) {
         prfResults.results = {
           first: Fido2Utils.stringToBuffer(result.extensions.prf.results.first),
           second: result.extensions.prf.results.second

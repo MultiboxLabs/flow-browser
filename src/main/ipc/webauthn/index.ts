@@ -229,6 +229,27 @@ ipcMain.handle(
       };
     }
 
+    // largeBlob extension
+    if (createResult.isLargeBlobSupported !== null) {
+      result.extensions.largeBlob = {
+        supported: createResult.isLargeBlobSupported
+      };
+    }
+
+    // prf extension
+    if (createResult.isPRFSupported !== null) {
+      const prfFirst = createResult.prfFirst;
+      const prfSecond = createResult.prfSecond;
+
+      result.extensions.prf = {
+        enabled: createResult.isPRFSupported,
+        results: {
+          first: prfFirst ? bufferToBase64Url(prfFirst) : undefined,
+          second: prfSecond ? bufferToBase64Url(prfSecond) : undefined
+        }
+      };
+    }
+
     return result;
   }
 );

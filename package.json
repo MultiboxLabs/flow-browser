@@ -33,7 +33,6 @@
   },
   "dependencies": {
     "@ghostery/adblocker-electron": "^2.5.2",
-    "@oslojs/webauthn": "^1.0.0",
     "@phosphor-icons/core": "^2.1.1",
     "arktype": "^2.1.25",
     "better-sqlite3": "^12.5.0",
@@ -41,7 +40,7 @@
     "electron-chrome-web-store": "npm:@iamevan/electron-chrome-web-store@0.11.2",
     "electron-context-menu": "^4.0.5",
     "electron-updater": "^6.6.2",
-    "electron-webauthn": "^0.0.14",
+    "electron-webauthn": "^0.0.15",
     "knex": "^3.1.0",
     "mime-types": "^3.0.1",
     "posthog-node": "^5.0.0",
