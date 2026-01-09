@@ -90,7 +90,7 @@ const electronBuilderConfig: Configuration = {
   },
   mac: {
     category: "public.app-category.productivity",
-    entitlementsInherit: "./build/entitlements.mac.plist",
+    entitlements: "./build/entitlements.mac.plist",
     notarize: true,
     provisioningProfile: "build/profile.provisionprofile",
     extendInfo: {
