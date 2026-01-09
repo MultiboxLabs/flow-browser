@@ -92,6 +92,7 @@ const electronBuilderConfig: Configuration = {
     category: "public.app-category.productivity",
     entitlementsInherit: "./build/entitlements.mac.plist",
     notarize: true,
+    provisioningProfile: "build/profile.provisionprofile",
     extendInfo: {
       CFBundleIconName: "AppIcon"
     }
