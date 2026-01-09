@@ -97,7 +97,7 @@ function createWebContentsView(
     navigateOnDragDrop: true,
     transparent: true,
 
-    // nodeIntegration = false and nodeIntegrationInSubFrames = true disables node in renderer + enable preload scripts in renderer
+    // nodeIntegration = false and nodeIntegrationInSubFrames = true disables node in renderer + enable preload scripts in iframes
     // https://github.com/electron/electron/issues/22582#issuecomment-704247482
     nodeIntegration: false,
     nodeIntegrationInSubFrames: true,

@@ -45,9 +45,6 @@ ipcMain.handle(
     }
 
     const publicKeyOptions = options.publicKey;
-    if (!publicKeyOptions) {
-      return null;
-    }
 
     const senderFrame = event.senderFrame;
     if (!senderFrame) {

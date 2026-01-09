@@ -1,5 +1,5 @@
 import { resolve } from "path";
-import { defineConfig, externalizeDepsPlugin } from "electron-vite";
+import { defineConfig } from "electron-vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { generateRoutes } from "./scripts/frontend-routes-generator/generator";
@@ -31,7 +31,10 @@ const commonOptions = {
 export default defineConfig({
   main: {
     ...commonOptions,
-    plugins: [externalizeDepsPlugin({ exclude: ["electron-context-menu", "hono"] })],
+    build: {
+      ...commonOptions.build,
+      externalizeDeps: { exclude: ["electron-context-menu", "hono"] }
+    },
     resolve: {
       alias: {
         ...mainAliases,
@@ -41,7 +44,10 @@ export default defineConfig({
   },
   preload: {
     ...commonOptions,
-    plugins: [externalizeDepsPlugin({ exclude: ["electron-chrome-extensions"] })],
+    build: {
+      ...commonOptions.build,
+      externalizeDeps: { exclude: ["electron-chrome-extensions"] }
+    },
     resolve: {
       alias: {
         ...mainAliases,

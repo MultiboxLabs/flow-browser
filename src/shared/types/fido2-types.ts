@@ -218,7 +218,7 @@ export interface AssertCredentialResult {
 }
 
 /**
- * Error codes for asserting a credential.
+ * Error codes for creating a credential.
  */
 export type CreateCredentialErrorCodes =
   | "TypeError"

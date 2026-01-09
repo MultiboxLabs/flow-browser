@@ -107,6 +107,8 @@ function tryPatchPasskeys() {
       isConditionalMediationAvailable: () => Promise<boolean>;
     };
 
+    let isWebauthnAddonAvailablePromise: Promise<boolean> | null = null;
+
     const patchedCredentialsContainer: PatchedCredentialsContainer = {
       create: async (options) => {
         const serialized: CreateCredentialResult | null = await ipcRenderer.invoke("webauthn:create", options);
@@ -135,7 +137,11 @@ function tryPatchPasskeys() {
         return publicKeyCredential;
       },
       isAvailable: async () => {
-        return ipcRenderer.invoke("webauthn:is-available");
+        if (isWebauthnAddonAvailablePromise) {
+          return isWebauthnAddonAvailablePromise;
+        }
+        isWebauthnAddonAvailablePromise = ipcRenderer.invoke("webauthn:is-available");
+        return isWebauthnAddonAvailablePromise;
       },
       isConditionalMediationAvailable: async () => {
         return false;
@@ -183,6 +189,10 @@ function tryPatchPasskeys() {
                   );
                 } else if (errorCode === "SecurityError") {
                   throw new DOMException("The calling domain is not a valid domain.", "SecurityError");
+                } else if (errorCode === "TypeError") {
+                  throw new DOMException("Failed to parse arguments.", "TypeError");
+                } else if (errorCode === "AbortError") {
+                  throw new DOMException("The operation was aborted.", "AbortError");
                 } else if (errorCode === "NotSupportedError") {
                   throw new DOMException("The user agent does not support this operation.", "NotSupportedError");
                 } else if (errorCode === "InvalidStateError") {
