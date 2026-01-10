@@ -29,7 +29,8 @@
     "script:upgrade-electron-to-next": "bun run scripts/electron-upgrader/next.ts",
     "script:generate-frontend-routes": "bun run scripts/frontend-routes-generator/generator.ts --run-as-script",
     "script:prune-frontend-routes": "bun run scripts/frontend-routes-generator/pruner.ts",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "reset": "rm -rf dist && rm -rf out && rm -rf yalc.lock && rm -rf .yalc && rm -rf node_modules && bun pm cache rm && echo 'Reset complete!'"
   },
   "dependencies": {
     "@ghostery/adblocker-electron": "^2.5.2",
