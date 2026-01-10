@@ -83,7 +83,7 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
     >
       <ResizablePanelGroupWithProvider direction="horizontal" className="flex-1 flex !flex-col">
         <AdaptiveTopbar />
-        <div className="flex-1 w-full flex flex-row items-center justify-center">
+        <div className="flex-1 w-full h-full flex flex-row items-center justify-center">
           <PresenceSidebar
             sidebarMode={sidebarMode}
             targetSidebarModes={["attached-left", "floating-left"]}

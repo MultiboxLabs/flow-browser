@@ -17,14 +17,14 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
   const spaceInjectedClasses = useMemo(() => cn(isCurrentSpaceLight ? "" : "dark"), [isCurrentSpaceLight]);
 
   return (
-    <div className={spaceInjectedClasses}>
+    <div className={cn(spaceInjectedClasses, "h-full")}>
       {direction === "left" && platform === "darwin" && (
         <div className="flex flex-col p-1">
           <SidebarWindowControlsMacOS offset={variant === "floating" ? 11 : 5} isAnimating={isAnimating} />
           <div className="h-2" />
         </div>
       )}
-      <div className="w-full h-full gap-2 flex flex-col">
+      <div className="w-full h-full gap-2 flex flex-col overflow-hidden">
         <AddressBar />
         <PinGrid />
       </div>

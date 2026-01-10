@@ -115,7 +115,7 @@ export function BrowserSidebar({
   const content = (
     <div
       className={cn(
-        "w-full h-full remove-app-drag",
+        "w-full h-screen max-h-screen remove-app-drag",
         "transition-transform",
         SIDEBAR_ANIMATE_CLASS,
         "flex flex-col",
@@ -124,7 +124,7 @@ export function BrowserSidebar({
     >
       <div
         className={cn(
-          "m-3 flex-1",
+          "m-3 h-full",
           "flex flex-col",
           "select-none",
           direction === "left" && !isFloating && "mr-0",
