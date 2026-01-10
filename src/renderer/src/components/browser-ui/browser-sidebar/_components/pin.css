@@ -1,33 +1,18 @@
-.img-container::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-  inset: 0px;
-  border-radius: inherit;
-  border: calc(var(--border-width) * 1px) solid #0000;
-  backdrop-filter: blur(calc(var(--border-blur) * 1px)) saturate(var(--border-saturate))
-    brightness(var(--border-brightness)) contrast(var(--border-contrast));
-  mask:
-    linear-gradient(#fff 0 100%) border-box,
-    linear-gradient(#fff 0 100%) padding-box;
-  mask-composite: exclude;
-  z-index: 2;
-  clip-path: inset(0 round 12px);
-  transform: translateZ(0);
-  /* background: light-dark(hsl(0 0% 90% / 0.5), hsl(0 0% 12% / 0.05)); */
+.pinned-tab-active-border {
+  position: relative;
 }
 
-.img-container {
+.pinned-tab-active-border::before {
+  content: "";
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
-  transform: translateZ(0);
-  /* filter: blur(28px) saturate(2) brightness(1.25); */
-  filter: url(#blur) saturate(var(--icon-saturate)) brightness(var(--icon-brightness));
-  /* default to -10 to put them out of the way */
-  /* translate: calc(var(--pointer-x, -10) * 50cqi) calc(var(--pointer-y, -10) * 50cqh); */
-  scale: var(--icon-scale);
-  opacity: var(--icon-opacity);
-  will-change: transform, filter;
+  border-radius: inherit;
+  padding: 2px;
+  background: var(--gradient-border);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }

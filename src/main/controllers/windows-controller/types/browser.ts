@@ -75,7 +75,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
 
       backgroundColor: process.platform === "darwin" ? "#00000000" : "#000000",
       visualEffectState: "followWindow",
-      vibrancy: "fullscreen-ui", // on MacOS
+      vibrancy: "popover", // on MacOS
       backgroundMaterial: "none" // on Windows (Disabled as it interferes with rounded corners)
     });
 
