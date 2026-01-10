@@ -115,7 +115,7 @@ export function BrowserSidebar({
   const content = (
     <div
       className={cn(
-        "w-full h-screen max-h-screen remove-app-drag",
+        "w-full h-full max-h-screen remove-app-drag",
         "transition-transform",
         SIDEBAR_ANIMATE_CLASS,
         "flex flex-col",

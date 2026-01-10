@@ -62,7 +62,7 @@ export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction, or
 
 function InternalBrowserUI({ type }: { type: BrowserUIType }) {
   const { mode: sidebarMode, setVisible } = useBrowserSidebar();
-  const { topbarVisible } = useAdaptiveTopbar();
+  const { topbarVisible, topbarHeight } = useAdaptiveTopbar();
 
   useEffect(() => {
     // Popup Windows don't have a sidebar
@@ -81,9 +81,12 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
         "app-drag"
       )}
     >
-      <ResizablePanelGroupWithProvider direction="horizontal" className="flex-1 flex !flex-col">
+      <ResizablePanelGroupWithProvider direction="horizontal" className="flex-1 flex flex-col!">
         <AdaptiveTopbar />
-        <div className="flex-1 w-full h-full flex flex-row items-center justify-center">
+        <div
+          className={cn("w-full h-[calc(100vh-var(--topbar-height))] flex flex-row items-center justify-center")}
+          style={{ "--topbar-height": `${topbarHeight}px` } as React.CSSProperties}
+        >
           <PresenceSidebar
             sidebarMode={sidebarMode}
             targetSidebarModes={["attached-left", "floating-left"]}
