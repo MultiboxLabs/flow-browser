@@ -1,3 +1,5 @@
+// TODO: make it so if the three in the middle are the same, then it opens that website. If not, then it opens all three of the websites in new tabs in the background.
+
 import "../pin.css";
 
 import { cn } from "@/lib/utils";
