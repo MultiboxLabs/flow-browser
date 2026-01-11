@@ -210,7 +210,7 @@ async function processIconImage(faviconData: Buffer, url: string, isIco: boolean
     }
   } catch (err) {
     debugError("FAVICONS", "Error processing image:", err);
-    // If processing fails, return a Sharp object with the original data
+    // If processing fails, return null
     return null;
   }
 }
