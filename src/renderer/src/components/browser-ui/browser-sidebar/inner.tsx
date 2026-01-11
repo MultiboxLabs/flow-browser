@@ -3,11 +3,10 @@ import { AttachedDirection, useBrowserSidebar } from "./provider";
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
 import { usePlatform } from "@/components/main/platform";
 import { AddressBar } from "./_components/address-bar";
-import { PinGrid } from "./_components/pin-grid";
-
 import { useMemo } from "react";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
+import { PinGridGate } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/gate";
 
 export function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
   const { isAnimating } = useBrowserSidebar();
@@ -26,7 +25,7 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
       )}
       <div className="w-full h-full gap-2 flex flex-col overflow-hidden">
         <AddressBar />
-        <PinGrid />
+        <PinGridGate />
       </div>
     </div>
   );

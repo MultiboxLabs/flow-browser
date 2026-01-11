@@ -1,9 +1,9 @@
-import "./pin.css";
+import "../pin.css";
 
 import { cn } from "@/lib/utils";
 import { useMeasure } from "react-use";
 import { useMemo } from "react";
-import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_components/pinned-tab-button";
+import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
 
 export function PinGrid() {
   const [ref, { width }] = useMeasure<HTMLDivElement>();

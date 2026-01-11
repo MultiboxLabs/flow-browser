@@ -1,10 +1,8 @@
-// TODO: Put this as a easter egg or smth lol
-
-import "./pin.css";
+import "../pin.css";
 
 import { cn } from "@/lib/utils";
 import { useState, useCallback, useRef } from "react";
-import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_components/pinned-tab-button";
+import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
 import { Button } from "@/components/ui/button";
 import { useUnmount } from "react-use";
 
@@ -35,7 +33,7 @@ interface SlotState {
   domain: string;
 }
 
-export function PinGrid() {
+export function SlotMachinePinGrid() {
   const [slots, setSlots] = useState<SlotState[]>(() =>
     Array.from({ length: 9 }, () => ({
       domain: POPULAR_WEBSITES[Math.floor(Math.random() * POPULAR_WEBSITES.length)]
