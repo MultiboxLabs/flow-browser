@@ -23,3 +23,8 @@
 .no-scrollbar {
   overflow: auto; /* Or scroll, depending on your needs */
 }
+
+/* Sidebar Floating Background */
+.sidebar-floating-bg {
+  background: color-mix(in oklch, var(--space-background-start) 75%, oklch(0.252 0 0) 25%);
+}
