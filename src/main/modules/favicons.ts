@@ -10,6 +10,7 @@ import { FLOW_DATA_DIR } from "./paths";
 import sharp from "sharp";
 import { debugError, debugPrint } from "./output";
 import { FLAGS } from "@/modules/flags";
+import { parseICO } from "icojs";
 
 const dbPath = path.join(FLOW_DATA_DIR, "favicons.db");
 
@@ -192,14 +193,17 @@ initDatabaseWithRetry();
  */
 async function processIconImage(faviconData: Buffer, url: string, isIco: boolean): Promise<sharp.Sharp> {
   try {
-    // Sharp now has native ICO support - it will automatically extract the best size
-    const sharpObj = sharp(faviconData);
-
     if (isIco) {
-      debugPrint("FAVICONS", `Processing ICO file with native sharp support for ${url}`);
-    }
+      debugPrint("FAVICONS", `Processing ICO file with ico-to-png and sharp for ${url}`);
 
-    return sharpObj;
+      const images = await parseICO(faviconData, "image/png");
+      const largestImage = images.reduce((prev, curr) => {
+        return prev.width * prev.height >= curr.width * curr.height ? prev : curr;
+      });
+      return sharp(largestImage.buffer);
+    } else {
+      return sharp(faviconData);
+    }
   } catch (err) {
     debugError("FAVICONS", "Error processing image:", err);
     // If processing fails, return a Sharp object with the original data
@@ -424,7 +428,6 @@ export function cacheFavicon(url: string, faviconURL: string, session?: Session)
       }
 
       // Detect image type from content
-      // This function is not accurate or reliable, should be removed or refactored.
       const { isIco, isValid } = await detectImageType(faviconData);
 
       if (!isValid) {
