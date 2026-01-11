@@ -194,7 +194,7 @@ initDatabaseWithRetry();
 async function processIconImage(faviconData: Buffer, url: string, isIco: boolean): Promise<sharp.Sharp> {
   try {
     if (isIco) {
-      debugPrint("FAVICONS", `Processing ICO file with ico-to-png and sharp for ${url}`);
+      debugPrint("FAVICONS", `Processing ICO file with icojs and sharp for ${url}`);
 
       const images = await parseICO(faviconData, "image/png");
       const largestImage = images.reduce((prev, curr) => {
@@ -436,7 +436,6 @@ export function cacheFavicon(url: string, faviconURL: string, session?: Session)
       }
 
       // Process the image and get a Sharp object
-      console.log("faviconURL", faviconURL, isIco);
       const sharpObj = await processIconImage(faviconData, normalizedURL, isIco);
 
       // Resize the image and convert to PNG in a single operation
