@@ -46,7 +46,6 @@
     "mime-types": "^3.0.1",
     "posthog-node": "^5.0.0",
     "sharp": "^0.34.5",
-    "sharp-ico": "^0.1.5",
     "tldts": "^7.0.19"
   },
   "devDependencies": {

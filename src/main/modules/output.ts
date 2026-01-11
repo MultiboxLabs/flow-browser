@@ -5,7 +5,7 @@ import "@/modules/logs";
 
 const DEBUG_AREAS = {
   INITIALIZATION: true, // @/main/index.ts
-  FAVICONS: false, // @/modules/favicons.ts
+  FAVICONS: true, // @/modules/favicons.ts
   PERMISSIONS: false, // @/browser/main.ts
   VITE_UI_EXTENSION: false, // @/browser/main.ts
   EXTENSION_SERVER_WORKERS: false, // @/browser/main.ts

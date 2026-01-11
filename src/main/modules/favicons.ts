@@ -7,7 +7,6 @@ import { knex, Knex } from "knex";
 import { net, Session } from "electron";
 import { createHash } from "crypto";
 import { FLOW_DATA_DIR } from "./paths";
-import * as sharpIco from "sharp-ico";
 import sharp from "sharp";
 import { debugError, debugPrint } from "./output";
 import { FLAGS } from "@/modules/flags";
@@ -184,38 +183,23 @@ debugPrint("FAVICONS", "Starting database initialization process");
 initDatabaseWithRetry();
 
 /**
- * Converts an ICO file to a Sharp object ready for further processing
- * @param faviconData The ICO file data
+ * Converts an image file to a Sharp object ready for further processing
+ * Sharp now has native ICO support, so we can process ICO files directly
+ * @param faviconData The image file data
  * @param url The URL for logging purposes
- * @returns A Sharp object or null if conversion failed
+ * @param isIco Whether the image is an ICO file
+ * @returns A Sharp object
  */
 async function processIconImage(faviconData: Buffer, url: string, isIco: boolean): Promise<sharp.Sharp> {
   try {
-    // If it's an ICO file, extract the largest image
+    // Sharp now has native ICO support - it will automatically extract the best size
+    const sharpObj = sharp(faviconData);
+
     if (isIco) {
-      const pngData = sharpIco.decode(faviconData);
-      if (pngData && pngData.length > 0) {
-        // Find the largest image in the ICO file
-        const largestImage = pngData.reduce((prev, curr) => {
-          return prev.width * prev.height >= curr.width * curr.height ? prev : curr;
-        });
-
-        // Create a sharp object directly from the raw pixel data
-        const sharpObj = sharp(largestImage.data, {
-          raw: {
-            width: largestImage.width,
-            height: largestImage.height,
-            channels: 4
-          }
-        });
-
-        debugPrint("FAVICONS", `Extracted ${largestImage.width}x${largestImage.height} image from ICO for ${url}`);
-        return sharpObj;
-      }
+      debugPrint("FAVICONS", `Processing ICO file with native sharp support for ${url}`);
     }
 
-    // For non-ICO files or if ICO extraction failed, create a Sharp object from the original data
-    return sharp(faviconData);
+    return sharpObj;
   } catch (err) {
     debugError("FAVICONS", "Error processing image:", err);
     // If processing fails, return a Sharp object with the original data
@@ -440,6 +424,7 @@ export function cacheFavicon(url: string, faviconURL: string, session?: Session)
       }
 
       // Detect image type from content
+      // This function is not accurate or reliable, should be removed or refactored.
       const { isIco, isValid } = await detectImageType(faviconData);
 
       if (!isValid) {
@@ -448,6 +433,7 @@ export function cacheFavicon(url: string, faviconURL: string, session?: Session)
       }
 
       // Process the image and get a Sharp object
+      console.log("faviconURL", faviconURL, isIco);
       const sharpObj = await processIconImage(faviconData, normalizedURL, isIco);
 
       // Resize the image and convert to PNG in a single operation

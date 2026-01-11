@@ -24,8 +24,7 @@ These dependencies are bundled into the `node_modules` of the app. These should 
 - mime-types - Provide mime types.
 - posthog-node - Provide analytics.
 - arktype - Handles Data Validation. (Better alternative to zod)
-- sharp - Image Processing.
-- sharp-ico - Image Processing for ICO files.
+- sharp - Image Processing (includes native ICO support).
 
 ## Dev Dependencies
 
