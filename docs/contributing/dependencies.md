@@ -21,11 +21,11 @@ These dependencies are bundled into the `node_modules` of the app. These should 
 - electron-chrome-web-store - Patches APIs the Chrome Web Store needs to work & make it think this is Chrome.
 - electron-context-menu - Context menu for the app.
 - electron-updater - Handles updating the app.
+- icojs - ICO Parser for favicons.
 - mime-types - Provide mime types.
 - posthog-node - Provide analytics.
 - arktype - Handles Data Validation. (Better alternative to zod)
 - sharp - Image Processing.
-- sharp-ico - Image Processing for ICO files.
 
 ## Dev Dependencies
 

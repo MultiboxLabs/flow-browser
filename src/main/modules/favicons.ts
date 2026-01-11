@@ -7,10 +7,10 @@ import { knex, Knex } from "knex";
 import { net, Session } from "electron";
 import { createHash } from "crypto";
 import { FLOW_DATA_DIR } from "./paths";
-import * as sharpIco from "sharp-ico";
 import sharp from "sharp";
 import { debugError, debugPrint } from "./output";
 import { FLAGS } from "@/modules/flags";
+import { parseICO } from "icojs";
 
 const dbPath = path.join(FLOW_DATA_DIR, "favicons.db");
 
@@ -184,42 +184,34 @@ debugPrint("FAVICONS", "Starting database initialization process");
 initDatabaseWithRetry();
 
 /**
- * Converts an ICO file to a Sharp object ready for further processing
- * @param faviconData The ICO file data
+ * Converts an image file to a Sharp object ready for further processing
+ * Uses icojs to parse ICO files before returning a Sharp object.
+ * @param faviconData The image file data
  * @param url The URL for logging purposes
- * @returns A Sharp object or null if conversion failed
+ * @param isIco Whether the image is an ICO file
+ * @returns A Sharp object
  */
-async function processIconImage(faviconData: Buffer, url: string, isIco: boolean): Promise<sharp.Sharp> {
+async function processIconImage(faviconData: Buffer, url: string, isIco: boolean): Promise<sharp.Sharp | null> {
   try {
-    // If it's an ICO file, extract the largest image
     if (isIco) {
-      const pngData = sharpIco.decode(faviconData);
-      if (pngData && pngData.length > 0) {
-        // Find the largest image in the ICO file
-        const largestImage = pngData.reduce((prev, curr) => {
-          return prev.width * prev.height >= curr.width * curr.height ? prev : curr;
-        });
+      debugPrint("FAVICONS", `Processing ICO file with icojs and sharp for ${url}`);
 
-        // Create a sharp object directly from the raw pixel data
-        const sharpObj = sharp(largestImage.data, {
-          raw: {
-            width: largestImage.width,
-            height: largestImage.height,
-            channels: 4
-          }
-        });
-
-        debugPrint("FAVICONS", `Extracted ${largestImage.width}x${largestImage.height} image from ICO for ${url}`);
-        return sharpObj;
+      const images = await parseICO(faviconData, "image/png");
+      if (images.length === 0) {
+        debugError("FAVICONS", `No images found in ICO file for ${url}`);
+        return null;
       }
+      const largestImage = images.reduce((prev, curr) => {
+        return prev.width * prev.height >= curr.width * curr.height ? prev : curr;
+      });
+      return sharp(largestImage.buffer);
+    } else {
+      return sharp(faviconData);
     }
-
-    // For non-ICO files or if ICO extraction failed, create a Sharp object from the original data
-    return sharp(faviconData);
   } catch (err) {
     debugError("FAVICONS", "Error processing image:", err);
-    // If processing fails, return a Sharp object with the original data
-    return sharp(faviconData);
+    // If processing fails, return null
+    return null;
   }
 }
 
@@ -449,6 +441,10 @@ export function cacheFavicon(url: string, faviconURL: string, session?: Session)
 
       // Process the image and get a Sharp object
       const sharpObj = await processIconImage(faviconData, normalizedURL, isIco);
+      if (!sharpObj) {
+        debugError("FAVICONS", `Failed to process image for ${normalizedURL}`);
+        return;
+      }
 
       // Resize the image and convert to PNG in a single operation
       const resizedImageBuffer = await sharpObj
