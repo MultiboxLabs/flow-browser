@@ -110,8 +110,12 @@ function tryPatchPasskeys() {
     let isWebauthnAddonAvailablePromise: Promise<boolean> | null = null;
 
     const patchedCredentialsContainer: PatchedCredentialsContainer = {
+      // @ts-expect-error: just not gonna bother with the error types
       create: async (options) => {
-        const serialized: CreateCredentialResult | null = await ipcRenderer.invoke("webauthn:create", options);
+        const serialized: CreateCredentialResult | CreateCredentialErrorCodes | null = await ipcRenderer.invoke(
+          "webauthn:create",
+          options
+        );
 
         if (!serialized) return null;
         if (typeof serialized === "string") {
