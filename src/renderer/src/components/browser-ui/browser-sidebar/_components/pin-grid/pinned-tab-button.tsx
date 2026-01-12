@@ -63,7 +63,7 @@ export function PinnedTabButton({ faviconUrl, isActive }: { faviconUrl: string; 
     >
       <div id="overlay-overlay" className={cn("size-full", isActive && "bg-white/80 dark:bg-white/30")}>
         <div id="overlay" className={cn("size-full", "flex items-center justify-center")} style={activeOverlayStyle}>
-          <div className="relative size-6">
+          <div className="relative size-5">
             <img
               src={faviconUrl || undefined}
               className="absolute rounded-sm user-drag-none object-contain overflow-hidden"

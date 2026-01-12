@@ -7,12 +7,13 @@ import { useMemo } from "react";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import { PinGridGate } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/gate";
+import { SpaceTitle } from "@/components/browser-ui/browser-sidebar/_components/space-title";
 
 export function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
   const { isAnimating } = useBrowserSidebar();
   const { platform } = usePlatform();
 
-  const { isCurrentSpaceLight } = useSpaces();
+  const { isCurrentSpaceLight, currentSpace } = useSpaces();
   const spaceInjectedClasses = useMemo(() => cn(isCurrentSpaceLight ? "" : "dark"), [isCurrentSpaceLight]);
 
   return (
@@ -26,6 +27,7 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
       <div className="w-full h-full gap-2 flex flex-col overflow-hidden">
         <AddressBar />
         <PinGridGate />
+        <SpaceTitle space={currentSpace} />
       </div>
     </div>
   );

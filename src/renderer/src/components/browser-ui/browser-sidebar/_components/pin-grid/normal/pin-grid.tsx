@@ -8,7 +8,7 @@ import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_compon
 export function PinGrid() {
   const [ref, { width }] = useMeasure<HTMLDivElement>();
 
-  const amountOfPinnedTabs = 8;
+  const amountOfPinnedTabs = 6;
 
   // Calculate columns based on container width
   // Minimum tab width: ~60px + gap (8px) = ~68px per column
