@@ -48,7 +48,6 @@
     "mime-types": "^3.0.1",
     "posthog-node": "^5.25.0",
     "sharp": "^0.34.5",
-    "react-resizable-panels": "^3.0.6",
     "tldts": "^7.0.23"
   },
   "devDependencies": {
