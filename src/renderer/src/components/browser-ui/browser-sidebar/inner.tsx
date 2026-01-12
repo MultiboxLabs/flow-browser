@@ -8,6 +8,8 @@ import { useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import { PinGridGate } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/gate";
 import { SpaceTitle } from "@/components/browser-ui/browser-sidebar/_components/space-title";
+import { Settings, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
   const { isAnimating } = useBrowserSidebar();
@@ -17,17 +19,32 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
   const spaceInjectedClasses = useMemo(() => cn(isCurrentSpaceLight ? "" : "dark"), [isCurrentSpaceLight]);
 
   return (
-    <div className={cn(spaceInjectedClasses, "h-full")}>
+    <div className={cn(spaceInjectedClasses, "h-full flex flex-col overflow-hidden")}>
+      {/* Top Section */}
       {direction === "left" && platform === "darwin" && (
         <div className="flex flex-col p-1">
           <SidebarWindowControlsMacOS offset={variant === "floating" ? 11 : 5} isAnimating={isAnimating} />
           <div className="h-2" />
         </div>
       )}
-      <div className="w-full h-full gap-2 flex flex-col overflow-hidden">
+      {/* Middle Section */}
+      <div className="flex-1 h-full gap-2 flex flex-col overflow-hidden">
         <AddressBar />
         <PinGridGate />
         <SpaceTitle space={currentSpace} />
+      </div>
+      {/* Bottom Section */}
+      <div className="flex items-center justify-between py-3 px-0 h-14">
+        <Button
+          size="icon"
+          className="size-8 bg-transparent hover:bg-black/10 dark:hover:bg-white/10"
+          onClick={() => flow.windows.openSettingsWindow()}
+        >
+          <Settings strokeWidth={2} className="w-4 h-4 text-black/80 dark:text-white/80" />
+        </Button>
+        <Button size="icon" className="size-8 bg-transparent hover:bg-black/10 dark:hover:bg-white/10" disabled>
+          <Plus strokeWidth={2} className="w-4 h-4 text-black/80 dark:text-white/80" />
+        </Button>
       </div>
     </div>
   );
