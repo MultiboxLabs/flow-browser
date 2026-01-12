@@ -19,22 +19,30 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
   const spaceInjectedClasses = useMemo(() => cn(isCurrentSpaceLight ? "" : "dark"), [isCurrentSpaceLight]);
 
   return (
-    <div className={cn(spaceInjectedClasses, "h-full flex flex-col overflow-hidden")}>
+    <div className={cn(spaceInjectedClasses, "h-full flex flex-col overflow-hidden pb-3")}>
       {/* Top Section */}
       {direction === "left" && platform === "darwin" && (
-        <div className="flex flex-col p-1">
+        <div className="shrink-0 flex flex-col p-1">
           <SidebarWindowControlsMacOS offset={variant === "floating" ? 11 : 5} isAnimating={isAnimating} />
           <div className="h-2" />
         </div>
       )}
       {/* Middle Section */}
-      <div className="flex-1 h-full gap-2 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 gap-2 flex flex-col overflow-hidden">
         <AddressBar />
         <PinGridGate />
         <SpaceTitle space={currentSpace} />
+        {/* Space Scrollable Content */}
+        <div className="flex-1 min-h-0">
+          <div className={cn("h-full grid gap-2", "overflow-y-auto sidebar-scrollbar")}>
+            {Array.from({ length: 100 }).map((_, index) => (
+              <span key={index}>Hello World!</span>
+            ))}
+          </div>
+        </div>
       </div>
       {/* Bottom Section */}
-      <div className="flex items-center justify-between py-3 px-0 h-14">
+      <div className="shrink-0 flex items-center justify-between py-3 px-0 h-14">
         <Button
           size="icon"
           className="size-8 bg-transparent hover:bg-black/10 dark:hover:bg-white/10"

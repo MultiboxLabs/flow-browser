@@ -18,7 +18,7 @@
 }
 
 .sidebar-scrollbar {
-  scrollbar-width: 6px;
+  scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.4) transparent;
   transition: scrollbar-color 0.1s ease;
 }
