@@ -8,6 +8,7 @@ import { useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import { PinGridGate } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/gate";
 import { SpaceTitle } from "@/components/browser-ui/browser-sidebar/_components/space-title";
+import { SidebarScrollArea } from "@/components/browser-ui/browser-sidebar/_components/sidebar-scroll-area";
 import { Settings, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -33,13 +34,13 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
         <PinGridGate />
         <SpaceTitle space={currentSpace} />
         {/* Space Scrollable Content */}
-        <div className="flex-1 min-h-0">
-          <div className={cn("h-full grid gap-2", "overflow-y-auto sidebar-scrollbar")}>
+        <SidebarScrollArea className="flex-1 min-h-0">
+          <div className="grid gap-2">
             {Array.from({ length: 100 }).map((_, index) => (
               <span key={index}>Hello World!</span>
             ))}
           </div>
-        </div>
+        </SidebarScrollArea>
       </div>
       {/* Bottom Section */}
       <div className="shrink-0 flex items-center justify-between py-3 px-0 h-14">

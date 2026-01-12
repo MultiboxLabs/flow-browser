@@ -4,11 +4,12 @@ import { cn } from "@/lib/utils";
 import { useMeasure } from "react-use";
 import { useMemo } from "react";
 import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
+import { SidebarScrollArea } from "@/components/browser-ui/browser-sidebar/_components/sidebar-scroll-area";
 
 export function PinGrid() {
   const [ref, { width }] = useMeasure<HTMLDivElement>();
 
-  const amountOfPinnedTabs = 6;
+  const amountOfPinnedTabs = 10;
 
   // Calculate columns based on container width
   // Minimum tab width: ~60px + gap (8px) = ~68px per column
@@ -32,12 +33,12 @@ export function PinGrid() {
   };
 
   return (
-    <>
-      <div ref={ref} className={cn("grid gap-2", "overflow-y-auto sidebar-scrollbar max-h-40", gridColumnClass)}>
+    <SidebarScrollArea className="max-h-40">
+      <div ref={ref} className={cn("grid gap-2", gridColumnClass)}>
         {Array.from({ length: amountOfPinnedTabs }).map((_, index) => (
           <PinnedTabButton key={index} faviconUrl="https://www.google.com/favicon.ico" isActive={index === 0} />
         ))}
       </div>
-    </>
+    </SidebarScrollArea>
   );
 }
