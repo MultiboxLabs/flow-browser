@@ -6,7 +6,7 @@ export function SpaceTitle({ space }: { space: Space | null }) {
   if (!space) return null;
 
   return (
-    <div className={cn("flex flex-row gap-2 items-center", "w-full h-9", "px-1 py-2.5")}>
+    <div className={cn("flex flex-row gap-2 items-center", "w-full h-4", "px-1 mt-2.5 mb-1")}>
       <SpaceIcon
         fallbackId={undefined}
         id={space.icon}

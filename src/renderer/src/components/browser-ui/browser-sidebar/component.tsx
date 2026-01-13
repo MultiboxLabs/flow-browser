@@ -124,7 +124,7 @@ export function BrowserSidebar({
     >
       <div
         className={cn(
-          "m-3 mb-0 h-full",
+          "m-3 mb-0 flex-1 min-h-0",
           "flex flex-col",
           "select-none",
           direction === "left" && !isFloating && "mr-0",

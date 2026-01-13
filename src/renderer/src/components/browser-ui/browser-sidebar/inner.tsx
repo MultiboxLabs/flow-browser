@@ -11,6 +11,7 @@ import { SpaceTitle } from "@/components/browser-ui/browser-sidebar/_components/
 import { SidebarScrollArea } from "@/components/browser-ui/browser-sidebar/_components/sidebar-scroll-area";
 import { Settings, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TabGroup } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
 
 export function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
   const { isAnimating } = useBrowserSidebar();
@@ -20,7 +21,7 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
   const spaceInjectedClasses = useMemo(() => cn(isCurrentSpaceLight ? "" : "dark"), [isCurrentSpaceLight]);
 
   return (
-    <div className={cn(spaceInjectedClasses, "h-full flex flex-col overflow-hidden pb-3")}>
+    <div className={cn(spaceInjectedClasses, "h-full max-h-full flex flex-col overflow-hidden")}>
       {/* Top Section */}
       {direction === "left" && platform === "darwin" && (
         <div className="shrink-0 flex flex-col p-1">
@@ -35,15 +36,15 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
         <SpaceTitle space={currentSpace} />
         {/* Space Scrollable Content */}
         <SidebarScrollArea className="flex-1 min-h-0">
-          <div className="grid gap-2">
-            {Array.from({ length: 100 }).map((_, index) => (
-              <span key={index}>Hello World!</span>
+          <div className="grid gap-1.5">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <TabGroup key={index} />
             ))}
           </div>
         </SidebarScrollArea>
       </div>
       {/* Bottom Section */}
-      <div className="shrink-0 flex items-center justify-between py-3 px-0 h-14">
+      <div className="shrink-0 flex items-center justify-between h-4 my-2">
         <Button
           size="icon"
           className="size-8 bg-transparent hover:bg-black/10 dark:hover:bg-white/10"
@@ -55,6 +56,7 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
           <Plus strokeWidth={2} className="w-4 h-4 text-black/80 dark:text-white/80" />
         </Button>
       </div>
+      <div className="h-3" />
     </div>
   );
 }
