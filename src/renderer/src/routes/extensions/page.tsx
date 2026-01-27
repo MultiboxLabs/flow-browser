@@ -60,7 +60,7 @@ function ExtensionsPage() {
   const selectedExtension = extensions.find((ext) => ext.id === selectedExtensionId);
 
   return (
-    <div className="w-screen h-screen bg-background p-8">
+    <div className="max-w-screen min-h-screen bg-background p-8">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
