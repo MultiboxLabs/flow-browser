@@ -25,6 +25,9 @@ function initializeApp() {
     return false;
   }
 
+  // Disable FedCM (Google One Tap, which doesn't work as the native prompt never shows in Electron)
+  app.commandLine.appendSwitch("--disable-features", "FedCm");
+
   // Print header
   printHeader();
 
