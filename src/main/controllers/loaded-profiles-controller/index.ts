@@ -186,8 +186,7 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
           for (const url of urls) {
             const currentTabIndex = tabIndex;
 
-            tabsController.createTab(window.id, profileId).then((tab) => {
-              tab.loadURL(url);
+            tabsController.createTab(window.id, profileId, undefined, undefined, { url }).then((tab) => {
               if (currentTabIndex === 0) {
                 tabsController.setActiveTab(tab);
               }

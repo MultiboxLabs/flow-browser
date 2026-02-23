@@ -1,7 +1,7 @@
 import { debugPrint } from "@/modules/output";
 import { hasCompletedOnboarding } from "@/saving/onboarding";
 import { onboarding } from "@/controllers/windows-controller/interfaces/onboarding";
-import { createInitialWindow } from "@/saving/tabs";
+import { restoreSession as createInitialWindow } from "@/saving/tabs/restore";
 
 export function runOnboardingOrInitialWindow() {
   debugPrint("INITIALIZATION", "grabbing hasCompletedOnboarding()");

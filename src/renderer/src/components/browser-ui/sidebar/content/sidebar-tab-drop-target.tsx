@@ -34,8 +34,8 @@ export function SidebarTabDropTarget({ spaceData, isSpaceLight, moveTab, biggest
 
       const newPos = biggestIndex + 1;
 
-      if (sourceData.spaceId != spaceData.id) {
-        if (sourceData.profileId != spaceData.profileId) {
+      if (sourceData.spaceId !== spaceData.id) {
+        if (sourceData.profileId !== spaceData.profileId) {
           // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
         } else {
           // move tab to new space

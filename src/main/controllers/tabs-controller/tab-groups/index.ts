@@ -26,7 +26,8 @@ function getTabFromId(tabsController: TabsController, id: number): Tab | null {
 export type TabGroup = GlanceTabGroup | SplitTabGroup;
 
 export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
-  public readonly id: number;
+  /** String identifier used as map key, persistence key, and Tab.groupId value */
+  public readonly groupId: string;
   public isDestroyed: boolean = false;
 
   public windowId: number;
@@ -36,11 +37,11 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
   protected tabsController: TabsController;
   protected tabIds: number[] = [];
 
-  constructor(tabsController: TabsController, id: number, initialTabs: [Tab, ...Tab[]]) {
+  constructor(tabsController: TabsController, groupId: string, initialTabs: [Tab, ...Tab[]]) {
     super();
 
     this.tabsController = tabsController;
-    this.id = id;
+    this.groupId = groupId;
 
     const initialTab = initialTabs[0];
 
@@ -119,7 +120,7 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
       return false;
     }
 
-    tab.groupId = this.id;
+    tab.groupId = this.groupId;
 
     this.tabIds.push(tabId);
     this.emit("tab-added", tabId);
@@ -188,7 +189,7 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
 
     // Clear the groupId on the tab being removed
     const tab = getTabFromId(this.tabsController, tabId);
-    if (tab && tab.groupId === this.id) {
+    if (tab && tab.groupId === this.groupId) {
       tab.groupId = null;
     }
 
@@ -218,7 +219,7 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
 
     // Clear groupId for all tabs in the group before destroying
     for (const tab of this.tabs) {
-      if (tab.groupId === this.id) {
+      if (tab.groupId === this.groupId) {
         tab.groupId = null;
       }
     }

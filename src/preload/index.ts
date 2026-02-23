@@ -459,6 +459,22 @@ const tabsAPI: FlowTabsAPI = {
 
   setTabMuted: async (tabId: number, muted: boolean) => {
     return ipcRenderer.invoke("tabs:set-tab-muted", tabId, muted);
+  },
+
+  batchMoveTabs: async (tabIds: number[], spaceId: string, newPositionStart?: number) => {
+    return ipcRenderer.invoke("tabs:batch-move-tabs", tabIds, spaceId, newPositionStart);
+  },
+
+  getRecentlyClosed: async () => {
+    return ipcRenderer.invoke("tabs:get-recently-closed");
+  },
+
+  restoreRecentlyClosed: async (uniqueId: string) => {
+    return ipcRenderer.invoke("tabs:restore-recently-closed", uniqueId);
+  },
+
+  clearRecentlyClosed: async () => {
+    return ipcRenderer.invoke("tabs:clear-recently-closed");
   }
 };
 

@@ -1,50 +1,13 @@
-import { BaseTabGroup, TabGroup } from "@/controllers/tabs-controller/tab-groups";
+import { BaseTabGroup } from "@/controllers/tabs-controller/tab-groups";
 import { spacesController } from "@/controllers/spaces-controller";
 import { clipboard, ipcMain, Menu, MenuItem } from "electron";
-import { TabData, TabGroupData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
+import { WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import { Tab } from "@/controllers/tabs-controller/tab";
 import { tabsController } from "@/controllers/tabs-controller";
-
-export function getTabData(tab: Tab): TabData {
-  return {
-    id: tab.id,
-    uniqueId: tab.uniqueId,
-    createdAt: tab.createdAt,
-    lastActiveAt: tab.lastActiveAt,
-    position: tab.position,
-
-    profileId: tab.profileId,
-    spaceId: tab.spaceId,
-    windowId: tab.getWindow().id,
-
-    title: tab.title,
-    url: tab.url,
-    isLoading: tab.isLoading,
-    audible: tab.audible,
-    muted: tab.muted,
-    fullScreen: tab.fullScreen,
-    isPictureInPicture: tab.isPictureInPicture,
-    faviconURL: tab.faviconURL,
-    asleep: tab.asleep,
-
-    navHistory: tab.navHistory,
-    navHistoryIndex: tab.navHistoryIndex
-  };
-}
-
-export function getTabGroupData(tabGroup: TabGroup): TabGroupData {
-  return {
-    id: tabGroup.id,
-    mode: tabGroup.mode,
-    profileId: tabGroup.profileId,
-    spaceId: tabGroup.spaceId,
-    tabIds: tabGroup.tabs.map((tab) => tab.id),
-    glanceFrontTabId: tabGroup.mode === "glance" ? tabGroup.frontTabId : undefined,
-    position: tabGroup.position
-  };
-}
+import { serializeTabForRenderer, serializeTabGroupForRenderer } from "@/saving/tabs/serialization";
+import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
 
 // IPC Handlers //
 function getWindowTabsData(window: BrowserWindow) {
@@ -53,8 +16,11 @@ function getWindowTabsData(window: BrowserWindow) {
   const tabs = tabsController.getTabsInWindow(windowId);
   const tabGroups = tabsController.getTabGroupsInWindow(windowId);
 
-  const tabDatas = tabs.map((tab) => getTabData(tab));
-  const tabGroupDatas = tabGroups.map((tabGroup) => getTabGroupData(tabGroup));
+  const tabDatas = tabs.map((tab) => {
+    const managers = tabsController.getTabManagers(tab.id);
+    return serializeTabForRenderer(tab, managers?.lifecycle.preSleepState);
+  });
+  const tabGroupDatas = tabGroups.map((tabGroup) => serializeTabGroupForRenderer(tabGroup));
 
   const windowProfiles: string[] = [];
   const windowSpaces: string[] = [];
@@ -168,11 +134,9 @@ ipcMain.handle("tabs:new-tab", async (event, url?: string, isForeground?: boolea
   const space = await spacesController.get(spaceId);
   if (!space) return;
 
-  const tab = await tabsController.createTab(window.id, space.profileId, spaceId);
-
-  if (url) {
-    tab.loadURL(url);
-  }
+  const tab = await tabsController.createTab(window.id, space.profileId, spaceId, undefined, {
+    url: url || undefined
+  });
 
   if (isForeground) {
     tabsController.setActiveTab(tab);
@@ -266,6 +230,7 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
 
   const isTabVisible = tab.visible;
   const hasURL = !!tab.url;
+  const lifecycleManager = tabsController.getLifecycleManager(tabId);
 
   const contextMenu = new Menu();
 
@@ -292,11 +257,12 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
       label: isTabVisible ? "Cannot put active tab to sleep" : tab.asleep ? "Wake Tab" : "Put Tab to Sleep",
       enabled: !isTabVisible,
       click: () => {
+        if (!lifecycleManager) return;
         if (tab.asleep) {
-          tab.wakeUp();
+          lifecycleManager.wakeUp();
           tabsController.setActiveTab(tab);
         } else {
-          tab.putToSleep();
+          lifecycleManager.putToSleep();
         }
       }
     })
@@ -311,7 +277,114 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
     })
   );
 
-  contextMenu.popup({
-    window: window.browserWindow
+  contextMenu.append(
+    new MenuItem({
+      type: "separator"
+    })
+  );
+
+  // Reopen Closed Tab — async check for recently closed tabs
+  recentlyClosedManager.getAll().then((recentlyClosed) => {
+    const hasRecentlyClosed = recentlyClosed.length > 0;
+    const mostRecent = hasRecentlyClosed ? recentlyClosed[0] : null;
+
+    contextMenu.append(
+      new MenuItem({
+        label: mostRecent ? `Reopen Closed Tab (${mostRecent.tabData.title})` : "Reopen Closed Tab",
+        enabled: hasRecentlyClosed,
+        click: () => {
+          if (!mostRecent) return;
+          recentlyClosedManager.restore(mostRecent.tabData.uniqueId).then((tabData) => {
+            if (!tabData) return;
+
+            spacesController.get(tabData.spaceId).then(async (space) => {
+              if (!space) return;
+              const restoredTab = await tabsController.createTab(
+                window.id,
+                space.profileId,
+                tabData.spaceId,
+                undefined,
+                {
+                  uniqueId: tabData.uniqueId,
+                  window,
+                  position: tabData.position,
+                  title: tabData.title,
+                  faviconURL: tabData.faviconURL ?? undefined,
+                  navHistory: tabData.navHistory,
+                  navHistoryIndex: tabData.navHistoryIndex
+                }
+              );
+              tabsController.setActiveTab(restoredTab);
+            });
+          });
+        }
+      })
+    );
+
+    contextMenu.popup({
+      window: window.browserWindow
+    });
   });
+});
+
+// --- Recently Closed Tabs ---
+
+ipcMain.handle("tabs:get-recently-closed", async () => {
+  return recentlyClosedManager.getAll();
+});
+
+ipcMain.handle("tabs:restore-recently-closed", async (event, uniqueId: string) => {
+  const webContents = event.sender;
+  const window = browserWindowsController.getWindowFromWebContents(webContents);
+  if (!window) return false;
+
+  const tabData = await recentlyClosedManager.restore(uniqueId);
+  if (!tabData) return false;
+
+  // Restore the tab into the current window and its original space
+  const space = await spacesController.get(tabData.spaceId);
+  if (!space) return false;
+
+  const tab = await tabsController.createTab(window.id, space.profileId, tabData.spaceId, undefined, {
+    uniqueId: tabData.uniqueId,
+    window,
+    position: tabData.position,
+    title: tabData.title,
+    faviconURL: tabData.faviconURL ?? undefined,
+    navHistory: tabData.navHistory,
+    navHistoryIndex: tabData.navHistoryIndex
+  });
+
+  tabsController.setActiveTab(tab);
+  return true;
+});
+
+ipcMain.handle("tabs:clear-recently-closed", async () => {
+  await recentlyClosedManager.clear();
+  return true;
+});
+
+// --- Batch Tab Move ---
+
+ipcMain.handle("tabs:batch-move-tabs", async (event, tabIds: number[], spaceId: string, newPositionStart?: number) => {
+  const webContents = event.sender;
+  const window = browserWindowsController.getWindowFromWebContents(webContents);
+  if (!window) return false;
+
+  const space = await spacesController.get(spaceId);
+  if (!space) return false;
+
+  for (let i = 0; i < tabIds.length; i++) {
+    const tab = tabsController.getTabById(tabIds[i]);
+    if (!tab) continue;
+
+    tab.setSpace(spaceId);
+    tab.setWindow(window);
+
+    if (newPositionStart !== undefined) {
+      tab.updateStateProperty("position", newPositionStart + i);
+    }
+  }
+
+  return true;
 });
