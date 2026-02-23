@@ -472,23 +472,34 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       changedKeys.push("muted");
     }
 
-    // Smart nav history comparison: check length and index first,
-    // only do deep comparison when those differ
+    // Smart nav history comparison:
+    // - fast path on length/index changes
+    // - fallback active-entry check for in-place mutations
+    //   (e.g. replaceState updates where length/index stay the same)
     const newNavHistory = webContents.navigationHistory.getAllEntries();
     const newNavHistoryIndex = webContents.navigationHistory.getActiveIndex();
 
     const lengthChanged = newNavHistory.length !== this.lastNavHistoryLength;
     const indexChanged = newNavHistoryIndex !== this.lastNavHistoryIndex;
+    let activeEntryChanged = false;
 
-    if (lengthChanged || indexChanged) {
-      // Something definitely changed — update
+    if (!lengthChanged && !indexChanged) {
+      const oldActiveEntry = this.navHistory[this.navHistoryIndex];
+      const newActiveEntry = newNavHistory[newNavHistoryIndex];
+
+      activeEntryChanged =
+        (oldActiveEntry?.url ?? "") !== (newActiveEntry?.url ?? "") ||
+        (oldActiveEntry?.title ?? "") !== (newActiveEntry?.title ?? "");
+    }
+
+    if (lengthChanged || indexChanged || activeEntryChanged) {
       this.navHistory = newNavHistory;
+      this.navHistoryIndex = newNavHistoryIndex;
       this.lastNavHistoryLength = newNavHistory.length;
+      this.lastNavHistoryIndex = newNavHistoryIndex;
       changedKeys.push("navHistory");
 
       if (indexChanged) {
-        this.navHistoryIndex = newNavHistoryIndex;
-        this.lastNavHistoryIndex = newNavHistoryIndex;
         changedKeys.push("navHistoryIndex");
       }
     }
