@@ -22,7 +22,6 @@ interface TabsContextValue {
 
   // Utilities //
   tabsData: WindowTabsData | null;
-  revalidate: () => Promise<void>;
   getActiveTabId: (spaceId: string) => number[] | null;
   getFocusedTabId: (spaceId: string) => number | null;
 }
@@ -54,10 +53,6 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
       console.error("Failed to fetch tabs data:", error);
     }
   }, []);
-
-  const revalidate = useCallback(async () => {
-    await fetchTabs();
-  }, [fetchTabs]);
 
   useEffect(() => {
     fetchTabs();
@@ -105,8 +100,8 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
     const tabsWithoutGroups = tabsData.tabs.filter((tab) => !tabsWithGroups.includes(tab.id));
     for (const tab of tabsWithoutGroups) {
       allTabGroupDatas.push({
-        // to not conflict with tab group ids
-        id: tab.id + 999,
+        // Synthetic group ID — uses string format to avoid collision with real group IDs
+        id: `s-${tab.uniqueId}`,
         mode: "normal",
         profileId: tab.profileId,
         spaceId: tab.spaceId,
@@ -213,7 +208,6 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
         addressUrl,
         // Utilities //
         tabsData,
-        revalidate,
         getActiveTabId,
         getFocusedTabId
       }}

@@ -1,5 +1,5 @@
 import { IPCListener } from "~/flow/types";
-import { WindowTabsData } from "~/types/tabs";
+import { RecentlyClosedTabData, WindowTabsData } from "~/types/tabs";
 
 // API //
 export interface FlowTabsAPI {
@@ -68,4 +68,31 @@ export interface FlowTabsAPI {
    * @param newPosition The new position of the tab
    */
   moveTabToWindowSpace: (tabId: number, spaceId: string, newPosition?: number) => Promise<boolean>;
+
+  /**
+   * Move multiple tabs to a new space in one operation
+   * @param tabIds The ids of the tabs to move
+   * @param spaceId The target space id
+   * @param newPositionStart The starting position for the moved tabs
+   */
+  batchMoveTabs: (tabIds: number[], spaceId: string, newPositionStart?: number) => Promise<boolean>;
+
+  /**
+   * Get all recently closed tabs
+   * @returns Array of recently closed tab data, sorted by most recently closed first
+   */
+  getRecentlyClosed: () => Promise<RecentlyClosedTabData[]>;
+
+  /**
+   * Restore a recently closed tab by its unique ID
+   * @param uniqueId The unique ID of the tab to restore
+   * @returns Whether the tab was successfully restored
+   */
+  restoreRecentlyClosed: (uniqueId: string) => Promise<boolean>;
+
+  /**
+   * Clear all recently closed tabs
+   * @returns Whether the operation was successful
+   */
+  clearRecentlyClosed: () => Promise<boolean>;
 }

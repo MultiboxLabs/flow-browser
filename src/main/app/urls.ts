@@ -23,9 +23,8 @@ export async function handleOpenUrl(useNewWindow: boolean, url: string) {
 
   window.show(true);
 
-  // Create a new tab
-  const tab = await tabsController.createTab(window.id);
-  tab.loadURL(url);
+  // Create a new tab with the URL
+  const tab = await tabsController.createTab(window.id, undefined, undefined, undefined, { url });
   tabsController.setActiveTab(tab);
 }
 

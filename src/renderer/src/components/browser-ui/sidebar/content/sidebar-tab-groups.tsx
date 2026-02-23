@@ -191,7 +191,7 @@ export function SidebarTab({ tab, isFocused }: { tab: TabData; isFocused: boolea
 
 export type TabGroupSourceData = {
   type: "tab-group";
-  tabGroupId: number;
+  tabGroupId: string;
   primaryTabId: number;
   profileId: string;
   spaceId: string;
@@ -242,8 +242,8 @@ export function SidebarTabGroups({
         newPos = position + 0.5;
       }
 
-      if (sourceData.spaceId != tabGroup.spaceId) {
-        if (sourceData.profileId != tabGroup.profileId) {
+      if (sourceData.spaceId !== tabGroup.spaceId) {
+        if (sourceData.profileId !== tabGroup.profileId) {
           // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
         } else {
           // move tab to new space
@@ -314,7 +314,7 @@ export function SidebarTabGroups({
 
   return (
     <>
-      {closestEdge == "top" && <DropIndicator isSpaceLight={isSpaceLight} />}
+      {closestEdge === "top" && <DropIndicator isSpaceLight={isSpaceLight} />}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -327,7 +327,7 @@ export function SidebarTabGroups({
           <SidebarTab key={tab.id} tab={tab} isFocused={isFocused && focusedTab?.id === tab.id} />
         ))}
       </motion.div>
-      {closestEdge == "bottom" && <DropIndicator isSpaceLight={isSpaceLight} />}
+      {closestEdge === "bottom" && <DropIndicator isSpaceLight={isSpaceLight} />}
     </>
   );
 }

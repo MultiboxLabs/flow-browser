@@ -1,8 +1,13 @@
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { Tab, TabCreationOptions } from "./tab";
 import { BaseTabGroup, TabGroup } from "./tab-groups";
+import { TabBoundsController } from "./bounds";
+import { TabLayoutManager } from "./tab-layout";
+import { TabLifecycleManager } from "./tab-lifecycle";
 import { windowTabsChanged } from "@/ipc/browser/tabs";
-import { shouldArchiveTab, shouldSleepTab } from "@/saving/tabs";
+import { shouldArchiveTab, shouldSleepTab, tabPersistenceManager } from "@/saving/tabs";
+import { serializeTab, serializeTabGroup } from "@/saving/tabs/serialization";
+import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
 import { GlanceTabGroup } from "./tab-groups/glance";
 import { SplitTabGroup } from "./tab-groups/split";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
@@ -11,6 +16,7 @@ import { loadedProfilesController } from "@/controllers/loaded-profiles-controll
 import { setWindowSpace } from "@/ipc/session/spaces";
 import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
+import { FLAGS } from "@/modules/flags";
 
 export const NEW_TAB_URL = "flow://new-tab";
 const ARCHIVE_CHECK_INTERVAL_MS = 10 * 1000;
@@ -26,18 +32,32 @@ type TabsControllerEvents = {
 
 type WindowSpaceReference = `${number}-${string}`;
 
+/**
+ * Per-tab managers that the controller owns.
+ * Stored alongside each Tab so the controller can call lifecycle/layout methods.
+ */
+interface TabManagers {
+  lifecycle: TabLifecycleManager;
+  layout: TabLayoutManager;
+  bounds: TabBoundsController;
+}
+
 class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   // Public properties
   public tabs: Map<number, Tab>;
+
+  // Per-tab managers
+  private tabManagers: Map<number, TabManagers> = new Map();
 
   // Window Space Maps
   public windowActiveSpaceMap: Map<number, string>;
   public spaceActiveTabMap: Map<WindowSpaceReference, Tab | TabGroup>;
   public spaceFocusedTabMap: Map<WindowSpaceReference, Tab>;
-  public spaceActivationHistory: Map<WindowSpaceReference, number[]>;
+  /** Activation history stores both tab IDs (number) and group IDs (string) */
+  public spaceActivationHistory: Map<WindowSpaceReference, (number | string)[]>;
 
-  // Tab Groups
-  public tabGroups: Map<number, TabGroup>;
+  // Tab Groups (keyed by string groupId)
+  public tabGroups: Map<string, TabGroup>;
   private tabGroupCounter: number = 0;
 
   constructor() {
@@ -70,20 +90,28 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
     this.on("tab-changed", (tab) => {
       windowTabsChanged(tab.getWindow().id);
+
+      // Mark tab dirty for persistence
+      const windowGroupId = `w-${tab.getWindow().id}`;
+      const managers = this.getTabManagers(tab.id);
+      const serialized = serializeTab(tab, windowGroupId, managers?.lifecycle.preSleepState);
+      tabPersistenceManager.markDirty(tab.uniqueId, serialized);
     });
 
     this.on("tab-removed", (tab) => {
       windowTabsChanged(tab.getWindow().id);
     });
 
-    // Archive tabs over their lifetime
+    // Archive/sleep check interval
     const interval = setInterval(() => {
       for (const tab of this.tabs.values()) {
         if (!tab.visible && shouldArchiveTab(tab.lastActiveAt)) {
           tab.destroy();
+          continue;
         }
         if (!tab.visible && !tab.asleep && shouldSleepTab(tab.lastActiveAt)) {
-          tab.putToSleep();
+          const managers = this.getTabManagers(tab.id);
+          managers?.lifecycle.putToSleep();
         }
       }
     }, ARCHIVE_CHECK_INTERVAL_MS);
@@ -92,6 +120,31 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       clearInterval(interval);
     });
   }
+
+  // --- Manager access ---
+
+  /**
+   * Get the managers for a tab by tab ID.
+   */
+  public getTabManagers(tabId: number): TabManagers | undefined {
+    return this.tabManagers.get(tabId);
+  }
+
+  /**
+   * Get the lifecycle manager for a tab.
+   */
+  public getLifecycleManager(tabId: number): TabLifecycleManager | undefined {
+    return this.tabManagers.get(tabId)?.lifecycle;
+  }
+
+  /**
+   * Get the layout manager for a tab.
+   */
+  public getLayoutManager(tabId: number): TabLayoutManager | undefined {
+    return this.tabManagers.get(tabId)?.layout;
+  }
+
+  // --- Tab Creation ---
 
   /**
    * Create a new tab
@@ -148,8 +201,8 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   }
 
   /**
-   * Internal method to create a tab
-   * Does not load profile or anything else!
+   * Internal method to create a tab.
+   * Wires up lifecycle, layout, and bounds managers.
    */
   public internalCreateTab(
     windowId: number,
@@ -161,7 +214,6 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     // Get window
     const window = browserWindowsController.getWindowById(windowId);
     if (!window) {
-      // Should never happen
       throw new Error("Window not found");
     }
 
@@ -189,9 +241,55 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       }
     );
 
+    // --- Wire up managers ---
+    const lifecycleManager = new TabLifecycleManager(tab);
+    const boundsController = new TabBoundsController(tab);
+    const layoutManager = new TabLayoutManager(tab, this, boundsController, lifecycleManager);
+
+    this.tabManagers.set(tab.id, {
+      lifecycle: lifecycleManager,
+      layout: layoutManager,
+      bounds: boundsController
+    });
+
+    // Setup fullscreen listeners via lifecycle manager
+    lifecycleManager.setupFullScreenListeners(window);
+
     this.tabs.set(tab.id, tab);
 
-    // Setup event listeners
+    // --- Handle deferred initialization ---
+
+    // Handle initial sleep
+    if (tab._needsInitialSleep) {
+      // The nav history restore already inserted the sleep URL,
+      // so tell the lifecycle manager it's already loaded.
+      // Pass the known-good pre-sleep state from the creation options
+      // because webContents state is unreliable during restore (navigation
+      // from restore() hasn't completed or has already updated tab state
+      // to the sleep URL).
+      const { navHistory, navHistoryIndex } = tabCreationOptions;
+      const knownPreSleepState =
+        navHistory && navHistory.length > 0
+          ? {
+              url: navHistory[navHistoryIndex ?? navHistory.length - 1]?.url ?? "",
+              navHistory: [...navHistory],
+              navHistoryIndex: navHistoryIndex ?? navHistory.length - 1
+            }
+          : undefined;
+      setImmediate(() => {
+        lifecycleManager.putToSleep(true, knownPreSleepState);
+      });
+    }
+
+    // Handle initial URL load (only if not restoring from nav history)
+    if (tab._needsInitialLoad) {
+      const initialURL = tabCreationOptions.url || NEW_TAB_URL;
+      setImmediate(() => {
+        tab.loadURL(initialURL);
+      });
+    }
+
+    // --- Setup event listeners ---
     tab.on("updated", () => {
       this.emit("tab-changed", tab);
     });
@@ -207,13 +305,91 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       }
     });
 
+    // Handle fullscreen changes — update layout
+    tab.on("fullscreen-changed", () => {
+      layoutManager.updateLayout();
+    });
+
+    // Handle new-tab-requested — replaces old Tab.createNewTab()
+    tab.on("new-tab-requested", (url, disposition, constructorOptions, handlerDetails) => {
+      this.handleNewTabRequested(tab, url, disposition, constructorOptions, handlerDetails);
+    });
+
     tab.on("destroyed", () => {
+      // Cleanup lifecycle
+      lifecycleManager.onDestroy();
+      boundsController.destroy();
+
+      // Add to recently closed before removing from persistence
+      const windowGroupId = `w-${tab.getWindow().id}`;
+      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
+      const group = this.getTabGroupByTabId(tab.id);
+      const groupData = group ? serializeTabGroup(group) : undefined;
+      recentlyClosedManager.add(serialized, groupData);
+
+      // Remove from persistence
+      tabPersistenceManager.markRemoved(tab.uniqueId);
+
+      // Remove managers
+      this.tabManagers.delete(tab.id);
+
+      // Remove tab from controller
       this.removeTab(tab);
     });
+
+    // --- Initial persistence ---
+    const windowGroupId = `w-${windowId}`;
+    const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
+    tabPersistenceManager.markDirty(tab.uniqueId, serialized);
 
     // Return tab
     this.emit("tab-created", tab);
     return tab;
+  }
+
+  /**
+   * Handles the "new-tab-requested" event from a tab.
+   * This replaces the old Tab.createNewTab() method.
+   */
+  private handleNewTabRequested(
+    sourceTab: Tab,
+    _url: string,
+    disposition: "new-window" | "foreground-tab" | "background-tab" | "default" | "other",
+    constructorOptions: Electron.WebContentsViewConstructorOptions | undefined,
+    _handlerDetails: Electron.HandlerDetails | undefined
+  ) {
+    const newTab = this.internalCreateTab(
+      sourceTab.getWindow().id,
+      sourceTab.profileId,
+      sourceTab.spaceId,
+      constructorOptions
+    );
+
+    // Set the webContents reference so the createWindow callback can return it
+    sourceTab._lastCreatedWebContents = newTab.webContents;
+
+    // Handle Glance tab groups if enabled
+    if (FLAGS.GLANCE_ENABLED && disposition === "foreground-tab") {
+      const existingGroup = this.getTabGroupByTabId(sourceTab.id);
+      if (existingGroup && existingGroup.mode === "glance") {
+        // Add the new tab to the existing glance group
+        existingGroup.addTab(newTab.id);
+        existingGroup.setFrontTab(newTab.id);
+        this.setActiveTab(existingGroup);
+      } else {
+        // Create a new glance group with the source tab and new tab
+        const glanceGroup = this.createTabGroup("glance", [sourceTab.id, newTab.id]);
+        if (glanceGroup.mode === "glance") {
+          glanceGroup.setFrontTab(newTab.id);
+        }
+        this.setActiveTab(glanceGroup);
+      }
+    } else if (disposition === "foreground-tab") {
+      this.setActiveTab(newTab);
+    }
+
+    // Set the space for the window
+    setWindowSpace(sourceTab.getWindow(), sourceTab.spaceId);
   }
 
   /**
@@ -241,25 +417,30 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     return false;
   }
 
+  // --- Active Tab Management ---
+
   /**
-   * Process an active tab change
+   * Process an active tab change — show/hide tabs and update layouts.
    */
   private processActiveTabChange(windowId: number, spaceId: string) {
     const tabsInWindow = this.getTabsInWindow(windowId);
     for (const tab of tabsInWindow) {
+      const managers = this.getTabManagers(tab.id);
+      if (!managers) continue;
+
       if (tab.spaceId === spaceId) {
         const isActive = this.isTabActive(tab);
         if (isActive && !tab.visible) {
-          tab.show();
+          managers.layout.show();
         } else if (!isActive && tab.visible) {
-          tab.hide();
+          managers.layout.hide();
         } else {
           // Update layout even if visibility hasn't changed, e.g., for split view resizing
-          tab.updateLayout();
+          managers.layout.updateLayout();
         }
       } else {
         // Not in active space
-        tab.hide();
+        managers.layout.hide();
       }
     }
   }
@@ -288,7 +469,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     let windowId: number;
     let spaceId: string;
     let tabToFocus: Tab | undefined;
-    let idToStore: number;
+    let idToStore: number | string;
 
     if (tabOrGroup instanceof Tab) {
       windowId = tabOrGroup.getWindow().id;
@@ -299,7 +480,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       windowId = tabOrGroup.windowId;
       spaceId = tabOrGroup.spaceId;
       tabToFocus = tabOrGroup.tabs.length > 0 ? tabOrGroup.tabs[0] : undefined;
-      idToStore = tabOrGroup.id;
+      idToStore = tabOrGroup.groupId;
     }
 
     const windowSpaceReference = `${windowId}-${spaceId}` as WindowSpaceReference;
@@ -346,47 +527,43 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       // Iterate backwards through history (most recent first)
       for (let i = history.length - 1; i >= 0; i--) {
         const itemId = history[i];
-        // Check if it's an existing Tab
-        const tab = this.getTabById(itemId);
-        if (tab && !tab.isDestroyed && tab.getWindow().id === windowId && tab.spaceId === spaceId) {
-          // Ensure tab hasn't been moved out of the space since last activation check
-          this.setActiveTab(tab);
-          return; // Found replacement
+        if (typeof itemId === "number") {
+          // Check if it's an existing Tab
+          const tab = this.getTabById(itemId);
+          if (tab && !tab.isDestroyed && tab.getWindow().id === windowId && tab.spaceId === spaceId) {
+            this.setActiveTab(tab);
+            return;
+          }
+        } else {
+          // String — check if it's an existing TabGroup
+          const group = this.getTabGroupById(itemId);
+          if (
+            group &&
+            !group.isDestroyed &&
+            group.tabs.length > 0 &&
+            group.windowId === windowId &&
+            group.spaceId === spaceId
+          ) {
+            this.setActiveTab(group);
+            return;
+          }
         }
-        // Check if it's an existing TabGroup
-        const group = this.getTabGroupById(itemId);
-        // Ensure group is not empty and belongs to the correct window/space
-        if (
-          group &&
-          !group.isDestroyed &&
-          group.tabs.length > 0 &&
-          group.windowId === windowId &&
-          group.spaceId === spaceId
-        ) {
-          this.setActiveTab(group);
-          return; // Found replacement
-        }
-        // If item not found or invalid, it will be removed from history eventually
-        // by removeTab/internalDestroyTabGroup, or we can clean it here (optional)
       }
     }
 
     // Find the next available tab or group in the same window/space to activate
     const tabsInSpace = this.getTabsInWindowSpace(windowId, spaceId);
     const groupsInSpace = this.getTabGroupsInWindow(windowId).filter(
-      (group) => group.spaceId === spaceId && !group.isDestroyed && group.tabs.length > 0 // Ensure group valid
+      (group) => group.spaceId === spaceId && !group.isDestroyed && group.tabs.length > 0
     );
 
     // Prioritize setting a non-empty group as active if available
     if (groupsInSpace.length > 0) {
-      // Activate the first valid group found
       this.setActiveTab(groupsInSpace[0]);
     } else if (tabsInSpace.length > 0) {
-      // If no group found or no groups exist, activate the first individual tab
-      // Note: tabsInSpace already filters by window/space and existence in this.tabs
       this.setActiveTab(tabsInSpace[0]);
     } else {
-      // No valid tabs or groups left, emit change without setting a new active tab
+      // No valid tabs or groups left
       this.emit("active-tab-changed", windowId, spaceId);
     }
   }
@@ -397,7 +574,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   private setFocusedTab(tab: Tab) {
     const windowSpaceReference = `${tab.getWindow().id}-${tab.spaceId}` as WindowSpaceReference;
     this.spaceFocusedTabMap.set(windowSpaceReference, tab);
-    tab.webContents.focus(); // Ensure the tab's web contents is focused
+    tab.webContents.focus();
   }
 
   /**
@@ -415,6 +592,8 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     const windowSpaceReference = `${windowId}-${spaceId}` as WindowSpaceReference;
     return this.spaceFocusedTabMap.get(windowSpaceReference);
   }
+
+  // --- Tab Removal ---
 
   /**
    * Remove a tab from the tab manager
@@ -436,36 +615,35 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       const activeElement = this.getActiveTab(windowId, spaceId);
       if (activeElement instanceof BaseTabGroup) {
         // If it was in an active group, the group handles its internal state.
-        // We might still need to update focus if the removed tab was focused.
         if (this.getFocusedTab(windowId, spaceId)?.id === tab.id) {
-          // If the removed tab was focused, focus the next tab in the group or remove focus
           const nextFocus = activeElement.tabs.find((t: Tab) => t.id !== tab.id);
           if (nextFocus) {
             this.setFocusedTab(nextFocus);
           } else {
             this.removeFocusedTab(windowId, spaceId);
-            // If group becomes empty, remove it? Or handled by group itself? Assuming handled by group.
           }
         }
-        // Check if group is now empty - group should emit destroy if so
+        // Check if group is now empty
         if (activeElement && activeElement.tabs.length === 0) {
-          this.destroyTabGroup(activeElement.id); // Explicitly destroy if empty
+          this.destroyTabGroup(activeElement.groupId);
         }
       } else {
         // If the active element was the tab itself, remove it and find the next active.
         this.removeActiveTab(windowId, spaceId);
       }
     } else {
-      // Tab was not active, just ensure it's removed from any group it might be in
+      // Tab was not active, just ensure it's removed from any group
       const group = this.getTabGroupByTabId(tab.id);
       if (group) {
         group.removeTab(tab.id);
         if (group.tabs.length === 0) {
-          this.destroyTabGroup(group.id); // Explicitly destroy if empty
+          this.destroyTabGroup(group.groupId);
         }
       }
     }
   }
+
+  // --- Tab Queries ---
 
   /**
    * Get a tab by id
@@ -538,6 +716,8 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     return result;
   }
 
+  // --- Tab Group Queries ---
+
   /**
    * Get all tab groups in a window
    */
@@ -552,24 +732,6 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   }
 
   /**
-   * Set the current space for a window
-   */
-  public setCurrentWindowSpace(windowId: number, spaceId: string) {
-    this.windowActiveSpaceMap.set(windowId, spaceId);
-    this.emit("current-space-changed", windowId, spaceId);
-  }
-
-  /**
-   * Handle page bounds changed
-   */
-  public handlePageBoundsChanged(windowId: number) {
-    const tabsInWindow = this.getTabsInWindow(windowId);
-    for (const tab of tabsInWindow) {
-      tab.updateLayout();
-    }
-  }
-
-  /**
    * Get a tab group by tab id
    */
   public getTabGroupByTabId(tabId: number): TabGroup | undefined {
@@ -581,10 +743,19 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   }
 
   /**
+   * Get a tab group by its string groupId
+   */
+  public getTabGroupById(groupId: string): TabGroup | undefined {
+    return this.tabGroups.get(groupId);
+  }
+
+  // --- Tab Group Management ---
+
+  /**
    * Create a new tab group
    */
   public createTabGroup(mode: TabGroupMode, initialTabIds: [number, ...number[]]): TabGroup {
-    const id = this.tabGroupCounter++;
+    const groupId = `tg-${this.tabGroupCounter++}`;
 
     const initialTabs: Tab[] = [];
     for (const tabId of initialTabIds) {
@@ -604,10 +775,10 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     let tabGroup: TabGroup;
     switch (mode) {
       case "glance":
-        tabGroup = new GlanceTabGroup(this, id, initialTabs as [Tab, ...Tab[]]);
+        tabGroup = new GlanceTabGroup(this, groupId, initialTabs as [Tab, ...Tab[]]);
         break;
       case "split":
-        tabGroup = new SplitTabGroup(this, id, initialTabs as [Tab, ...Tab[]]);
+        tabGroup = new SplitTabGroup(this, groupId, initialTabs as [Tab, ...Tab[]]);
         break;
       default:
         throw new Error(`Invalid tab group mode: ${mode}`);
@@ -615,22 +786,27 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
     tabGroup.on("destroy", () => {
       // Ensure cleanup happens even if destroyTabGroup isn't called externally
-      if (this.tabGroups.has(id)) {
+      if (this.tabGroups.has(groupId)) {
         this.internalDestroyTabGroup(tabGroup);
       }
     });
 
-    this.tabGroups.set(id, tabGroup);
+    this.tabGroups.set(groupId, tabGroup);
+
+    // Persist the tab group
+    tabPersistenceManager.saveTabGroup(groupId, serializeTabGroup(tabGroup));
 
     // If any of the initial tabs were active, make the new group active.
-    // Use the space/window of the first tab for the group.
     const firstTab = initialTabs[0];
-    if (this.getActiveTab(firstTab.getWindow().id, firstTab.spaceId)?.id === firstTab.id) {
+    const currentActive = this.getActiveTab(firstTab.getWindow().id, firstTab.spaceId);
+    const currentActiveIsFirstTab = currentActive instanceof Tab && currentActive.id === firstTab.id;
+    if (currentActiveIsFirstTab) {
       this.setActiveTab(tabGroup);
     } else {
       // Ensure layout is updated for grouped tabs
       for (const t of tabGroup.tabs) {
-        t.updateLayout();
+        const managers = this.getTabManagers(t.id);
+        managers?.layout.updateLayout();
       }
     }
 
@@ -655,102 +831,98 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
    */
   private internalDestroyTabGroup(tabGroup: TabGroup) {
     const wasActive = this.getActiveTab(tabGroup.windowId, tabGroup.spaceId) === tabGroup;
-    const groupId = tabGroup.id;
+    const groupId = tabGroup.groupId;
 
     if (!this.tabGroups.has(groupId)) return;
 
     this.tabGroups.delete(groupId);
     this.removeFromActivationHistory(groupId);
 
+    // Remove from persistence
+    tabPersistenceManager.removeTabGroup(groupId);
+
     if (wasActive) {
       this.removeActiveTab(tabGroup.windowId, tabGroup.spaceId);
     }
-    // Group should handle destroying its own tabs or returning them to normal state.
   }
 
   /**
    * Destroy a tab group
    */
-  public destroyTabGroup(tabGroupId: number) {
-    const tabGroup = this.getTabGroupById(tabGroupId);
+  public destroyTabGroup(groupId: string) {
+    const tabGroup = this.getTabGroupById(groupId);
     if (!tabGroup) {
-      console.warn(`Attempted to destroy non-existent tab group ID: ${tabGroupId}`);
-      return; // Don't throw, just warn and exit
+      console.warn(`Attempted to destroy non-existent tab group ID: ${groupId}`);
+      return;
     }
 
     // Ensure group's destroy logic runs first
     if (!tabGroup.isDestroyed) {
-      tabGroup.destroy(); // This should trigger the "destroy" event handled in createTabGroup
+      tabGroup.destroy(); // This triggers the "destroy" event
     }
 
-    // Cleanup TabManager state (might be redundant if event handler runs, but safe)
+    // Cleanup TabsController state (might be redundant if event handler runs, but safe)
     this.internalDestroyTabGroup(tabGroup);
   }
 
+  // --- Window Space Management ---
+
   /**
-   * Get a tab group by id
+   * Set the current space for a window
    */
-  public getTabGroupById(tabGroupId: number): TabGroup | undefined {
-    return this.tabGroups.get(tabGroupId);
+  public setCurrentWindowSpace(windowId: number, spaceId: string) {
+    this.windowActiveSpaceMap.set(windowId, spaceId);
+    this.emit("current-space-changed", windowId, spaceId);
   }
 
-  // /**
-  //  * Destroy the tab manager
-  //  */
-  // public destroy() {
-  //   if (this.isDestroyed) {
-  //     // Avoid throwing error if already destroyed, just return.
-  //     console.warn("TabManager destroy called multiple times.");
-  //     return;
-  //   }
+  /**
+   * Handle page bounds changed
+   */
+  public handlePageBoundsChanged(windowId: number) {
+    const tabsInWindow = this.getTabsInWindow(windowId);
+    for (const tab of tabsInWindow) {
+      const managers = this.getTabManagers(tab.id);
+      managers?.layout.updateLayout();
+    }
+  }
 
-  //   this.isDestroyed = true;
-  //   this.emit("destroyed");
-  //   this.destroyEmitter(); // Destroys internal event emitter listeners
-
-  //   // Destroy groups first to handle tab transitions cleanly
-  //   // Create a copy of IDs as destroying modifies the map
-  //   const groupIds = Array.from(this.tabGroups.keys());
-  //   for (const groupId of groupIds) {
-  //     this.destroyTabGroup(groupId);
-  //   }
-
-  //   // Destroy remaining individual tabs
-  //   // Create a copy of values as destroying modifies the map
-  //   const tabsToDestroy = Array.from(this.tabs.values());
-  //   for (const tab of tabsToDestroy) {
-  //     // Check if tab still exists (might have been destroyed by group)
-  //     if (this.tabs.has(tab.id) && !tab.isDestroyed) {
-  //       tab.destroy(); // Tab destroy should trigger removeTab via 'destroyed' event
-  //     }
-  //   }
-
-  //   // Clear maps
-  //   this.tabs.clear();
-  //   this.tabGroups.clear();
-  //   this.windowActiveSpaceMap.clear();
-  //   this.spaceActiveTabMap.clear();
-  //   this.spaceFocusedTabMap.clear();
-  //   this.spaceActivationHistory.clear();
-  // }
+  // --- Activation History ---
 
   /**
-   * Helper method to remove an item ID from all activation history lists
+   * Helper method to remove an item ID from all activation history lists.
+   * Handles both tab IDs (number) and group IDs (string).
    */
-  private removeFromActivationHistory(itemId: number) {
+  private removeFromActivationHistory(itemId: number | string) {
     for (const [key, history] of this.spaceActivationHistory.entries()) {
       const initialLength = history.length;
-      // Filter out the itemId
       const newHistory = history.filter((id) => id !== itemId);
       if (newHistory.length < initialLength) {
         if (newHistory.length === 0) {
-          this.spaceActivationHistory.delete(key); // Remove entry if history is empty
+          this.spaceActivationHistory.delete(key);
         } else {
-          this.spaceActivationHistory.set(key, newHistory); // Update with filtered history
+          this.spaceActivationHistory.set(key, newHistory);
         }
       }
     }
-    // Method doesn't need to return anything, just modifies the map
+  }
+
+  // --- Position Normalization ---
+
+  /**
+   * Normalize tab positions to prevent drift to negative infinity.
+   * Called periodically or when positions are getting too extreme.
+   */
+  public normalizePositions(windowId: number, spaceId: string) {
+    const tabs = this.getTabsInWindowSpace(windowId, spaceId);
+    if (tabs.length === 0) return;
+
+    // Sort by current position
+    tabs.sort((a, b) => a.position - b.position);
+
+    // Reassign positions starting from 0
+    for (let i = 0; i < tabs.length; i++) {
+      tabs[i].updateStateProperty("position", i);
+    }
   }
 }
 
