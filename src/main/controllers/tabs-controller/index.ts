@@ -283,7 +283,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
     // Handle initial URL load (only if not restoring from nav history)
     if (tab._needsInitialLoad) {
-      const initialURL = tabCreationOptions.url || NEW_TAB_URL;
+      const initialURL = tabCreationOptions.url || tab.loadedProfile.newTabUrl || NEW_TAB_URL;
       setImmediate(() => {
         tab.loadURL(initialURL);
       });
@@ -353,17 +353,40 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
    */
   private handleNewTabRequested(
     sourceTab: Tab,
-    _url: string,
+    url: string,
     disposition: "new-window" | "foreground-tab" | "background-tab" | "default" | "other",
     constructorOptions: Electron.WebContentsViewConstructorOptions | undefined,
-    _handlerDetails: Electron.HandlerDetails | undefined
+    handlerDetails: Electron.HandlerDetails | undefined
   ) {
-    const newTab = this.internalCreateTab(
-      sourceTab.getWindow().id,
-      sourceTab.profileId,
-      sourceTab.spaceId,
-      constructorOptions
-    );
+    let windowId = sourceTab.getWindow().id;
+
+    if (disposition === "new-window") {
+      const parsedFeatures: Record<string, string | number> = {};
+      if (handlerDetails?.features) {
+        const features = handlerDetails.features.split(",");
+        for (const feature of features) {
+          const [key, value] = feature.trim().split("=");
+          if (key && value) {
+            parsedFeatures[key] = Number.isNaN(+value) ? value : +value;
+          }
+        }
+      }
+
+      const popupWindow = browserWindowsController.instantCreate("popup", {
+        ...(parsedFeatures.width ? { width: +parsedFeatures.width } : {}),
+        ...(parsedFeatures.height ? { height: +parsedFeatures.height } : {}),
+        ...(parsedFeatures.left ? { x: +parsedFeatures.left } : {}),
+        ...(parsedFeatures.top ? { y: +parsedFeatures.top } : {})
+      });
+      windowId = popupWindow.id;
+
+      // Keep popup in the same space as the source tab
+      setWindowSpace(popupWindow, sourceTab.spaceId);
+    }
+
+    const newTab = this.internalCreateTab(windowId, sourceTab.profileId, sourceTab.spaceId, constructorOptions, {
+      url
+    });
 
     // Set the webContents reference so the createWindow callback can return it
     sourceTab._lastCreatedWebContents = newTab.webContents;
@@ -384,12 +407,14 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
         }
         this.setActiveTab(glanceGroup);
       }
-    } else if (disposition === "foreground-tab") {
+    } else if (disposition === "foreground-tab" || disposition === "new-window") {
       this.setActiveTab(newTab);
     }
 
-    // Set the space for the window
-    setWindowSpace(sourceTab.getWindow(), sourceTab.spaceId);
+    // Keep source window in the same space for non-popup tab opens
+    if (disposition !== "new-window") {
+      setWindowSpace(sourceTab.getWindow(), sourceTab.spaceId);
+    }
   }
 
   /**
