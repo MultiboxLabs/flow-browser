@@ -72,14 +72,24 @@ function SpaceButton({ space, isActive }: SpaceButtonProps) {
         // TODO: @MOVE_TABS_BETWEEN_PROFILES Does not support moving tabs between profiles
         if (sourceProfileId !== targetProfileId) return false;
 
+        // Don't allow dropping on the space the tab is already in
+        if (sourceData.spaceId === space.id) return false;
+
         return true;
       },
       onDragEnter: startDragging,
       onDrag: startDragging,
       onDragLeave: stopDragging,
-      onDrop: stopDragging
+      onDrop: (args) => {
+        stopDragging();
+
+        // Move the tab to this space (no specific position — append to end)
+        const sourceData = args.source.data as TabGroupSourceData;
+        const sourceTabId = sourceData.primaryTabId;
+        flow.tabs.moveTabToWindowSpace(sourceTabId, space.id);
+      }
     });
-  }, [onClick, removeDraggingTimeout, space.profileId]);
+  }, [onClick, removeDraggingTimeout, space.profileId, space.id]);
 
   return (
     <SidebarMenuButton
