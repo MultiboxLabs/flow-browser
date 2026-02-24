@@ -32,11 +32,17 @@ export function beforeQuit(): boolean | Promise<boolean> {
   const flushTabsPromise = tabPersistenceManager
     .stop()
     .then(() => true)
-    .catch(() => true);
+    .catch((err) => {
+      console.error("[beforeQuit] Failed to stop tab persistence manager:", err);
+      return true;
+    });
 
   const flushSessionsDataPromise = flushSessionsData()
     .then(() => true)
-    .catch(() => true);
+    .catch((err) => {
+      console.error("[beforeQuit] Failed to flush sessions data:", err);
+      return true;
+    });
 
   return Promise.all([flushTabsPromise, flushSessionsDataPromise]).then((results) => {
     return results.every((result) => result);

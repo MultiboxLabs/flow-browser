@@ -10,11 +10,24 @@ const RecentlyClosedDataStore = getDatastore("recently-closed");
  * Stored in a separate datastore from active tabs.
  */
 export class RecentlyClosedManager {
+  private _writeChain: Promise<void> = Promise.resolve();
+
   /**
    * Add a tab to the recently closed list.
    * Maintains a FIFO queue capped at MAX_RECENTLY_CLOSED entries.
+   * Serialized via a promise chain to prevent read-modify-write races
+   * when multiple tabs are closed concurrently.
    */
   async add(tabData: PersistedTabData, tabGroupData?: PersistedTabGroupData): Promise<void> {
+    this._writeChain = this._writeChain
+      .then(() => this._addInternal(tabData, tabGroupData))
+      .catch((err) => {
+        console.error("[RecentlyClosedManager] Failed to add entry:", err);
+      });
+    await this._writeChain;
+  }
+
+  private async _addInternal(tabData: PersistedTabData, tabGroupData?: PersistedTabGroupData): Promise<void> {
     const entry: RecentlyClosedTabData = {
       closedAt: getCurrentTimestamp(),
       tabData,

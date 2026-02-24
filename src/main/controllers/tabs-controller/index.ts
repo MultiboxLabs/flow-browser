@@ -325,7 +325,9 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
       const group = this.getTabGroupByTabId(tab.id);
       const groupData = group ? serializeTabGroup(group) : undefined;
-      recentlyClosedManager.add(serialized, groupData);
+      recentlyClosedManager
+        .add(serialized, groupData)
+        .catch((err) => console.error("[TabsController] Failed to save recently closed tab:", err));
 
       // Remove from persistence
       tabPersistenceManager.markRemoved(tab.uniqueId);
@@ -818,13 +820,17 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
     tabGroup.on("changed", () => {
       // Persist tab group state whenever it mutates
-      tabPersistenceManager.saveTabGroup(groupId, serializeTabGroup(tabGroup));
+      tabPersistenceManager
+        .saveTabGroup(groupId, serializeTabGroup(tabGroup))
+        .catch((err) => console.error("[TabsController] Failed to save tab group:", err));
     });
 
     this.tabGroups.set(groupId, tabGroup);
 
     // Persist the tab group
-    tabPersistenceManager.saveTabGroup(groupId, serializeTabGroup(tabGroup));
+    tabPersistenceManager
+      .saveTabGroup(groupId, serializeTabGroup(tabGroup))
+      .catch((err) => console.error("[TabsController] Failed to save tab group:", err));
 
     // If any of the initial tabs were active, make the new group active.
     const firstTab = initialTabs[0];
