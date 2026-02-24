@@ -22,6 +22,18 @@ export const createFileMenu = (): MenuItemConstructorOptions => ({
       click: () => {
         browserWindowsController.create();
       }
+    },
+    {
+      type: "separator"
+    },
+    {
+      label: "Close Window",
+      accelerator: getCurrentShortcut("browser.closeWindow"),
+      click: () => {
+        const window = getFocusedBrowserWindow();
+        if (!window) return;
+        window.close();
+      }
     }
   ]
 });

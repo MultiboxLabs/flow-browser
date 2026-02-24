@@ -70,6 +70,12 @@ const typedShortcuts = [
     category: "Browser"
   },
   {
+    id: "browser.closeWindow",
+    name: "Close Window",
+    shortcut: "CommandOrControl+Shift+W",
+    category: "Browser"
+  },
+  {
     id: "browser.toggleSidebar",
     name: "Toggle Sidebar",
     shortcut: "CommandOrControl+S",
