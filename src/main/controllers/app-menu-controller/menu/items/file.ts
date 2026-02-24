@@ -27,6 +27,25 @@ export const createFileMenu = (): MenuItemConstructorOptions => ({
       type: "separator"
     },
     {
+      label: "Focus Address Bar",
+      accelerator: getCurrentShortcut("navigation.focusAddressBar"),
+      click: () => {
+        const window = getFocusedBrowserWindow();
+        if (!window) return;
+        const omnibox = window.omnibox;
+        if (omnibox.isVisible()) {
+          omnibox.refocus();
+        } else {
+          omnibox.loadInterface(null);
+          omnibox.setBounds(null);
+          omnibox.show();
+        }
+      }
+    },
+    {
+      type: "separator"
+    },
+    {
       label: "Close Window",
       accelerator: getCurrentShortcut("browser.closeWindow"),
       click: () => {

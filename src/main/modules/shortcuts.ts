@@ -55,6 +55,12 @@ const typedShortcuts = [
     shortcut: "CommandOrControl+Right",
     category: "Navigation"
   },
+  {
+    id: "navigation.focusAddressBar",
+    name: "Focus Address Bar",
+    shortcut: "CommandOrControl+L",
+    category: "Navigation"
+  },
 
   // Browser
   {
