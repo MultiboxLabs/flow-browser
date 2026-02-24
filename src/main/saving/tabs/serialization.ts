@@ -78,25 +78,6 @@ export function serializeTab(tab: Tab, windowGroupId: string, preSleepState?: Pr
   // pageState data that can crash Chromium's image decoders.
   const { navHistory, navHistoryIndex } = stripSleepEntries(rawNavHistory, rawNavHistoryIndex);
 
-  // Capture window bounds and type for restoring window size/position
-  let windowWidth: number | undefined;
-  let windowHeight: number | undefined;
-  let windowX: number | undefined;
-  let windowY: number | undefined;
-  let windowIsPopup: boolean | undefined;
-
-  try {
-    const win = tab.getWindow();
-    const bounds = win.browserWindow.getBounds();
-    windowWidth = bounds.width;
-    windowHeight = bounds.height;
-    windowX = bounds.x;
-    windowY = bounds.y;
-    windowIsPopup = win.browserWindowType === "popup" ? true : undefined;
-  } catch {
-    // Tab's window may already be destroyed; skip window state
-  }
-
   return {
     schemaVersion: TAB_SCHEMA_VERSION,
     uniqueId: tab.uniqueId,
@@ -114,13 +95,7 @@ export function serializeTab(tab: Tab, windowGroupId: string, preSleepState?: Pr
     muted: tab.muted,
 
     navHistory,
-    navHistoryIndex,
-
-    windowWidth,
-    windowHeight,
-    windowX,
-    windowY,
-    windowIsPopup
+    navHistoryIndex
   };
 }
 

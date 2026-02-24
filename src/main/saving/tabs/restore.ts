@@ -1,4 +1,4 @@
-import { PersistedTabData, PersistedTabGroupData } from "~/types/tabs";
+import { PersistedTabData, PersistedTabGroupData, PersistedWindowState } from "~/types/tabs";
 import { tabPersistenceManager } from "@/saving/tabs";
 import { tabsController } from "@/controllers/tabs-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
@@ -59,19 +59,38 @@ async function createTabsFromPersistedData(tabDatas: PersistedTabData[]): Promis
     windowGroups.get(groupId)!.push(tabData);
   }
 
-  // Load persisted tab groups
+  // Load persisted tab groups and window states
   const persistedGroups = await tabPersistenceManager.loadAllTabGroups();
+  const windowStates = await tabPersistenceManager.loadAllWindowStates();
 
   // Create a window for each window group
-  for (const [, tabs] of windowGroups) {
-    // Read window state from the first tab in the group
+  for (const [windowGroupId, tabs] of windowGroups) {
+    // Read window state from the dedicated window state store
+    const windowState = windowStates.get(windowGroupId);
+
+    // Fall back to legacy per-tab window fields for backward compatibility
     const firstTab = tabs[0];
-    const windowType: BrowserWindowType = firstTab.windowIsPopup ? "popup" : "normal";
+    const legacyState: PersistedWindowState | undefined =
+      firstTab.windowWidth || firstTab.windowHeight
+        ? {
+            width: firstTab.windowWidth ?? 1280,
+            height: firstTab.windowHeight ?? 720,
+            x: firstTab.windowX ?? 0,
+            y: firstTab.windowY ?? 0,
+            isPopup: firstTab.windowIsPopup
+          }
+        : undefined;
+
+    const state = windowState ?? legacyState;
+
+    const windowType: BrowserWindowType = state?.isPopup ? "popup" : "normal";
     const windowOptions: BrowserWindowCreationOptions = {};
-    if (firstTab.windowWidth) windowOptions.width = firstTab.windowWidth;
-    if (firstTab.windowHeight) windowOptions.height = firstTab.windowHeight;
-    if (firstTab.windowX !== undefined) windowOptions.x = firstTab.windowX;
-    if (firstTab.windowY !== undefined) windowOptions.y = firstTab.windowY;
+    if (state) {
+      windowOptions.width = state.width;
+      windowOptions.height = state.height;
+      if (state.x !== undefined) windowOptions.x = state.x;
+      if (state.y !== undefined) windowOptions.y = state.y;
+    }
     const window = await browserWindowsController.create(windowType, windowOptions);
 
     // Track uniqueId -> runtime tab id mapping for tab group restoration
