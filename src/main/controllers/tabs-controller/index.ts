@@ -76,20 +76,33 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
     // Setup event listeners
     this.on("active-tab-changed", (windowId, spaceId) => {
+      if (quitController.isQuitting) return;
       this.processActiveTabChange(windowId, spaceId);
       windowTabsChanged(windowId);
     });
 
     this.on("current-space-changed", (windowId, spaceId) => {
+      if (quitController.isQuitting) return;
       this.processActiveTabChange(windowId, spaceId);
       windowTabsChanged(windowId);
     });
 
     this.on("tab-created", (tab) => {
+      if (quitController.isQuitting) return;
+      windowTabsChanged(tab.getWindow().id);
+    });
+
+    this.on("tab-removed", (tab) => {
+      if (quitController.isQuitting) return;
       windowTabsChanged(tab.getWindow().id);
     });
 
     this.on("tab-changed", (tab) => {
+      // During quit, the database is already closed — skip all persistence
+      // and IPC. WebContents teardown fires navigation/load events that
+      // propagate here, and accessing the closed DB would crash.
+      if (quitController.isQuitting) return;
+
       windowTabsChanged(tab.getWindow().id);
 
       // Mark tab dirty for persistence
@@ -97,10 +110,6 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       const managers = this.getTabManagers(tab.id);
       const serialized = serializeTab(tab, windowGroupId, managers?.lifecycle.preSleepState);
       tabPersistenceManager.markDirty(tab.uniqueId, serialized);
-    });
-
-    this.on("tab-removed", (tab) => {
-      windowTabsChanged(tab.getWindow().id);
     });
 
     // Archive/sleep check interval
@@ -318,17 +327,22 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       lifecycleManager.onDestroy();
       boundsController.destroy();
 
-      // Add to recently closed, but NOT if the app is quitting —
-      // quitting destroys all tabs as cleanup, not as user action.
-      if (!quitController.isQuitting) {
-        const windowGroupId = `w-${tab.getWindow().id}`;
-        const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-        const group = this.getTabGroupByTabId(tab.id);
-        const groupData = group ? serializeTabGroup(group) : undefined;
-        recentlyClosedManager
-          .add(serialized, groupData)
-          .catch((err) => console.error("[TabsController] Failed to save recently closed tab:", err));
+      // During quit, skip all persistence and tab management — the database
+      // is closed and windows are being torn down. Accessing them would crash.
+      if (quitController.isQuitting) {
+        this.tabManagers.delete(tab.id);
+        this.tabs.delete(tab.id);
+        return;
       }
+
+      // Add to recently closed (user-initiated close only)
+      const windowGroupId = `w-${tab.getWindow().id}`;
+      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
+      const group = this.getTabGroupByTabId(tab.id);
+      const groupData = group ? serializeTabGroup(group) : undefined;
+      recentlyClosedManager
+        .add(serialized, groupData)
+        .catch((err) => console.error("[TabsController] Failed to save recently closed tab:", err));
 
       // Remove from persistence
       tabPersistenceManager.markRemoved(tab.uniqueId);
@@ -839,6 +853,9 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     });
 
     tabGroup.on("changed", () => {
+      // Skip persistence during quit — the database is already closed
+      if (quitController.isQuitting) return;
+
       // Persist tab group state whenever it mutates
       tabPersistenceManager
         .saveTabGroup(groupId, serializeTabGroup(tabGroup))
@@ -894,8 +911,10 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     this.tabGroups.delete(groupId);
     this.removeFromActivationHistory(groupId);
 
-    // Remove from persistence
-    tabPersistenceManager.removeTabGroup(groupId);
+    // Remove from persistence (skip during quit — DB is closed)
+    if (!quitController.isQuitting) {
+      tabPersistenceManager.removeTabGroup(groupId);
+    }
 
     if (wasActive) {
       this.removeActiveTab(tabGroup.windowId, tabGroup.spaceId);
