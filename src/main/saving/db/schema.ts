@@ -1,24 +1,28 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { NavigationEntry, PersistedTabData, PersistedTabGroupData, TabGroupMode } from "~/types/tabs";
 
 // --- Tabs Table ---
 
-export const tabs = sqliteTable("tabs", {
-  uniqueId: text("unique_id").primaryKey(),
-  schemaVersion: integer("schema_version").notNull(),
-  createdAt: integer("created_at").notNull(),
-  lastActiveAt: integer("last_active_at").notNull(),
-  position: integer("position").notNull(),
-  profileId: text("profile_id").notNull(),
-  spaceId: text("space_id").notNull(),
-  windowGroupId: text("window_group_id").notNull(),
-  title: text("title").notNull(),
-  url: text("url").notNull(),
-  faviconUrl: text("favicon_url"),
-  muted: integer("muted", { mode: "boolean" }).notNull(),
-  navHistory: text("nav_history", { mode: "json" }).$type<NavigationEntry[]>().notNull(),
-  navHistoryIndex: integer("nav_history_index").notNull()
-});
+export const tabs = sqliteTable(
+  "tabs",
+  {
+    uniqueId: text("unique_id").primaryKey(),
+    schemaVersion: integer("schema_version").notNull(),
+    createdAt: integer("created_at").notNull(),
+    lastActiveAt: integer("last_active_at").notNull(),
+    position: integer("position").notNull(),
+    profileId: text("profile_id").notNull(),
+    spaceId: text("space_id").notNull(),
+    windowGroupId: text("window_group_id").notNull(),
+    title: text("title").notNull(),
+    url: text("url").notNull(),
+    faviconUrl: text("favicon_url"),
+    muted: integer("muted", { mode: "boolean" }).notNull(),
+    navHistory: text("nav_history", { mode: "json" }).$type<NavigationEntry[]>().notNull(),
+    navHistoryIndex: integer("nav_history_index").notNull()
+  },
+  (table) => [index("idx_tabs_window_group_id").on(table.windowGroupId)]
+);
 
 export type TabRow = typeof tabs.$inferSelect;
 export type TabInsert = typeof tabs.$inferInsert;
@@ -54,12 +58,16 @@ export type WindowStateInsert = typeof windowStates.$inferInsert;
 
 // --- Recently Closed Table ---
 
-export const recentlyClosed = sqliteTable("recently_closed", {
-  uniqueId: text("unique_id").primaryKey(),
-  closedAt: integer("closed_at").notNull(),
-  tabData: text("tab_data", { mode: "json" }).$type<PersistedTabData>().notNull(),
-  tabGroupData: text("tab_group_data", { mode: "json" }).$type<PersistedTabGroupData>()
-});
+export const recentlyClosed = sqliteTable(
+  "recently_closed",
+  {
+    uniqueId: text("unique_id").primaryKey(),
+    closedAt: integer("closed_at").notNull(),
+    tabData: text("tab_data", { mode: "json" }).$type<PersistedTabData>().notNull(),
+    tabGroupData: text("tab_group_data", { mode: "json" }).$type<PersistedTabGroupData>()
+  },
+  (table) => [index("idx_recently_closed_closed_at").on(table.closedAt)]
+);
 
 export type RecentlyClosedRow = typeof recentlyClosed.$inferSelect;
 export type RecentlyClosedInsert = typeof recentlyClosed.$inferInsert;
