@@ -10,10 +10,22 @@ export class ViewManager {
   }
 
   addOrUpdateView(view: WebContentsView, zIndex: number): void {
+    const existingZIndex = this.views.get(view);
+
+    // Skip entirely if the view is already registered at the same z-index
+    if (existingZIndex === zIndex) {
+      return;
+    }
+
     this.views.set(view, zIndex);
-    view.webContents.on("destroyed", () => {
-      this.removeView(view, true);
-    });
+
+    // Only register the destroyed listener once per view (when first added)
+    if (existingZIndex === undefined) {
+      view.webContents.on("destroyed", () => {
+        this.removeView(view, true);
+      });
+    }
+
     this.reorderViews();
   }
 

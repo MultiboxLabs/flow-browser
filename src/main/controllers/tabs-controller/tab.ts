@@ -535,6 +535,8 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     if (window) {
       this.window = window;
+      // addOrUpdateView has internal change detection and will skip
+      // if the view is already registered at the same z-index
       window.viewManager.addOrUpdateView(this.view, index);
     }
 

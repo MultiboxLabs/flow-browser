@@ -115,6 +115,31 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     browserWindow.on("resize", persistWindowBounds);
     browserWindow.on("move", persistWindowBounds);
 
+    // Recompute page bounds directly on resize — bypasses the renderer IPC
+    // round-trip (~50-70ms latency from ResizeObserver → rAF → React → IPC).
+    // The renderer still sends bounds for structural layout changes (sidebar,
+    // toolbar), but resize is handled instantly using cached insets.
+    browserWindow.on("resize", () => {
+      // Mark resize as active and debounce the end
+      this._isResizing = true;
+      if (this._resizeEndTimer) clearTimeout(this._resizeEndTimer);
+      this._resizeEndTimer = setTimeout(() => {
+        this._isResizing = false;
+      }, 150);
+
+      if (!this.pageInsets) return; // No bounds received from renderer yet
+      const [contentWidth, contentHeight] = this.browserWindow.getContentSize();
+      const newBounds: PageBounds = {
+        x: this.pageInsets.left,
+        y: this.pageInsets.top,
+        width: Math.max(0, contentWidth - this.pageInsets.left - this.pageInsets.right),
+        height: Math.max(0, contentHeight - this.pageInsets.top - this.pageInsets.bottom)
+      };
+      this.pageBounds = newBounds;
+      this.emit("page-bounds-changed", newBounds);
+      tabsController.handlePageBoundsChanged(this.id);
+    });
+
     // View Manager //
     this.viewManager = new ViewManager(browserWindow.contentView);
     this.coreWebContents = [browserWindow.webContents];
@@ -165,8 +190,35 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
   // Page Bounds (Used for Tabs) //
   public pageBounds: PageBounds = { x: 0, y: 0, width: 0, height: 0 };
 
+  // Stored insets so the main process can recompute page bounds on resize
+  // without waiting for the renderer round-trip (~50-70ms latency).
+  private pageInsets: { top: number; left: number; right: number; bottom: number } | null = null;
+
+  // Tracks whether a resize is in progress. While resizing, the main process
+  // resize handler is the source of truth — stale renderer IPC is suppressed
+  // to prevent flickering (renderer bounds are ~50-70ms behind).
+  private _resizeEndTimer: ReturnType<typeof setTimeout> | null = null;
+  private _isResizing = false;
+
   public setPageBounds(bounds: PageBounds) {
+    // During active resize, the renderer's bounds are stale (from a previous
+    // frame). Applying them would revert the bounds the resize handler just
+    // set, causing visible flicker. Skip entirely — the resize handler is
+    // the sole source of truth while resizing. After resizing stops, the
+    // renderer's next update will reconcile insets and bounds.
+    if (this._isResizing) return;
+
     this.pageBounds = bounds;
+
+    // Recompute and cache insets from the renderer-reported bounds
+    const [contentWidth, contentHeight] = this.browserWindow.getContentSize();
+    this.pageInsets = {
+      top: bounds.y,
+      left: bounds.x,
+      right: contentWidth - bounds.x - bounds.width,
+      bottom: contentHeight - bounds.y - bounds.height
+    };
+
     this.emit("page-bounds-changed", bounds);
     tabsController.handlePageBoundsChanged(this.id);
   }

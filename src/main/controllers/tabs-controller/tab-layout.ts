@@ -23,6 +23,7 @@ const GLANCE_BACK_ZINDEX = 0;
  */
 export class TabLayoutManager {
   private lastTabGroupMode: TabGroupMode | null = null;
+  private lastBorderRadius: number | null = null;
 
   constructor(
     private readonly tab: Tab,
@@ -96,10 +97,10 @@ export class TabLayoutManager {
 
     // Get base bounds and fullscreen state
     const pageBounds = window.pageBounds;
-    if (tab.fullScreen) {
-      tab.view.setBorderRadius(0);
-    } else {
-      tab.view.setBorderRadius(8);
+    const borderRadius = tab.fullScreen ? 0 : 8;
+    if (borderRadius !== this.lastBorderRadius) {
+      tab.view.setBorderRadius(borderRadius);
+      this.lastBorderRadius = borderRadius;
     }
 
     // Determine tab group mode and calculate bounds
