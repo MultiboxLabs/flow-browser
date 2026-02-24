@@ -37,17 +37,17 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
 
   constructor(type: BrowserWindowType, options: BrowserWindowCreationOptions = {}) {
     // const hasSizeOptions = "width" in options || "height" in options;
-    const hasPositionOptions = "x" in options || "y" in options;
+    const hasPositionOptions = options.x !== undefined || options.y !== undefined;
 
     const browserWindow = new ElectronBrowserWindow({
       minWidth: type === "normal" ? 800 : 250,
       minHeight: type === "normal" ? 400 : 200,
 
-      width: options.width ? options.width : 1280,
-      height: options.height ? options.height : 720,
+      width: options.width ?? 1280,
+      height: options.height ?? 720,
 
-      x: options.x ? options.x : undefined,
-      y: options.y ? options.y : undefined,
+      x: options.x,
+      y: options.y,
       center: hasPositionOptions ? false : true,
 
       titleBarStyle: process.platform === "darwin" ? "hidden" : undefined,

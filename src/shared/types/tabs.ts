@@ -95,8 +95,8 @@ export type TabGroupData = {
 export type PersistedWindowState = {
   width: number;
   height: number;
-  x: number;
-  y: number;
+  x?: number;
+  y?: number;
   isPopup?: boolean;
 };
 

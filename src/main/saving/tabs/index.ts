@@ -122,31 +122,55 @@ export class TabPersistenceManager {
     // Skip if nothing to do
     if (dirtyEntries.size === 0 && removedEntries.size === 0 && dirtyWindowEntries.size === 0) return;
 
-    // Write dirty tabs in batch
-    if (dirtyEntries.size > 0) {
-      const entries: Record<string, PersistedTabData> = {};
+    try {
+      // Write dirty tabs in batch
+      if (dirtyEntries.size > 0) {
+        const entries: Record<string, PersistedTabData> = {};
+        for (const [uniqueId, data] of dirtyEntries) {
+          entries[uniqueId] = data;
+        }
+        await TabsDataStore.setMany(entries);
+      }
+
+      // Remove deleted tabs
+      const removePromises: Promise<boolean>[] = [];
+      for (const uniqueId of removedEntries) {
+        removePromises.push(TabsDataStore.remove(uniqueId));
+      }
+      if (removePromises.length > 0) {
+        await Promise.all(removePromises);
+      }
+
+      // Write dirty window states in batch
+      if (dirtyWindowEntries.size > 0) {
+        const entries: Record<string, PersistedWindowState> = {};
+        for (const [windowGroupId, state] of dirtyWindowEntries) {
+          entries[windowGroupId] = state;
+        }
+        await WindowStatesDataStore.setMany(entries);
+      }
+    } catch (error) {
+      // Requeue snapshot entries so failures are retried on the next flush.
+      // Preserve newer mutations that may have happened while writes were in flight.
       for (const [uniqueId, data] of dirtyEntries) {
-        entries[uniqueId] = data;
+        if (!this.dirtyTabs.has(uniqueId) && !this.removedTabs.has(uniqueId)) {
+          this.dirtyTabs.set(uniqueId, data);
+        }
       }
-      await TabsDataStore.setMany(entries);
-    }
 
-    // Remove deleted tabs
-    const removePromises: Promise<boolean>[] = [];
-    for (const uniqueId of removedEntries) {
-      removePromises.push(TabsDataStore.remove(uniqueId));
-    }
-    if (removePromises.length > 0) {
-      await Promise.all(removePromises);
-    }
+      for (const uniqueId of removedEntries) {
+        if (!this.dirtyTabs.has(uniqueId)) {
+          this.removedTabs.add(uniqueId);
+        }
+      }
 
-    // Write dirty window states in batch
-    if (dirtyWindowEntries.size > 0) {
-      const entries: Record<string, PersistedWindowState> = {};
       for (const [windowGroupId, state] of dirtyWindowEntries) {
-        entries[windowGroupId] = state;
+        if (!this.dirtyWindowStates.has(windowGroupId)) {
+          this.dirtyWindowStates.set(windowGroupId, state);
+        }
       }
-      await WindowStatesDataStore.setMany(entries);
+
+      throw error;
     }
   }
 
