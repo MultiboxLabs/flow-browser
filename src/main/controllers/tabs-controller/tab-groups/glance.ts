@@ -17,5 +17,6 @@ export class GlanceTabGroup extends BaseTabGroup {
 
   public setFrontTab(tabId: number) {
     this.frontTabId = tabId;
+    this.emit("changed");
   }
 }

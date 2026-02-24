@@ -51,14 +51,15 @@ export class RecentlyClosedManager {
 
   /**
    * Restore a recently closed tab by uniqueId.
-   * Removes it from the recently closed store and returns the persisted data.
+   * Removes it from the recently closed store and returns the persisted data
+   * along with any tab group data the tab belonged to.
    */
-  async restore(uniqueId: string): Promise<PersistedTabData | null> {
+  async restore(uniqueId: string): Promise<{ tabData: PersistedTabData; tabGroupData?: PersistedTabGroupData } | null> {
     const entry = await RecentlyClosedDataStore.get<RecentlyClosedTabData>(uniqueId);
     if (!entry) return null;
 
     await RecentlyClosedDataStore.remove(uniqueId);
-    return entry.tabData;
+    return { tabData: entry.tabData, tabGroupData: entry.tabGroupData };
   }
 
   /**

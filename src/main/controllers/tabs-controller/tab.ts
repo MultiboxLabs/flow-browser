@@ -165,7 +165,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   // Private properties
   private readonly session: Session;
   public readonly loadedProfile: LoadedProfile;
-  private window: BrowserWindow;
+  private window!: BrowserWindow;
   // Kept for context menu setup; will be removed when context menu is refactored
   private readonly tabsController: TabsController;
 
@@ -263,7 +263,6 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     // Setup window
     this.setWindow(window);
-    this.window = window;
 
     // Store whether we need initial sleep/load (TabsController reads these after construction)
     this._needsInitialSleep = asleep;
