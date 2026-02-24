@@ -14,6 +14,14 @@ class QuitController {
     this._handleBeforeQuit();
   }
 
+  /**
+   * Returns true if the app is in the process of quitting.
+   * Used to prevent tabs from being added to "recently closed" during quit.
+   */
+  get isQuitting(): boolean {
+    return this.beforeQuitHandlerState !== "idle";
+  }
+
   private _handleBeforeQuit() {
     app.on("before-quit", (event) => {
       if (this.beforeQuitHandlerState === "completed") {

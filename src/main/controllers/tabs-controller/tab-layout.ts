@@ -33,6 +33,17 @@ export class TabLayoutManager {
   ) {}
 
   /**
+   * Resets cached view state (bounds, border radius) when the underlying
+   * WebContentsView is destroyed (e.g. on sleep). This ensures the next
+   * updateLayout() call will re-apply bounds and border radius to the
+   * newly created view instead of skipping due to stale equality checks.
+   */
+  onViewDestroyed(): void {
+    this.boundsController.resetLastAppliedBounds();
+    this.lastBorderRadius = null;
+  }
+
+  /**
    * Shows the tab (sets visible = true and updates layout).
    */
   show(): void {
