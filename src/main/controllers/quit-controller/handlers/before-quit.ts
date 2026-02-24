@@ -1,5 +1,6 @@
 import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
 import { tabPersistenceManager } from "@/saving/tabs";
+import { closeDatabase } from "@/saving/db";
 import { sleep } from "@/modules/utils";
 
 async function flushSessionsData() {
@@ -31,9 +32,15 @@ export function beforeQuit(): boolean | Promise<boolean> {
   // Flush all pending tab saves before quitting
   const flushTabsPromise = tabPersistenceManager
     .stop()
-    .then(() => true)
+    .then(() => {
+      // Close the database connection cleanly after tabs are flushed
+      closeDatabase();
+      return true;
+    })
     .catch((err) => {
       console.error("[beforeQuit] Failed to stop tab persistence manager:", err);
+      // Still close the database even on error
+      closeDatabase();
       return true;
     });
 

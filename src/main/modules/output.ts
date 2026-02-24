@@ -12,6 +12,7 @@ const DEBUG_AREAS = {
   WEB_CONTENTS_CREATED: false, // @/browser/main.ts
   OMNIBOX: false, // @/browser/omnibox.ts
   DATASTORE: false, // @/saving/datastore.ts
+  DB: false, // @/saving/db/index.ts
   PROFILES: false, // @/controllers/profiles-controller (originally @/modules/profiles.ts)
   SPACES: false, // @/controllers/spaces-controller (originally @/sessions/spaces.ts)
   ICONS: false, // @/modules/icons.ts
