@@ -12,9 +12,13 @@ import {
 
 /**
  * Removes sleep mode entries from a navigation history array.
- * These entries are synthetic (added at restore time) and must never
- * be persisted — accumulating them across sessions produces stale
- * pageState blobs that can crash Chromium's image decoders.
+ * These entries are synthetic (added by older versions at restore time)
+ * and must never be persisted — accumulating them across sessions produces
+ * stale pageState blobs that can crash Chromium's image decoders.
+ *
+ * Note: With the current implementation, sleep mode entries should no longer
+ * be created (the view is destroyed instead of navigating to about:blank).
+ * This function is kept for backward compatibility with older persisted data.
  *
  * Adjusts navHistoryIndex to account for removed entries before the
  * active index. If the active entry itself is a sleep URL, falls back
@@ -59,7 +63,7 @@ function stripSleepEntries(
  * @param tab - The tab to serialize
  * @param windowGroupId - The window group ID string (e.g. "w-1")
  * @param preSleepState - Optional pre-sleep state from TabLifecycleManager.
- *   When a tab is asleep, webContents shows about:blank?sleep=true.
+ *   When a tab is asleep, the webContents is destroyed.
  *   The pre-sleep state contains the "real" URL and nav history.
  *
  * To add a new persisted field:

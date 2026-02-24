@@ -38,6 +38,7 @@ export function createTabContextMenu(
   spaceId: string
 ) {
   const webContents = tab.webContents;
+  if (!webContents) return;
 
   contextMenu({
     window: webContents,
@@ -63,7 +64,7 @@ export function createTabContextMenu(
       const openLinkItems = createOpenLinkItems(parameters, createNewTab);
       const linkItems = createLinkItems(defaultActions as MenuActions);
       const navigationItems = createNavigationItems(navigationHistory, webContents, canGoBack, canGoForward);
-      const extensionItems = createExtensionItems(tab, parameters);
+      const extensionItems = createExtensionItems(tab, webContents, parameters);
       const textHistoryItems = createTextHistoryItems(webContents);
       const textEditItems = createTextEditItems(defaultActions as MenuActions, webContents);
       const selectionItems = createSelectionItems(
@@ -183,10 +184,14 @@ function createNavigationItems(
   ];
 }
 
-function createExtensionItems(tab: Tab, parameters: Electron.ContextMenuParams): Electron.MenuItemConstructorOptions[] {
+function createExtensionItems(
+  tab: Tab,
+  webContents: Electron.WebContents,
+  parameters: Electron.ContextMenuParams
+): Electron.MenuItemConstructorOptions[] {
   const extensions = tab.loadedProfile.extensions;
   // @ts-expect-error: ts error, but still works
-  const items: Electron.MenuItemConstructorOptions[] = extensions.getContextMenuItems(tab.webContents, parameters);
+  const items: Electron.MenuItemConstructorOptions[] = extensions.getContextMenuItems(webContents, parameters);
   return items;
 }
 
