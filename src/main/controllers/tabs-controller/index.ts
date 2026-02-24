@@ -809,11 +809,16 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
         throw new Error(`Invalid tab group mode: ${mode}`);
     }
 
-    tabGroup.on("destroy", () => {
+    tabGroup.on("destroyed", () => {
       // Ensure cleanup happens even if destroyTabGroup isn't called externally
       if (this.tabGroups.has(groupId)) {
         this.internalDestroyTabGroup(tabGroup);
       }
+    });
+
+    tabGroup.on("changed", () => {
+      // Persist tab group state whenever it mutates
+      tabPersistenceManager.saveTabGroup(groupId, serializeTabGroup(tabGroup));
     });
 
     this.tabGroups.set(groupId, tabGroup);
@@ -883,7 +888,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
     // Ensure group's destroy logic runs first
     if (!tabGroup.isDestroyed) {
-      tabGroup.destroy(); // This triggers the "destroy" event
+      tabGroup.destroy(); // This triggers the "destroyed" event
     }
 
     // Cleanup TabsController state (might be redundant if event handler runs, but safe)

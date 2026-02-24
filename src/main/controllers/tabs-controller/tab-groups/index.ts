@@ -11,7 +11,8 @@ export type TabGroupEvents = {
   "tab-removed": [number];
   "space-changed": [];
   "window-changed": [];
-  destroy: [];
+  changed: [];
+  destroyed: [];
 };
 
 function getTabFromId(tabsController: TabsController, id: number): Tab | null {
@@ -68,6 +69,7 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
 
     this.spaceId = spaceId;
     this.emit("space-changed");
+    this.emit("changed");
 
     for (const tab of this.tabs) {
       this.syncTab(tab);
@@ -79,6 +81,7 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
 
     this.windowId = windowId;
     this.emit("window-changed");
+    this.emit("changed");
 
     for (const tab of this.tabs) {
       this.syncTab(tab);
@@ -124,6 +127,7 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
 
     this.tabIds.push(tabId);
     this.emit("tab-added", tabId);
+    this.emit("changed");
 
     // Event Listeners
     const onTabDestroyed = () => {
@@ -173,7 +177,7 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
     const disconnect3 = tab.connect("space-changed", onTabSpaceChanged);
     const disconnect4 = tab.connect("window-changed", onTabWindowChanged);
     const disconnect5 = this.tabsController.connect("active-tab-changed", onActiveTabChanged);
-    const disconnect6 = this.connect("destroy", onDestroy);
+    const disconnect6 = this.connect("destroyed", onDestroy);
 
     // Sync tab space and window
     this.syncTab(tab);
@@ -195,6 +199,7 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
 
     this.tabIds = this.tabIds.filter((id) => id !== tabId);
     this.emit("tab-removed", tabId);
+    this.emit("changed");
     return true;
   }
 
@@ -225,7 +230,7 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
     }
 
     this.isDestroyed = true;
-    this.emit("destroy");
+    this.emit("destroyed");
     this.destroyEmitter();
   }
 }
