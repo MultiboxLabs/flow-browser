@@ -773,8 +773,27 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   /**
    * Create a new tab group
    */
-  public createTabGroup(mode: TabGroupMode, initialTabIds: [number, ...number[]]): TabGroup {
-    const groupId = `tg-${this.tabGroupCounter++}`;
+  public createTabGroup(mode: TabGroupMode, initialTabIds: [number, ...number[]], preferredGroupId?: string): TabGroup {
+    let groupId: string;
+    if (preferredGroupId) {
+      if (this.tabGroups.has(preferredGroupId)) {
+        throw new Error(`Tab group ID already exists: ${preferredGroupId}`);
+      }
+
+      groupId = preferredGroupId;
+
+      const groupIdMatch = /^tg-(\d+)$/.exec(preferredGroupId);
+      if (groupIdMatch) {
+        const parsedCounter = Number(groupIdMatch[1]);
+        if (Number.isFinite(parsedCounter)) {
+          this.tabGroupCounter = Math.max(this.tabGroupCounter, parsedCounter + 1);
+        }
+      }
+    } else {
+      do {
+        groupId = `tg-${this.tabGroupCounter++}`;
+      } while (this.tabGroups.has(groupId));
+    }
 
     const initialTabs: Tab[] = [];
     for (const tabId of initialTabIds) {

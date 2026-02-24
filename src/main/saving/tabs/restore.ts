@@ -62,6 +62,7 @@ async function createTabsFromPersistedData(tabDatas: PersistedTabData[]): Promis
   // Load persisted tab groups and window states
   const persistedGroups = await tabPersistenceManager.loadAllTabGroups();
   const windowStates = await tabPersistenceManager.loadAllWindowStates();
+  const uniqueIdToTabId = new Map<string, number>();
 
   // Create a window for each window group
   for (const [windowGroupId, tabs] of windowGroups) {
@@ -70,16 +71,16 @@ async function createTabsFromPersistedData(tabDatas: PersistedTabData[]): Promis
 
     // Fall back to legacy per-tab window fields for backward compatibility
     const firstTab = tabs[0];
-    const legacyState: PersistedWindowState | undefined =
-      firstTab.windowWidth || firstTab.windowHeight
-        ? {
-            width: firstTab.windowWidth ?? 1280,
-            height: firstTab.windowHeight ?? 720,
-            x: firstTab.windowX ?? 0,
-            y: firstTab.windowY ?? 0,
-            isPopup: firstTab.windowIsPopup
-          }
-        : undefined;
+    const hasLegacySize = firstTab.windowWidth !== undefined || firstTab.windowHeight !== undefined;
+    const legacyState: PersistedWindowState | undefined = hasLegacySize
+      ? {
+          width: firstTab.windowWidth ?? 1280,
+          height: firstTab.windowHeight ?? 720,
+          ...(firstTab.windowX !== undefined ? { x: firstTab.windowX } : {}),
+          ...(firstTab.windowY !== undefined ? { y: firstTab.windowY } : {}),
+          isPopup: firstTab.windowIsPopup
+        }
+      : undefined;
 
     const state = windowState ?? legacyState;
 
@@ -92,9 +93,6 @@ async function createTabsFromPersistedData(tabDatas: PersistedTabData[]): Promis
       if (state.y !== undefined) windowOptions.y = state.y;
     }
     const window = await browserWindowsController.create(windowType, windowOptions);
-
-    // Track uniqueId -> runtime tab id mapping for tab group restoration
-    const uniqueIdToTabId = new Map<string, number>();
 
     for (const tabData of tabs) {
       const tab = await tabsController.createTab(window.id, tabData.profileId, tabData.spaceId, undefined, {
@@ -109,16 +107,18 @@ async function createTabsFromPersistedData(tabDatas: PersistedTabData[]): Promis
 
       uniqueIdToTabId.set(tabData.uniqueId, tab.id);
     }
-
-    // Restore tab groups for this window
-    restoreTabGroups(persistedGroups, uniqueIdToTabId);
   }
+
+  await restoreTabGroups(persistedGroups, uniqueIdToTabId);
 }
 
 /**
  * Restores tab groups from persisted data using the uniqueId -> tabId mapping.
  */
-function restoreTabGroups(persistedGroups: PersistedTabGroupData[], uniqueIdToTabId: Map<string, number>): void {
+async function restoreTabGroups(
+  persistedGroups: PersistedTabGroupData[],
+  uniqueIdToTabId: Map<string, number>
+): Promise<void> {
   for (const groupData of persistedGroups) {
     // Resolve uniqueIds to runtime tab IDs
     const tabIds: number[] = [];
@@ -131,11 +131,16 @@ function restoreTabGroups(persistedGroups: PersistedTabGroupData[], uniqueIdToTa
 
     if (tabIds.length < 2) {
       // Tab groups need at least 2 tabs
+      try {
+        await tabPersistenceManager.removeTabGroup(groupData.groupId);
+      } catch (error) {
+        console.error("Failed to remove stale tab group:", error);
+      }
       continue;
     }
 
     try {
-      const group = tabsController.createTabGroup(groupData.mode, tabIds as [number, ...number[]]);
+      const group = tabsController.createTabGroup(groupData.mode, tabIds as [number, ...number[]], groupData.groupId);
 
       // Restore glance front tab
       if (groupData.mode === "glance" && groupData.glanceFrontTabUniqueId) {
