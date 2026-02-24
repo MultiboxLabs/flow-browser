@@ -1,4 +1,4 @@
-import { PersistedTabData, PersistedTabGroupData, PersistedWindowState } from "~/types/tabs";
+import { PersistedTabData, PersistedTabGroupData } from "~/types/tabs";
 import { tabPersistenceManager } from "@/saving/tabs";
 import { tabsController } from "@/controllers/tabs-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
@@ -69,28 +69,13 @@ async function createTabsFromPersistedData(tabDatas: PersistedTabData[]): Promis
     // Read window state from the dedicated window state store
     const windowState = windowStates.get(windowGroupId);
 
-    // Fall back to legacy per-tab window fields for backward compatibility
-    const firstTab = tabs[0];
-    const hasLegacySize = firstTab.windowWidth !== undefined || firstTab.windowHeight !== undefined;
-    const legacyState: PersistedWindowState | undefined = hasLegacySize
-      ? {
-          width: firstTab.windowWidth ?? 1280,
-          height: firstTab.windowHeight ?? 720,
-          ...(firstTab.windowX !== undefined ? { x: firstTab.windowX } : {}),
-          ...(firstTab.windowY !== undefined ? { y: firstTab.windowY } : {}),
-          isPopup: firstTab.windowIsPopup
-        }
-      : undefined;
-
-    const state = windowState ?? legacyState;
-
-    const windowType: BrowserWindowType = state?.isPopup ? "popup" : "normal";
+    const windowType: BrowserWindowType = windowState?.isPopup ? "popup" : "normal";
     const windowOptions: BrowserWindowCreationOptions = {};
-    if (state) {
-      windowOptions.width = state.width;
-      windowOptions.height = state.height;
-      if (state.x !== undefined) windowOptions.x = state.x;
-      if (state.y !== undefined) windowOptions.y = state.y;
+    if (windowState) {
+      windowOptions.width = windowState.width;
+      windowOptions.height = windowState.height;
+      if (windowState.x !== undefined) windowOptions.x = windowState.x;
+      if (windowState.y !== undefined) windowOptions.y = windowState.y;
     }
     const window = await browserWindowsController.create(windowType, windowOptions);
 

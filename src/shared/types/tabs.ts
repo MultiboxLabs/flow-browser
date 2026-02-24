@@ -36,14 +36,6 @@ export type PersistedTabData = {
 
   navHistory: NavigationEntry[];
   navHistoryIndex: number;
-
-  // DEPRECATED: Window state was previously stored per-tab. Now stored separately
-  // in the windowstates datastore. These fields are kept for migration from older data.
-  windowWidth?: number;
-  windowHeight?: number;
-  windowX?: number;
-  windowY?: number;
-  windowIsPopup?: boolean;
 };
 
 /**
