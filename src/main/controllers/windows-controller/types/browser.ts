@@ -115,6 +115,11 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     browserWindow.on("resize", persistWindowBounds);
     browserWindow.on("move", persistWindowBounds);
 
+    // Persist initial bounds immediately so restored windows maintain their state
+    // even if the user doesn't resize/move them. This is needed because the window
+    // ID changes across sessions, so the windowGroupId in the DB needs to be updated.
+    persistWindowBounds();
+
     // Recompute page bounds directly on resize — bypasses the renderer IPC
     // round-trip (~50-70ms latency from ResizeObserver → rAF → React → IPC).
     // The renderer still sends bounds for structural layout changes (sidebar,
