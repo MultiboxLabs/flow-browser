@@ -5,6 +5,7 @@ import { browserWindowsController } from "@/controllers/windows-controller/inter
 import { shouldArchiveTab } from "@/saving/tabs";
 import { app } from "electron";
 import { GlanceTabGroup } from "@/controllers/tabs-controller/tab-groups/glance";
+import type { BrowserWindowCreationOptions, BrowserWindowType } from "@/controllers/windows-controller/types/browser";
 
 /**
  * Loads tabs and tab groups from storage, filters archived ones,
@@ -63,7 +64,15 @@ async function createTabsFromPersistedData(tabDatas: PersistedTabData[]): Promis
 
   // Create a window for each window group
   for (const [, tabs] of windowGroups) {
-    const window = await browserWindowsController.create();
+    // Read window state from the first tab in the group
+    const firstTab = tabs[0];
+    const windowType: BrowserWindowType = firstTab.windowIsPopup ? "popup" : "normal";
+    const windowOptions: BrowserWindowCreationOptions = {};
+    if (firstTab.windowWidth) windowOptions.width = firstTab.windowWidth;
+    if (firstTab.windowHeight) windowOptions.height = firstTab.windowHeight;
+    if (firstTab.windowX !== undefined) windowOptions.x = firstTab.windowX;
+    if (firstTab.windowY !== undefined) windowOptions.y = firstTab.windowY;
+    const window = await browserWindowsController.create(windowType, windowOptions);
 
     // Track uniqueId -> runtime tab id mapping for tab group restoration
     const uniqueIdToTabId = new Map<string, number>();

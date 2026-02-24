@@ -101,29 +101,9 @@ export function SpaceSidebar({ space }: { space: Space }) {
     return [...tabGroups].sort((a, b) => a.position - b.position);
   }, [tabGroups]);
 
-  const moveTab = useCallback(
-    (tabId: number, newPosition: number) => {
-      const newSortedTabGroups = [...sortedTabGroups].sort((a, b) => {
-        const isTabInGroupA = a.tabs.some((tab) => tab.id === tabId);
-        const isTabInGroupB = b.tabs.some((tab) => tab.id === tabId);
-
-        const aIndex = sortedTabGroups.findIndex((tabGroup) => tabGroup.id === a.id);
-        const bIndex = sortedTabGroups.findIndex((tabGroup) => tabGroup.id === b.id);
-
-        const aPos = isTabInGroupA ? newPosition : aIndex;
-        const bPos = isTabInGroupB ? newPosition : bIndex;
-
-        return aPos - bPos;
-      });
-
-      for (const [index, tabGroup] of newSortedTabGroups.entries()) {
-        if (tabGroup.position !== index) {
-          flow.tabs.moveTab(tabGroup.tabs[0].id, index);
-        }
-      }
-    },
-    [sortedTabGroups]
-  );
+  const moveTab = useCallback((tabId: number, newPosition: number) => {
+    flow.tabs.moveTab(tabId, newPosition);
+  }, []);
 
   return (
     <div className={cn(isSpaceLight ? "" : "dark", "h-full flex flex-col")} ref={sidebarRef}>
