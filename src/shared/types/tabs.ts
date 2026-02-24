@@ -36,6 +36,13 @@ export type PersistedTabData = {
 
   navHistory: NavigationEntry[];
   navHistoryIndex: number;
+
+  // Window state (optional for backward compatibility with older persisted data)
+  windowWidth?: number;
+  windowHeight?: number;
+  windowX?: number;
+  windowY?: number;
+  windowIsPopup?: boolean;
 };
 
 /**
