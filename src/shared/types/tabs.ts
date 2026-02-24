@@ -37,7 +37,8 @@ export type PersistedTabData = {
   navHistory: NavigationEntry[];
   navHistoryIndex: number;
 
-  // Window state (optional for backward compatibility with older persisted data)
+  // DEPRECATED: Window state was previously stored per-tab. Now stored separately
+  // in the windowstates datastore. These fields are kept for migration from older data.
   windowWidth?: number;
   windowHeight?: number;
   windowX?: number;
@@ -87,6 +88,16 @@ export type TabGroupData = {
   tabIds: number[]; // runtime webContents IDs
   glanceFrontTabId?: number;
   position: number;
+};
+
+// --- Persisted Window State (saved to disk, one per window) ---
+
+export type PersistedWindowState = {
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+  isPopup?: boolean;
 };
 
 // --- Recently Closed ---

@@ -10,6 +10,7 @@ import { fireWindowStateChanged } from "@/ipc/browser/interface";
 import { tabsController } from "@/controllers/tabs-controller";
 import { sessionsController } from "@/controllers/sessions-controller";
 import { spacesController } from "@/controllers/spaces-controller";
+import { tabPersistenceManager } from "@/saving/tabs";
 
 export type BrowserWindowType = "normal" | "popup";
 
@@ -95,6 +96,24 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       this._updateMacOSTrafficLights();
       fireWindowStateChanged(this);
     });
+
+    // Persist window bounds on resize/move so the size is restored on next launch
+    let boundsDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const persistWindowBounds = () => {
+      if (boundsDebounceTimer) clearTimeout(boundsDebounceTimer);
+      boundsDebounceTimer = setTimeout(() => {
+        const bounds = browserWindow.getBounds();
+        tabPersistenceManager.markWindowStateDirty(`w-${this.id}`, {
+          width: bounds.width,
+          height: bounds.height,
+          x: bounds.x,
+          y: bounds.y,
+          isPopup: type === "popup" ? true : undefined
+        });
+      }, 500);
+    };
+    browserWindow.on("resize", persistWindowBounds);
+    browserWindow.on("move", persistWindowBounds);
 
     // View Manager //
     this.viewManager = new ViewManager(browserWindow.contentView);

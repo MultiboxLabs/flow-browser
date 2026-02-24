@@ -2,12 +2,13 @@ import { getDatastore } from "@/saving/datastore";
 import { getSettingValueById } from "@/saving/settings";
 import { ArchiveTabValueMap, SleepTabValueMap } from "@/modules/basic-settings";
 import { getCurrentTimestamp } from "@/modules/utils";
-import { PersistedTabData, PersistedTabGroupData } from "~/types/tabs";
+import { PersistedTabData, PersistedTabGroupData, PersistedWindowState } from "~/types/tabs";
 import { migrateTabData } from "./serialization";
 
 // DataStore instances
 const TabsDataStore = getDatastore("tabs");
 const TabGroupsDataStore = getDatastore("tabgroups");
+const WindowStatesDataStore = getDatastore("windowstates");
 
 // Flush interval in milliseconds
 const FLUSH_INTERVAL_MS = 2000;
@@ -27,6 +28,9 @@ export class TabPersistenceManager {
 
   /** Set of tab uniqueIds that have been removed since last flush */
   private removedTabs = new Set<string>();
+
+  /** Window states that have been modified since last flush */
+  private dirtyWindowStates = new Map<string, PersistedWindowState>();
 
   /** Periodic flush interval handle */
   private flushInterval: ReturnType<typeof setInterval> | null = null;
@@ -82,6 +86,14 @@ export class TabPersistenceManager {
   }
 
   /**
+   * Mark a window's state as dirty with its current bounds.
+   * The data will be written to disk on the next flush cycle.
+   */
+  markWindowStateDirty(windowGroupId: string, state: PersistedWindowState): void {
+    this.dirtyWindowStates.set(windowGroupId, state);
+  }
+
+  /**
    * Remove a tab from storage immediately.
    * Used when we need the removal to happen right away (e.g., archiving).
    */
@@ -102,11 +114,13 @@ export class TabPersistenceManager {
     // are captured in the next cycle
     const dirtyEntries = new Map(this.dirtyTabs);
     const removedEntries = new Set(this.removedTabs);
+    const dirtyWindowEntries = new Map(this.dirtyWindowStates);
     this.dirtyTabs.clear();
     this.removedTabs.clear();
+    this.dirtyWindowStates.clear();
 
     // Skip if nothing to do
-    if (dirtyEntries.size === 0 && removedEntries.size === 0) return;
+    if (dirtyEntries.size === 0 && removedEntries.size === 0 && dirtyWindowEntries.size === 0) return;
 
     // Write dirty tabs in batch
     if (dirtyEntries.size > 0) {
@@ -124,6 +138,15 @@ export class TabPersistenceManager {
     }
     if (removePromises.length > 0) {
       await Promise.all(removePromises);
+    }
+
+    // Write dirty window states in batch
+    if (dirtyWindowEntries.size > 0) {
+      const entries: Record<string, PersistedWindowState> = {};
+      for (const [windowGroupId, state] of dirtyWindowEntries) {
+        entries[windowGroupId] = state;
+      }
+      await WindowStatesDataStore.setMany(entries);
     }
   }
 
@@ -166,6 +189,32 @@ export class TabPersistenceManager {
     return groups;
   }
 
+  /**
+   * Load all persisted window states from storage.
+   * Returns a map of windowGroupId -> PersistedWindowState.
+   *
+   * Wipes the store after loading so stale entries from closed windows
+   * don't accumulate. The current session's resize/move handlers will
+   * re-populate it with fresh data.
+   */
+  async loadAllWindowStates(): Promise<Map<string, PersistedWindowState>> {
+    const rawData = await WindowStatesDataStore.getFullData();
+    const states = new Map<string, PersistedWindowState>();
+
+    for (const [key, value] of Object.entries(rawData)) {
+      try {
+        states.set(key, value as PersistedWindowState);
+      } catch (err) {
+        console.error("[TabPersistenceManager] Failed to load window state data:", err);
+      }
+    }
+
+    // Wipe after loading so closed windows don't leave stale entries
+    await WindowStatesDataStore.wipe();
+
+    return states;
+  }
+
   // --- Tab Group persistence ---
 
   /**
@@ -198,7 +247,8 @@ export class TabPersistenceManager {
   async wipeAll(): Promise<void> {
     this.dirtyTabs.clear();
     this.removedTabs.clear();
-    await Promise.all([TabsDataStore.wipe(), TabGroupsDataStore.wipe()]);
+    this.dirtyWindowStates.clear();
+    await Promise.all([TabsDataStore.wipe(), TabGroupsDataStore.wipe(), WindowStatesDataStore.wipe()]);
   }
 }
 

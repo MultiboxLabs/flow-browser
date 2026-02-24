@@ -8,7 +8,7 @@ import { type TabsController } from "./index";
 
 // Z-index constants
 const GLANCE_FRONT_ZINDEX = 3;
-const TAB_ZINDEX = 2;
+export const TAB_ZINDEX = 2;
 const GLANCE_BACK_ZINDEX = 0;
 
 /**
@@ -167,5 +167,3 @@ export class TabLayoutManager {
     };
   }
 }
-
-export { TAB_ZINDEX };
