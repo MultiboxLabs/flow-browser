@@ -251,6 +251,16 @@ export class TabBoundsController {
   }
 
   /**
+   * Resets the cached last-applied bounds.
+   * Must be called when the underlying WebContentsView is destroyed (e.g. on
+   * sleep) so that the next updateViewBounds() call will re-apply bounds to
+   * the newly created view instead of skipping due to stale equality.
+   */
+  public resetLastAppliedBounds(): void {
+    this.lastAppliedBounds = null;
+  }
+
+  /**
    * Cleans up resources, stopping the animation loop.
    * Should be called when the controller is no longer needed.
    */

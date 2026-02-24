@@ -17,6 +17,7 @@ import { setWindowSpace } from "@/ipc/session/spaces";
 import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
 import { FLAGS } from "@/modules/flags";
+import { quitController } from "@/controllers/quit-controller";
 
 export const NEW_TAB_URL = "flow://new-tab";
 const ARCHIVE_CHECK_INTERVAL_MS = 10 * 1000;
@@ -282,7 +283,12 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     }
 
     // --- Setup event listeners ---
-    tab.on("updated", () => {
+    tab.on("updated", (properties) => {
+      // When the tab's view is destroyed (sleep), reset cached view state
+      // so that bounds and border radius are re-applied to the new view on wake.
+      if (properties.includes("asleep") && tab.asleep) {
+        layoutManager.onViewDestroyed();
+      }
       this.emit("tab-changed", tab);
     });
     tab.on("space-changed", () => {
@@ -312,14 +318,17 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       lifecycleManager.onDestroy();
       boundsController.destroy();
 
-      // Add to recently closed before removing from persistence
-      const windowGroupId = `w-${tab.getWindow().id}`;
-      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-      const group = this.getTabGroupByTabId(tab.id);
-      const groupData = group ? serializeTabGroup(group) : undefined;
-      recentlyClosedManager
-        .add(serialized, groupData)
-        .catch((err) => console.error("[TabsController] Failed to save recently closed tab:", err));
+      // Add to recently closed, but NOT if the app is quitting —
+      // quitting destroys all tabs as cleanup, not as user action.
+      if (!quitController.isQuitting) {
+        const windowGroupId = `w-${tab.getWindow().id}`;
+        const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
+        const group = this.getTabGroupByTabId(tab.id);
+        const groupData = group ? serializeTabGroup(group) : undefined;
+        recentlyClosedManager
+          .add(serialized, groupData)
+          .catch((err) => console.error("[TabsController] Failed to save recently closed tab:", err));
+      }
 
       // Remove from persistence
       tabPersistenceManager.markRemoved(tab.uniqueId);
