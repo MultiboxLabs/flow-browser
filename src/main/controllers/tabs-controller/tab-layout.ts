@@ -78,14 +78,14 @@ export class TabLayoutManager {
 
     // Update lastActiveAt on visibility transitions
     const justHidden = wasVisible && !visible;
-    if (justHidden || visible) {
+    const justShown = !wasVisible && visible;
+    if (justHidden || justShown) {
       tab.updateStateProperty("lastActiveAt", getCurrentTimestamp());
     }
 
     if (!visible) return;
 
     // Update extensions on show
-    const justShown = !wasVisible && visible;
     if (justShown) {
       const extensions = tab.loadedProfile.extensions;
       extensions.selectTab(tab.webContents);
