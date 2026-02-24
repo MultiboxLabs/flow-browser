@@ -64,9 +64,9 @@ export class TabLayoutManager {
     const { visible } = tab;
     const window = tab.getWindow();
 
-    // Sync view visibility
-    const wasVisible = tab.view.getVisible();
-    if (wasVisible !== visible) {
+    // Sync view visibility (only if view exists — sleeping tabs have no view)
+    const wasVisible = tab.view ? tab.view.getVisible() : false;
+    if (tab.view && wasVisible !== visible) {
       tab.view.setVisible(visible);
 
       // Handle PiP transitions on visibility change
@@ -87,7 +87,7 @@ export class TabLayoutManager {
     if (!visible) return;
 
     // Update extensions on show
-    if (justShown) {
+    if (justShown && tab.webContents) {
       const extensions = tab.loadedProfile.extensions;
       extensions.selectTab(tab.webContents);
     }
@@ -98,7 +98,7 @@ export class TabLayoutManager {
     // Get base bounds and fullscreen state
     const pageBounds = window.pageBounds;
     const borderRadius = tab.fullScreen ? 0 : 8;
-    if (borderRadius !== this.lastBorderRadius) {
+    if (borderRadius !== this.lastBorderRadius && tab.view) {
       tab.view.setBorderRadius(borderRadius);
       this.lastBorderRadius = borderRadius;
     }

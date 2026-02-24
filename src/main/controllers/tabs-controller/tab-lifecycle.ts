@@ -1,10 +1,10 @@
-import { Tab, SLEEP_MODE_URL } from "./tab";
+import { Tab } from "./tab";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 
 /**
  * Pre-sleep state stored in memory so the serialization layer
  * can persist the "real" URL/nav history even while the tab is asleep
- * (webContents shows about:blank?sleep=true).
+ * (webContents is destroyed during sleep).
  */
 export interface PreSleepState {
   url: string;
@@ -19,10 +19,17 @@ export interface PreSleepState {
  * - Owns the pre-sleep state snapshot so serialization can access the "real" data
  * - Reads tab state but mutates it only through tab.updateStateProperty()
  * - Does NOT know about persistence or the controller
+ *
+ * Sleep/wake now destroys and recreates the WebContentsView entirely,
+ * saving ~20-50MB RAM per sleeping tab compared to the old approach
+ * of navigating to about:blank?sleep=true.
  */
 export class TabLifecycleManager {
   /** Snapshot of URL/nav state taken before the tab goes to sleep */
   public preSleepState: PreSleepState | null = null;
+
+  /** Disconnect function for the window "leave-full-screen" listener */
+  private disconnectLeaveFullScreen: (() => void) | null = null;
 
   constructor(private readonly tab: Tab) {}
 
@@ -30,17 +37,14 @@ export class TabLifecycleManager {
 
   /**
    * Puts the tab to sleep to save resources.
-   * Captures a snapshot of the current URL and navigation history first.
+   * Captures a snapshot of the current URL and navigation history,
+   * then destroys the WebContentsView entirely.
    *
-   * @param alreadyLoadedURL - If true, the sleep URL has already been loaded
-   *   into webContents (e.g. during restore). Skips the loadURL call.
    * @param knownPreSleepState - If provided, use this as the pre-sleep state
-   *   instead of reading from the tab. Required when alreadyLoadedURL is true
-   *   because the tab's webContents state is unreliable during restore
-   *   (navigation from restore() hasn't completed, so tab.url/navHistory
-   *   are either empty defaults or the sleep URL itself).
+   *   instead of reading from the tab. Used when constructing sleeping tabs
+   *   from persisted data where webContents doesn't exist.
    */
-  putToSleep(alreadyLoadedURL: boolean = false, knownPreSleepState?: PreSleepState): void {
+  putToSleep(knownPreSleepState?: PreSleepState): void {
     if (this.tab.asleep) return;
 
     // Capture pre-sleep state before anything changes
@@ -48,9 +52,7 @@ export class TabLifecycleManager {
       // Use the explicitly provided state (e.g. from restoration data)
       this.preSleepState = knownPreSleepState;
     } else {
-      if (!alreadyLoadedURL) {
-        this.tab.updateTabState(); // ensure state is fresh
-      }
+      this.tab.updateTabState(); // ensure state is fresh
 
       this.preSleepState = {
         url: this.tab.url,
@@ -61,58 +63,36 @@ export class TabLifecycleManager {
 
     this.tab.updateStateProperty("asleep", true);
 
-    if (!alreadyLoadedURL) {
-      this.tab.loadURL(SLEEP_MODE_URL);
-    }
+    // Destroy the view and webContents to free resources
+    this.tab.teardownView();
   }
 
   /**
-   * Wakes a sleeping tab by navigating back from the sleep URL.
-   * Clears the pre-sleep state snapshot after waking.
-   *
-   * Handles cleanup of ALL sleep mode entries in the navigation history,
-   * not just the active one. Stale sleep entries can accumulate from
-   * older sessions (fixed in serialization, but we also handle it here
-   * defensively for existing user data).
+   * Wakes a sleeping tab by recreating the WebContentsView and restoring
+   * navigation history from the pre-sleep state snapshot.
    */
   wakeUp(): void {
     if (!this.tab.asleep) return;
 
-    const navigationHistory = this.tab.webContents.navigationHistory;
-    const activeIndex = navigationHistory.getActiveIndex();
-    const currentEntry = navigationHistory.getEntryAtIndex(activeIndex);
+    const window = this.tab.getWindow();
 
-    if (currentEntry && currentEntry.url === SLEEP_MODE_URL) {
-      // Find the nearest non-sleep entry to navigate to (prefer going back)
-      let targetIndex = -1;
-      for (let i = activeIndex - 1; i >= 0; i--) {
-        const entry = navigationHistory.getEntryAtIndex(i);
-        if (entry && entry.url !== SLEEP_MODE_URL) {
-          targetIndex = i;
-          break;
-        }
-      }
+    // Recreate view, webContents, listeners, extensions
+    this.tab.initializeView();
 
-      if (targetIndex >= 0) {
-        // Navigate to the target entry
-        navigationHistory.goToIndex(targetIndex);
+    // Add view to window's ViewManager
+    this.tab.setWindow(window);
 
-        // After navigation completes, remove ALL sleep entries
-        setTimeout(() => {
-          // Collect sleep entry indices (iterate in reverse to remove safely)
-          const allEntries = navigationHistory.getAllEntries();
-          for (let i = allEntries.length - 1; i >= 0; i--) {
-            if (allEntries[i].url === SLEEP_MODE_URL) {
-              navigationHistory.removeEntryAtIndex(i);
-            }
-          }
-          this.tab.updateTabState();
-        }, 100);
-      }
-    }
+    // Re-setup fullscreen listeners on the new webContents
+    this.setupFullScreenListeners(window);
 
+    // Mark as awake
     this.tab.updateStateProperty("asleep", false);
-    this.preSleepState = null;
+
+    // Restore navigation history from pre-sleep state
+    if (this.preSleepState) {
+      this.tab.restoreNavigationHistory(this.preSleepState.navHistory, this.preSleepState.navHistoryIndex);
+      this.preSleepState = null;
+    }
   }
 
   // --- Fullscreen ---
@@ -138,9 +118,12 @@ export class TabLifecycleManager {
         electronWindow.setFullScreen(false);
       }
 
-      setTimeout(() => {
-        this.tab.webContents.executeJavaScript(`if (document.fullscreenElement) { document.exitFullscreen(); }`, true);
-      }, 100);
+      const webContents = this.tab.webContents;
+      if (webContents) {
+        setTimeout(() => {
+          webContents.executeJavaScript(`if (document.fullscreenElement) { document.exitFullscreen(); }`, true);
+        }, 100);
+      }
     }
 
     return true;
@@ -148,10 +131,13 @@ export class TabLifecycleManager {
 
   /**
    * Sets up fullscreen event listeners on the tab's webContents.
-   * Should be called once during tab initialization.
+   * Idempotent: disconnects previous listeners before registering new ones.
+   * Called during tab initialization and on wake from sleep.
    */
   setupFullScreenListeners(window: BrowserWindow): void {
-    const { webContents } = this.tab;
+    const webContents = this.tab.webContents;
+    if (!webContents) return;
+
     const electronWindow = window.browserWindow;
 
     webContents.on("enter-html-full-screen", () => {
@@ -166,14 +152,25 @@ export class TabLifecycleManager {
       }
     });
 
+    // Disconnect previous leave-full-screen listener before registering a new one
+    if (this.disconnectLeaveFullScreen) {
+      this.disconnectLeaveFullScreen();
+      this.disconnectLeaveFullScreen = null;
+    }
+
     const disconnectLeaveFullScreen = window.connect("leave-full-screen", () => {
       this.setFullScreen(false);
       this.tab.emit("fullscreen-changed", false);
     });
 
+    this.disconnectLeaveFullScreen = disconnectLeaveFullScreen;
+
     this.tab.on("destroyed", () => {
       if (window.isEmitterDestroyed()) return;
-      disconnectLeaveFullScreen();
+      if (this.disconnectLeaveFullScreen) {
+        this.disconnectLeaveFullScreen();
+        this.disconnectLeaveFullScreen = null;
+      }
     });
   }
 
@@ -184,6 +181,9 @@ export class TabLifecycleManager {
    * Used when a tab becomes visible again.
    */
   async exitPictureInPicture(): Promise<boolean> {
+    const webContents = this.tab.webContents;
+    if (!webContents) return false;
+
     // This function runs in the renderer context
     const exitPiP = function () {
       if (document.pictureInPictureElement) {
@@ -194,7 +194,7 @@ export class TabLifecycleManager {
     };
 
     try {
-      const result = await this.tab.webContents.executeJavaScript(`(${exitPiP})()`, true);
+      const result = await webContents.executeJavaScript(`(${exitPiP})()`, true);
       if (result === true) {
         this.tab.updateStateProperty("isPictureInPicture", false);
         return true;
@@ -210,6 +210,9 @@ export class TabLifecycleManager {
    * Used when a tab becomes hidden but has playing video.
    */
   async enterPictureInPicture(): Promise<boolean> {
+    const webContents = this.tab.webContents;
+    if (!webContents) return false;
+
     // This function runs in the renderer context
     const enterPiP = async function () {
       const videos = Array.from(document.querySelectorAll("video")).filter(
@@ -240,7 +243,7 @@ export class TabLifecycleManager {
     };
 
     try {
-      const result = await this.tab.webContents.executeJavaScript(`(${enterPiP})()`, true);
+      const result = await webContents.executeJavaScript(`(${enterPiP})()`, true);
       if (result === true) {
         this.tab.updateStateProperty("isPictureInPicture", true);
         return true;

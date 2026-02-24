@@ -174,7 +174,7 @@ export class TabBoundsController {
     if (!isRectangleEqual(integerBounds, this.lastAppliedBounds)) {
       if (integerBounds) {
         // Ensure integerBounds is not null before setting
-        this.tab.view.setBounds(integerBounds);
+        this.tab.view?.setBounds(integerBounds);
         this.lastAppliedBounds = integerBounds; // Store the bounds that were actually applied
       } else {
         // If rounding resulted in null (shouldn't happen with valid this.bounds), clear last applied

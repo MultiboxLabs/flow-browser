@@ -67,7 +67,7 @@ export type PersistedTabGroupData = {
  * Combines persisted fields with runtime-only fields.
  */
 export type TabData = PersistedTabData & {
-  id: number; // webContents.id (runtime only)
+  id: number; // stable counter-based tab ID (runtime only, NOT webContents.id)
   windowId: number; // current Electron window ID (runtime only)
   isLoading: boolean;
   audible: boolean;

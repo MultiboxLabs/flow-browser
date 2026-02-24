@@ -238,7 +238,7 @@ ipcMain.handle("tabs:set-tab-muted", async (_event, tabId: number, muted: boolea
   const tab = tabsController.getTabById(tabId);
   if (!tab) return false;
 
-  tab.webContents.setAudioMuted(muted);
+  tab.webContents?.setAudioMuted(muted);
 
   // No event for mute state change, so we need to update the tab state manually
   tab.updateTabState();

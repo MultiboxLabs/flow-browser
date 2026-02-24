@@ -149,7 +149,8 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
         }
 
         const electronWindow = tab.getWindow().browserWindow;
-        return [tab.webContents, electronWindow];
+        // Extensions always create awake tabs, so webContents is guaranteed non-null
+        return [tab.webContents!, electronWindow];
       },
       selectTab: (tabWebContents) => {
         const tab = tabsController.getTabByWebContents(tabWebContents);

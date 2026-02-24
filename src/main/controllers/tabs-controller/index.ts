@@ -252,33 +252,25 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       bounds: boundsController
     });
 
-    // Setup fullscreen listeners via lifecycle manager
-    lifecycleManager.setupFullScreenListeners(window);
+    // Setup fullscreen listeners via lifecycle manager (only for awake tabs)
+    if (!tabCreationOptions.asleep) {
+      lifecycleManager.setupFullScreenListeners(window);
+    }
 
     this.tabs.set(tab.id, tab);
 
     // --- Handle deferred initialization ---
 
-    // Handle initial sleep
-    if (tab._needsInitialSleep) {
-      // The nav history restore already inserted the sleep URL,
-      // so tell the lifecycle manager it's already loaded.
-      // Pass the known-good pre-sleep state from the creation options
-      // because webContents state is unreliable during restore (navigation
-      // from restore() hasn't completed or has already updated tab state
-      // to the sleep URL).
+    // Handle initial sleep — set pre-sleep state directly on the lifecycle manager
+    if (tabCreationOptions.asleep) {
       const { navHistory, navHistoryIndex } = tabCreationOptions;
-      const knownPreSleepState =
-        navHistory && navHistory.length > 0
-          ? {
-              url: navHistory[navHistoryIndex ?? navHistory.length - 1]?.url ?? "",
-              navHistory: [...navHistory],
-              navHistoryIndex: navHistoryIndex ?? navHistory.length - 1
-            }
-          : undefined;
-      setImmediate(() => {
-        lifecycleManager.putToSleep(true, knownPreSleepState);
-      });
+      if (navHistory && navHistory.length > 0) {
+        lifecycleManager.preSleepState = {
+          url: navHistory[navHistoryIndex ?? navHistory.length - 1]?.url ?? "",
+          navHistory: [...navHistory],
+          navHistoryIndex: navHistoryIndex ?? navHistory.length - 1
+        };
+      }
     }
 
     // Handle initial URL load (only if not restoring from nav history)
@@ -601,7 +593,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   private setFocusedTab(tab: Tab) {
     const windowSpaceReference = `${tab.getWindow().id}-${tab.spaceId}` as WindowSpaceReference;
     this.spaceFocusedTabMap.set(windowSpaceReference, tab);
-    tab.webContents.focus();
+    tab.webContents?.focus();
   }
 
   /**
