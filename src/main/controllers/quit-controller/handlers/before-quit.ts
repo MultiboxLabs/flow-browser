@@ -1,6 +1,7 @@
 import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
 import { tabPersistenceManager } from "@/saving/tabs";
 import { closeDatabase } from "@/saving/db";
+import { closeFaviconsDatabase } from "@/modules/favicons";
 import { sleep } from "@/modules/utils";
 
 async function flushSessionsData() {
@@ -51,7 +52,14 @@ export function beforeQuit(): boolean | Promise<boolean> {
       return true;
     });
 
-  return Promise.all([flushTabsPromise, flushSessionsDataPromise]).then((results) => {
+  const closeFaviconsPromise = closeFaviconsDatabase()
+    .then(() => true)
+    .catch((err) => {
+      console.error("[beforeQuit] Failed to close favicons database:", err);
+      return true;
+    });
+
+  return Promise.all([flushTabsPromise, flushSessionsDataPromise, closeFaviconsPromise]).then((results) => {
     return results.every((result) => result);
   });
 }

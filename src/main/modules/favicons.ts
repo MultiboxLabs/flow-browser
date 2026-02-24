@@ -561,6 +561,20 @@ export async function getFaviconDataUrl(url: string): Promise<string | null> {
 }
 
 /**
+ * Closes the favicons database connection pool.
+ * Should be called during app shutdown to prevent SQLite handles from being
+ * torn down unsafely by V8 garbage collection.
+ */
+export async function closeFaviconsDatabase(): Promise<void> {
+  try {
+    await db.destroy();
+    debugPrint("FAVICONS", "Database connection closed");
+  } catch (err) {
+    debugError("FAVICONS", "Error closing favicons database:", err);
+  }
+}
+
+/**
  * Cleans up old favicons from the database
  * @param maxAge Maximum age in days before a favicon is considered old
  * @returns The number of favicons removed
