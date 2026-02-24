@@ -11,6 +11,7 @@ import { tabsController } from "@/controllers/tabs-controller";
 import { sessionsController } from "@/controllers/sessions-controller";
 import { spacesController } from "@/controllers/spaces-controller";
 import { tabPersistenceManager } from "@/saving/tabs";
+import { quitController } from "@/controllers/quit-controller";
 
 export type BrowserWindowType = "normal" | "popup";
 
@@ -242,14 +243,16 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
   public destroy(...args: Parameters<BaseWindowInstance["destroy"]>) {
     const result = super.destroy(...args);
     if (result) {
-      // Destroy all tabs in the window
-      // Do this so that it won't run if the app is closing
-      // Technically after 500ms, the app is dead, so it won't run.
-      setTimeout(() => {
-        for (const tab of tabsController.getTabsInWindow(this.id)) {
-          tab.destroy();
-        }
-      }, 500);
+      // Destroy all tabs in the window after a delay.
+      // Skip during quit — the process is dying and the database is already closed,
+      // so calling tab.destroy() would crash when it tries to access SQLite.
+      if (!quitController.isQuitting) {
+        setTimeout(() => {
+          for (const tab of tabsController.getTabsInWindow(this.id)) {
+            tab.destroy();
+          }
+        }, 500);
+      }
 
       this.omnibox.destroy();
       this.viewManager.destroy();

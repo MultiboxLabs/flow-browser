@@ -281,11 +281,30 @@ ipcMain.handle("tabs:move-tab-to-window-space", async (event, tabId: number, spa
   const space = await spacesController.get(spaceId);
   if (!space) return false;
 
-  tab.setSpace(spaceId);
-  tab.setWindow(window);
+  // Capture source space before move (for normalizing after)
+  const sourceSpaceId = tab.spaceId;
 
-  if (newPosition !== undefined) {
-    tab.updateStateProperty("position", newPosition);
+  // Collect all tabs to move (includes tab group members)
+  let targetTabs: Tab[] = [tab];
+  const tabGroup = tabsController.getTabGroupByTabId(tab.id);
+  if (tabGroup) {
+    targetTabs = tabGroup.tabs;
+  }
+
+  // Move all tabs in the group to the new space
+  for (const targetTab of targetTabs) {
+    targetTab.setSpace(spaceId);
+    targetTab.setWindow(window);
+
+    if (newPosition !== undefined) {
+      targetTab.updateStateProperty("position", newPosition);
+    }
+  }
+
+  // Normalize positions in both source and target spaces
+  tabsController.normalizePositions(window.id, spaceId);
+  if (sourceSpaceId !== spaceId) {
+    tabsController.normalizePositions(window.id, sourceSpaceId);
   }
 
   tabsController.setActiveTab(tab);
