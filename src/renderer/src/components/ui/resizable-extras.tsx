@@ -17,8 +17,10 @@ export interface ImperativeResizablePanelWrapperHandle {
   getSizePixels: () => number;
 }
 
-interface PixelBasedResizablePanelProps
-  extends Omit<React.ComponentProps<typeof Panel>, "minSize" | "maxSize" | "defaultSize"> {
+interface PixelBasedResizablePanelProps extends Omit<
+  React.ComponentProps<typeof Panel>,
+  "minSize" | "maxSize" | "defaultSize"
+> {
   minSizePixels?: number;
   maxSizePixels?: number;
   defaultSizePixels?: number;
