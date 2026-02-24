@@ -78,6 +78,12 @@ const electronBuilderConfig: Configuration = {
     }
   ],
   asarUnpack: ["assets/**", "node_modules/@img/**"],
+  extraResources: [
+    {
+      from: "drizzle",
+      to: "drizzle"
+    }
+  ],
   win: {
     executableName: "flow",
     verifyUpdateCodeSignature: false
