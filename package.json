@@ -55,7 +55,7 @@
     "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator": "^3.2.12",
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
     "@electron-toolkit/eslint-config-ts": "^3.1.0",
-    "@electron-toolkit/tsconfig": "^1.0.1",
+    "@electron-toolkit/tsconfig": "^2.0.0",
     "@headlessui/react": "^2.2.3",
     "@pdfslick/react": "^3.0.0",
     "@phosphor-icons/react": "^2.1.7",
@@ -68,7 +68,7 @@
     "@types/node": "^22.19.11",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.1.5",
-    "@vitejs/plugin-react": "^4.4.1",
+    "@vitejs/plugin-react": "^5.1.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -100,7 +100,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tw-animate-css": "^1.2.9",
     "typescript": "^5.8.3",
-    "vite": "^6.3.5"
+    "vite": "^7.3.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
