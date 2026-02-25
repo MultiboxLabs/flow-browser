@@ -75,7 +75,7 @@ function InternalBrowserUI({ type }: { type: BrowserUIType }) {
     <div
       className={cn(
         "w-screen h-screen overflow-hidden",
-        "bg-linear-to-br from-space-background-start/60 to-space-background-end/60",
+        "bg-linear-to-br from-space-background-start/65 to-space-background-end/65",
         "transition-colors duration-150",
         "flex flex-col",
         "app-drag"
