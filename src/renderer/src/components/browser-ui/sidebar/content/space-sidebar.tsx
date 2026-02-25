@@ -134,6 +134,7 @@ export function SpaceSidebar({ space }: { space: Space }) {
                 isSpaceLight={isSpaceLight}
                 moveTab={moveTab}
                 biggestIndex={sortedTabGroups.length - 1}
+                className="app-drag"
               />
             </AnimatePresence>
           </div>
