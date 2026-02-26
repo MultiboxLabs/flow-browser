@@ -29,9 +29,9 @@ export function NewTabButton() {
       animate={{ scale: isPressed ? 0.99 : 1 }}
       transition={{ scale: { type: "spring", stiffness: 600, damping: 20 } }}
       className={cn(
-        "flex items-center gap-2 px-2 py-1.5 rounded-md w-full",
+        "flex items-center gap-2 px-2 py-1.5 h-9 rounded-lg w-full",
         "bg-transparent hover:bg-black/10 dark:hover:bg-white/10",
-        "text-black/50 dark:text-white/50 cursor-pointer"
+        "text-black/50 dark:text-white/50"
       )}
     >
       <PlusIcon className="size-4" />

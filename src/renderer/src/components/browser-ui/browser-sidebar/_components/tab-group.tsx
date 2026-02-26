@@ -132,7 +132,7 @@ const SidebarTab = memo(
               <img
                 src={craftActiveFaviconURL(tab.id, tab.faviconURL)}
                 alt={tab.title}
-                className="size-full rounded-sm object-contain overflow-hidden"
+                className={cn("size-full rounded-sm object-contain overflow-hidden", tab.asleep && "grayscale")}
                 style={{ userSelect: "none", WebkitUserDrag: "none" } as React.CSSProperties}
                 onError={() => setIsError(true)}
               />
