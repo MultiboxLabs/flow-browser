@@ -108,17 +108,18 @@ const SidebarTab = memo(
     const VolumeIcon = isMuted ? VolumeX : Volume2;
 
     return (
-      <div
+      <motion.div
         onContextMenu={handleContextMenu}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        animate={{ scale: isPressed ? 0.99 : 1 }}
+        transition={{ scale: { type: "spring", stiffness: 600, damping: 20 } }}
         className={cn(
           "group/tab h-9 w-full rounded-lg overflow-hidden min-w-0",
           "flex items-center gap-2 px-2",
-          "transition-[transform,background-color]",
+          "transition-[background-color]",
           !isFocused && "hover:bg-black/10 dark:hover:bg-white/10",
-          isFocused && "bg-white/90 dark:bg-white/15",
-          isPressed ? "scale-[0.99]" : "scale-100"
+          isFocused && "bg-white/90 dark:bg-white/15"
         )}
         onMouseDown={handleMouseDown}
         onMouseUp={() => setIsPressed(false)}
@@ -181,7 +182,7 @@ const SidebarTab = memo(
             </button>
           )}
         </div>
-      </div>
+      </motion.div>
     );
   },
   // Custom comparison: only rerender when the tab data we actually display changes
@@ -206,14 +207,13 @@ interface TabGroupProps {
   isActive: boolean;
   isFocused: boolean;
   isSpaceLight: boolean;
-  isFirst: boolean;
   position: number;
   groupCount: number;
   moveTab: (tabId: number, newPosition: number) => void;
 }
 
 export const TabGroup = memo(
-  function TabGroup({ tabGroup, isFocused, isSpaceLight, isFirst, position, moveTab }: TabGroupProps) {
+  function TabGroup({ tabGroup, isFocused, isSpaceLight, position, moveTab }: TabGroupProps) {
     const { tabs, focusedTab } = tabGroup;
     const ref = useRef<HTMLDivElement>(null);
     const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
@@ -314,27 +314,31 @@ export const TabGroup = memo(
       <motion.div
         layout="position"
         initial={{ opacity: 0, height: 0 }}
-        animate={{ opacity: 1, height: "auto" }}
-        exit={{ opacity: 0, height: 0 }}
+        animate={{
+          opacity: 1,
+          height: "auto",
+          transitionEnd: { overflow: "visible" }
+        }}
+        exit={{ opacity: 0, height: 0, overflow: "hidden" }}
         transition={{
           layout: { type: "spring", stiffness: 500, damping: 35 },
           height: { type: "tween", duration: 0.2, ease: "easeOut" },
           opacity: { duration: 0.15 }
         }}
         style={{ overflow: "hidden" }}
-        className="relative space-y-0.5"
+        className="relative flex flex-col gap-0.5"
         ref={ref}
       >
         {closestEdge === "top" && (
-          <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
-            <DropIndicator isSpaceLight={isSpaceLight} showTerminal={!isFirst} />
+          <div className="absolute top-0 left-0 right-0 -translate-y-1/2 z-10 pointer-events-none">
+            <DropIndicator isSpaceLight={isSpaceLight} />
           </div>
         )}
         {tabs.map((tab) => (
           <SidebarTab key={tab.id} tab={tab} isFocused={isFocused && focusedTab?.id === tab.id} />
         ))}
         {closestEdge === "bottom" && (
-          <div className="absolute bottom-0 left-0 right-0 z-10 pointer-events-none">
+          <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 z-10 pointer-events-none">
             <DropIndicator isSpaceLight={isSpaceLight} />
           </div>
         )}
@@ -348,7 +352,6 @@ export const TabGroup = memo(
       prev.isActive !== next.isActive ||
       prev.isFocused !== next.isFocused ||
       prev.isSpaceLight !== next.isSpaceLight ||
-      prev.isFirst !== next.isFirst ||
       prev.position !== next.position ||
       prev.groupCount !== next.groupCount ||
       prev.moveTab !== next.moveTab ||

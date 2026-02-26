@@ -15,6 +15,7 @@ import { TabGroup } from "@/components/browser-ui/browser-sidebar/_components/ta
 import { TabDropTarget } from "@/components/browser-ui/browser-sidebar/_components/tab-drop-target";
 import { useTabs } from "@/components/providers/tabs-provider";
 import { AnimatePresence } from "motion/react";
+import { NewTabButton } from "@/components/browser-ui/browser-sidebar/_components/new-tab-button";
 
 export function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
   const { isAnimating } = useBrowserSidebar();
@@ -67,16 +68,16 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
         <SpaceTitle space={currentSpace} />
         {/* Space Scrollable Content */}
         <SidebarScrollArea className="flex-1 min-h-0">
-          <div className="flex flex-col gap-1 flex-1 pt-1">
+          <div className="flex flex-col gap-1 flex-1">
+            <NewTabButton />
             <AnimatePresence initial={false}>
-              {sortedTabGroups.map((tabGroup, index) => (
+              {sortedTabGroups.map((tabGroup) => (
                 <TabGroup
                   key={tabGroup.id}
                   tabGroup={tabGroup}
                   isActive={activeTabGroup?.id === tabGroup.id}
                   isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
                   isSpaceLight={isCurrentSpaceLight}
-                  isFirst={index === 0}
                   position={tabGroup.position}
                   groupCount={sortedTabGroups.length}
                   moveTab={moveTab}

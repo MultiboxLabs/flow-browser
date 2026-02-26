@@ -9,7 +9,7 @@ export function DropIndicator({
 }) {
   return (
     <ol
-      className="flex *:mx-2 relative h-0 -m-0.5"
+      className="flex *:mx-2 relative h-0 -mx-0.5 my-1"
       style={
         {
           "--ds-border-selected": isSpaceLight ? "#000" : "#fff"
