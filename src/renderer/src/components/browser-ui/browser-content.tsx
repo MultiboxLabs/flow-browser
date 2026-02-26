@@ -7,7 +7,7 @@ const DEBUG_SHOW_BOUNDS = false;
 
 function BrowserContent() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const rect = useBoundingRect(containerRef, { throttleMs: 50 });
+  const rect = useBoundingRect(containerRef);
 
   useEffect(() => {
     if (rect) {
