@@ -1,4 +1,4 @@
-import { SpacesProvider } from "@/components/providers/spaces-provider";
+import { SpacesProvider, useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import { AdaptiveTopbar, AdaptiveTopbarProvider, useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 import {
@@ -93,10 +93,16 @@ function AutoNewTab({ isReady }: { isReady: boolean }) {
 
 const LoadingIndicator = memo(function LoadingIndicator() {
   const { focusedTab } = useTabs();
+  const { isCurrentSpaceLight } = useSpaces();
   const isActiveTabLoading = focusedTab?.isLoading || false;
 
   return (
-    <div className="absolute top-0 left-0 w-full h-2 flex justify-center items-center z-10">
+    <div
+      className={cn(
+        "absolute -top-2.5 left-0 w-full h-2 flex justify-center items-center z-10",
+        !isCurrentSpaceLight && "dark"
+      )}
+    >
       <AnimatePresence>
         {isActiveTabLoading && (
           <motion.div
