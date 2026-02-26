@@ -371,7 +371,7 @@ function ProfileEditor({
   };
 
   return (
-    <div className="z-50 flex flex-col">
+    <div className="z-modal flex flex-col">
       {/* Header Bar */}
       <div className="flex items-center border-b p-4">
         <Button variant="ghost" size="icon" onClick={onClose} className="mr-2">

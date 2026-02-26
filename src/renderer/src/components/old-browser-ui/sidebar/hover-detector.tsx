@@ -27,7 +27,7 @@ export function SidebarHoverDetector({ side, started }: { side: SidebarSide; sta
     <div
       ref={ref}
       className={cn(
-        "remove-app-drag absolute top-0 w-1.5 h-full overflow-hidden z-50",
+        "remove-app-drag absolute top-0 w-1.5 h-full overflow-hidden z-controls",
         side === "left" ? "left-0" : "right-0"
       )}
     />

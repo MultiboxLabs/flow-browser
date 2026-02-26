@@ -12,7 +12,7 @@ const Tooltip = ({ children, position = "right", alignX = "center" }: TooltipPro
     <div
       role="tooltip"
       className={clsx(
-        "absolute z-10 inline-block text-xs transition-opacity duration-300",
+        "absolute z-tooltip inline-block text-xs transition-opacity duration-300",
         "rounded-sm shadow opacity-0 invisible",
         "dark:text-gray-400 text-gray-500 dark:bg-slate-700 bg-slate-50 dark:border-slate-600 border border-slate-300",
         "group-hover:visible group-hover:opacity-100",

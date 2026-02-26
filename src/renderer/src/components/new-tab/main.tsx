@@ -167,7 +167,7 @@ export function NewTabPage() {
             {showSuggestions && matches.length > 0 && (
               <div
                 className={cn(
-                  "absolute top-full left-0 right-0 bg-white dark:bg-gray-800 !rounded-t-none rounded-b-2xl overflow-hidden z-10",
+                  "absolute top-full left-0 right-0 bg-white dark:bg-gray-800 !rounded-t-none rounded-b-2xl overflow-hidden z-elevated",
                   "border border-gray-200 dark:border-gray-700 shadow-2xl"
                 )}
               >

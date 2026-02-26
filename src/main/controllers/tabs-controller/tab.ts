@@ -6,10 +6,8 @@ import { createTabContextMenu } from "./context-menu";
 import { generateID, getCurrentTimestamp } from "@/modules/utils";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import { LoadedProfile } from "@/controllers/loaded-profiles-controller";
+import { ViewLayer } from "~/layers";
 import { type TabsController } from "./index";
-
-// Configuration
-const TAB_ZINDEX = 2;
 
 export const SLEEP_MODE_URL = "about:blank?sleep=true";
 
@@ -644,7 +642,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    * Sets the window for the tab and adds the view to it.
    * If the tab is sleeping (no view), only updates the window reference.
    */
-  public setWindow(window: BrowserWindow, index: number = TAB_ZINDEX) {
+  public setWindow(window: BrowserWindow, index: number = ViewLayer.TAB) {
     const oldWindowId = this.window?.id;
     const windowChanged = this.window !== window;
     if (windowChanged) {

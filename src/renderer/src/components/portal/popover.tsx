@@ -1,5 +1,6 @@
 import { PortalComponent, usePortalContext } from "@/components/portal/portal";
 import { Popover, PopoverContent } from "@/components/ui/popover";
+import { ViewLayer } from "~/layers";
 import { createContext, useContext, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { PopoverArrow } from "@radix-ui/react-popover";
@@ -38,7 +39,7 @@ function PortalPopoverContent({ children, ...props }: React.ComponentProps<typeo
     <AnimatePresence mode="wait">
       {open && (
         <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-          <PortalComponent className="w-screen h-screen absolute top-0 left-0" zIndex={4}>
+          <PortalComponent className="w-screen h-screen absolute top-0 left-0" zIndex={ViewLayer.POPOVER}>
             <PopoverContent
               {...props}
               portal={false}

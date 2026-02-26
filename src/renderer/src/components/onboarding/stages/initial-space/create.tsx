@@ -99,7 +99,7 @@ export function OnboardingCreateSpace({
   return (
     <>
       <motion.div
-        className="relative z-10 text-center max-w-2xl px-4 mb-6"
+        className="relative z-elevated text-center max-w-2xl px-4 mb-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
@@ -114,7 +114,7 @@ export function OnboardingCreateSpace({
       </motion.div>
 
       <motion.div
-        className="relative z-10 w-full max-w-2xl px-4"
+        className="relative z-elevated w-full max-w-2xl px-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}

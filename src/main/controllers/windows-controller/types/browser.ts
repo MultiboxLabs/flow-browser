@@ -13,6 +13,7 @@ import { spacesController } from "@/controllers/spaces-controller";
 import { tabPersistenceManager } from "@/saving/tabs";
 import { quitController } from "@/controllers/quit-controller";
 import { hex_is_light } from "@/modules/utils";
+import { ViewLayer } from "~/layers";
 
 export type BrowserWindowType = "normal" | "popup";
 
@@ -160,7 +161,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
 
     // Omnibox //
     this.omnibox = new Omnibox(browserWindow);
-    this.viewManager.addOrUpdateView(this.omnibox.view, 999);
+    this.viewManager.addOrUpdateView(this.omnibox.view, ViewLayer.OMNIBOX);
     this.coreWebContents.push(this.omnibox.webContents);
 
     // Current Space //

@@ -99,7 +99,7 @@ const LoadingIndicator = memo(function LoadingIndicator() {
   return (
     <div
       className={cn(
-        "absolute -top-2.5 left-0 w-full h-2 flex justify-center items-center z-10",
+        "absolute -top-2.5 left-0 w-full h-2 flex justify-center items-center z-elevated",
         !isCurrentSpaceLight && "dark"
       )}
     >

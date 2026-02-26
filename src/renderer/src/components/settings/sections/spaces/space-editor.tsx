@@ -111,7 +111,7 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
 
   return (
     <motion.div
-      className="z-50 flex flex-col bg-background h-full"
+      className="z-modal flex flex-col bg-background h-full"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}

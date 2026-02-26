@@ -43,7 +43,7 @@ export function PDFViewerApp({ pdfFilePath }: PDFViewerAppProps) {
       </div>
       {loadedPerc < 100 && (
         <div
-          className="fixed top-0 left-0 h-px dark:bg-blue-400 bg-blue-600 z-50 transition-all duration-150 ease-out"
+          className="fixed top-0 left-0 h-px dark:bg-blue-400 bg-blue-600 z-controls transition-all duration-150 ease-out"
           style={{ width: `${loadedPerc}%` }}
         ></div>
       )}
