@@ -1,6 +1,6 @@
 import { useSpaces } from "@/components/providers/spaces-provider";
-import { useTabs } from "@/components/providers/tabs-provider";
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { useFocusedTabId } from "@/components/providers/tabs-provider";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from "react";
 
 interface ExtensionAction {
   color?: string;
@@ -133,24 +133,27 @@ function InternalBrowserActionProvider({
     [browserAction, partition, disabled]
   );
 
-  const value = {
-    activeTabId: disabled ? undefined : state.activeTabId,
-    actions: disabled ? [] : state.actions || [],
-    activate,
-    isLoading: disabled ? false : isLoading,
-    partition
-  };
+  const value = useMemo(
+    () => ({
+      activeTabId: disabled ? undefined : state.activeTabId,
+      actions: disabled ? [] : state.actions || [],
+      activate,
+      isLoading: disabled ? false : isLoading,
+      partition
+    }),
+    [disabled, state.activeTabId, state.actions, activate, isLoading, partition]
+  );
 
   return <BrowserActionContext.Provider value={value}>{children}</BrowserActionContext.Provider>;
 }
 
 export function BrowserActionProvider({ children }: BrowserActionProviderProps) {
   const { currentSpace } = useSpaces();
-  const { focusedTab } = useTabs();
+  const focusedTabId = useFocusedTabId();
 
   const currentProfileId = currentSpace?.profileId;
 
-  const disabled = !currentProfileId || !focusedTab;
+  const disabled = !currentProfileId || !focusedTabId;
   const partition = currentProfileId ? `profile:${currentProfileId}` : "_self";
 
   return (

@@ -97,10 +97,23 @@ export function BrowserSidebar({
     }
   }, [recordedSidebarSizeRef]);
 
-  // Update sidebar size immediately and then every second
+  // Keep persisted sidebar size up-to-date without polling.
   useEffect(() => {
-    const id = setInterval(updateSidebarSize, 1000);
-    return () => clearInterval(id);
+    const onWindowResize = () => updateSidebarSize();
+    const onPointerUp = () => updateSidebarSize();
+
+    window.addEventListener("resize", onWindowResize);
+    window.addEventListener("pointerup", onPointerUp);
+
+    return () => {
+      window.removeEventListener("resize", onWindowResize);
+      window.removeEventListener("pointerup", onPointerUp);
+    };
+  }, [updateSidebarSize]);
+
+  useEffect(() => {
+    const rafId = requestAnimationFrame(updateSidebarSize);
+    return () => cancelAnimationFrame(rafId);
   }, [updateSidebarSize]);
 
   // Render Component //

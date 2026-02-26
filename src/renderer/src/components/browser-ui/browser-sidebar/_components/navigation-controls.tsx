@@ -1,7 +1,7 @@
 import { RefreshCWIcon, RefreshCWIconHandle } from "@/components/icons/refresh-cw";
 import { ArrowLeftIcon, ArrowLeftIconHandle } from "@/components/icons/arrow-left";
 import { ArrowRightIcon, ArrowRightIconHandle } from "@/components/icons/arrow-right";
-import { useTabs } from "@/components/providers/tabs-provider";
+import { useFocusedTabId, useFocusedTabLoading } from "@/components/providers/tabs-provider";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { PortalPopover } from "@/components/portal/popover";
 import { PopoverTrigger } from "@/components/ui/popover";
@@ -53,13 +53,14 @@ function NavButton({
 
 // Back button with right-click history popover
 function GoBackButton({
+  focusedTabId,
   canGoBack,
   backwardEntries
 }: {
+  focusedTabId: number | undefined;
   canGoBack: boolean;
   backwardEntries: NavigationEntryWithIndex[];
 }) {
-  const { focusedTab } = useTabs();
   const { isCurrentSpaceLight } = useSpaces();
   const iconRef = useRef<ArrowLeftIconHandle>(null);
   const isPressed = useRef(false);
@@ -67,9 +68,9 @@ function GoBackButton({
   const [open, setOpen] = useState(false);
 
   const goBack = useCallback(() => {
-    if (!focusedTab?.id || backwardEntries.length === 0) return;
-    flow.navigation.goToNavigationEntry(focusedTab.id, backwardEntries[0].index);
-  }, [focusedTab, backwardEntries]);
+    if (!focusedTabId || backwardEntries.length === 0) return;
+    flow.navigation.goToNavigationEntry(focusedTabId, backwardEntries[0].index);
+  }, [focusedTabId, backwardEntries]);
 
   const handleMouseDown = useCallback(() => {
     if (NAVIGATION_ANIMATION_ENABLED) iconRef.current?.startAnimation();
@@ -121,8 +122,8 @@ function GoBackButton({
               <div
                 key={index}
                 onClick={() => {
-                  if (!focusedTab?.id) return;
-                  flow.navigation.goToNavigationEntry(focusedTab.id, entry.index);
+                  if (!focusedTabId) return;
+                  flow.navigation.goToNavigationEntry(focusedTabId, entry.index);
                   setOpen(false);
                 }}
                 className="flex items-center px-2 py-1.5 text-sm rounded-sm hover:bg-accent max-w-full text-ellipsis truncate"
@@ -139,13 +140,14 @@ function GoBackButton({
 
 // Forward button with right-click history popover
 function GoForwardButton({
+  focusedTabId,
   canGoForward,
   forwardEntries
 }: {
+  focusedTabId: number | undefined;
   canGoForward: boolean;
   forwardEntries: NavigationEntryWithIndex[];
 }) {
-  const { focusedTab } = useTabs();
   const { isCurrentSpaceLight } = useSpaces();
   const iconRef = useRef<ArrowRightIconHandle>(null);
   const isPressed = useRef(false);
@@ -153,9 +155,9 @@ function GoForwardButton({
   const [open, setOpen] = useState(false);
 
   const goForward = useCallback(() => {
-    if (!focusedTab?.id || forwardEntries.length === 0) return;
-    flow.navigation.goToNavigationEntry(focusedTab.id, forwardEntries[0].index);
-  }, [focusedTab, forwardEntries]);
+    if (!focusedTabId || forwardEntries.length === 0) return;
+    flow.navigation.goToNavigationEntry(focusedTabId, forwardEntries[0].index);
+  }, [focusedTabId, forwardEntries]);
 
   const handleMouseDown = useCallback(() => {
     if (NAVIGATION_ANIMATION_ENABLED) iconRef.current?.startAnimation();
@@ -207,8 +209,8 @@ function GoForwardButton({
               <div
                 key={index}
                 onClick={() => {
-                  if (!focusedTab?.id) return;
-                  flow.navigation.goToNavigationEntry(focusedTab.id, entry.index);
+                  if (!focusedTabId) return;
+                  flow.navigation.goToNavigationEntry(focusedTabId, entry.index);
                   setOpen(false);
                 }}
                 className="flex items-center px-2 py-1.5 text-sm rounded-sm hover:bg-accent max-w-full text-ellipsis truncate"
@@ -278,17 +280,16 @@ function StopLoadingButton({ onStop }: { onStop: () => void }) {
 
 // Main navigation controls component
 export function NavigationControls() {
-  const { focusedTab } = useTabs();
+  const focusedTabId = useFocusedTabId() ?? undefined;
+  const isLoading = useFocusedTabLoading();
 
   const [entries, setEntries] = useState<NavigationEntryWithIndex[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
 
-  const isLoading = focusedTab?.isLoading || false;
-
   useEffect(() => {
-    const tabId = focusedTab?.id;
+    const tabId = focusedTabId;
     if (!tabId) {
       setCanGoBack(false);
       setCanGoForward(false);
@@ -304,27 +305,27 @@ export function NavigationControls() {
       setEntries(status.navigationHistory.map((entry, index) => ({ ...entry, index })));
       setActiveIndex(status.activeIndex);
     });
-  }, [focusedTab]);
+  }, [focusedTabId]);
 
   const backwardEntries = useMemo(() => entries.slice(0, activeIndex).reverse(), [entries, activeIndex]);
   const forwardEntries = useMemo(() => entries.slice(activeIndex + 1), [entries, activeIndex]);
 
   const handleStopLoading = useCallback(() => {
-    if (!focusedTab?.id) return;
-    flow.navigation.stopLoadingTab(focusedTab.id);
-  }, [focusedTab]);
+    if (!focusedTabId) return;
+    flow.navigation.stopLoadingTab(focusedTabId);
+  }, [focusedTabId]);
 
   const handleReload = useCallback(() => {
-    if (!focusedTab?.id) return;
-    flow.navigation.reloadTab(focusedTab.id);
-  }, [focusedTab]);
+    if (!focusedTabId) return;
+    flow.navigation.reloadTab(focusedTabId);
+  }, [focusedTabId]);
 
   return (
     <div className="flex items-center gap-0.5 min-h-4">
-      <GoBackButton canGoBack={canGoBack} backwardEntries={backwardEntries} />
-      <GoForwardButton canGoForward={canGoForward} forwardEntries={forwardEntries} />
+      <GoBackButton focusedTabId={focusedTabId} canGoBack={canGoBack} backwardEntries={backwardEntries} />
+      <GoForwardButton focusedTabId={focusedTabId} canGoForward={canGoForward} forwardEntries={forwardEntries} />
       <AnimatePresence mode="wait" initial={true}>
-        {!isLoading && <ReloadButton key="reload-button" disabled={!focusedTab} onReload={handleReload} />}
+        {!isLoading && <ReloadButton key="reload-button" disabled={!focusedTabId} onReload={handleReload} />}
         {isLoading && <StopLoadingButton key="stop-loading-button" onStop={handleStopLoading} />}
       </AnimatePresence>
     </div>

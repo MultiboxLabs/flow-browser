@@ -15,7 +15,13 @@ import { ResizableHandle, ResizablePanel } from "@/components/ui/resizable";
 import { ResizablePanelGroupWithProvider } from "@/components/ui/resizable-extras";
 import { UpdateEffect } from "@/components/browser-ui/update-effect";
 import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
-import { TabsProvider, useTabs } from "@/components/providers/tabs-provider";
+import {
+  TabsProvider,
+  useFocusedTab,
+  useFocusedTabFullscreen,
+  useFocusedTabLoading,
+  useTabsGroups
+} from "@/components/providers/tabs-provider";
 import { TabDisabler } from "@/components/logic/tab-disabler";
 import { BrowserActionProvider } from "@/components/providers/browser-action-provider";
 import { ExtensionsProviderWithSpaces } from "@/components/providers/extensions-provider";
@@ -72,13 +78,13 @@ export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction, or
 // does NOT rerender on every tab data update (loading, title, url, etc.)
 
 const WindowTitle = memo(function WindowTitle() {
-  const { focusedTab } = useTabs();
+  const focusedTab = useFocusedTab();
   if (!focusedTab?.title) return null;
   return <title>{`${focusedTab.title} | Flow`}</title>;
 });
 
 function AutoNewTab({ isReady }: { isReady: boolean }) {
-  const { tabGroups } = useTabs();
+  const { tabGroups } = useTabsGroups();
   const openedNewTabRef = useRef(false);
   useEffect(() => {
     if (isReady && !openedNewTabRef.current) {
@@ -92,9 +98,8 @@ function AutoNewTab({ isReady }: { isReady: boolean }) {
 }
 
 const LoadingIndicator = memo(function LoadingIndicator() {
-  const { focusedTab } = useTabs();
+  const isActiveTabLoading = useFocusedTabLoading();
   const { isCurrentSpaceLight } = useSpaces();
-  const isActiveTabLoading = focusedTab?.isLoading || false;
 
   return (
     <div
@@ -138,8 +143,8 @@ const LoadingIndicator = memo(function LoadingIndicator() {
  * as long as the parent doesn't rerender).
  */
 function FullscreenGuard({ children }: { children: React.ReactNode }) {
-  const { focusedTab } = useTabs();
-  if (focusedTab?.fullScreen) {
+  const isFullscreen = useFocusedTabFullscreen();
+  if (isFullscreen) {
     return <BrowserContent />;
   }
   return <>{children}</>;

@@ -1,12 +1,20 @@
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { transformUrl } from "@/lib/url";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { TabData, TabGroupData, WindowTabsData } from "~/types/tabs";
 
 export type TabGroup = Omit<TabGroupData, "tabIds"> & {
   tabs: TabData[];
   active: boolean;
   focusedTab: TabData | null;
+};
+
+type TabGroupCacheEntry = {
+  source: TabGroupData;
+  tabs: TabData[];
+  active: boolean;
+  focusedTab: TabData | null;
+  value: TabGroup;
 };
 
 interface TabsContextValue {
@@ -27,6 +35,13 @@ interface TabsContextValue {
 }
 
 const TabsContext = createContext<TabsContextValue | null>(null);
+const TabsGroupsContext = createContext<
+  Pick<TabsContextValue, "tabGroups" | "getTabGroups" | "getActiveTabGroup" | "getFocusedTab" | "activeTabGroup"> | null
+>(null);
+const TabsFocusedContext = createContext<Pick<TabsContextValue, "focusedTab" | "addressUrl"> | null>(null);
+const TabsFocusedIdContext = createContext<number | null | undefined>(undefined);
+const TabsFocusedLoadingContext = createContext<boolean | undefined>(undefined);
+const TabsFocusedFullscreenContext = createContext<boolean | undefined>(undefined);
 
 export const useTabs = () => {
   const context = useContext(TabsContext);
@@ -36,13 +51,73 @@ export const useTabs = () => {
   return context;
 };
 
+export const useTabsGroups = () => {
+  const context = useContext(TabsGroupsContext);
+  if (!context) {
+    throw new Error("useTabsGroups must be used within a TabsProvider");
+  }
+  return context;
+};
+
+export const useFocusedTab = () => {
+  const context = useContext(TabsFocusedContext);
+  if (!context) {
+    throw new Error("useFocusedTab must be used within a TabsProvider");
+  }
+  return context.focusedTab;
+};
+
+export const useAddressUrl = () => {
+  const context = useContext(TabsFocusedContext);
+  if (!context) {
+    throw new Error("useAddressUrl must be used within a TabsProvider");
+  }
+  return context.addressUrl;
+};
+
+export const useFocusedTabId = () => {
+  const context = useContext(TabsFocusedIdContext);
+  if (context === undefined) {
+    throw new Error("useFocusedTabId must be used within a TabsProvider");
+  }
+  return context;
+};
+
+export const useFocusedTabLoading = () => {
+  const context = useContext(TabsFocusedLoadingContext);
+  if (context === undefined) {
+    throw new Error("useFocusedTabLoading must be used within a TabsProvider");
+  }
+  return context;
+};
+
+export const useFocusedTabFullscreen = () => {
+  const context = useContext(TabsFocusedFullscreenContext);
+  if (context === undefined) {
+    throw new Error("useFocusedTabFullscreen must be used within a TabsProvider");
+  }
+  return context;
+};
+
 interface TabsProviderProps {
   children: React.ReactNode;
+}
+
+const EMPTY_TAB_GROUPS: TabGroup[] = [];
+const EMPTY_TAB_GROUP_CACHE = new Map<string, TabGroupCacheEntry>();
+
+function areSameTabRefs(a: TabData[], b: TabData[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
 }
 
 export const TabsProvider = ({ children }: TabsProviderProps) => {
   const { currentSpace } = useSpaces();
   const [tabsData, setTabsData] = useState<WindowTabsData | null>(null);
+  const tabGroupCacheRef = useRef<Map<string, TabGroupCacheEntry>>(EMPTY_TAB_GROUP_CACHE);
 
   const fetchTabs = useCallback(async () => {
     if (!flow) return;
@@ -71,11 +146,12 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
     const unsubContent = flow.tabs.onTabsContentUpdated((updatedTabs) => {
       setTabsData((prev) => {
         if (!prev) return prev;
+        if (updatedTabs.length === 0) return prev;
 
         // Build lookup for fast matching
         const updatesById = new Map(updatedTabs.map((t) => [t.id, t]));
 
-        // Replace only the changed tabs, keep the rest by reference
+        // Replace only changed tabs and keep untouched entries by reference.
         let anyChanged = false;
         const newTabs = prev.tabs.map((tab) => {
           const updated = updatesById.get(tab.id);
@@ -111,22 +187,39 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
     [tabsData]
   );
 
-  const tabGroups = useMemo(() => {
-    if (!tabsData) return [];
+  const { tabGroups, tabGroupsBySpaceId, activeTabGroupBySpaceId, focusedTabBySpaceId, nextTabGroupCache } = useMemo(() => {
+    const tabGroupsBySpaceId = new Map<string, TabGroup[]>();
+    const activeTabGroupBySpaceId = new Map<string, TabGroup | null>();
+    const focusedTabBySpaceId = new Map<string, TabData | null>();
+    const nextTabGroupCache = new Map<string, TabGroupCacheEntry>();
+    const previousTabGroupCache = tabGroupCacheRef.current;
+
+    if (!tabsData) {
+      return {
+        tabGroups: EMPTY_TAB_GROUPS,
+        tabGroupsBySpaceId,
+        activeTabGroupBySpaceId,
+        focusedTabBySpaceId,
+        nextTabGroupCache
+      };
+    }
+
+    const tabById = new Map<number, TabData>();
+    for (const tab of tabsData.tabs) {
+      tabById.set(tab.id, tab);
+    }
 
     const allTabGroupDatas: TabGroupData[] = [];
-    const tabsWithGroups: number[] = [];
-
-    const { tabGroups: groups = [] } = tabsData;
-    for (const tabGroup of groups) {
+    const tabsWithGroups = new Set<number>();
+    for (const tabGroup of tabsData.tabGroups ?? []) {
       allTabGroupDatas.push(tabGroup);
       for (const tabId of tabGroup.tabIds) {
-        tabsWithGroups.push(tabId);
+        tabsWithGroups.add(tabId);
       }
     }
 
-    const tabsWithoutGroups = tabsData.tabs.filter((tab) => !tabsWithGroups.includes(tab.id));
-    for (const tab of tabsWithoutGroups) {
+    for (const tab of tabsData.tabs) {
+      if (tabsWithGroups.has(tab.id)) continue;
       allTabGroupDatas.push({
         // Synthetic group ID — uses string format to avoid collision with real group IDs
         id: `s-${tab.uniqueId}`,
@@ -138,61 +231,116 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
       });
     }
 
+    const activeTabIdsBySpaceId = new Map<string, Set<number>>();
+    for (const [spaceId, activeTabIds] of Object.entries(tabsData.activeTabIds)) {
+      activeTabIdsBySpaceId.set(spaceId, new Set(activeTabIds));
+    }
+
+    for (const [spaceId, focusedTabId] of Object.entries(tabsData.focusedTabIds)) {
+      focusedTabBySpaceId.set(spaceId, tabById.get(focusedTabId) ?? null);
+    }
+
     const tabGroups: TabGroup[] = [];
-    allTabGroupDatas.map((tabGroupData) => {
-      const activeTabIds = getActiveTabId(tabGroupData.spaceId);
-      const isActive = tabGroupData.tabIds.some((tabId) => activeTabIds?.includes(tabId));
 
-      const focusedTabId = getFocusedTabId(tabGroupData.spaceId);
-      const focusedTab = tabsData?.tabs.find((tab) => tab.id === focusedTabId) || null;
+    for (const tabGroupData of allTabGroupDatas) {
+      const tabs: TabData[] = [];
+      for (const tabId of tabGroupData.tabIds) {
+        const tab = tabById.get(tabId);
+        if (tab) {
+          tabs.push(tab);
+        }
+      }
 
-      const tabGroup = {
-        ...tabGroupData,
-        tabs: tabsData?.tabs.filter((tab) => tabGroupData.tabIds.includes(tab.id)) || [],
+      if (tabs.length === 0) continue;
+
+      const activeTabIds = activeTabIdsBySpaceId.get(tabGroupData.spaceId);
+      const isActive = tabs.some((tab) => activeTabIds?.has(tab.id));
+      const focusedTab = focusedTabBySpaceId.get(tabGroupData.spaceId) ?? null;
+
+      const tabGroupKey = `${tabGroupData.spaceId}:${tabGroupData.id}`;
+      const previousEntry = previousTabGroupCache.get(tabGroupKey);
+
+      let tabGroup: TabGroup;
+      if (
+        previousEntry &&
+        previousEntry.source === tabGroupData &&
+        previousEntry.active === isActive &&
+        previousEntry.focusedTab === focusedTab &&
+        areSameTabRefs(previousEntry.tabs, tabs)
+      ) {
+        tabGroup = previousEntry.value;
+      } else {
+        tabGroup = {
+          ...tabGroupData,
+          tabs,
+          active: isActive,
+          focusedTab
+        };
+      }
+
+      nextTabGroupCache.set(tabGroupKey, {
+        source: tabGroupData,
+        tabs,
         active: isActive,
-        focusedTab
-      };
+        focusedTab,
+        value: tabGroup
+      });
       tabGroups.push(tabGroup);
-    });
 
-    return tabGroups;
-  }, [getActiveTabId, getFocusedTabId, tabsData]);
+      const existingGroups = tabGroupsBySpaceId.get(tabGroupData.spaceId);
+      if (existingGroups) {
+        existingGroups.push(tabGroup);
+      } else {
+        tabGroupsBySpaceId.set(tabGroupData.spaceId, [tabGroup]);
+      }
+
+      if (isActive && !activeTabGroupBySpaceId.has(tabGroupData.spaceId)) {
+        activeTabGroupBySpaceId.set(tabGroupData.spaceId, tabGroup);
+      }
+    }
+
+    for (const [spaceId, spaceTabGroups] of tabGroupsBySpaceId) {
+      spaceTabGroups.sort((a, b) => a.position - b.position);
+      if (!activeTabGroupBySpaceId.has(spaceId)) {
+        activeTabGroupBySpaceId.set(spaceId, null);
+      }
+      if (!focusedTabBySpaceId.has(spaceId)) {
+        focusedTabBySpaceId.set(spaceId, null);
+      }
+    }
+
+    return {
+      tabGroups,
+      tabGroupsBySpaceId,
+      activeTabGroupBySpaceId,
+      focusedTabBySpaceId,
+      nextTabGroupCache
+    };
+  }, [tabsData]);
+
+  useEffect(() => {
+    tabGroupCacheRef.current = nextTabGroupCache;
+  }, [nextTabGroupCache]);
 
   const getTabGroups = useCallback(
     (spaceId: string) => {
-      return tabGroups.filter((tabGroup) => tabGroup.spaceId === spaceId);
+      return tabGroupsBySpaceId.get(spaceId) ?? EMPTY_TAB_GROUPS;
     },
-    [tabGroups]
+    [tabGroupsBySpaceId]
   );
 
   const getActiveTabGroup = useCallback(
     (spaceId: string) => {
-      const activeTabGroup = tabGroups.find((tabGroup) => {
-        return tabGroup.spaceId === spaceId && tabGroup.active;
-      });
-
-      if (activeTabGroup) {
-        return activeTabGroup;
-      }
-
-      return null;
+      return activeTabGroupBySpaceId.get(spaceId) ?? null;
     },
-    [tabGroups]
+    [activeTabGroupBySpaceId]
   );
 
   const getFocusedTab = useCallback(
     (spaceId: string) => {
-      const focusedTabGroup = tabGroups.find((tabGroup) => {
-        return tabGroup.spaceId === spaceId && tabGroup.focusedTab;
-      });
-
-      if (focusedTabGroup) {
-        return focusedTabGroup.focusedTab;
-      }
-
-      return null;
+      return focusedTabBySpaceId.get(spaceId) ?? null;
     },
-    [tabGroups]
+    [focusedTabBySpaceId]
   );
 
   const activeTabGroup = useMemo(() => {
@@ -222,35 +370,59 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
     }
   }, [focusedTab]);
 
-  const contextValue = useMemo(
+  const groupsContextValue = useMemo(
     () => ({
       tabGroups,
       getTabGroups,
       getActiveTabGroup,
       getFocusedTab,
+      activeTabGroup
+    }),
+    [tabGroups, getTabGroups, getActiveTabGroup, getFocusedTab, activeTabGroup]
+  );
 
-      // Current Space //
-      activeTabGroup,
+  const focusedContextValue = useMemo(
+    () => ({
       focusedTab,
-      addressUrl,
+      addressUrl
+    }),
+    [focusedTab, addressUrl]
+  );
+  const focusedTabId = focusedTab?.id ?? null;
+  const isFocusedTabLoading = focusedTab?.isLoading ?? false;
+  const isFocusedTabFullscreen = focusedTab?.fullScreen ?? false;
+
+  const contextValue = useMemo(
+    () => ({
+      ...groupsContextValue,
+      ...focusedContextValue,
       // Utilities //
       tabsData,
       getActiveTabId,
       getFocusedTabId
     }),
     [
-      tabGroups,
-      getTabGroups,
-      getActiveTabGroup,
-      getFocusedTab,
-      activeTabGroup,
-      focusedTab,
-      addressUrl,
+      groupsContextValue,
+      focusedContextValue,
       tabsData,
       getActiveTabId,
       getFocusedTabId
     ]
   );
 
-  return <TabsContext.Provider value={contextValue}>{children}</TabsContext.Provider>;
+  return (
+    <TabsContext.Provider value={contextValue}>
+      <TabsGroupsContext.Provider value={groupsContextValue}>
+        <TabsFocusedContext.Provider value={focusedContextValue}>
+          <TabsFocusedIdContext.Provider value={focusedTabId}>
+            <TabsFocusedLoadingContext.Provider value={isFocusedTabLoading}>
+              <TabsFocusedFullscreenContext.Provider value={isFocusedTabFullscreen}>
+                {children}
+              </TabsFocusedFullscreenContext.Provider>
+            </TabsFocusedLoadingContext.Provider>
+          </TabsFocusedIdContext.Provider>
+        </TabsFocusedContext.Provider>
+      </TabsGroupsContext.Provider>
+    </TabsContext.Provider>
+  );
 };

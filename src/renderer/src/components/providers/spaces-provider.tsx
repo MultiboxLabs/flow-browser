@@ -33,6 +33,11 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [currentSpace, setCurrentSpace] = useState<Space | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const currentSpaceRef = useRef<Space | null>(null);
+
+  useEffect(() => {
+    currentSpaceRef.current = currentSpace;
+  }, [currentSpace]);
 
   const fetchSpaces = useCallback(async () => {
     if (!flow) return;
@@ -40,10 +45,9 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
       const spaces = await flow.spaces.getSpaces();
       setSpaces(spaces);
 
-      if (!currentSpace) {
+      if (!currentSpaceRef.current) {
         // Get and set window space if available
         const windowSpaceId = await flow.spaces.getUsingSpace();
-        console.log("Setting current space to window space", windowSpaceId);
         if (windowSpaceId) {
           const windowSpace = spaces.find((s) => s.id === windowSpaceId);
           if (windowSpace) {
@@ -67,7 +71,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
     } finally {
       setIsLoading(false);
     }
-  }, [currentSpace]);
+  }, []);
 
   const revalidate = useCallback(async () => {
     setIsLoading(true);

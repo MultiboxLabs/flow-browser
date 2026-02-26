@@ -34,8 +34,6 @@ const SidebarTab = memo(
   function SidebarTab({ tab, isFocused }: SidebarTabProps) {
     const [cachedFaviconUrl, setCachedFaviconUrl] = useState<string | null>(tab.faviconURL);
     const [isError, setIsError] = useState(false);
-    const [isPressed, setIsPressed] = useState(false);
-    const [isHovered, setIsHovered] = useState(false);
     const noFavicon = !cachedFaviconUrl || isError;
 
     const isMuted = tab.muted;
@@ -72,7 +70,6 @@ const SidebarTab = memo(
         if (e.button === 1) {
           handleCloseTab(e);
         }
-        setIsPressed(true);
       },
       [handleClick, handleCloseTab]
     );
@@ -95,24 +92,12 @@ const SidebarTab = memo(
       [tab.id]
     );
 
-    useEffect(() => {
-      const handleMouseUp = () => {
-        setIsPressed(false);
-      };
-      window.addEventListener("mouseup", handleMouseUp);
-      return () => {
-        window.removeEventListener("mouseup", handleMouseUp);
-      };
-    }, []);
-
     const VolumeIcon = isMuted ? VolumeX : Volume2;
 
     return (
       <motion.div
         onContextMenu={handleContextMenu}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        animate={{ scale: isPressed ? 0.99 : 1 }}
+        whileTap={{ scale: 0.99 }}
         transition={{ scale: { type: "spring", stiffness: 600, damping: 20 } }}
         className={cn(
           "group/tab h-9 w-full rounded-lg overflow-hidden min-w-0",
@@ -122,7 +107,6 @@ const SidebarTab = memo(
           isFocused && "bg-white/90 dark:bg-white/15"
         )}
         onMouseDown={handleMouseDown}
-        onMouseUp={() => setIsPressed(false)}
       >
         {/* Left side: favicon + audio + title */}
         <div className="flex flex-row items-center flex-1 min-w-0">
@@ -168,36 +152,26 @@ const SidebarTab = memo(
 
         {/* Right side: close button */}
         <div className="shrink-0 flex items-center">
-          {isHovered && (
-            <button
-              className={cn(
-                "size-5.5 shrink-0 rounded-sm p-0.5",
-                "hover:bg-black/10 dark:hover:bg-white/10",
-                "active:bg-black/15 dark:active:bg-white/15"
-              )}
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={handleCloseTab}
-            >
-              <XIcon className="size-4.5 text-black/60 dark:text-white/60" />
-            </button>
-          )}
+          <button
+            className={cn(
+              "size-5.5 shrink-0 rounded-sm p-0.5",
+              "hover:bg-black/10 dark:hover:bg-white/10",
+              "active:bg-black/15 dark:active:bg-white/15",
+              "opacity-0 pointer-events-none transition-opacity",
+              "group-hover/tab:opacity-100 group-hover/tab:pointer-events-auto"
+            )}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={handleCloseTab}
+          >
+            <XIcon className="size-4.5 text-black/60 dark:text-white/60" />
+          </button>
         </div>
       </motion.div>
     );
   },
-  // Custom comparison: only rerender when the tab data we actually display changes
+  // The provider preserves tab object references for unchanged tabs.
   (prev, next) => {
-    return (
-      prev.isFocused === next.isFocused &&
-      prev.tab.id === next.tab.id &&
-      prev.tab.title === next.tab.title &&
-      prev.tab.url === next.tab.url &&
-      prev.tab.faviconURL === next.tab.faviconURL &&
-      prev.tab.muted === next.tab.muted &&
-      prev.tab.audible === next.tab.audible &&
-      prev.tab.isLoading === next.tab.isLoading &&
-      prev.tab.asleep === next.tab.asleep
-    );
+    return prev.isFocused === next.isFocused && prev.tab === next.tab;
   }
 );
 
@@ -346,37 +320,16 @@ export const TabGroup = memo(
       </motion.div>
     );
   },
-  // Custom comparison to avoid rerendering when tabGroup object reference changes
-  // but the actual displayed data hasn't changed
+  // TabGroup references are stabilized by TabsProvider cache.
   (prev, next) => {
-    if (
-      prev.isActive !== next.isActive ||
-      prev.isFocused !== next.isFocused ||
-      prev.isSpaceLight !== next.isSpaceLight ||
-      prev.position !== next.position ||
-      prev.groupCount !== next.groupCount ||
-      prev.moveTab !== next.moveTab ||
-      prev.tabGroup.id !== next.tabGroup.id ||
-      prev.tabGroup.spaceId !== next.tabGroup.spaceId ||
-      prev.tabGroup.profileId !== next.tabGroup.profileId ||
-      prev.tabGroup.focusedTab?.id !== next.tabGroup.focusedTab?.id ||
-      prev.tabGroup.tabs.length !== next.tabGroup.tabs.length
-    ) {
-      return false;
-    }
-    // Deep-compare individual tabs (typically 1-5 per group)
-    return prev.tabGroup.tabs.every((tab, i) => {
-      const nextTab = next.tabGroup.tabs[i];
-      return (
-        tab.id === nextTab.id &&
-        tab.title === nextTab.title &&
-        tab.url === nextTab.url &&
-        tab.faviconURL === nextTab.faviconURL &&
-        tab.muted === nextTab.muted &&
-        tab.audible === nextTab.audible &&
-        tab.isLoading === nextTab.isLoading &&
-        tab.asleep === nextTab.asleep
-      );
-    });
+    return (
+      prev.tabGroup === next.tabGroup &&
+      prev.isActive === next.isActive &&
+      prev.isFocused === next.isFocused &&
+      prev.isSpaceLight === next.isSpaceLight &&
+      prev.position === next.position &&
+      prev.groupCount === next.groupCount &&
+      prev.moveTab === next.moveTab
+    );
   }
 );

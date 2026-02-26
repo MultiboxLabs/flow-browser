@@ -14,7 +14,7 @@ import { Settings, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TabGroup } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
 import { TabDropTarget } from "@/components/browser-ui/browser-sidebar/_components/tab-drop-target";
-import { useTabs } from "@/components/providers/tabs-provider";
+import { useTabsGroups } from "@/components/providers/tabs-provider";
 import { AnimatePresence } from "motion/react";
 import { NewTabButton } from "@/components/browser-ui/browser-sidebar/_components/new-tab-button";
 
@@ -23,17 +23,14 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
   const { platform } = usePlatform();
 
   const { isCurrentSpaceLight, currentSpace } = useSpaces();
-  const { tabGroups: allTabGroups, getActiveTabGroup, getFocusedTab } = useTabs();
+  const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabsGroups();
 
   const spaceInjectedClasses = useMemo(() => cn(isCurrentSpaceLight ? "" : "dark"), [isCurrentSpaceLight]);
 
-  // Filter and sort in one useMemo with stable dependencies.
-  // Previously, getTabGroups() created a new array via .filter() on every call,
-  // which broke the downstream useMemo on sortedTabGroups.
   const sortedTabGroups = useMemo(() => {
     if (!currentSpace) return [];
-    return allTabGroups.filter((tg) => tg.spaceId === currentSpace.id).sort((a, b) => a.position - b.position);
-  }, [allTabGroups, currentSpace]);
+    return getTabGroups(currentSpace.id);
+  }, [currentSpace, getTabGroups]);
 
   const activeTabGroup = useMemo(() => {
     if (!currentSpace) return null;

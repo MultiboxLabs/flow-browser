@@ -1,6 +1,6 @@
 import { copyTextToClipboard } from "@/lib/utils";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
-import { useTabs } from "./tabs-provider";
+import { useAddressUrl } from "./tabs-provider";
 import { useToast } from "@/components/providers/minimal-toast-provider";
 // Type for the payload of onIncomingAction, based on src/main/ipc/app/actions.ts
 type IncomingActionPayload = string;
@@ -34,7 +34,7 @@ interface ActionsProviderProps {
 }
 
 export const ActionsProvider = ({ children }: ActionsProviderProps) => {
-  const { addressUrl } = useTabs();
+  const addressUrl = useAddressUrl();
   const { showToast } = useToast();
 
   // User has updated this function, leaving as is with TODO.
