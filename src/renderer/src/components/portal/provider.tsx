@@ -88,7 +88,13 @@ function createPortal() {
     return null;
   }
 
-  // Reset any default margins/paddings
+  // Reset any default margins/paddings and suppress scrollbars.
+  // NOTE: Do NOT inject <style> tags here — useCopyStyles() removes any
+  // portal <style>/<link> that doesn't match the main document. Scrollbar
+  // hiding rules live in main.css so they get copied automatically.
+  const htmlStyle = containerWin.document.documentElement.style;
+  htmlStyle.overflow = "hidden";
+
   const bodyStyle = containerWin.document.body.style;
   bodyStyle.margin = "0";
   bodyStyle.padding = "0";

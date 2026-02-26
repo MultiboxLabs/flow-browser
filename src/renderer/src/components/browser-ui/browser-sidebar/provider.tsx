@@ -128,7 +128,7 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
   }
 
   // Floating Sidebar //
-  const isFloating = useFloatingSidebarTrigger(attachedDirectionRef);
+  const isFloating = useFloatingSidebarTrigger(attachedDirectionRef, recordedSidebarSizeRef);
 
   // Running Animation //
   const [runningAnimationId, setRunningAnimationId] = useState<string | null>(null);

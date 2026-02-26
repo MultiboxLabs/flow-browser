@@ -39,12 +39,20 @@ export function BrowserSidebar({
 
   // Animation Readiness //
   // This is needed so that on the first few frames, the width will start from 0 instead of the full width.
+  // We use a double-rAF to guarantee the browser has painted the initial (off-screen)
+  // state before we flip to visible. A single rAF fires BEFORE paint in Chromium,
+  // so the transition would be skipped if the state changed in that callback.
   const [isAnimationReady, setAnimationReady] = useState(false);
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      setAnimationReady(true);
+    let cancelled = false;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) setAnimationReady(true);
+      });
     });
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelled = true;
+    };
   }, []);
   const currentlyVisible = isVisible && isAnimationReady;
 

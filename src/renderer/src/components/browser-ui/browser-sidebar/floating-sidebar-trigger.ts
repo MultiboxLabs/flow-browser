@@ -1,34 +1,27 @@
 import { type AttachedDirection } from "./provider";
 import { useEffect, useRef, useState } from "react";
+import { type CursorEdgeEvent } from "~/flow/interfaces/browser/interface";
 
-export function useFloatingSidebarTrigger(attachedDirectionRef: React.RefObject<AttachedDirection>) {
+/**
+ * Triggers the floating sidebar when the cursor dwells near a window edge.
+ *
+ * Uses the main-process cursor edge monitor (via IPC) instead of
+ * `document.mousemove`, because tab WebContentsViews sit above the chrome
+ * renderer and consume all mouse events in their area.
+ */
+export function useFloatingSidebarTrigger(
+  attachedDirectionRef: React.RefObject<AttachedDirection>,
+  sidebarSizeRef: React.RefObject<number>
+) {
   const [isFloating, setIsFloating] = useState(false);
   const isFloatingRef = useRef(isFloating);
   isFloatingRef.current = isFloating;
 
   useEffect(() => {
-    const DWELL_MS = 50; // how long the mouse must stay in the edge strip
-    const IN_THRESHOLD = 10; // px from edge to trigger floating (enter strip)
-    const OUT_THRESHOLD = 250; // px from edge to un-float (leave strip)
+    const DWELL_MS = 50; // how long the cursor must stay at the edge
+    const OUT_MARGIN = 50; // px beyond the sidebar edge to un-float
 
     let dwellTimer: number | null = null;
-    let lastLocation: [number, number] = [0, 0];
-
-    const insideActivationStrip = (x: number) => {
-      if (attachedDirectionRef.current === "left") {
-        return x < IN_THRESHOLD;
-      } else {
-        return x > window.innerWidth - IN_THRESHOLD;
-      }
-    };
-
-    const shouldDetach = (x: number) => {
-      if (attachedDirectionRef.current === "left") {
-        return x > OUT_THRESHOLD;
-      } else {
-        return x < window.innerWidth - OUT_THRESHOLD;
-      }
-    };
 
     const clearDwell = () => {
       if (dwellTimer != null) {
@@ -37,39 +30,43 @@ export function useFloatingSidebarTrigger(attachedDirectionRef: React.RefObject<
       }
     };
 
-    const mouseMoveListener = (event: MouseEvent) => {
-      lastLocation = [event.clientX, event.clientY];
+    const handleCursorEdge = (event: CursorEdgeEvent) => {
+      const direction = attachedDirectionRef.current;
 
-      if (isFloatingRef.current === false) {
-        // Not floating yet: start/maintain a dwell timer only while inside the strip
-        if (insideActivationStrip(event.clientX)) {
+      if (!isFloatingRef.current) {
+        // Not floating yet: start a dwell timer when cursor is at the matching edge
+        if (event.edge === direction) {
           if (dwellTimer == null) {
             dwellTimer = window.setTimeout(() => {
-              // On fire: only float if we're STILL inside the strip
-              const [lx] = lastLocation;
-              if (insideActivationStrip(lx)) setIsFloating(true);
+              setIsFloating(true);
               dwellTimer = null;
             }, DWELL_MS);
           }
         } else {
-          // left the strip before dwell completes
+          // Cursor left the matching edge before dwell completed
           clearDwell();
         }
       } else {
-        // Currently floating: detach when we move far enough away
-        if (shouldDetach(event.clientX)) {
+        // Currently floating: detach when cursor moves far enough beyond the sidebar
+        const sidebarWidth = sidebarSizeRef.current + 30; // portal width (matches PortalComponent width)
+        const outThreshold = sidebarWidth + OUT_MARGIN;
+
+        const shouldDetach = direction === "left" ? event.x > outThreshold : event.x < window.innerWidth - outThreshold;
+
+        if (shouldDetach) {
           setIsFloating(false);
-          clearDwell(); // just in case
+          clearDwell();
         }
       }
     };
 
-    document.addEventListener("mousemove", mouseMoveListener);
+    const removeListener = flow.interface.onCursorAtEdge(handleCursorEdge);
+
     return () => {
-      document.removeEventListener("mousemove", mouseMoveListener);
+      removeListener();
       clearDwell();
     };
-  }, [attachedDirectionRef]);
+  }, [attachedDirectionRef, sidebarSizeRef]);
 
   return isFloating;
 }
