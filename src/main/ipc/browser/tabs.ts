@@ -1,7 +1,7 @@
 import { BaseTabGroup } from "@/controllers/tabs-controller/tab-groups";
 import { spacesController } from "@/controllers/spaces-controller";
 import { clipboard, ipcMain, Menu, MenuItem } from "electron";
-import { PersistedTabGroupData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
+import { PersistedTabGroupData, TabData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import { Tab } from "@/controllers/tabs-controller/tab";
@@ -138,13 +138,43 @@ ipcMain.handle("tabs:get-data", async (event) => {
   return getWindowTabsData(window);
 });
 
-const windowTabsChangedQueue: Set<number> = new Set();
-let windowTabsChangedQueueTimeout: NodeJS.Timeout | null = null;
+// --- Tab change queues ---
+//
+// Two queues track pending IPC updates:
+//
+// 1. Structural changes (tab created/removed, active tab changed, space changed)
+//    require a full WindowTabsData refresh because the tab list, groups,
+//    focused/active maps may all have changed.
+//
+// 2. Content changes (title, url, isLoading, audible, etc.) only affect
+//    individual tabs. For these, we serialize just the changed tabs and send
+//    a lightweight "tabs:on-tabs-content-updated" message instead of the
+//    full data set.
+//
+// If a structural change occurs during the debounce window, it absorbs any
+// pending content changes for that window (the full refresh includes them).
 
-function processWindowTabsChangedQueue() {
-  if (windowTabsChangedQueue.size === 0) return;
+const DEBOUNCE_MS = 80;
 
-  for (const windowId of Array.from(windowTabsChangedQueue)) {
+/** Windows that need a full data refresh (structural change). */
+const structuralQueue: Set<number> = new Set();
+
+/** Windows → set of tab IDs with content-only changes. */
+const contentQueue: Map<number, Set<number>> = new Map();
+
+let queueTimeout: NodeJS.Timeout | null = null;
+
+function scheduleQueueProcessing() {
+  if (queueTimeout) return; // already scheduled
+  queueTimeout = setTimeout(() => {
+    processQueues();
+    queueTimeout = null;
+  }, DEBOUNCE_MS);
+}
+
+function processQueues() {
+  // --- Structural changes (full refresh) ---
+  for (const windowId of structuralQueue) {
     const window = browserWindowsController.getWindowById(windowId);
     if (!window) continue;
 
@@ -152,25 +182,60 @@ function processWindowTabsChangedQueue() {
     if (!data) continue;
 
     window.sendMessageToCoreWebContents("tabs:on-data-changed", data);
-  }
 
-  windowTabsChangedQueue.clear();
+    // Content changes for this window are absorbed by the full refresh
+    contentQueue.delete(windowId);
+  }
+  structuralQueue.clear();
+
+  // --- Content-only changes (lightweight per-tab updates) ---
+  for (const [windowId, tabIds] of contentQueue) {
+    const window = browserWindowsController.getWindowById(windowId);
+    if (!window) continue;
+
+    const updatedTabs: TabData[] = [];
+    for (const tabId of tabIds) {
+      const tab = tabsController.getTabById(tabId);
+      if (!tab) continue;
+
+      const managers = tabsController.getTabManagers(tabId);
+      updatedTabs.push(serializeTabForRenderer(tab, managers?.lifecycle.preSleepState));
+    }
+
+    if (updatedTabs.length > 0) {
+      window.sendMessageToCoreWebContents("tabs:on-tabs-content-updated", updatedTabs);
+    }
+  }
+  contentQueue.clear();
 }
 
+/**
+ * Enqueue a structural change for a window.
+ * The next queue processing will send a full WindowTabsData refresh.
+ */
 export function windowTabsChanged(windowId: number) {
-  // A set is used to avoid duplicates
-  windowTabsChangedQueue.add(windowId);
+  structuralQueue.add(windowId);
+  scheduleQueueProcessing();
+}
 
-  if (windowTabsChangedQueueTimeout) {
-    // Already processing the queue, do nothing.
-    return;
+/**
+ * Enqueue a content-only change for a single tab.
+ * If no structural change occurs before processing, only the changed tabs'
+ * data will be serialized and sent — much cheaper than a full refresh.
+ */
+export function windowTabContentChanged(windowId: number, tabId: number) {
+  // If a structural change is already pending for this window, skip —
+  // the full refresh will include this tab's changes.
+  if (structuralQueue.has(windowId)) return;
+
+  let tabIds = contentQueue.get(windowId);
+  if (!tabIds) {
+    tabIds = new Set();
+    contentQueue.set(windowId, tabIds);
   }
+  tabIds.add(tabId);
 
-  // Process the queue every 50ms
-  windowTabsChangedQueueTimeout = setTimeout(() => {
-    processWindowTabsChangedQueue();
-    windowTabsChangedQueueTimeout = null;
-  }, 50);
+  scheduleQueueProcessing();
 }
 
 ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {

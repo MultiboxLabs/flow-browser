@@ -38,7 +38,7 @@ export type TabPublicProperty = TabStateProperty | TabContentProperty;
 
 export type TabEvents = {
   "space-changed": [];
-  "window-changed": [];
+  "window-changed": [oldWindowId: number];
   "fullscreen-changed": [boolean];
   "new-tab-requested": [
     string,
@@ -167,6 +167,11 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   // Cached for nav history diff (avoids JSON.stringify every time)
   private lastNavHistoryLength: number = 0;
   private lastNavHistoryIndex: number = 0;
+
+  // Coalescing flag for updateTabState — defers to microtask so rapid
+  // webContents events (did-start-loading, did-navigate, title-updated, …)
+  // are batched into a single state read + emit per event-loop tick.
+  private _updatePending: boolean = false;
 
   // View & content objects — nullable (null when tab is asleep)
   public view: PatchedWebContentsView | null = null;
@@ -442,7 +447,11 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       this.emit("new-tab-requested", url, "foreground-tab", undefined, undefined);
     });
 
-    // Handle content state changes
+    // Handle content state changes.
+    // Events are coalesced via scheduleUpdateTabState() so that a burst of
+    // events during page load (did-start-loading + did-start-navigation +
+    // page-title-updated + …) results in a single updateTabState() call
+    // per microtask tick instead of one per event.
     const updateEvents = [
       "audio-state-changed",
       "page-title-updated",
@@ -459,7 +468,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     for (const eventName of updateEvents) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       webContents.on(eventName as any, () => {
-        this.updateTabState();
+        this.scheduleUpdateTabState();
       });
     }
   }
@@ -518,6 +527,21 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this[property] = newValue;
     this.emit("updated", [property]);
     return true;
+  }
+
+  /**
+   * Schedules an updateTabState() call via queueMicrotask.
+   * Multiple calls within the same event-loop tick are coalesced into one,
+   * dramatically reducing redundant work during page loads where several
+   * webContents events fire in rapid succession.
+   */
+  public scheduleUpdateTabState() {
+    if (this._updatePending) return;
+    this._updatePending = true;
+    queueMicrotask(() => {
+      this._updatePending = false;
+      this.updateTabState();
+    });
   }
 
   /**
@@ -621,6 +645,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    * If the tab is sleeping (no view), only updates the window reference.
    */
   public setWindow(window: BrowserWindow, index: number = TAB_ZINDEX) {
+    const oldWindowId = this.window?.id;
     const windowChanged = this.window !== window;
     if (windowChanged) {
       this.removeViewFromWindow();
@@ -636,8 +661,8 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       }
     }
 
-    if (windowChanged) {
-      this.emit("window-changed");
+    if (windowChanged && oldWindowId !== undefined) {
+      this.emit("window-changed", oldWindowId);
     }
   }
 

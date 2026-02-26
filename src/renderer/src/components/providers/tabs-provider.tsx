@@ -60,14 +60,42 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
 
   useEffect(() => {
     if (!flow) return;
-    const unsub = flow.tabs.onDataUpdated((data) => {
+
+    // Full data refresh (structural changes: tab created/removed, active tab changed)
+    const unsubFull = flow.tabs.onDataUpdated((data) => {
       setTabsData(data);
-      // Potentially set isLoading to false here if needed,
-      // depending on desired behavior for updates vs initial load.
-      // setIsLoading(false);
     });
-    return () => unsub();
-  }, []); // Re-running this effect is not necessary as the callback handles updates
+
+    // Lightweight content update (title, url, isLoading, etc.)
+    // Merges changed tabs into existing state without replacing the full object.
+    const unsubContent = flow.tabs.onTabsContentUpdated((updatedTabs) => {
+      setTabsData((prev) => {
+        if (!prev) return prev;
+
+        // Build lookup for fast matching
+        const updatesById = new Map(updatedTabs.map((t) => [t.id, t]));
+
+        // Replace only the changed tabs, keep the rest by reference
+        let anyChanged = false;
+        const newTabs = prev.tabs.map((tab) => {
+          const updated = updatesById.get(tab.id);
+          if (updated) {
+            anyChanged = true;
+            return updated;
+          }
+          return tab;
+        });
+
+        if (!anyChanged) return prev;
+        return { ...prev, tabs: newTabs };
+      });
+    });
+
+    return () => {
+      unsubFull();
+      unsubContent();
+    };
+  }, []);
 
   const getActiveTabId = useCallback(
     (spaceId: string) => {

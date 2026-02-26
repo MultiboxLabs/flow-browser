@@ -1,5 +1,5 @@
 import { IPCListener } from "~/flow/types";
-import { RecentlyClosedTabData, WindowTabsData } from "~/types/tabs";
+import { RecentlyClosedTabData, TabData, WindowTabsData } from "~/types/tabs";
 
 // API //
 export interface FlowTabsAPI {
@@ -10,10 +10,18 @@ export interface FlowTabsAPI {
   getData: () => Promise<WindowTabsData>;
 
   /**
-   * Add a callback to be called when the tabs data is updated
+   * Add a callback to be called when the tabs data is updated (full refresh)
    * @param callback The callback to be called when the tabs data is updated
    */
   onDataUpdated: IPCListener<[WindowTabsData]>;
+
+  /**
+   * Add a callback for lightweight content-only tab updates.
+   * Receives only the tabs whose content (title, url, isLoading, etc.) changed,
+   * without a full WindowTabsData refresh.
+   * @param callback Receives an array of updated TabData objects
+   */
+  onTabsContentUpdated: IPCListener<[TabData[]]>;
 
   /**
    * Switch to a tab

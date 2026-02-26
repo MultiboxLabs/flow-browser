@@ -57,8 +57,13 @@ export type PersistedTabGroupData = {
 /**
  * Full tab data sent to the renderer process.
  * Combines persisted fields with runtime-only fields.
+ *
+ * navHistory and navHistoryIndex are omitted because the renderer never reads
+ * them — navigation history is fetched on demand via `flow.navigation.*`.
+ * Excluding them avoids serializing potentially large arrays on every tab
+ * state update, which is a significant performance win during page loads.
  */
-export type TabData = PersistedTabData & {
+export type TabData = Omit<PersistedTabData, "navHistory" | "navHistoryIndex"> & {
   id: number; // stable counter-based tab ID (runtime only, NOT webContents.id)
   windowId: number; // current Electron window ID (runtime only)
   isLoading: boolean;

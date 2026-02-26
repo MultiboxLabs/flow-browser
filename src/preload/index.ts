@@ -11,7 +11,7 @@ import type { SpaceData } from "@/controllers/spaces-controller";
 
 // SHARED TYPES //
 import type { SharedExtensionData } from "~/types/extensions";
-import type { WindowTabsData } from "~/types/tabs";
+import type { TabData, WindowTabsData } from "~/types/tabs";
 import type { UpdateStatus } from "~/types/updates";
 import type { WindowState } from "~/flow/types";
 
@@ -426,6 +426,9 @@ const tabsAPI: FlowTabsAPI = {
   },
   onDataUpdated: (callback: (data: WindowTabsData) => void) => {
     return listenOnIPCChannel("tabs:on-data-changed", callback);
+  },
+  onTabsContentUpdated: (callback: (tabs: TabData[]) => void) => {
+    return listenOnIPCChannel("tabs:on-tabs-content-updated", callback);
   },
   switchToTab: async (tabId: number) => {
     return ipcRenderer.invoke("tabs:switch-to-tab", tabId);
