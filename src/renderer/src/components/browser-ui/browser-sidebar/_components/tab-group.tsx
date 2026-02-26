@@ -117,7 +117,7 @@ const SidebarTab = memo(
           "flex items-center gap-2 px-2",
           "transition-[transform,background-color]",
           !isFocused && "hover:bg-black/10 dark:hover:bg-white/10",
-          isFocused && "bg-black/15 dark:bg-white/15",
+          isFocused && "bg-white/90 dark:bg-white/15",
           isPressed ? "scale-[0.99]" : "scale-100"
         )}
         onMouseDown={handleMouseDown}
@@ -160,7 +160,7 @@ const SidebarTab = memo(
           </AnimatePresence>
 
           {/* Title */}
-          <span className="ml-1 truncate min-w-0 flex-1 text-sm font-medium text-black/80 dark:text-white/80">
+          <span className="ml-1 truncate min-w-0 flex-1 text-sm font-medium text-black/90 dark:text-white/90">
             {tab.title}
           </span>
         </div>
