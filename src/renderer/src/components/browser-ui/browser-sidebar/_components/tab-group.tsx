@@ -195,7 +195,8 @@ const SidebarTab = memo(
       prev.tab.faviconURL === next.tab.faviconURL &&
       prev.tab.muted === next.tab.muted &&
       prev.tab.audible === next.tab.audible &&
-      prev.tab.isLoading === next.tab.isLoading
+      prev.tab.isLoading === next.tab.isLoading &&
+      prev.tab.asleep === next.tab.asleep
     );
   }
 );
@@ -373,7 +374,8 @@ export const TabGroup = memo(
         tab.faviconURL === nextTab.faviconURL &&
         tab.muted === nextTab.muted &&
         tab.audible === nextTab.audible &&
-        tab.isLoading === nextTab.isLoading
+        tab.isLoading === nextTab.isLoading &&
+        tab.asleep === nextTab.asleep
       );
     });
   }
