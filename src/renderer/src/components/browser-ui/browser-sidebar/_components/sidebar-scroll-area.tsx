@@ -24,7 +24,10 @@ function SidebarScrollArea({ className, children, ...props }: SidebarScrollAreaP
       className={cn("relative overflow-hidden", className)}
       {...props}
     >
-      <ScrollAreaPrimitive.Viewport data-slot="sidebar-scroll-area-viewport" className="size-full rounded-[inherit]">
+      <ScrollAreaPrimitive.Viewport
+        data-slot="sidebar-scroll-area-viewport"
+        className="size-full rounded-[inherit] [&>div]:!block"
+      >
         {children}
       </ScrollAreaPrimitive.Viewport>
       <SidebarScrollBar />

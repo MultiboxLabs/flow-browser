@@ -3,7 +3,7 @@ import { AttachedDirection, useBrowserSidebar } from "./provider";
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
 import { usePlatform } from "@/components/main/platform";
 import { AddressBar } from "./_components/address-bar";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import { PinGridGate } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/gate";
@@ -12,13 +12,34 @@ import { SidebarScrollArea } from "@/components/browser-ui/browser-sidebar/_comp
 import { Settings, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TabGroup } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
+import { TabDropTarget } from "@/components/browser-ui/browser-sidebar/_components/tab-drop-target";
+import { useTabs } from "@/components/providers/tabs-provider";
+import { AnimatePresence } from "motion/react";
 
 export function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
   const { isAnimating } = useBrowserSidebar();
   const { platform } = usePlatform();
 
   const { isCurrentSpaceLight, currentSpace } = useSpaces();
+  const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabs();
+
   const spaceInjectedClasses = useMemo(() => cn(isCurrentSpaceLight ? "" : "dark"), [isCurrentSpaceLight]);
+
+  const tabGroups = currentSpace ? getTabGroups(currentSpace.id) : [];
+  const activeTabGroup = currentSpace ? getActiveTabGroup(currentSpace.id) : null;
+  const focusedTab = currentSpace ? getFocusedTab(currentSpace.id) : null;
+
+  const sortedTabGroups = useMemo(() => {
+    return [...tabGroups].sort((a, b) => a.position - b.position);
+  }, [tabGroups]);
+
+  const moveTab = useCallback((tabId: number, newPosition: number) => {
+    flow.tabs.moveTab(tabId, newPosition);
+  }, []);
+
+  const handleNewTab = useCallback(() => {
+    flow.newTab.open();
+  }, []);
 
   return (
     <div className={cn(spaceInjectedClasses, "h-full max-h-full flex flex-col overflow-hidden")}>
@@ -36,10 +57,28 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
         <SpaceTitle space={currentSpace} />
         {/* Space Scrollable Content */}
         <SidebarScrollArea className="flex-1 min-h-0">
-          <div className="grid gap-1.5">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <TabGroup key={index} />
-            ))}
+          <div className="flex flex-col gap-0.5 flex-1">
+            <AnimatePresence initial={false}>
+              {sortedTabGroups.map((tabGroup, index) => (
+                <TabGroup
+                  key={tabGroup.id}
+                  tabGroup={tabGroup}
+                  isActive={activeTabGroup?.id === tabGroup.id}
+                  isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
+                  isSpaceLight={isCurrentSpaceLight}
+                  position={index}
+                  moveTab={moveTab}
+                />
+              ))}
+              {currentSpace && (
+                <TabDropTarget
+                  spaceData={currentSpace}
+                  isSpaceLight={isCurrentSpaceLight}
+                  moveTab={moveTab}
+                  biggestIndex={sortedTabGroups.length - 1}
+                />
+              )}
+            </AnimatePresence>
           </div>
         </SidebarScrollArea>
       </div>
@@ -52,7 +91,11 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
         >
           <Settings strokeWidth={2} className="w-4 h-4 text-black/80 dark:text-white/80" />
         </Button>
-        <Button size="icon" className="size-8 bg-transparent hover:bg-black/10 dark:hover:bg-white/10" disabled>
+        <Button
+          size="icon"
+          className="size-8 bg-transparent hover:bg-black/10 dark:hover:bg-white/10"
+          onClick={handleNewTab}
+        >
           <Plus strokeWidth={2} className="w-4 h-4 text-black/80 dark:text-white/80" />
         </Button>
       </div>

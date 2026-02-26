@@ -1,23 +1,52 @@
 import { cn } from "@/lib/utils";
 import { SearchIcon } from "lucide-react";
+import { useRef } from "react";
+import { useTabs } from "@/components/providers/tabs-provider";
+import { simplifyUrl } from "@/lib/url";
 
 export function AddressBar() {
-  const isPlaceholder = true;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { addressUrl, focusedTab } = useTabs();
+
+  const simplifiedUrl = simplifyUrl(addressUrl);
+  const isPlaceholder = !simplifiedUrl;
+
+  const handleClick = () => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const rect = el.getBoundingClientRect();
+
+    flow.omnibox.show(
+      {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width * 2,
+        height: rect.height * 8
+      },
+      {
+        currentInput: addressUrl,
+        openIn: focusedTab ? "current" : "new_tab"
+      }
+    );
+  };
 
   return (
     <div
+      ref={containerRef}
+      onClick={handleClick}
       className={cn(
-        "w-full h-9 rounded-xl",
+        "w-full h-9 rounded-xl select-none",
         "bg-black/10 hover:bg-black/15",
         "dark:bg-white/15 dark:hover:bg-white/20",
         "transition-[background-color] duration-100",
         "flex items-center p-2 px-3 gap-1.5",
-        isPlaceholder ? "text-white/60" : "text-white"
+        isPlaceholder ? "text-black/60 dark:text-white/60" : "text-black dark:text-white"
       )}
     >
-      <SearchIcon strokeWidth={2} className="h-4" />
+      {isPlaceholder && <SearchIcon strokeWidth={2} className="h-4" />}
       <p className={cn("font-[inter] text-sm font-medium truncate")}>
-        {isPlaceholder ? "Search or Enter URL..." : "w3schools.com"}
+        {isPlaceholder ? "Search or Enter URL..." : simplifiedUrl}
       </p>
     </div>
   );
