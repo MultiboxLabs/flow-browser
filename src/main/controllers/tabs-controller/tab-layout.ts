@@ -102,8 +102,18 @@ export class TabLayoutManager {
     // Auto-wake sleeping tabs when they become visible
     this.lifecycleManager.wakeUp();
 
-    // Get base bounds and fullscreen state
-    const pageBounds = window.pageBounds;
+    // Get base bounds and fullscreen state.
+    // In fullscreen, bypass the renderer-reported pageBounds and use the
+    // full window content area directly. This eliminates the timing gap
+    // between entering fullscreen and the renderer remeasuring/reporting
+    // new bounds — the tab fills the window immediately.
+    let pageBounds: Rectangle;
+    if (tab.fullScreen) {
+      const [contentWidth, contentHeight] = window.browserWindow.getContentSize();
+      pageBounds = { x: 0, y: 0, width: contentWidth, height: contentHeight };
+    } else {
+      pageBounds = window.pageBounds;
+    }
     const borderRadius = tab.fullScreen ? 0 : 8;
     if (borderRadius !== this.lastBorderRadius && tab.view) {
       tab.view.setBorderRadius(borderRadius);

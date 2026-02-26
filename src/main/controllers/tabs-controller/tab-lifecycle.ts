@@ -147,6 +147,14 @@ export class TabLifecycleManager {
     });
 
     webContents.on("leave-html-full-screen", () => {
+      // Always update tab fullscreen state directly. Don't rely solely on
+      // the indirect chain (electronWindow.setFullScreen(false) → window
+      // "leave-full-screen" event) because if the OS window is already not
+      // fullscreen, that event never fires and the tab stays stuck.
+      this.setFullScreen(false);
+      this.tab.emit("fullscreen-changed", false);
+
+      // Also exit OS fullscreen if still active
       if (electronWindow.fullScreen) {
         electronWindow.setFullScreen(false);
       }

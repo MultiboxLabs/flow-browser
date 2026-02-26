@@ -96,12 +96,25 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     this.browserWindowType = type;
 
     browserWindow.on("enter-full-screen", () => {
+      // Fullscreen fundamentally changes the UI layout (chrome is hidden),
+      // so cached pageInsets are invalid. Clear them so the resize handler
+      // doesn't compute wrong bounds, and clear _isResizing so the
+      // renderer's corrected bounds are accepted.
+      this._isResizing = false;
+      this.pageInsets = null;
+      if (this._resizeEndTimer) clearTimeout(this._resizeEndTimer);
+
       this.emit("enter-full-screen");
       fireWindowStateChanged(this);
     });
 
     // "leave-full-screen" event
     browserWindow.on("leave-full-screen", () => {
+      // Same as enter-full-screen: insets change when chrome is restored.
+      this._isResizing = false;
+      this.pageInsets = null;
+      if (this._resizeEndTimer) clearTimeout(this._resizeEndTimer);
+
       this.emit("leave-full-screen");
       this._updateMacOSTrafficLights();
       fireWindowStateChanged(this);
@@ -135,14 +148,18 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     // The renderer still sends bounds for structural layout changes (sidebar,
     // toolbar), but resize is handled instantly using cached insets.
     browserWindow.on("resize", () => {
-      // Mark resize as active and debounce the end
+      if (!this.pageInsets) return; // No bounds received from renderer yet
+
+      // Mark resize as active and debounce the end. Placed AFTER the
+      // pageInsets check so that resize events during fullscreen transitions
+      // (when insets are cleared) don't set the flag and block the
+      // renderer's corrected bounds.
       this._isResizing = true;
       if (this._resizeEndTimer) clearTimeout(this._resizeEndTimer);
       this._resizeEndTimer = setTimeout(() => {
         this._isResizing = false;
       }, 150);
 
-      if (!this.pageInsets) return; // No bounds received from renderer yet
       const [contentWidth, contentHeight] = this.browserWindow.getContentSize();
       const newBounds: PageBounds = {
         x: this.pageInsets.left,

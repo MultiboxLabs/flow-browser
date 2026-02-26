@@ -145,7 +145,13 @@ const LoadingIndicator = memo(function LoadingIndicator() {
 function FullscreenGuard({ children }: { children: React.ReactNode }) {
   const isFullscreen = useFocusedTabFullscreen();
   if (isFullscreen) {
-    return <BrowserContent />;
+    // Wrap in a full-screen flex container so BrowserContent's flex-1 works
+    // and the measured pageBounds correctly fill the entire window.
+    return (
+      <div className="w-screen h-screen overflow-hidden flex flex-col">
+        <BrowserContent />
+      </div>
+    );
   }
   return <>{children}</>;
 }
