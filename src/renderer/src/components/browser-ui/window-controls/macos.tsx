@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { useMount, useUnmount } from "react-use";
 
 export function SidebarWindowControlsMacOS({
-  offset = 5,
+  offset = 0,
   isAnimating = false
 }: {
   offset?: number;

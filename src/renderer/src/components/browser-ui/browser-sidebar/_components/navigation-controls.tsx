@@ -100,7 +100,7 @@ function GoBackButton({
   return (
     <div className="relative">
       <NavButton
-        icon={<ArrowLeftIcon ref={iconRef} className="size-4 !bg-transparent !cursor-default" asChild />}
+        icon={<ArrowLeftIcon ref={iconRef} className="size-4 bg-transparent! cursor-default!" asChild />}
         disabled={!canGoBack}
         onClick={goBack}
         onContextMenu={handleContextMenu}
@@ -183,7 +183,7 @@ function GoForwardButton({
   return (
     <div className="relative">
       <NavButton
-        icon={<ArrowRightIcon ref={iconRef} className="size-4 !bg-transparent !cursor-default" asChild />}
+        icon={<ArrowRightIcon ref={iconRef} className="size-4 bg-transparent! cursor-default!" asChild />}
         disabled={!canGoForward}
         onClick={goForward}
         onContextMenu={handleContextMenu}
@@ -240,7 +240,7 @@ function ReloadButton({ disabled, onReload }: { disabled: boolean; onReload: () 
 
   return (
     <NavButton
-      icon={<RefreshCWIcon ref={iconRef} className="size-4 !bg-transparent !cursor-default" asChild />}
+      icon={<RefreshCWIcon ref={iconRef} className="size-4 bg-transparent! cursor-default!" asChild />}
       disabled={disabled}
       onClick={onReload}
       onMouseDown={handleMouseDown}
@@ -312,7 +312,7 @@ export function NavigationControls() {
   }, [focusedTab]);
 
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-center gap-0.5 min-h-4">
       <GoBackButton canGoBack={canGoBack} backwardEntries={backwardEntries} />
       <GoForwardButton canGoForward={canGoForward} forwardEntries={forwardEntries} />
       <AnimatePresence mode="wait" initial={true}>

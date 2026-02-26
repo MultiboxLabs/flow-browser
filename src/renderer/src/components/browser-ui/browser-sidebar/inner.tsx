@@ -56,17 +56,14 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
   return (
     <div className={cn(spaceInjectedClasses, "h-full max-h-full flex flex-col overflow-hidden")}>
       {/* Top Section */}
-      {direction === "left" && platform === "darwin" && (
-        <div className="shrink-0 flex items-center justify-between px-1 pb-2">
+      <div className="shrink-0 flex items-center justify-between px-1 pb-2">
+        {direction === "left" && platform === "darwin" ? (
           <SidebarWindowControlsMacOS offset={variant === "floating" ? 12 : 7} isAnimating={isAnimating} />
-          <NavigationControls />
-        </div>
-      )}
-      {direction !== "left" || platform !== "darwin" ? (
-        <div className="shrink-0 flex items-center justify-end">
-          <NavigationControls />
-        </div>
-      ) : null}
+        ) : (
+          <div />
+        )}
+        <NavigationControls />
+      </div>
       {/* Middle Section */}
       <div className="flex-1 min-h-0 gap-2 flex flex-col overflow-hidden">
         <AddressBar />
