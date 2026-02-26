@@ -208,6 +208,7 @@ interface TabGroupProps {
   isSpaceLight: boolean;
   isFirst: boolean;
   position: number;
+  groupCount: number;
   moveTab: (tabId: number, newPosition: number) => void;
 }
 
@@ -312,15 +313,20 @@ export const TabGroup = memo(
     return (
       <motion.div
         layout="position"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ layout: { type: "spring", stiffness: 500, damping: 35 } }}
+        initial={{ opacity: 0, height: 0 }}
+        animate={{ opacity: 1, height: "auto" }}
+        exit={{ opacity: 0, height: 0 }}
+        transition={{
+          layout: { type: "spring", stiffness: 500, damping: 35 },
+          height: { type: "tween", duration: 0.2, ease: "easeOut" },
+          opacity: { duration: 0.15 }
+        }}
+        style={{ overflow: "hidden" }}
         className="relative space-y-0.5"
         ref={ref}
       >
         {closestEdge === "top" && (
-          <div className="absolute top-0 left-0 right-0 -translate-y-1/2 z-10 pointer-events-none">
+          <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
             <DropIndicator isSpaceLight={isSpaceLight} showTerminal={!isFirst} />
           </div>
         )}
@@ -328,7 +334,7 @@ export const TabGroup = memo(
           <SidebarTab key={tab.id} tab={tab} isFocused={isFocused && focusedTab?.id === tab.id} />
         ))}
         {closestEdge === "bottom" && (
-          <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 z-10 pointer-events-none">
+          <div className="absolute bottom-0 left-0 right-0 z-10 pointer-events-none">
             <DropIndicator isSpaceLight={isSpaceLight} />
           </div>
         )}
@@ -344,6 +350,7 @@ export const TabGroup = memo(
       prev.isSpaceLight !== next.isSpaceLight ||
       prev.isFirst !== next.isFirst ||
       prev.position !== next.position ||
+      prev.groupCount !== next.groupCount ||
       prev.moveTab !== next.moveTab ||
       prev.tabGroup.id !== next.tabGroup.id ||
       prev.tabGroup.spaceId !== next.tabGroup.spaceId ||
