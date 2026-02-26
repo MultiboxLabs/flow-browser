@@ -13,6 +13,8 @@ import { NavigationEntry } from "~/flow/interfaces/browser/navigation";
 
 type NavigationEntryWithIndex = NavigationEntry & { index: number };
 
+const NAVIGATION_ANIMATION_ENABLED = true;
+
 // Small icon-only button that matches the new sidebar styling
 function NavButton({
   icon,
@@ -70,12 +72,12 @@ function GoBackButton({
   }, [focusedTab, backwardEntries]);
 
   const handleMouseDown = useCallback(() => {
-    iconRef.current?.startAnimation();
+    if (NAVIGATION_ANIMATION_ENABLED) iconRef.current?.startAnimation();
     isPressed.current = true;
   }, []);
 
   const handleMouseUp = useCallback(() => {
-    iconRef.current?.stopAnimation();
+    if (NAVIGATION_ANIMATION_ENABLED) iconRef.current?.stopAnimation();
     isPressed.current = false;
   }, []);
 
@@ -90,9 +92,12 @@ function GoBackButton({
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      if (backwardEntries.length > 0) setOpen(true);
+      if (backwardEntries.length > 0) {
+        handleMouseUp();
+        setOpen(true);
+      }
     },
-    [backwardEntries]
+    [backwardEntries, handleMouseUp]
   );
 
   const spaceInjectedClasses = cn(isCurrentSpaceLight ? "" : "dark");
@@ -153,12 +158,12 @@ function GoForwardButton({
   }, [focusedTab, forwardEntries]);
 
   const handleMouseDown = useCallback(() => {
-    iconRef.current?.startAnimation();
+    if (NAVIGATION_ANIMATION_ENABLED) iconRef.current?.startAnimation();
     isPressed.current = true;
   }, []);
 
   const handleMouseUp = useCallback(() => {
-    iconRef.current?.stopAnimation();
+    if (NAVIGATION_ANIMATION_ENABLED) iconRef.current?.stopAnimation();
     isPressed.current = false;
   }, []);
 
@@ -173,9 +178,12 @@ function GoForwardButton({
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      if (forwardEntries.length > 0) setOpen(true);
+      if (forwardEntries.length > 0) {
+        handleMouseUp();
+        setOpen(true);
+      }
     },
-    [forwardEntries]
+    [forwardEntries, handleMouseUp]
   );
 
   const spaceInjectedClasses = cn(isCurrentSpaceLight ? "" : "dark");
