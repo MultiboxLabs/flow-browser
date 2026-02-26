@@ -68,14 +68,15 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
         {/* Space Scrollable Content */}
         <SidebarScrollArea className="flex-1 min-h-0">
           <div className="flex flex-col gap-1 flex-1 pt-1">
-            <AnimatePresence initial={false}>
-              {sortedTabGroups.map((tabGroup) => (
+            <AnimatePresence initial={false} mode="popLayout">
+              {sortedTabGroups.map((tabGroup, index) => (
                 <TabGroup
                   key={tabGroup.id}
                   tabGroup={tabGroup}
                   isActive={activeTabGroup?.id === tabGroup.id}
                   isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
                   isSpaceLight={isCurrentSpaceLight}
+                  isFirst={index === 0}
                   position={tabGroup.position}
                   moveTab={moveTab}
                 />

@@ -206,12 +206,13 @@ interface TabGroupProps {
   isActive: boolean;
   isFocused: boolean;
   isSpaceLight: boolean;
+  isFirst: boolean;
   position: number;
   moveTab: (tabId: number, newPosition: number) => void;
 }
 
 export const TabGroup = memo(
-  function TabGroup({ tabGroup, isFocused, isSpaceLight, position, moveTab }: TabGroupProps) {
+  function TabGroup({ tabGroup, isFocused, isSpaceLight, isFirst, position, moveTab }: TabGroupProps) {
     const { tabs, focusedTab } = tabGroup;
     const ref = useRef<HTMLDivElement>(null);
     const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
@@ -310,15 +311,17 @@ export const TabGroup = memo(
 
     return (
       <motion.div
+        layout="position"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ layout: { type: "spring", stiffness: 500, damping: 35 } }}
         className="relative space-y-0.5"
         ref={ref}
       >
         {closestEdge === "top" && (
           <div className="absolute top-0 left-0 right-0 -translate-y-1/2 z-10 pointer-events-none">
-            <DropIndicator isSpaceLight={isSpaceLight} />
+            <DropIndicator isSpaceLight={isSpaceLight} showTerminal={!isFirst} />
           </div>
         )}
         {tabs.map((tab) => (
@@ -339,6 +342,7 @@ export const TabGroup = memo(
       prev.isActive !== next.isActive ||
       prev.isFocused !== next.isFocused ||
       prev.isSpaceLight !== next.isSpaceLight ||
+      prev.isFirst !== next.isFirst ||
       prev.position !== next.position ||
       prev.moveTab !== next.moveTab ||
       prev.tabGroup.id !== next.tabGroup.id ||

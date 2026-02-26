@@ -1,6 +1,12 @@
 import { DropIndicator as BaseDropIndicator } from "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator/list-item";
 
-export function DropIndicator({ isSpaceLight }: { isSpaceLight: boolean }) {
+export function DropIndicator({
+  isSpaceLight,
+  showTerminal = true
+}: {
+  isSpaceLight: boolean;
+  showTerminal?: boolean;
+}) {
   return (
     <ol
       className="flex *:mx-2 relative h-0 -m-0.5"
@@ -17,7 +23,7 @@ export function DropIndicator({ isSpaceLight }: { isSpaceLight: boolean }) {
           blocked: false
         }}
         lineGap="0px"
-        lineType="terminal-no-bleed"
+        lineType={showTerminal ? "terminal-no-bleed" : "no-terminal"}
       />
     </ol>
   );
