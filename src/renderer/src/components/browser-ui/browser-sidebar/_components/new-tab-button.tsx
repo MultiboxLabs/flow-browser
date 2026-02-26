@@ -1,7 +1,17 @@
 import { motion } from "motion/react";
 import { useState } from "react";
-import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+function PlusIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path
+        d="M13.5 4a1.5 1.5 0 0 0-3 0v6.5H4a1.5 1.5 0 0 0 0 3h6.5V20a1.5 1.5 0 0 0 3 0v-6.5H20a1.5 1.5 0 0 0 0-3h-6.5V4Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
 
 export function NewTabButton() {
   const [isPressed, setIsPressed] = useState(false);
@@ -24,7 +34,7 @@ export function NewTabButton() {
         "text-black/50 dark:text-white/50 cursor-pointer"
       )}
     >
-      <Plus className="size-4" strokeWidth={3} />
+      <PlusIcon className="size-4" />
       <span className="font-medium text-sm">New Tab</span>
     </motion.button>
   );

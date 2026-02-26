@@ -68,7 +68,7 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
         <SpaceTitle space={currentSpace} />
         {/* Space Scrollable Content */}
         <SidebarScrollArea className="flex-1 min-h-0">
-          <div className="flex flex-col gap-1 flex-1">
+          <div className="flex flex-col gap-1 flex-1 min-h-full">
             <NewTabButton />
             <AnimatePresence initial={false}>
               {sortedTabGroups.map((tabGroup) => (
@@ -83,15 +83,15 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
                   moveTab={moveTab}
                 />
               ))}
-              {currentSpace && (
-                <TabDropTarget
-                  spaceData={currentSpace}
-                  isSpaceLight={isCurrentSpaceLight}
-                  moveTab={moveTab}
-                  biggestIndex={sortedTabGroups.length > 0 ? sortedTabGroups[sortedTabGroups.length - 1].position : -1}
-                />
-              )}
             </AnimatePresence>
+            {currentSpace && (
+              <TabDropTarget
+                spaceData={currentSpace}
+                isSpaceLight={isCurrentSpaceLight}
+                moveTab={moveTab}
+                biggestIndex={sortedTabGroups.length > 0 ? sortedTabGroups[sortedTabGroups.length - 1].position : -1}
+              />
+            )}
           </div>
         </SidebarScrollArea>
       </div>

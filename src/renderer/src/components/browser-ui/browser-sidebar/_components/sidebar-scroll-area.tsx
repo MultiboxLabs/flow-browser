@@ -26,7 +26,7 @@ function SidebarScrollArea({ className, children, ...props }: SidebarScrollAreaP
     >
       <ScrollAreaPrimitive.Viewport
         data-slot="sidebar-scroll-area-viewport"
-        className="size-full rounded-[inherit] [&>div]:!block"
+        className="size-full rounded-[inherit] [&>div]:!flex [&>div]:!flex-col [&>div]:!min-h-full"
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
