@@ -113,7 +113,7 @@ const SidebarTab = memo(
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={cn(
-          "group/tab h-8 w-full rounded-lg overflow-hidden min-w-0",
+          "group/tab h-9 w-full rounded-lg overflow-hidden min-w-0",
           "flex items-center gap-2 px-2",
           "transition-[transform,background-color]",
           !isFocused && "hover:bg-black/10 dark:hover:bg-white/10",
