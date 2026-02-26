@@ -37,7 +37,7 @@ function NavButton({
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
       className={cn(
-        "size-7 flex items-center justify-center rounded-md cursor-pointer",
+        "size-7 flex items-center justify-center rounded-md",
         "bg-transparent hover:bg-black/10 dark:hover:bg-white/10",
         "text-black/80 dark:text-white/80",
         "disabled:opacity-30 disabled:pointer-events-none",
@@ -120,7 +120,7 @@ function GoBackButton({
                   flow.navigation.goToNavigationEntry(focusedTab.id, entry.index);
                   setOpen(false);
                 }}
-                className="flex items-center px-2 py-1.5 text-sm rounded-sm cursor-pointer hover:bg-accent max-w-full text-ellipsis truncate"
+                className="flex items-center px-2 py-1.5 text-sm rounded-sm hover:bg-accent max-w-full text-ellipsis truncate"
               >
                 {entry.title || entry.url}
               </div>
@@ -203,7 +203,7 @@ function GoForwardButton({
                   flow.navigation.goToNavigationEntry(focusedTab.id, entry.index);
                   setOpen(false);
                 }}
-                className="flex items-center px-2 py-1.5 text-sm rounded-sm cursor-pointer hover:bg-accent max-w-full text-ellipsis truncate"
+                className="flex items-center px-2 py-1.5 text-sm rounded-sm hover:bg-accent max-w-full text-ellipsis truncate"
               >
                 {entry.title || entry.url}
               </div>

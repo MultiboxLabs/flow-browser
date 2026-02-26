@@ -518,6 +518,9 @@ const interfaceAPI: FlowInterfaceAPI = {
   onToggleSidebar: (callback: () => void) => {
     return listenOnIPCChannel("sidebar:on-toggle", callback);
   },
+  onCursorAtEdge: (callback: (event: import("~/flow/interfaces/browser/interface").CursorEdgeEvent) => void) => {
+    return listenOnIPCChannel("interface:cursor-at-edge", callback);
+  },
   setComponentWindowBounds: (componentId: string, bounds: Electron.Rectangle) => {
     return ipcRenderer.send("interface:set-component-window-bounds", componentId, bounds);
   },

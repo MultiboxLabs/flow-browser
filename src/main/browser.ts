@@ -13,9 +13,13 @@ import { setupSecondInstanceHandling } from "@/app/instance";
 import { runOnboardingOrInitialWindow } from "@/app/onboarding";
 import { setupAppLifecycle } from "@/app/lifecycle";
 import { tabPersistenceManager } from "@/saving/tabs";
+import { initCursorEdgeMonitor } from "@/controllers/windows-controller/utils/cursor-edge-monitor";
 
 // Start tab persistence flush interval (writes dirty tabs to disk every ~2s)
 tabPersistenceManager.start();
+
+// Start cursor edge monitor (detects pointer near window edges for floating sidebar)
+initCursorEdgeMonitor();
 
 // Handle initial URL (runs asynchronously)
 processInitialUrl();

@@ -1,5 +1,13 @@
 import { IPCListener, PageBounds, WindowState } from "~/flow/types";
 
+/** Fired by the main-process cursor monitor when the pointer enters or leaves a window edge. */
+export type CursorEdgeEvent = {
+  /** Which edge the cursor is near, or `null` when it leaves every edge. */
+  edge: "left" | "right" | null;
+  /** Cursor x in window-local CSS coordinates. */
+  x: number;
+};
+
 // API //
 export interface FlowInterfaceAPI {
   /**
@@ -20,6 +28,13 @@ export interface FlowInterfaceAPI {
    * Adds a callback to be called when the sidebar is toggled
    */
   onToggleSidebar: IPCListener<[void]>;
+
+  /**
+   * Adds a callback to be called when the cursor enters or leaves a window edge.
+   * Used by the floating sidebar trigger since tab WebContentsViews consume
+   * mouse events and prevent the chrome renderer from seeing them.
+   */
+  onCursorAtEdge: IPCListener<[CursorEdgeEvent]>;
 
   /**
    * Sets the bounds of a component window
