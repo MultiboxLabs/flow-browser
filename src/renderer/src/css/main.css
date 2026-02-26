@@ -2,6 +2,7 @@
 @import "./space.css";
 @import "./update-animation.css";
 @import "./fonts/fonts.css";
+@import "./layers.css";
 
 /* No Scrollbar */
 /* Add these styles to hide scrollbars while allowing scroll */

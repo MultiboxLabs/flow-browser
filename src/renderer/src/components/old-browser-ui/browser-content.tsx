@@ -31,7 +31,7 @@ function BrowserContent() {
       )}
     >
       {DEBUG_SHOW_BOUNDS && rect && (
-        <div className="absolute top-2 right-2 z-50 text-xs text-muted-foreground bg-background/80 p-1 rounded">
+        <div className="absolute top-2 right-2 z-max text-xs text-muted-foreground bg-background/80 p-1 rounded">
           x: {rect.left.toFixed(0)}, y: {rect.top.toFixed(0)}, w: {rect.width.toFixed(0)}, h: {rect.height.toFixed(0)}
         </div>
       )}

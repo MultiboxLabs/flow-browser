@@ -19,6 +19,7 @@ import { NavigationControls } from "@/components/old-browser-ui/sidebar/header/a
 import { SidebarAddressBar } from "@/components/old-browser-ui/sidebar/header/address-bar/address-bar";
 import { PortalComponent } from "@/components/portal/portal";
 import { SidebarWindowControls } from "@/components/old-browser-ui/sidebar/header/window-controls";
+import { ViewLayer } from "~/layers";
 import { motion, AnimatePresence } from "motion/react";
 import { SidebarFooterUpdate } from "@/components/old-browser-ui/sidebar/footer/update";
 
@@ -284,7 +285,7 @@ export function BrowserSidebar({ collapseMode, variant, side, setIsHoveringSideb
           height: "100%"
         }}
         visible={true}
-        zIndex={3}
+        zIndex={ViewLayer.OVERLAY}
       >
         {sidebarContent}
       </PortalComponent>

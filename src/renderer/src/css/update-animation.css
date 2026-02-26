@@ -2,7 +2,7 @@
 .browser-update-animation {
   position: fixed;
   inset: 0;
-  z-index: 999;
+  z-index: var(--z-max);
   pointer-events: none;
 
   /* same vibe, different construction */

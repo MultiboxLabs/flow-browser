@@ -60,7 +60,7 @@ const FreetextMenu = ({ usePDFSlickStore }: FreetextMenuProps) => {
           leaveFrom="transform opacity-100 scale-100"
           leaveTo="transform opacity-0 scale-95"
         >
-          <Menu.Items className="absolute right-0 z-30 mt-1 origin-top-right rounded-sm text-left dark:bg-slate-700 bg-white dark:divide-slate-500 divide-y divide-slate-200 shadow-lg ring-1 dark:ring-white/10 ring-black/5 focus:outline-none">
+          <Menu.Items className="absolute right-0 z-popover mt-1 origin-top-right rounded-sm text-left dark:bg-slate-700 bg-white dark:divide-slate-500 divide-y divide-slate-200 shadow-lg ring-1 dark:ring-white/10 ring-black/5 focus:outline-none">
             <div className="flex flex-col space-y-0.5 p-2">
               <div className="text-sm font-medium dark:text-slate-200 text-gray-900 py-1">Color</div>
               {colorStrengths.map((s) => (

@@ -98,7 +98,7 @@ export function BrowserSidebar({
   const commonClassName = cn(
     "h-full overflow-hidden w-[calc(var(--panel-size)+30px)]",
     "transition-[margin]",
-    isFloating && (direction === "left" ? "fixed left-0 p-2 z-10" : "fixed right-0 p-2 z-10"),
+    isFloating && (direction === "left" ? "fixed left-0 p-2 z-elevated" : "fixed right-0 p-2 z-elevated"),
     isFloating && `top-[var(--offset-top)] h-[max(100vh-var(--offset-top),0px)]`,
     isFloating && topbarHeight > 0 && `pt-[calc(8px-var(--offset-top))]`,
     SIDEBAR_ANIMATE_CLASS,

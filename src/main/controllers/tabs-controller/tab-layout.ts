@@ -3,13 +3,9 @@ import { TabBoundsController, isRectangleEqual } from "./bounds";
 import { TabLifecycleManager } from "./tab-lifecycle";
 import { getCurrentTimestamp } from "@/modules/utils";
 import { TabGroupMode } from "~/types/tabs";
+import { ViewLayer } from "~/layers";
 import { Rectangle } from "electron";
 import { type TabsController } from "./index";
-
-// Z-index constants
-const GLANCE_FRONT_ZINDEX = 3;
-export const TAB_ZINDEX = 2;
-const GLANCE_BACK_ZINDEX = 0;
 
 /**
  * Manages tab layout: bounds calculation, visibility, z-index positioning.
@@ -119,7 +115,7 @@ export class TabLayoutManager {
     const lastTabGroupMode = this.lastTabGroupMode;
     let newBounds: Rectangle | null = null;
     let newTabGroupMode: TabGroupMode | null = null;
-    let zIndex = TAB_ZINDEX;
+    let zIndex: number = ViewLayer.TAB;
 
     if (!tabGroup) {
       newTabGroupMode = "normal";
@@ -129,7 +125,7 @@ export class TabLayoutManager {
       const isFront = tabGroup.frontTabId === tab.id;
       newBounds = this.calculateGlanceBounds(pageBounds, isFront);
 
-      zIndex = isFront ? GLANCE_FRONT_ZINDEX : GLANCE_BACK_ZINDEX;
+      zIndex = isFront ? ViewLayer.TAB_FRONT : ViewLayer.TAB_BACK;
     } else if (tabGroup.mode === "split") {
       newTabGroupMode = "split";
       // TODO: Implement split tab group layout

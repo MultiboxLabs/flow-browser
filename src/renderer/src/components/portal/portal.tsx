@@ -4,10 +4,9 @@ import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { useCopyStyles } from "@/hooks/use-copy-styles";
 import { mergeRefs } from "@/lib/merge-refs";
 import { cn } from "@/lib/utils";
+import { ViewLayer } from "~/layers";
 import { createContext, useContext, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
-
-const DEFAULT_Z_INDEX = 3;
 
 interface PortalComponentProps extends React.ComponentProps<"div"> {
   visible?: boolean;
@@ -35,7 +34,7 @@ export function usePortalContext() {
 
 export function PortalComponent({
   visible = true,
-  zIndex = DEFAULT_Z_INDEX,
+  zIndex = ViewLayer.OVERLAY,
   className,
   children,
   ref,

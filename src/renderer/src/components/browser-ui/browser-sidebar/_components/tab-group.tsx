@@ -330,7 +330,7 @@ export const TabGroup = memo(
         ref={ref}
       >
         {closestEdge === "top" && (
-          <div className="absolute top-0 left-0 right-0 -translate-y-1/2 z-10 pointer-events-none">
+          <div className="absolute top-0 left-0 right-0 -translate-y-1/2 z-elevated pointer-events-none">
             <DropIndicator isSpaceLight={isSpaceLight} />
           </div>
         )}
@@ -338,7 +338,7 @@ export const TabGroup = memo(
           <SidebarTab key={tab.id} tab={tab} isFocused={isFocused && focusedTab?.id === tab.id} />
         ))}
         {closestEdge === "bottom" && (
-          <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 z-10 pointer-events-none">
+          <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 z-elevated pointer-events-none">
             <DropIndicator isSpaceLight={isSpaceLight} />
           </div>
         )}

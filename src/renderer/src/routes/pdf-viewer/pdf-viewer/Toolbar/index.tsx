@@ -41,7 +41,7 @@ const Toolbar = ({ usePDFSlickStore, isThumbsbarOpen, setIsThumbsbarOpen }: TToo
   return (
     <>
       <div
-        className={`w-full h-9 flex items-center justify-between dark:bg-slate-700 dark:text-slate-200 dark:border-b-slate-500 bg-slate-50 border-b border-b-slate-300 shadow-sm text-xs select-none sticky top-0 backdrop-blur z-10`}
+        className={`w-full h-9 flex items-center justify-between dark:bg-slate-700 dark:text-slate-200 dark:border-b-slate-500 bg-slate-50 border-b border-b-slate-300 shadow-sm text-xs select-none sticky top-0 backdrop-blur z-elevated`}
       >
         <div className="px-1 flex items-center space-x-1">
           <button

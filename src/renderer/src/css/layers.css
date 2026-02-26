@@ -1,0 +1,41 @@
+/* ─── UILayer CSS custom properties ──────────────────────────────────── */
+
+@layer base {
+  :root {
+    --z-base: 0;
+    --z-elevated: 10;
+    --z-controls: 20;
+    --z-scrim: 30;
+    --z-modal: 40;
+    --z-popover: 50;
+    --z-tooltip: 60;
+    --z-max: 100;
+  }
+}
+
+/* ─── Semantic Tailwind z-index utilities ────────────────────────────── */
+
+@utility z-base {
+  z-index: var(--z-base);
+}
+@utility z-elevated {
+  z-index: var(--z-elevated);
+}
+@utility z-controls {
+  z-index: var(--z-controls);
+}
+@utility z-scrim {
+  z-index: var(--z-scrim);
+}
+@utility z-modal {
+  z-index: var(--z-modal);
+}
+@utility z-popover {
+  z-index: var(--z-popover);
+}
+@utility z-tooltip {
+  z-index: var(--z-tooltip);
+}
+@utility z-max {
+  z-index: var(--z-max);
+}
