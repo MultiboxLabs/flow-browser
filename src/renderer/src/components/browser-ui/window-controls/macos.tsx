@@ -16,7 +16,7 @@ export function SidebarWindowControlsMacOS({
     if (titlebarBounds) {
       flow.interface.setWindowButtonPosition({
         x: titlebarBounds.left,
-        y: Math.max(titlebarBounds.top - offset, 9)
+        y: titlebarBounds.top - offset
       });
     }
   }, [titlebarBounds, offset]);
