@@ -90,7 +90,8 @@ export function BrowserSidebar({
 
   // Update sidebar size immediately and then every second
   useEffect(() => {
-    setInterval(updateSidebarSize, 1000);
+    const id = setInterval(updateSidebarSize, 1000);
+    return () => clearInterval(id);
   }, [updateSidebarSize]);
 
   // Render Component //

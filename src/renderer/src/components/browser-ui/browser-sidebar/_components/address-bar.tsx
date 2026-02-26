@@ -1,17 +1,17 @@
 import { cn } from "@/lib/utils";
 import { SearchIcon } from "lucide-react";
-import { useRef } from "react";
+import { memo, useCallback, useRef } from "react";
 import { useTabs } from "@/components/providers/tabs-provider";
 import { simplifyUrl } from "@/lib/url";
 
-export function AddressBar() {
+export const AddressBar = memo(function AddressBar() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { addressUrl, focusedTab } = useTabs();
 
   const simplifiedUrl = simplifyUrl(addressUrl);
   const isPlaceholder = !simplifiedUrl;
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
 
@@ -29,7 +29,7 @@ export function AddressBar() {
         openIn: focusedTab ? "current" : "new_tab"
       }
     );
-  };
+  }, [addressUrl, focusedTab]);
 
   return (
     <div
@@ -50,4 +50,4 @@ export function AddressBar() {
       </p>
     </div>
   );
-}
+});

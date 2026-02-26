@@ -21,17 +21,27 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
   const { platform } = usePlatform();
 
   const { isCurrentSpaceLight, currentSpace } = useSpaces();
-  const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabs();
+  const { tabGroups: allTabGroups, getActiveTabGroup, getFocusedTab } = useTabs();
 
   const spaceInjectedClasses = useMemo(() => cn(isCurrentSpaceLight ? "" : "dark"), [isCurrentSpaceLight]);
 
-  const tabGroups = currentSpace ? getTabGroups(currentSpace.id) : [];
-  const activeTabGroup = currentSpace ? getActiveTabGroup(currentSpace.id) : null;
-  const focusedTab = currentSpace ? getFocusedTab(currentSpace.id) : null;
-
+  // Filter and sort in one useMemo with stable dependencies.
+  // Previously, getTabGroups() created a new array via .filter() on every call,
+  // which broke the downstream useMemo on sortedTabGroups.
   const sortedTabGroups = useMemo(() => {
-    return [...tabGroups].sort((a, b) => a.position - b.position);
-  }, [tabGroups]);
+    if (!currentSpace) return [];
+    return allTabGroups.filter((tg) => tg.spaceId === currentSpace.id).sort((a, b) => a.position - b.position);
+  }, [allTabGroups, currentSpace]);
+
+  const activeTabGroup = useMemo(() => {
+    if (!currentSpace) return null;
+    return getActiveTabGroup(currentSpace.id);
+  }, [getActiveTabGroup, currentSpace]);
+
+  const focusedTab = useMemo(() => {
+    if (!currentSpace) return null;
+    return getFocusedTab(currentSpace.id);
+  }, [getFocusedTab, currentSpace]);
 
   const moveTab = useCallback((tabId: number, newPosition: number) => {
     flow.tabs.moveTab(tabId, newPosition);

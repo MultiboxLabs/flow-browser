@@ -194,25 +194,35 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
     }
   }, [focusedTab]);
 
-  return (
-    <TabsContext.Provider
-      value={{
-        tabGroups,
-        getTabGroups,
-        getActiveTabGroup,
-        getFocusedTab,
+  const contextValue = useMemo(
+    () => ({
+      tabGroups,
+      getTabGroups,
+      getActiveTabGroup,
+      getFocusedTab,
 
-        // Current Space //
-        activeTabGroup,
-        focusedTab,
-        addressUrl,
-        // Utilities //
-        tabsData,
-        getActiveTabId,
-        getFocusedTabId
-      }}
-    >
-      {children}
-    </TabsContext.Provider>
+      // Current Space //
+      activeTabGroup,
+      focusedTab,
+      addressUrl,
+      // Utilities //
+      tabsData,
+      getActiveTabId,
+      getFocusedTabId
+    }),
+    [
+      tabGroups,
+      getTabGroups,
+      getActiveTabGroup,
+      getFocusedTab,
+      activeTabGroup,
+      focusedTab,
+      addressUrl,
+      tabsData,
+      getActiveTabId,
+      getFocusedTabId
+    ]
   );
+
+  return <TabsContext.Provider value={contextValue}>{children}</TabsContext.Provider>;
 };

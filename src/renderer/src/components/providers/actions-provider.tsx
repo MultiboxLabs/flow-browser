@@ -1,5 +1,5 @@
 import { copyTextToClipboard } from "@/lib/utils";
-import { createContext, useCallback, useContext, useEffect, useRef, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useTabs } from "./tabs-provider";
 import { useToast } from "@/components/providers/minimal-toast-provider";
 // Type for the payload of onIncomingAction, based on src/main/ipc/app/actions.ts
@@ -80,14 +80,13 @@ export const ActionsProvider = ({ children }: ActionsProviderProps) => {
     };
   }, [handleIncomingActionCallbackRef]);
 
-  return (
-    <ActionsContext.Provider
-      value={{
-        copyLink,
-        handleIncomingAction
-      }}
-    >
-      {children}
-    </ActionsContext.Provider>
+  const contextValue = useMemo(
+    () => ({
+      copyLink,
+      handleIncomingAction
+    }),
+    [copyLink, handleIncomingAction]
   );
+
+  return <ActionsContext.Provider value={contextValue}>{children}</ActionsContext.Provider>;
 };

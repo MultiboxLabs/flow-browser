@@ -72,9 +72,12 @@ export function TabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex }
   }, [spaceData.profileId, isSpaceLight, moveTab, biggestIndex, spaceData.id]);
 
   return (
-    <>
-      {showDropIndicator && <DropIndicator isSpaceLight={isSpaceLight} />}
-      <div className="flex-1 flex flex-col" ref={dropTargetRef} onDoubleClick={handleDoubleClick} />
-    </>
+    <div className="relative flex-1 flex flex-col" ref={dropTargetRef} onDoubleClick={handleDoubleClick}>
+      {showDropIndicator && (
+        <div className="absolute top-0 left-0 right-0 -translate-y-1/2 z-10 pointer-events-none">
+          <DropIndicator isSpaceLight={isSpaceLight} />
+        </div>
+      )}
+    </div>
   );
 }

@@ -9,7 +9,7 @@ import {
 } from "@/components/browser-ui/browser-sidebar/provider";
 import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar/component";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { SettingsProvider } from "@/components/providers/settings-provider";
 import { ResizableHandle, ResizablePanel } from "@/components/ui/resizable";
 import { ResizablePanelGroupWithProvider } from "@/components/ui/resizable-extras";
@@ -67,25 +67,18 @@ export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction, or
   );
 }
 
-function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserUIType }) {
-  const { mode: sidebarMode, setVisible, attachedDirection } = useBrowserSidebar();
-  const { topbarVisible, topbarHeight } = useAdaptiveTopbar();
-  const { focusedTab, tabGroups } = useTabs();
+// --- Isolated tab-dependent components --- //
+// These subscribe to useTabs() independently so the main layout tree
+// does NOT rerender on every tab data update (loading, title, url, etc.)
 
-  useEffect(() => {
-    // Popup Windows don't have a sidebar
-    if (type === "popup") {
-      setVisible(false);
-    }
-  }, [setVisible, type]);
+const WindowTitle = memo(function WindowTitle() {
+  const { focusedTab } = useTabs();
+  if (!focusedTab?.title) return null;
+  return <title>{`${focusedTab.title} | Flow`}</title>;
+});
 
-  // Dynamic window title based on focused tab
-  const dynamicTitle: string | null = useMemo(() => {
-    if (!focusedTab) return null;
-    return focusedTab.title;
-  }, [focusedTab]);
-
-  // Auto-open new tab if no tabs exist when ready
+function AutoNewTab({ isReady }: { isReady: boolean }) {
+  const { tabGroups } = useTabs();
   const openedNewTabRef = useRef(false);
   useEffect(() => {
     if (isReady && !openedNewTabRef.current) {
@@ -95,106 +88,139 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
       }
     }
   }, [isReady, tabGroups.length]);
+  return null;
+}
 
+const LoadingIndicator = memo(function LoadingIndicator() {
+  const { focusedTab } = useTabs();
   const isActiveTabLoading = focusedTab?.isLoading || false;
 
-  const hasSidebar = type === "main";
+  return (
+    <div className="absolute top-0 left-0 w-full h-2 flex justify-center items-center z-10">
+      <AnimatePresence>
+        {isActiveTabLoading && (
+          <motion.div
+            className="w-28 h-1 bg-gray-200/30 dark:bg-white/10 rounded-full overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              className="h-full bg-gray-800/90 dark:bg-white/90 rounded-full"
+              initial={{ x: "-100%" }}
+              animate={{ x: "100%" }}
+              transition={{
+                duration: 1,
+                ease: "easeInOut",
+                repeat: Infinity,
+                repeatType: "loop",
+                repeatDelay: 0.1
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+});
 
-  // Fullscreen: render only the browser content
+/**
+ * Renders BrowserContent alone when the focused tab is fullscreen,
+ * otherwise renders children. Uses "children as props" pattern so that
+ * tab changes don't cause children to rerender (children refs are stable
+ * as long as the parent doesn't rerender).
+ */
+function FullscreenGuard({ children }: { children: React.ReactNode }) {
+  const { focusedTab } = useTabs();
   if (focusedTab?.fullScreen) {
     return <BrowserContent />;
   }
+  return <>{children}</>;
+}
+
+function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserUIType }) {
+  // NOTE: No useTabs() here! Tab-dependent logic is isolated in the
+  // components above to prevent the entire layout from rerendering.
+  const { mode: sidebarMode, setVisible, attachedDirection } = useBrowserSidebar();
+  const { topbarVisible, topbarHeight } = useAdaptiveTopbar();
+
+  useEffect(() => {
+    // Popup Windows don't have a sidebar
+    if (type === "popup") {
+      setVisible(false);
+    }
+  }, [setVisible, type]);
+
+  const hasSidebar = type === "main";
 
   return (
-    <MinimalToastProvider sidebarSide={attachedDirection}>
-      <ActionsProvider>
-        {dynamicTitle && <title>{`${dynamicTitle} | Flow`}</title>}
-        <div
-          className={cn(
-            "w-screen h-screen overflow-hidden",
-            "bg-linear-to-br from-space-background-start/65 to-space-background-end/65",
-            "transition-colors duration-150",
-            "flex flex-col",
-            "app-drag"
-          )}
-        >
-          <ResizablePanelGroupWithProvider direction="horizontal" className="flex-1 flex flex-col!">
-            <AdaptiveTopbar />
-            <div
-              className={cn("w-full h-[calc(100vh-var(--topbar-height))] flex flex-row items-center justify-center")}
-              style={{ "--topbar-height": `${topbarHeight}px` } as React.CSSProperties}
-            >
-              {hasSidebar && (
-                <PresenceSidebar
-                  sidebarMode={sidebarMode}
-                  targetSidebarModes={["attached-left", "floating-left"]}
-                  direction="left"
-                  order={1}
-                />
-              )}
-              <ResizablePanel id="main" order={2} className={cn("flex-1 h-full py-3", topbarVisible && "pt-0")}>
-                <div className="w-full h-full flex items-center justify-center remove-app-drag">
-                  {sidebarMode !== "attached-left" ? (
-                    <div className="w-3" />
-                  ) : (
-                    <SidebarResizeHandle key="left-sidebar-resize-handle" />
-                  )}
+    <FullscreenGuard>
+      <MinimalToastProvider sidebarSide={attachedDirection}>
+        <ActionsProvider>
+          <WindowTitle />
+          <AutoNewTab isReady={isReady} />
+          <div
+            className={cn(
+              "w-screen h-screen overflow-hidden",
+              "bg-linear-to-br from-space-background-start/65 to-space-background-end/65",
+              "transition-colors duration-150",
+              "flex flex-col",
+              "app-drag"
+            )}
+          >
+            <ResizablePanelGroupWithProvider direction="horizontal" className="flex-1 flex flex-col!">
+              <AdaptiveTopbar />
+              <div
+                className={cn("w-full h-[calc(100vh-var(--topbar-height))] flex flex-row items-center justify-center")}
+                style={{ "--topbar-height": `${topbarHeight}px` } as React.CSSProperties}
+              >
+                {hasSidebar && (
+                  <PresenceSidebar
+                    sidebarMode={sidebarMode}
+                    targetSidebarModes={["attached-left", "floating-left"]}
+                    direction="left"
+                    order={1}
+                  />
+                )}
+                <ResizablePanel id="main" order={2} className={cn("flex-1 h-full py-3", topbarVisible && "pt-0")}>
+                  <div className="w-full h-full flex items-center justify-center remove-app-drag">
+                    {sidebarMode !== "attached-left" ? (
+                      <div className="w-3" />
+                    ) : (
+                      <SidebarResizeHandle key="left-sidebar-resize-handle" />
+                    )}
 
-                  {/* Loading Indicator */}
-                  <div className="relative w-full h-full flex flex-col">
-                    <div className="absolute top-0 left-0 w-full h-2 flex justify-center items-center z-10">
-                      <AnimatePresence>
-                        {isActiveTabLoading && (
-                          <motion.div
-                            className="w-28 h-1 bg-gray-200/30 dark:bg-white/10 rounded-full overflow-hidden"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <motion.div
-                              className="h-full bg-gray-800/90 dark:bg-white/90 rounded-full"
-                              initial={{ x: "-100%" }}
-                              animate={{ x: "100%" }}
-                              transition={{
-                                duration: 1,
-                                ease: "easeInOut",
-                                repeat: Infinity,
-                                repeatType: "loop",
-                                repeatDelay: 0.1
-                              }}
-                            />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                    <div className="relative w-full h-full flex flex-col">
+                      <LoadingIndicator />
+                      <BrowserContent />
                     </div>
-                    <BrowserContent />
+
+                    {sidebarMode !== "attached-right" ? (
+                      <div className="w-3" />
+                    ) : (
+                      <SidebarResizeHandle key="right-sidebar-resize-handle" />
+                    )}
                   </div>
+                </ResizablePanel>
+                {hasSidebar && (
+                  <PresenceSidebar
+                    sidebarMode={sidebarMode}
+                    targetSidebarModes={["attached-right", "floating-right"]}
+                    direction="right"
+                    order={3}
+                  />
+                )}
+              </div>
+            </ResizablePanelGroupWithProvider>
 
-                  {sidebarMode !== "attached-right" ? (
-                    <div className="w-3" />
-                  ) : (
-                    <SidebarResizeHandle key="right-sidebar-resize-handle" />
-                  )}
-                </div>
-              </ResizablePanel>
-              {hasSidebar && (
-                <PresenceSidebar
-                  sidebarMode={sidebarMode}
-                  targetSidebarModes={["attached-right", "floating-right"]}
-                  direction="right"
-                  order={3}
-                />
-              )}
-            </div>
-          </ResizablePanelGroupWithProvider>
-
-          {/* TODO: Implement update effect */}
-          {/* eslint-disable-next-line no-constant-binary-expression */}
-          {false && <UpdateEffect />}
-        </div>
-      </ActionsProvider>
-    </MinimalToastProvider>
+            {/* TODO: Implement update effect */}
+            {/* eslint-disable-next-line no-constant-binary-expression */}
+            {false && <UpdateEffect />}
+          </div>
+        </ActionsProvider>
+      </MinimalToastProvider>
+    </FullscreenGuard>
   );
 }
 
