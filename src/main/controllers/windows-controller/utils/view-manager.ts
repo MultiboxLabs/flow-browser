@@ -34,7 +34,7 @@ export class ViewManager {
     }
 
     // Only reorder if the sorted sequence actually changed
-    if (this.orderChanged(view, current, zIndex)) {
+    if (this.orderChanged(view, current)) {
       if (this._batching) {
         this._batchDirty = true;
       } else {
@@ -108,7 +108,7 @@ export class ViewManager {
    * sorted order of views. This avoids unnecessary Electron IPC when a
    * view's z-index changes but its position in the stack doesn't.
    */
-  private orderChanged(_view: WebContentsView, oldZIndex: number | undefined, _newZIndex: number): boolean {
+  private orderChanged(_view: WebContentsView, oldZIndex: number | undefined): boolean {
     // New view added — order always changes
     if (oldZIndex === undefined) return true;
 
