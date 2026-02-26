@@ -88,7 +88,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       } else if (type === "popup") {
         browserWindow.loadURL("flow-internal://popup-ui/");
       }
-      browserWindow.webContents.openDevTools({ mode: "detach" });
+      // browserWindow.webContents.openDevTools({ mode: "detach" });
     });
 
     super("browser", browserWindow, { showAfterLoad: true, showDelay: 50 });
