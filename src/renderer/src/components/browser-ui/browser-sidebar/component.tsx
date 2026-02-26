@@ -13,6 +13,8 @@ import { type SidebarVariant } from "@/components/browser-ui/main";
 import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 import { SidebarInner } from "./inner";
 import { type ImperativeResizablePanelWrapperHandle, PixelBasedResizablePanel } from "@/components/ui/resizable-extras";
+import { PortalComponent } from "@/components/portal/portal";
+import { ViewLayer } from "~/layers";
 
 // Component //
 
@@ -33,7 +35,6 @@ export function BrowserSidebar({
   const { isVisible, startAnimation, stopAnimation, recordedSidebarSizeRef } = useBrowserSidebar();
   const { topbarHeight } = useAdaptiveTopbar();
 
-  const divRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<ImperativeResizablePanelWrapperHandle>(null);
 
   // Animation Readiness //
@@ -95,23 +96,6 @@ export function BrowserSidebar({
   }, [updateSidebarSize]);
 
   // Render Component //
-  const commonClassName = cn(
-    "h-full overflow-hidden w-[calc(var(--panel-size)+30px)]",
-    "transition-[margin]",
-    isFloating && (direction === "left" ? "fixed left-0 p-2 z-elevated" : "fixed right-0 p-2 z-elevated"),
-    isFloating && `top-[var(--offset-top)] h-[max(100vh-var(--offset-top),0px)]`,
-    isFloating && topbarHeight > 0 && `pt-[calc(8px-var(--offset-top))]`,
-    SIDEBAR_ANIMATE_CLASS,
-    direction === "left" && (currentlyVisible ? "ml-0" : "-ml-[var(--panel-size)]"),
-    direction === "right" && (currentlyVisible ? "mr-0" : "-mr-[var(--panel-size)]"),
-    // Remove flex so the sidebar hiding animation can play correctly
-    !currentlyVisible && "!flex-[unset]"
-  );
-
-  const commonStyle = {
-    "--panel-size": `${recordedSidebarSizeRef.current}px`,
-    "--offset-top": `${topbarHeight}px`
-  } as React.CSSProperties;
 
   const content = (
     <div
@@ -137,18 +121,57 @@ export function BrowserSidebar({
     </div>
   );
 
-  return isFloating ? (
-    <div id="sidebar" ref={divRef} className={commonClassName} style={commonStyle}>
-      {content}
-    </div>
-  ) : (
+  if (isFloating) {
+    return (
+      <PortalComponent
+        className="fixed"
+        style={{
+          top: topbarHeight,
+          [direction === "left" ? "left" : "right"]: 0,
+          width: recordedSidebarSizeRef.current + 30,
+          height: `calc(100vh - ${topbarHeight}px)`
+        }}
+        visible={true}
+        zIndex={ViewLayer.OVERLAY}
+      >
+        <div
+          id="sidebar"
+          className={cn(
+            "h-full overflow-hidden p-2",
+            "transition-transform",
+            SIDEBAR_ANIMATE_CLASS,
+            currentlyVisible ? "translate-x-0" : direction === "left" ? "-translate-x-full" : "translate-x-full",
+            topbarHeight > 0 && `pt-[max(0px,calc(8px-${topbarHeight}px))]`
+          )}
+        >
+          {content}
+        </div>
+      </PortalComponent>
+    );
+  }
+
+  const attachedClassName = cn(
+    "h-full overflow-hidden w-[calc(var(--panel-size)+30px)]",
+    "transition-[margin]",
+    SIDEBAR_ANIMATE_CLASS,
+    direction === "left" && (currentlyVisible ? "ml-0" : "-ml-[var(--panel-size)]"),
+    direction === "right" && (currentlyVisible ? "mr-0" : "-mr-[var(--panel-size)]"),
+    // Remove flex so the sidebar hiding animation can play correctly
+    !currentlyVisible && "!flex-[unset]"
+  );
+
+  const attachedStyle = {
+    "--panel-size": `${recordedSidebarSizeRef.current}px`
+  } as React.CSSProperties;
+
+  return (
     <PixelBasedResizablePanel
       id="sidebar"
       wrapperRef={panelRef}
       order={order}
       defaultSizePixels={recordedSidebarSizeRef.current}
-      className={commonClassName}
-      style={commonStyle}
+      className={attachedClassName}
+      style={attachedStyle}
       minSizePixels={MIN_SIDEBAR_WIDTH}
       maxSizePixels={MAX_SIDEBAR_WIDTH}
       onResize={updateSidebarSize}
