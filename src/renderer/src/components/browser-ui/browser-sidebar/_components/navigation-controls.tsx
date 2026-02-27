@@ -16,7 +16,7 @@ type NavigationEntryWithIndex = NavigationEntry & { index: number };
 const NAVIGATION_ANIMATION_ENABLED = true;
 
 // Small icon-only button that matches the new sidebar styling
-function NavButton({
+export function NavButton({
   icon,
   disabled = false,
   onClick,

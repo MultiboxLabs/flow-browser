@@ -6,11 +6,11 @@ import { AddressBar } from "./_components/address-bar";
 import { useCallback, useMemo } from "react";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
-import { NavigationControls } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
+import { NavigationControls, NavButton } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
 import { PinGridGate } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/gate";
 import { SpaceTitle } from "@/components/browser-ui/browser-sidebar/_components/space-title";
 import { SidebarScrollArea } from "@/components/browser-ui/browser-sidebar/_components/sidebar-scroll-area";
-import { Settings, Plus } from "lucide-react";
+import { Settings, Plus, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TabGroup } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
 import { TabDropTarget } from "@/components/browser-ui/browser-sidebar/_components/tab-drop-target";
@@ -19,7 +19,7 @@ import { AnimatePresence } from "motion/react";
 import { NewTabButton } from "@/components/browser-ui/browser-sidebar/_components/new-tab-button";
 
 export function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
-  const { isAnimating } = useBrowserSidebar();
+  const { isAnimating, setVisible, mode } = useBrowserSidebar();
   const { platform } = usePlatform();
 
   const { isCurrentSpaceLight, currentSpace } = useSpaces();
@@ -54,11 +54,27 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
     <div className={cn(spaceInjectedClasses, "h-full max-h-full flex flex-col overflow-hidden")}>
       {/* Top Section */}
       <div className="shrink-0 flex items-center justify-between px-1 pb-2">
-        {direction === "left" && platform === "darwin" ? (
-          <SidebarWindowControlsMacOS offset={variant === "floating" ? 12 : 7} isAnimating={isAnimating} />
-        ) : (
-          <div />
-        )}
+        <div className="flex items-center gap-1.5">
+          {direction === "left" && platform === "darwin" && (
+            <SidebarWindowControlsMacOS offset={variant === "floating" ? 13 : 7} isAnimating={isAnimating} />
+          )}
+          <NavButton
+            icon={
+              mode.startsWith("attached") ? (
+                direction === "left" ? (
+                  <PanelLeftClose strokeWidth={2} className="size-4" />
+                ) : (
+                  <PanelRightClose strokeWidth={2} className="size-4" />
+                )
+              ) : direction === "left" ? (
+                <PanelLeftOpen strokeWidth={2} className="size-4" />
+              ) : (
+                <PanelRightOpen strokeWidth={2} className="size-4" />
+              )
+            }
+            onClick={() => setVisible(!mode.startsWith("attached"))}
+          />
+        </div>
         <NavigationControls />
       </div>
       {/* Middle Section */}
