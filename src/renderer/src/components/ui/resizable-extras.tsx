@@ -13,6 +13,45 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 
+/**
+ * Custom hook that provides a stable callback ref which sets state when
+ * the handle is assigned, triggering a synchronous re-render (via
+ * useLayoutEffect) so context consumers receive the handle before paint.
+ */
+function usePanelGroupCallbackRef(forwardedRef: React.Ref<ImperativePanelGroupHandle> | undefined) {
+  const handleRef = useRef<ImperativePanelGroupHandle | null>(null);
+  const [handle, setHandle] = useState<ImperativePanelGroupHandle | null>(null);
+
+  // Stable callback ref — identity never changes so React won't re-call it
+  // with null/handle on every render.
+  const callbackRef = useCallback(
+    (instance: ImperativePanelGroupHandle | null) => {
+      handleRef.current = instance;
+
+      // Forward to the consumer's ref
+      if (forwardedRef) {
+        if (typeof forwardedRef === "function") {
+          forwardedRef(instance);
+        } else {
+          (forwardedRef as React.MutableRefObject<ImperativePanelGroupHandle | null>).current = instance;
+        }
+      }
+    },
+    [forwardedRef]
+  );
+
+  // After mount (and after refs are assigned), publish the handle via state.
+  // useLayoutEffect runs before paint, so the synchronous re-render ensures
+  // context consumers see the handle before the first visible frame.
+  useLayoutEffect(() => {
+    if (handleRef.current !== handle) {
+      setHandle(handleRef.current);
+    }
+  });
+
+  return { callbackRef, handle };
+}
+
 export interface ImperativeResizablePanelWrapperHandle {
   getSizePixels: () => number;
 }
@@ -34,11 +73,10 @@ function pixelsToPercentage(pixels: number, groupSize: number): number {
 
 const ResizablePanelGroupProvider = createContext<ImperativePanelGroupHandle | null>(null);
 export function ResizablePanelGroupWithProvider({ ref, ...props }: React.ComponentProps<typeof ResizablePanelGroup>) {
-  const panelGroupRef = useRef<ImperativePanelGroupHandle>(null);
-  const combinedPanelGroupRef = mergeRefs([ref, panelGroupRef]);
+  const { callbackRef, handle } = usePanelGroupCallbackRef(ref);
   return (
-    <ResizablePanelGroupProvider.Provider value={panelGroupRef.current}>
-      <ResizablePanelGroup ref={combinedPanelGroupRef} {...props} />
+    <ResizablePanelGroupProvider.Provider value={handle}>
+      <ResizablePanelGroup ref={callbackRef} {...props} />
     </ResizablePanelGroupProvider.Provider>
   );
 }
@@ -64,6 +102,13 @@ export function PixelBasedResizablePanel({
   const currentSizePixelsRef = useRef<number | undefined>(defaultSizePixels);
   const isResizingFromObserverRef = useRef(false);
   const panelElementRef = useRef<HTMLElement | null>(null);
+
+  // Guard: prevent handleResize from corrupting currentSizePixelsRef during
+  // initialization. On first render panelGroup is null → library picks an
+  // unconstrained default (e.g. 50%). On re-render when panelGroup arrives,
+  // the library clamps to maxSize and fires onResize with the wrong value.
+  // This flag blocks that update until our deferred resize() corrects it.
+  const isSyncingRef = useRef(true);
 
   // Expose wrapper handle
   useImperativeHandle(wrapperRef, () => ({
@@ -100,8 +145,10 @@ export function PixelBasedResizablePanel({
       const panelGroupSizePixels = panelGroupElement.getBoundingClientRect().width;
       const sizePixels = (size / 100) * panelGroupSizePixels;
 
-      // Only update pixel size if this is from user interaction, not from our observer
-      if (!isResizingFromObserverRef.current) {
+      // Only update pixel size if this is from user interaction, not from our
+      // observer or during the initial sync phase (where the library may fire
+      // onResize with a clamped value before we've corrected it).
+      if (!isResizingFromObserverRef.current && !isSyncingRef.current) {
         currentSizePixelsRef.current = sizePixels;
 
         // Update the CSS width to match the new pixel size
@@ -120,7 +167,31 @@ export function PixelBasedResizablePanel({
     [panelGroup, onResizeProp]
   );
 
-  // Set up ResizeObserver to maintain pixel size on panel group resize
+  // Apply CSS width locking on mount, even before panelGroup is available.
+  // This prevents the sidebar from flashing at an unconstrained size when the
+  // component tree remounts (e.g. after leaving fullscreen).
+  useLayoutEffect(() => {
+    if (!panelRef.current) return;
+    const panelElement = panelRef.current.getElement();
+    if (!panelElement) return;
+
+    panelElementRef.current = panelElement;
+
+    if (currentSizePixelsRef.current !== undefined) {
+      const pixels = currentSizePixelsRef.current;
+      panelElement.style.minWidth = `${pixels}px`;
+      panelElement.style.maxWidth = `${pixels}px`;
+      panelElement.style.width = `${pixels}px`;
+      panelElement.style.flexBasis = `${pixels}px`;
+      panelElement.style.flexGrow = "0";
+      panelElement.style.flexShrink = "0";
+    }
+    // Run once on mount (empty deps)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Set up ResizeObserver to maintain pixel size on panel group resize.
+  // Also syncs library percentage state when panelGroup first becomes available.
   useLayoutEffect(() => {
     if (!panelGroup || !panelRef.current) return;
 
@@ -152,6 +223,28 @@ export function PixelBasedResizablePanel({
     // Initialize panel group size
     const initialSize = panelGroupElement.getBoundingClientRect().width;
     setPanelGroupSize(initialSize);
+
+    // Sync the library's internal percentage state now that panelGroup is available.
+    // This must be deferred because the panel library hasn't committed its internal
+    // layout state yet during this layout effect — calling resize() synchronously
+    // triggers "Previous layout not found". requestAnimationFrame runs after all
+    // layout effects but before paint, giving the library time to initialize.
+    let rafId: number | null = null;
+    if (currentSizePixelsRef.current !== undefined && initialSize > 0) {
+      const targetPixels = currentSizePixelsRef.current;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (!panelRef.current) return;
+        isResizingFromObserverRef.current = true;
+        panelRef.current.resize(pixelsToPercentage(targetPixels, initialSize));
+        isResizingFromObserverRef.current = false;
+        // Initialization complete — allow handleResize to track pixel values
+        isSyncingRef.current = false;
+      });
+    } else {
+      // No deferred resize needed — clear the guard immediately
+      isSyncingRef.current = false;
+    }
 
     let lastProcessedSize = initialSize;
 
@@ -185,6 +278,8 @@ export function PixelBasedResizablePanel({
     resizeObserver.observe(panelGroupElement);
 
     return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      isSyncingRef.current = true; // Re-arm guard for next panelGroup transition
       resizeObserver.disconnect();
       panelElementRef.current = null;
     };

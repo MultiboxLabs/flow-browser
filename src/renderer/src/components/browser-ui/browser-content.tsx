@@ -3,7 +3,7 @@ import { PageBounds } from "~/flow/types";
 import { cn } from "@/lib/utils";
 import { useBoundingRect } from "@/hooks/use-bounding-rect";
 
-const DEBUG_SHOW_BOUNDS = false;
+const DEBUG_SHOW_BOUNDS = true;
 
 function BrowserContent() {
   const containerRef = useRef<HTMLDivElement>(null);
