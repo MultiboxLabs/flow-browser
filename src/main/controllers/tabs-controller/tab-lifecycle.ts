@@ -126,6 +126,9 @@ export class TabLifecycleManager {
       }
     }
 
+    // Notify the tab so layout can be updated
+    this.tab.emit("fullscreen-changed", isFullScreen);
+
     return true;
   }
 
@@ -142,8 +145,6 @@ export class TabLifecycleManager {
 
     webContents.on("enter-html-full-screen", () => {
       this.setFullScreen(true);
-      // Notify the tab so layout can be updated
-      this.tab.emit("fullscreen-changed", true);
     });
 
     webContents.on("leave-html-full-screen", () => {
@@ -152,7 +153,6 @@ export class TabLifecycleManager {
       // "leave-full-screen" event) because if the OS window is already not
       // fullscreen, that event never fires and the tab stays stuck.
       this.setFullScreen(false);
-      this.tab.emit("fullscreen-changed", false);
 
       // Also exit OS fullscreen if still active
       if (electronWindow.fullScreen) {
@@ -168,7 +168,6 @@ export class TabLifecycleManager {
 
     const disconnectLeaveFullScreen = window.connect("leave-full-screen", () => {
       this.setFullScreen(false);
-      this.tab.emit("fullscreen-changed", false);
     });
 
     this.disconnectLeaveFullScreen = disconnectLeaveFullScreen;

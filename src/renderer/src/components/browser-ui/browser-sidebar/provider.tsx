@@ -91,6 +91,8 @@ interface BrowserSidebarContextValue {
   mode: BrowserSidebarMode;
   recordedSidebarSizeRef: React.RefObject<number>;
 
+  setForceFloating: (forceFloating: boolean) => void;
+
   /**
    * Subscribe to sidebar width changes during drag resize.
    * The callback receives the new width in pixels.
@@ -250,8 +252,12 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
     };
   }, [isVisibleRef, handleSetVisible]);
 
+  const [forceFloating, setForceFloating] = useState(false);
+
   let mode: BrowserSidebarMode = "hidden";
-  if (isVisible) {
+  if (forceFloating) {
+    mode = isFloating ? `floating-${attachedDirection}` : "hidden";
+  } else if (isVisible) {
     mode = `attached-${attachedDirection}`;
   } else if (isFloating) {
     mode = `floating-${attachedDirection}`;
@@ -274,7 +280,9 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
         recordedSidebarSizeRef,
 
         onSidebarResize,
-        notifySidebarResize
+        notifySidebarResize,
+
+        setForceFloating
       }}
     >
       {children}

@@ -492,13 +492,20 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
         if (isActive && !tab.visible) {
           managers.layout.show();
         } else if (!isActive && tab.visible) {
+          // Exit fullscreen if the tab is no longer active
+          if (tab.fullScreen) {
+            managers.lifecycle.setFullScreen(false);
+          }
           managers.layout.hide();
         } else {
           // Update layout even if visibility hasn't changed, e.g., for split view resizing
           managers.layout.updateLayout();
         }
       } else {
-        // Not in active space
+        // Not in active space — also exit fullscreen if needed
+        if (tab.fullScreen) {
+          managers.lifecycle.setFullScreen(false);
+        }
         managers.layout.hide();
       }
     }
