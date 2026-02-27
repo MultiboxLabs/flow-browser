@@ -119,10 +119,34 @@ export class TabLifecycleManager {
       }
 
       const webContents = this.tab.webContents;
+      const view = this.tab.view;
       if (webContents) {
-        setTimeout(() => {
-          webContents.executeJavaScript(`if (document.fullscreenElement) { document.exitFullscreen(); }`, true);
-        }, 100);
+        // Slightly nudge the view bounds to force Chromium to recognize the
+        // viewport change, which is needed to properly exit HTML fullscreen.
+        if (view) {
+          setTimeout(() => {
+            const isViewValid = () => this.tab.view === view && this.tab.visible;
+
+            if (!isViewValid()) return;
+
+            const bounds = view.getBounds();
+            const newBounds = { ...bounds, width: bounds.width - 1 };
+            view.setBounds(newBounds);
+
+            setTimeout(() => {
+              if (!isViewValid()) return;
+
+              const currentBounds = view.getBounds();
+              if (newBounds.width !== currentBounds.width) return;
+              if (newBounds.height !== currentBounds.height) return;
+              if (newBounds.x !== currentBounds.x) return;
+              if (newBounds.y !== currentBounds.y) return;
+              view.setBounds(bounds);
+            }, 50);
+          }, 800);
+        }
+
+        webContents.executeJavaScript(`if (document.fullscreenElement) { document.exitFullscreen(); }`, true);
       }
     }
 
