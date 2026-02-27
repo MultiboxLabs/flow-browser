@@ -47,7 +47,7 @@ function usePanelGroupCallbackRef(forwardedRef: React.Ref<ImperativePanelGroupHa
     if (handleRef.current !== handle) {
       setHandle(handleRef.current);
     }
-  });
+  }, [handle]);
 
   return { callbackRef, handle };
 }
@@ -187,7 +187,6 @@ export function PixelBasedResizablePanel({
       panelElement.style.flexShrink = "0";
     }
     // Run once on mount (empty deps)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Set up ResizeObserver to maintain pixel size on panel group resize.
