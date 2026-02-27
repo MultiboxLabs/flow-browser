@@ -30,7 +30,7 @@ const SpaceContentPage = memo(function SpaceContentPage({ space, moveTab }: Spac
     <div className="min-w-full w-full shrink-0 snap-start snap-always flex flex-col min-h-0 h-full">
       <SpaceTitle space={space} />
       <SidebarScrollArea className="flex-1 min-h-0">
-        <div className="flex flex-col gap-1 flex-1 min-h-full">
+        <div className="flex flex-col gap-1 flex-1 min-h-full pt-1">
           <NewTabButton />
           <AnimatePresence initial={false}>
             {sortedTabGroups.map((tabGroup) => (

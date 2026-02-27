@@ -9,7 +9,8 @@ import { SidebarScrollArea } from "@/components/browser-ui/browser-sidebar/_comp
 export function PinGrid() {
   const [ref, { width }] = useMeasure<HTMLDivElement>();
 
-  const amountOfPinnedTabs = 6;
+  const amountOfPinnedTabs = 0;
+  // const amountOfPinnedTabs = 6;
 
   // Calculate columns based on container width
   // Minimum tab width: ~60px + gap (8px) = ~68px per column
