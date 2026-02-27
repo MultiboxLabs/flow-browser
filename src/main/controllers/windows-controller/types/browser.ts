@@ -107,6 +107,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       this.recomputePageBounds();
 
       this.emit("enter-full-screen");
+      this._updateMacOSTrafficLights();
       fireWindowStateChanged(this);
     });
 
