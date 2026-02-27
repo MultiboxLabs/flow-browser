@@ -208,6 +208,18 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
     [startAnimation, stopAnimation]
   );
 
+  // Cancel any running sidebar animation when the floating sidebar is active.
+  // The floating sidebar is a portal overlay with zero layout impact, so the
+  // main-process bounds should snap immediately rather than interpolating.
+  // This covers both directions:
+  //   - Hiding attached → floating takes over: snap to full width
+  //   - Re-opening attached while floating: snap to sidebar width
+  useEffect(() => {
+    if (isFloating && runningAnimationId) {
+      setRunningAnimationId(null);
+    }
+  }, [isFloating, runningAnimationId]);
+
   // Helpers //
   useMount(() => {
     // Remove window buttons until the window controls component takes over.
