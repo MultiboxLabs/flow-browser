@@ -1,13 +1,16 @@
 import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
 import { usePlatform } from "@/components/main/platform";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 // Context //
 interface AdaptiveTopbarContextValue {
   topbarHeight: number;
   topbarVisible: boolean;
   isFullscreen: boolean;
+  /** Extra vertical space consumed by renderer-only UI above the content (e.g. popup toolbar). */
+  contentTopOffset: number;
+  setContentTopOffset: (offset: number) => void;
 }
 
 const AdaptiveTopbarContext = createContext<AdaptiveTopbarContextValue | null>(null);
@@ -62,8 +65,15 @@ export function AdaptiveTopbarProvider({ children }: AdaptiveTopbarProviderProps
 
   const currentlyVisible = !isFullscreen && topbarVisible;
 
+  const [contentTopOffset, setContentTopOffsetRaw] = useState(0);
+  const setContentTopOffset = useCallback((offset: number) => {
+    setContentTopOffsetRaw((prev) => (prev === offset ? prev : offset));
+  }, []);
+
   return (
-    <AdaptiveTopbarContext.Provider value={{ topbarHeight, topbarVisible: currentlyVisible, isFullscreen }}>
+    <AdaptiveTopbarContext.Provider
+      value={{ topbarHeight, topbarVisible: currentlyVisible, isFullscreen, contentTopOffset, setContentTopOffset }}
+    >
       {children}
     </AdaptiveTopbarContext.Provider>
   );

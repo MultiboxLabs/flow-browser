@@ -115,9 +115,11 @@ export const useBrowserSidebar = () => {
 
 interface BrowserSidebarProviderProps {
   children: React.ReactNode;
+  /** When false (e.g. popup windows) the sidebar is never initialized as visible. */
+  hasSidebar?: boolean;
 }
 
-export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps) {
+export function BrowserSidebarProvider({ children, hasSidebar = true }: BrowserSidebarProviderProps) {
   const { getSetting } = useSettings();
 
   const attachedDirectionSetting = getSetting<AttachedDirection>("sidebarSide");
@@ -156,9 +158,10 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
 
   // Visibility State //
   // Wait until the attached direction is loaded before rendering the sidebar first time.
+  // For popup windows (hasSidebar=false), the sidebar is never made visible.
   const [isVisible, setVisible] = useState(false);
   const hasFirstRenderedRef = useRef(false);
-  if (!hasFirstRenderedRef.current && attachedDirectionSetting) {
+  if (hasSidebar && !hasFirstRenderedRef.current && attachedDirectionSetting) {
     hasFirstRenderedRef.current = true;
     setVisible(true);
   }
@@ -255,12 +258,14 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
   const [forceFloating, setForceFloating] = useState(false);
 
   let mode: BrowserSidebarMode = "hidden";
-  if (forceFloating) {
-    mode = isFloating ? `floating-${attachedDirection}` : "hidden";
-  } else if (isVisible) {
-    mode = `attached-${attachedDirection}`;
-  } else if (isFloating) {
-    mode = `floating-${attachedDirection}`;
+  if (hasSidebar) {
+    if (forceFloating) {
+      mode = isFloating ? `floating-${attachedDirection}` : "hidden";
+    } else if (isVisible) {
+      mode = `attached-${attachedDirection}`;
+    } else if (isFloating) {
+      mode = `floating-${attachedDirection}`;
+    }
   }
 
   // Provider //

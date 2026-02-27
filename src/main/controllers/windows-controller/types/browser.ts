@@ -307,7 +307,8 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     if (this.destroyed || this.browserWindow.isDestroyed()) return;
 
     const [cw, ch] = this.browserWindow.getContentSize();
-    const { topbarHeight, topbarVisible, sidebarWidth, sidebarSide, sidebarVisible } = this.layoutParams;
+    const { topbarHeight, topbarVisible, sidebarWidth, sidebarSide, sidebarVisible, contentTopOffset } =
+      this.layoutParams;
 
     // Effective sidebar width (animated or static)
     let effectiveSidebarWidth: number;
@@ -328,7 +329,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     }
 
     const PADDING = 12;
-    const padTop = topbarVisible ? topbarHeight : PADDING;
+    const padTop = (topbarVisible ? topbarHeight : PADDING) + (contentTopOffset ?? 0);
     const padBottom = PADDING;
 
     const x = (sidebarSide === "left" ? effectiveSidebarWidth : 0) + PADDING;

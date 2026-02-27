@@ -9,7 +9,7 @@ import {
 } from "@/components/browser-ui/browser-sidebar/provider";
 import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar/component";
 import { AnimatePresence, motion } from "motion/react";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { SettingsProvider } from "@/components/providers/settings-provider";
 import { ResizableHandle, ResizablePanel } from "@/components/ui/resizable";
 import { ResizablePanelGroupWithProvider } from "@/components/ui/resizable-extras";
@@ -28,6 +28,8 @@ import { ExtensionsProviderWithSpaces } from "@/components/providers/extensions-
 import MinimalToastProvider from "@/components/providers/minimal-toast-provider";
 import { ActionsProvider } from "@/components/providers/actions-provider";
 import BrowserContent from "@/components/browser-ui/browser-content";
+import { NavigationControls } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
+import { AddressBar } from "@/components/browser-ui/browser-sidebar/_components/address-bar";
 
 export type BrowserUIType = "main" | "popup";
 export type SidebarVariant = "attached" | "floating";
@@ -137,6 +139,41 @@ const LoadingIndicator = memo(function LoadingIndicator() {
 });
 
 /**
+ * Compact toolbar for popup windows – replaces the sidebar with
+ * back/forward/reload controls and an address bar in a single row.
+ * Reports its measured height as contentTopOffset so the main process
+ * can push the tab's WebContentsView below it.
+ */
+function PopupToolbar() {
+  const { isCurrentSpaceLight } = useSpaces();
+  const { setContentTopOffset } = useAdaptiveTopbar();
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Measure once on mount + whenever the element resizes.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const report = () => setContentTopOffset(el.offsetHeight);
+    report();
+
+    const ro = new ResizeObserver(report);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      setContentTopOffset(0);
+    };
+  }, [setContentTopOffset]);
+
+  return (
+    <div ref={ref} className={cn("w-full flex items-center gap-2 px-1 pb-2", !isCurrentSpaceLight && "dark")}>
+      <NavigationControls />
+      <AddressBar />
+    </div>
+  );
+}
+
+/**
  * Renders BrowserContent alone when the focused tab is fullscreen,
  * otherwise renders children. Uses "children as props" pattern so that
  * tab changes don't cause children to rerender (children refs are stable
@@ -163,15 +200,8 @@ function FullscreenGuard({ children }: { children: React.ReactNode }) {
 function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserUIType }) {
   // NOTE: No useTabs() here! Tab-dependent logic is isolated in the
   // components above to prevent the entire layout from rerendering.
-  const { mode: sidebarMode, setVisible, attachedDirection } = useBrowserSidebar();
+  const { mode: sidebarMode, attachedDirection } = useBrowserSidebar();
   const { topbarVisible, topbarHeight } = useAdaptiveTopbar();
-
-  useEffect(() => {
-    // Popup Windows don't have a sidebar
-    if (type === "popup") {
-      setVisible(false);
-    }
-  }, [setVisible, type]);
 
   const hasSidebar = type === "main";
 
@@ -214,6 +244,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
 
                     <div className="relative w-full h-full flex flex-col">
                       <LoadingIndicator />
+                      {!hasSidebar && <PopupToolbar />}
                       <BrowserContent />
                     </div>
 
@@ -257,7 +288,7 @@ export function BrowserUI({ type }: { type: BrowserUIType }) {
   return (
     <AppUpdatesProvider>
       <SettingsProvider>
-        <BrowserSidebarProvider>
+        <BrowserSidebarProvider hasSidebar={type === "main"}>
           <AdaptiveTopbarProvider>
             <SpacesProvider windowType={type}>
               <TabsProvider>

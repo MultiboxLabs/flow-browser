@@ -38,6 +38,13 @@ export interface PageLayoutParams {
    * the previous and target values over 100ms with ease-in-out timing.
    */
   sidebarAnimating: boolean;
+
+  /**
+   * Extra vertical offset (in pixels) consumed by renderer-only UI above
+   * the content area (e.g. the popup window toolbar). The main process adds
+   * this to the top padding when computing page bounds.  Defaults to 0.
+   */
+  contentTopOffset: number;
 }
 
 export type WindowState = {

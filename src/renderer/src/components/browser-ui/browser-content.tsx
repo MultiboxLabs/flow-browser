@@ -20,7 +20,7 @@ import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
  */
 function BrowserContent() {
   const { mode, recordedSidebarSizeRef, isAnimating, attachedDirection, onSidebarResize } = useBrowserSidebar();
-  const { topbarHeight, topbarVisible } = useAdaptiveTopbar();
+  const { topbarHeight, topbarVisible, contentTopOffset } = useAdaptiveTopbar();
 
   // Derive sidebar visibility from the mode.
   // Floating sidebars are overlays (PortalComponent) and have zero layout impact.
@@ -39,7 +39,8 @@ function BrowserContent() {
       sidebarWidth,
       sidebarSide,
       sidebarVisible,
-      sidebarAnimating: isAnimating
+      sidebarAnimating: isAnimating,
+      contentTopOffset
     };
     flow.page.setLayoutParams(params);
   };
@@ -49,7 +50,7 @@ function BrowserContent() {
   useLayoutEffect(() => {
     sendLayoutParams(recordedSidebarSizeRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topbarHeight, topbarVisible, sidebarVisible, sidebarSide, isAnimating]);
+  }, [topbarHeight, topbarVisible, sidebarVisible, sidebarSide, isAnimating, contentTopOffset]);
 
   // Subscribe to sidebar resize (drag) events. The callback fires outside
   // the React render cycle, so it doesn't cause re-renders of any consumer.
