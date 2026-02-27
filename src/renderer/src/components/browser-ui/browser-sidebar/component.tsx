@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { usePresence } from "motion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useMount } from "react-use";
 import { type AttachedDirection, useBrowserSidebar, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH } from "./provider";
 import { type SidebarVariant } from "@/components/browser-ui/main";
@@ -32,21 +32,22 @@ export function BrowserSidebar({
   const panelRef = useRef<ImperativeResizablePanelWrapperHandle>(null);
 
   // Animation Readiness //
-  // This is needed so that on the first few frames, the width will start from 0 instead of the full width.
-  // We use a double-rAF to guarantee the browser has painted the initial (off-screen)
-  // state before we flip to visible. A single rAF fires BEFORE paint in Chromium,
-  // so the transition would be skipped if the state changed in that callback.
+  // Ensure the browser paints the initial off-screen position before enabling
+  // the CSS transition. For portal windows (separate WebContentsViews), the
+  // double-rAF technique is unreliable because rAF timing may not align with
+  // the portal's paint cycle. Instead, we force a synchronous reflow on the
+  // animated element to guarantee the off-screen layout is computed, then
+  // wait a single frame for it to be painted.
+  const animatedRef = useRef<HTMLDivElement>(null);
   const [isAnimationReady, setAnimationReady] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (!cancelled) setAnimationReady(true);
-      });
+  useLayoutEffect(() => {
+    if (animatedRef.current) {
+      void animatedRef.current.getBoundingClientRect();
+    }
+    const rafId = requestAnimationFrame(() => {
+      setAnimationReady(true);
     });
-    return () => {
-      cancelled = true;
-    };
+    return () => cancelAnimationFrame(rafId);
   }, []);
   const currentlyVisible = isVisible && isAnimationReady;
 
@@ -148,6 +149,7 @@ export function BrowserSidebar({
         zIndex={ViewLayer.OVERLAY}
       >
         <div
+          ref={animatedRef}
           id="sidebar"
           className={cn(
             "h-full overflow-hidden p-2",
