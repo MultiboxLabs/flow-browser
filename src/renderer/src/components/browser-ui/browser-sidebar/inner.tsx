@@ -3,15 +3,16 @@ import { AttachedDirection, useBrowserSidebar } from "./provider";
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
 import { usePlatform } from "@/components/main/platform";
 import { AddressBar } from "./_components/address-bar";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import { NavigationControls, NavButton } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
 import { PinGridGate } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/gate";
-import { Settings, Plus, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { Settings, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SpaceSwitcher } from "@/components/browser-ui/browser-sidebar/_components/space-switcher";
 import { SpacePagesCarousel } from "@/components/browser-ui/browser-sidebar/_components/space-pages-carousel";
+import { BrowserActionList } from "@/components/browser-ui/browser-sidebar/_components/browser-action-list";
 
 export function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
   const { isAnimating, setVisible, mode } = useBrowserSidebar();
@@ -20,10 +21,6 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
   const { isCurrentSpaceLight } = useSpaces();
 
   const spaceInjectedClasses = useMemo(() => cn(isCurrentSpaceLight ? "" : "dark"), [isCurrentSpaceLight]);
-
-  const handleNewTab = useCallback(() => {
-    flow.newTab.open();
-  }, []);
 
   return (
     <div className={cn(spaceInjectedClasses, "h-full max-h-full flex flex-col overflow-hidden")}>
@@ -68,13 +65,7 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
           <Settings strokeWidth={2} className="w-4 h-4 text-black/80 dark:text-white/80" />
         </Button>
         <SpaceSwitcher />
-        <Button
-          size="icon"
-          className="size-8 bg-transparent hover:bg-black/10 dark:hover:bg-white/10"
-          onClick={handleNewTab}
-        >
-          <Plus strokeWidth={2} className="w-4 h-4 text-black/80 dark:text-white/80" />
-        </Button>
+        <BrowserActionList />
       </div>
       <div className="h-3" />
     </div>
