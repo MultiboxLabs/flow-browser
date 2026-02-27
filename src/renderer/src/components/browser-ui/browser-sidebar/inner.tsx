@@ -17,6 +17,7 @@ import { TabDropTarget } from "@/components/browser-ui/browser-sidebar/_componen
 import { useTabsGroups } from "@/components/providers/tabs-provider";
 import { AnimatePresence } from "motion/react";
 import { NewTabButton } from "@/components/browser-ui/browser-sidebar/_components/new-tab-button";
+import { SpaceSwitcher } from "@/components/browser-ui/browser-sidebar/_components/space-switcher";
 
 export function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
   const { isAnimating, setVisible, mode } = useBrowserSidebar();
@@ -120,6 +121,7 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
         >
           <Settings strokeWidth={2} className="w-4 h-4 text-black/80 dark:text-white/80" />
         </Button>
+        <SpaceSwitcher />
         <Button
           size="icon"
           className="size-8 bg-transparent hover:bg-black/10 dark:hover:bg-white/10"
