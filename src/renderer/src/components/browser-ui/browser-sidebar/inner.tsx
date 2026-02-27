@@ -8,44 +8,18 @@ import { useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import { NavigationControls, NavButton } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
 import { PinGridGate } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/gate";
-import { SpaceTitle } from "@/components/browser-ui/browser-sidebar/_components/space-title";
-import { SidebarScrollArea } from "@/components/browser-ui/browser-sidebar/_components/sidebar-scroll-area";
 import { Settings, Plus, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { TabGroup } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
-import { TabDropTarget } from "@/components/browser-ui/browser-sidebar/_components/tab-drop-target";
-import { useTabsGroups } from "@/components/providers/tabs-provider";
-import { AnimatePresence } from "motion/react";
-import { NewTabButton } from "@/components/browser-ui/browser-sidebar/_components/new-tab-button";
 import { SpaceSwitcher } from "@/components/browser-ui/browser-sidebar/_components/space-switcher";
+import { SpacePagesCarousel } from "@/components/browser-ui/browser-sidebar/_components/space-pages-carousel";
 
 export function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
   const { isAnimating, setVisible, mode } = useBrowserSidebar();
   const { platform } = usePlatform();
 
-  const { isCurrentSpaceLight, currentSpace } = useSpaces();
-  const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabsGroups();
+  const { isCurrentSpaceLight } = useSpaces();
 
   const spaceInjectedClasses = useMemo(() => cn(isCurrentSpaceLight ? "" : "dark"), [isCurrentSpaceLight]);
-
-  const sortedTabGroups = useMemo(() => {
-    if (!currentSpace) return [];
-    return getTabGroups(currentSpace.id);
-  }, [currentSpace, getTabGroups]);
-
-  const activeTabGroup = useMemo(() => {
-    if (!currentSpace) return null;
-    return getActiveTabGroup(currentSpace.id);
-  }, [getActiveTabGroup, currentSpace]);
-
-  const focusedTab = useMemo(() => {
-    if (!currentSpace) return null;
-    return getFocusedTab(currentSpace.id);
-  }, [getFocusedTab, currentSpace]);
-
-  const moveTab = useCallback((tabId: number, newPosition: number) => {
-    flow.tabs.moveTab(tabId, newPosition);
-  }, []);
 
   const handleNewTab = useCallback(() => {
     flow.newTab.open();
@@ -82,35 +56,7 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
       <div className="flex-1 min-h-0 gap-2 flex flex-col overflow-hidden">
         <AddressBar />
         <PinGridGate />
-        <SpaceTitle space={currentSpace} />
-        {/* Space Scrollable Content */}
-        <SidebarScrollArea className="flex-1 min-h-0">
-          <div className="flex flex-col gap-1 flex-1 min-h-full">
-            <NewTabButton />
-            <AnimatePresence initial={false}>
-              {sortedTabGroups.map((tabGroup) => (
-                <TabGroup
-                  key={tabGroup.id}
-                  tabGroup={tabGroup}
-                  isActive={activeTabGroup?.id === tabGroup.id}
-                  isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
-                  isSpaceLight={isCurrentSpaceLight}
-                  position={tabGroup.position}
-                  groupCount={sortedTabGroups.length}
-                  moveTab={moveTab}
-                />
-              ))}
-            </AnimatePresence>
-            {currentSpace && (
-              <TabDropTarget
-                spaceData={currentSpace}
-                isSpaceLight={isCurrentSpaceLight}
-                moveTab={moveTab}
-                biggestIndex={sortedTabGroups.length > 0 ? sortedTabGroups[sortedTabGroups.length - 1].position : -1}
-              />
-            )}
-          </div>
-        </SidebarScrollArea>
+        <SpacePagesCarousel />
       </div>
       {/* Bottom Section */}
       <div className="shrink-0 flex items-center justify-between h-4 my-2">

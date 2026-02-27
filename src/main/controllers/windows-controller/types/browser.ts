@@ -49,7 +49,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     const hasPositionOptions = options.x !== undefined || options.y !== undefined;
 
     const browserWindow = new ElectronBrowserWindow({
-      minWidth: type === "normal" ? 800 : 250,
+      minWidth: type === "normal" ? 800 : 300,
       minHeight: type === "normal" ? 400 : 200,
 
       width: options.width ?? 1280,
