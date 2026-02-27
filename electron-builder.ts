@@ -100,7 +100,8 @@ const electronBuilderConfig: Configuration = {
     notarize: true,
     provisioningProfile: "build/profile.provisionprofile",
     extendInfo: {
-      CFBundleIconName: "AppIcon"
+      CFBundleIconName: "AppIcon",
+      NSUserActivityTypes: ["NSUserActivityTypeBrowsingWeb"]
     }
   },
   dmg: {
