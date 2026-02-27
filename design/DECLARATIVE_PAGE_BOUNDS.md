@@ -182,9 +182,11 @@ sidebar toggled
                                               confirms final state
 ```
 
-The interpolation runs a `setTimeout`-based loop at 60fps in the main process
-(same pattern as `TabBoundsController`), using the standard `ease-in-out` CSS
-easing function: `cubic-bezier(0.42, 0, 0.58, 1)`.
+The interpolation runs a `setTimeout`-based loop at ~4ms intervals (~25 ticks
+per 100ms animation) in the main process, using **Tailwind's `ease-in-out`**
+easing function: `cubic-bezier(0.4, 0, 0.2, 1)`. Note: this is NOT the CSS
+standard `ease-in-out` keyword which is `cubic-bezier(0.42, 0, 0.58, 1)` —
+Tailwind uses a different, front-loaded curve.
 
 For opening, the interpolation goes `0 → sidebarWidth`. For closing,
 `sidebarWidth → 0`. The direction is determined by the `sidebarVisible` flag
@@ -346,7 +348,8 @@ No `_isResizing` flag, no inset cache, no debounce timer.
 ### `SidebarInterpolation` class
 
 A small utility that drives a value from A to B over a duration with
-`ease-in-out` timing, ticking via `setTimeout` at 60fps:
+Tailwind's `ease-in-out` timing, ticking via `setTimeout` at ~4ms intervals
+(~25 ticks per 100ms animation):
 
 ```typescript
 const SIDEBAR_ANIMATE_DURATION = 100; // ms, matches CSS
@@ -397,12 +400,13 @@ class SidebarInterpolation {
   };
 }
 
-/** CSS ease-in-out: cubic-bezier(0.42, 0, 0.58, 1) */
+/** Tailwind ease-in-out: cubic-bezier(0.4, 0, 0.2, 1) */
 function easeInOut(t: number): number {
-  // Attempt exact cubic-bezier or use a close sine approximation:
+  // The actual implementation uses a Newton-Raphson cubic-bezier solver
+  // for exact matching. See sidebar-interpolation.ts.
+  // This pseudocode shows the concept; the quadratic approximation below
+  // does NOT match the Tailwind curve and is kept only for illustration.
   return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
-  // Note: for a perfect match, use a proper cubic-bezier solver.
-  // The sine approximation above is nearly identical for 0.42/0.58.
 }
 ```
 
@@ -505,17 +509,17 @@ old code path.
 
 ## Summary of Changes
 
-| Component                      | Before                                                 | After                                                   |
-| ------------------------------ | ------------------------------------------------------ | ------------------------------------------------------- |
-| `BrowserContent`               | `useBoundingRect` + `getBoundingClientRect` rAF loop   | `useEffect` sends `PageLayoutParams` on state change    |
-| `browser.ts` `setPageBounds`   | Stores bounds, caches insets, `_isResizing` debounce   | Removed                                                 |
-| `browser.ts` `setLayoutParams` | N/A                                                    | Computes bounds from params + `getContentSize()`        |
-| `browser.ts` resize handler    | Recomputes from cached insets with `_isResizing` guard | Calls `recomputePageBounds()` directly                  |
-| Sidebar tween                  | Bounds lag behind CSS animation                        | Main-process 100ms ease-in-out interpolation            |
-| Floating sidebar               | No change needed                                       | No change needed                                        |
-| Fullscreen                     | Clears insets, waits for renderer                      | Detects via event, recomputes immediately               |
-| IPC frequency                  | ~60 calls/sec during any layout change                 | ~1-5 calls per structural change                        |
-| `useBoundingRect` hook         | Used by `BrowserContent`                               | Removed from `BrowserContent`; kept for portals/omnibox |
+| Component                      | Before                                                 | After                                                      |
+| ------------------------------ | ------------------------------------------------------ | ---------------------------------------------------------- |
+| `BrowserContent`               | `useBoundingRect` + `getBoundingClientRect` rAF loop   | `useLayoutEffect` sends `PageLayoutParams` on state change |
+| `browser.ts` `setPageBounds`   | Stores bounds, caches insets, `_isResizing` debounce   | Removed                                                    |
+| `browser.ts` `setLayoutParams` | N/A                                                    | Computes bounds from params + `getContentSize()`           |
+| `browser.ts` resize handler    | Recomputes from cached insets with `_isResizing` guard | Calls `recomputePageBounds()` directly                     |
+| Sidebar tween                  | Bounds lag behind CSS animation                        | Main-process 100ms ease-in-out interpolation               |
+| Floating sidebar               | No change needed                                       | No change needed                                           |
+| Fullscreen                     | Clears insets, waits for renderer                      | Detects via event, recomputes immediately                  |
+| IPC frequency                  | ~60 calls/sec during any layout change                 | ~1-5 calls per structural change                           |
+| `useBoundingRect` hook         | Used by `BrowserContent`                               | Removed from `BrowserContent`; kept for portals/omnibox    |
 
 ### Benefits
 

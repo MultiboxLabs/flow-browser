@@ -303,6 +303,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
    */
   private recomputePageBounds(): void {
     if (!this.layoutParams) return;
+    if (this.destroyed || this.browserWindow.isDestroyed()) return;
 
     const [cw, ch] = this.browserWindow.getContentSize();
     const { topbarHeight, topbarVisible, sidebarWidth, sidebarSide, sidebarVisible } = this.layoutParams;
@@ -352,6 +353,13 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
 
   // Override Destroy Method to Cleanup Window //
   public destroy(...args: Parameters<BaseWindowInstance["destroy"]>) {
+    // Stop any in-flight sidebar interpolation to prevent timer callbacks
+    // from firing after the window is destroyed (getContentSize() would throw).
+    if (this.sidebarInterpolation) {
+      this.sidebarInterpolation.stop();
+      this.sidebarInterpolation = null;
+    }
+
     const result = super.destroy(...args);
     if (result) {
       // Destroy all tabs in the window after a delay.
