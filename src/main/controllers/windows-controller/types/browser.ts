@@ -1,6 +1,7 @@
 import { BaseWindow, BaseWindowEvents } from "@/controllers/windows-controller/types/base";
 import { BrowserWindow as ElectronBrowserWindow, nativeTheme, WebContents } from "electron";
 import { type PageBounds } from "@/ipc/browser/page";
+import { type PageLayoutParams } from "~/flow/types";
 import { appMenuController } from "@/controllers/app-menu-controller";
 import { ViewManager } from "@/controllers/windows-controller/utils/view-manager";
 import { Omnibox } from "@/controllers/windows-controller/utils/browser/omnibox";
@@ -14,6 +15,10 @@ import { tabPersistenceManager } from "@/saving/tabs";
 import { quitController } from "@/controllers/quit-controller";
 import { hex_is_light } from "@/modules/utils";
 import { ViewLayer } from "~/layers";
+import {
+  SidebarInterpolation,
+  SIDEBAR_ANIMATE_DURATION
+} from "@/controllers/windows-controller/utils/browser/sidebar-interpolation";
 
 export type BrowserWindowType = "normal" | "popup";
 
@@ -96,13 +101,10 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     this.browserWindowType = type;
 
     browserWindow.on("enter-full-screen", () => {
-      // Fullscreen fundamentally changes the UI layout (chrome is hidden),
-      // so cached pageInsets are invalid. Clear them so the resize handler
-      // doesn't compute wrong bounds, and clear _isResizing so the
-      // renderer's corrected bounds are accepted.
-      this._isResizing = false;
-      this.pageInsets = null;
-      if (this._resizeEndTimer) clearTimeout(this._resizeEndTimer);
+      // Fullscreen fundamentally changes the UI layout (chrome is hidden).
+      // Recompute page bounds immediately — the renderer will also send
+      // updated layout params, but this eliminates the timing gap.
+      this.recomputePageBounds();
 
       this.emit("enter-full-screen");
       fireWindowStateChanged(this);
@@ -110,10 +112,8 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
 
     // "leave-full-screen" event
     browserWindow.on("leave-full-screen", () => {
-      // Same as enter-full-screen: insets change when chrome is restored.
-      this._isResizing = false;
-      this.pageInsets = null;
-      if (this._resizeEndTimer) clearTimeout(this._resizeEndTimer);
+      // Same as enter-full-screen: recompute bounds immediately.
+      this.recomputePageBounds();
 
       this.emit("leave-full-screen");
       this._updateMacOSTrafficLights();
@@ -143,33 +143,11 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     // ID changes across sessions, so the windowGroupId in the DB needs to be updated.
     persistWindowBounds();
 
-    // Recompute page bounds directly on resize — bypasses the renderer IPC
-    // round-trip (~50-70ms latency from ResizeObserver → rAF → React → IPC).
-    // The renderer still sends bounds for structural layout changes (sidebar,
-    // toolbar), but resize is handled instantly using cached insets.
+    // Recompute page bounds on resize — with declarative layout params,
+    // the main process can compute bounds directly from getContentSize()
+    // without waiting for the renderer round-trip.
     browserWindow.on("resize", () => {
-      if (!this.pageInsets) return; // No bounds received from renderer yet
-
-      // Mark resize as active and debounce the end. Placed AFTER the
-      // pageInsets check so that resize events during fullscreen transitions
-      // (when insets are cleared) don't set the flag and block the
-      // renderer's corrected bounds.
-      this._isResizing = true;
-      if (this._resizeEndTimer) clearTimeout(this._resizeEndTimer);
-      this._resizeEndTimer = setTimeout(() => {
-        this._isResizing = false;
-      }, 150);
-
-      const [contentWidth, contentHeight] = this.browserWindow.getContentSize();
-      const newBounds: PageBounds = {
-        x: this.pageInsets.left,
-        y: this.pageInsets.top,
-        width: Math.max(0, contentWidth - this.pageInsets.left - this.pageInsets.right),
-        height: Math.max(0, contentHeight - this.pageInsets.top - this.pageInsets.bottom)
-      };
-      this.pageBounds = newBounds;
-      this.emit("page-bounds-changed", newBounds);
-      tabsController.handlePageBoundsChanged(this.id);
+      this.recomputePageBounds();
     });
 
     // View Manager //
@@ -237,39 +215,128 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     this._updateMacOSTrafficLights();
   }
 
-  // Page Bounds (Used for Tabs) //
+  // Declarative Page Bounds (Used for Tabs) //
+  // See design/DECLARATIVE_PAGE_BOUNDS.md for the full design.
   public pageBounds: PageBounds = { x: 0, y: 0, width: 0, height: 0 };
 
-  // Stored insets so the main process can recompute page bounds on resize
-  // without waiting for the renderer round-trip (~50-70ms latency).
-  private pageInsets: { top: number; left: number; right: number; bottom: number } | null = null;
+  /** Layout parameters received from the renderer. */
+  private layoutParams: PageLayoutParams | null = null;
 
-  // Tracks whether a resize is in progress. While resizing, the main process
-  // resize handler is the source of truth — stale renderer IPC is suppressed
-  // to prevent flickering (renderer bounds are ~50-70ms behind).
-  private _resizeEndTimer: ReturnType<typeof setTimeout> | null = null;
-  private _isResizing = false;
+  /** Active sidebar open/close interpolation, or null when static. */
+  private sidebarInterpolation: SidebarInterpolation | null = null;
 
+  /**
+   * Accepts declarative layout parameters from the renderer and computes
+   * page bounds. When `sidebarAnimating` is true, starts an ease-in-out
+   * interpolation of the sidebar width that mirrors the CSS transition.
+   */
+  public setLayoutParams(params: PageLayoutParams, sentAt?: number): void {
+    const prevParams = this.layoutParams;
+    this.layoutParams = params;
+
+    // Compute IPC transit delay so the interpolation can be backdated
+    // to match the CSS transition start time in the renderer.
+    const advanceMs = sentAt ? Math.max(0, Date.now() - sentAt) : 0;
+
+    // Compute the target effective sidebar width from the new params.
+    const targetWidth = params.sidebarVisible ? params.sidebarWidth : 0;
+
+    if (params.sidebarAnimating) {
+      // Determine starting width for the interpolation.
+      // Prefer the current interpolation value (handles rapid toggle / mid-animation
+      // re-trigger gracefully), otherwise derive from previous params.
+      let fromWidth: number;
+      if (this.sidebarInterpolation) {
+        fromWidth = this.sidebarInterpolation.currentValue;
+        this.sidebarInterpolation.stop();
+      } else if (prevParams) {
+        fromWidth = prevParams.sidebarVisible ? prevParams.sidebarWidth : 0;
+      } else {
+        // No previous state (first params ever) — no animation possible.
+        fromWidth = targetWidth;
+      }
+
+      if (fromWidth !== targetWidth) {
+        this.sidebarInterpolation = new SidebarInterpolation(
+          fromWidth,
+          targetWidth,
+          SIDEBAR_ANIMATE_DURATION,
+          () => {
+            this.recomputePageBounds();
+          },
+          () => {
+            // Animation complete
+            this.sidebarInterpolation = null;
+            this.recomputePageBounds();
+          }
+        );
+        this.sidebarInterpolation.start(advanceMs);
+      } else {
+        // from === to: nothing to animate (e.g. duplicate message)
+        this.sidebarInterpolation = null;
+        this.recomputePageBounds();
+      }
+    } else {
+      // Not animating — apply immediately
+      if (this.sidebarInterpolation) {
+        this.sidebarInterpolation.stop();
+        this.sidebarInterpolation = null;
+      }
+      this.recomputePageBounds();
+    }
+  }
+
+  /**
+   * Legacy path: accepts pre-computed bounds from the renderer.
+   * Used by the old browser UI which has a different layout structure.
+   */
   public setPageBounds(bounds: PageBounds) {
-    // During active resize, the renderer's bounds are stale (from a previous
-    // frame). Applying them would revert the bounds the resize handler just
-    // set, causing visible flicker. Skip entirely — the resize handler is
-    // the sole source of truth while resizing. After resizing stops, the
-    // renderer's next update will reconcile insets and bounds.
-    if (this._isResizing) return;
-
     this.pageBounds = bounds;
-
-    // Recompute and cache insets from the renderer-reported bounds
-    const [contentWidth, contentHeight] = this.browserWindow.getContentSize();
-    this.pageInsets = {
-      top: bounds.y,
-      left: bounds.x,
-      right: contentWidth - bounds.x - bounds.width,
-      bottom: contentHeight - bounds.y - bounds.height
-    };
-
     this.emit("page-bounds-changed", bounds);
+    tabsController.handlePageBoundsChanged(this.id);
+  }
+
+  /**
+   * Computes page bounds from declarative layout parameters and the
+   * window's content size. This is the single source of truth for
+   * page bounds when using the new declarative system.
+   */
+  private recomputePageBounds(): void {
+    if (!this.layoutParams) return;
+
+    const [cw, ch] = this.browserWindow.getContentSize();
+    const { topbarHeight, topbarVisible, sidebarWidth, sidebarSide, sidebarVisible } = this.layoutParams;
+
+    // Effective sidebar width (animated or static)
+    let effectiveSidebarWidth: number;
+    if (this.sidebarInterpolation) {
+      // During animation, subtract a small buffer so the WebContentsView
+      // extends slightly under the sidebar. This hides any residual desync
+      // from IPC delay, setTimeout jitter, and compositor frame misalignment.
+      // The buffer tapers to 0 near the target to avoid a visible snap when
+      // the animation completes. The sidebar's opaque background covers the
+      // overlap, so the user never sees the webcontents underneath.
+      const ANIM_BUFFER = 15;
+      const targetWidth = sidebarVisible ? sidebarWidth : 0;
+      const remaining = Math.abs(this.sidebarInterpolation.currentValue - targetWidth);
+      const buffer = Math.min(ANIM_BUFFER, remaining);
+      effectiveSidebarWidth = Math.max(0, this.sidebarInterpolation.currentValue - buffer);
+    } else {
+      effectiveSidebarWidth = sidebarVisible ? sidebarWidth : 0;
+    }
+
+    const PADDING = 12;
+    const padTop = topbarVisible ? topbarHeight : PADDING;
+    const padBottom = PADDING;
+
+    const x = (sidebarSide === "left" ? effectiveSidebarWidth : 0) + PADDING;
+    const y = padTop;
+    const width = Math.max(0, cw - effectiveSidebarWidth - PADDING * 2);
+    const height = Math.max(0, ch - padTop - padBottom);
+
+    const newBounds: PageBounds = { x, y, width, height };
+    this.pageBounds = newBounds;
+    this.emit("page-bounds-changed", newBounds);
     tabsController.handlePageBoundsChanged(this.id);
   }
 

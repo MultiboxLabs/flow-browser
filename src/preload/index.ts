@@ -485,6 +485,9 @@ const tabsAPI: FlowTabsAPI = {
 const pageAPI: FlowPageAPI = {
   setPageBounds: (bounds: { x: number; y: number; width: number; height: number }) => {
     return ipcRenderer.send("page:set-bounds", bounds);
+  },
+  setLayoutParams: (params) => {
+    return ipcRenderer.send("page:set-layout-params", params, Date.now());
   }
 };
 

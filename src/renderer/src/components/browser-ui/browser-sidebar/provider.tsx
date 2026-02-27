@@ -9,6 +9,9 @@ export const MIN_SIDEBAR_WIDTH = 150;
 export const DEFAULT_SIDEBAR_SIZE = 200;
 export const MAX_SIDEBAR_WIDTH = 500;
 
+/** Duration of the sidebar open/close CSS transition (ms). Must match SIDEBAR_ANIMATE_TIME in component.tsx. */
+const SIDEBAR_ANIMATE_TIME = 100;
+
 // Helper Functions //
 function getInitialSidebarSize() {
   try {
@@ -87,6 +90,15 @@ interface BrowserSidebarContextValue {
 
   mode: BrowserSidebarMode;
   recordedSidebarSizeRef: React.RefObject<number>;
+
+  /**
+   * Subscribe to sidebar width changes during drag resize.
+   * The callback receives the new width in pixels.
+   * Returns an unsubscribe function.
+   */
+  onSidebarResize: (callback: (width: number) => void) => () => void;
+  /** Call when sidebar width changes (e.g. during drag). Updates ref, persists, and notifies listeners. */
+  notifySidebarResize: (width: number) => void;
 }
 
 const BrowserSidebarContext = createContext<BrowserSidebarContextValue | null>(null);
@@ -116,6 +128,28 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
   const recordedSidebarSizeRef = useRef(DEFAULT_SIDEBAR_SIZE);
   useMemo(() => {
     recordedSidebarSizeRef.current = getInitialSidebarSize();
+  }, []);
+
+  // Callback-based sidebar resize notification.
+  // Allows BrowserContent to subscribe without causing context re-renders
+  // on every drag frame. The listener set is stored in a ref (stable identity).
+  const sidebarResizeListenersRef = useRef(new Set<(width: number) => void>());
+
+  const onSidebarResize = useCallback((callback: (width: number) => void) => {
+    sidebarResizeListenersRef.current.add(callback);
+    return () => {
+      sidebarResizeListenersRef.current.delete(callback);
+    };
+  }, []);
+
+  const notifySidebarResize = useCallback((width: number) => {
+    if (recordedSidebarSizeRef.current !== width) {
+      recordedSidebarSizeRef.current = width;
+      saveSidebarSize(width);
+      for (const listener of sidebarResizeListenersRef.current) {
+        listener(width);
+      }
+    }
   }, []);
 
   // Visibility State //
@@ -152,6 +186,28 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
     [setRunningAnimationId]
   );
 
+  // Wrapped setVisible that atomically starts animation with visibility change.
+  // This ensures BrowserContent sees both isAnimating=true and the mode change
+  // in the same React render, so the main process receives correct params for
+  // sidebar tween interpolation. Without this, isVisible and isAnimating change
+  // in separate render cycles, causing bounds to snap instead of animate.
+  // See design/DECLARATIVE_PAGE_BOUNDS.md § "Sidebar Tween Handling".
+  const isVisibleRef = useRef(isVisible);
+  isVisibleRef.current = isVisible;
+
+  const handleSetVisible = useCallback(
+    (newVisible: boolean) => {
+      if (newVisible !== isVisibleRef.current) {
+        // Start animation in the same synchronous call as setVisible.
+        // React 18 batches both setState calls into a single render.
+        const animId = startAnimation();
+        setTimeout(() => stopAnimation(animId), SIDEBAR_ANIMATE_TIME);
+      }
+      setVisible(newVisible);
+    },
+    [startAnimation, stopAnimation]
+  );
+
   // Helpers //
   useMount(() => {
     // Remove window buttons until the window controls component takes over.
@@ -173,17 +229,14 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
   }, []);
 
   // Listeners //
-  const isVisibleRef = useRef(isVisible);
-  isVisibleRef.current = isVisible;
-
   useEffect(() => {
     const removeListener = flow.interface.onToggleSidebar(() => {
-      setVisible(!isVisibleRef.current);
+      handleSetVisible(!isVisibleRef.current);
     });
     return () => {
       removeListener();
     };
-  }, [isVisibleRef, setVisible]);
+  }, [isVisibleRef, handleSetVisible]);
 
   let mode: BrowserSidebarMode = "hidden";
   if (isVisible) {
@@ -197,7 +250,7 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
     <BrowserSidebarContext.Provider
       value={{
         isVisible: isFloating ? true : isVisible,
-        setVisible,
+        setVisible: handleSetVisible,
 
         attachedDirection,
 
@@ -206,7 +259,10 @@ export function BrowserSidebarProvider({ children }: BrowserSidebarProviderProps
         stopAnimation,
 
         mode,
-        recordedSidebarSizeRef
+        recordedSidebarSizeRef,
+
+        onSidebarResize,
+        notifySidebarResize
       }}
     >
       {children}

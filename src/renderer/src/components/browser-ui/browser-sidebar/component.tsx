@@ -2,13 +2,7 @@ import { cn } from "@/lib/utils";
 import { usePresence } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMount } from "react-use";
-import {
-  type AttachedDirection,
-  useBrowserSidebar,
-  MIN_SIDEBAR_WIDTH,
-  MAX_SIDEBAR_WIDTH,
-  saveSidebarSize
-} from "./provider";
+import { type AttachedDirection, useBrowserSidebar, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH } from "./provider";
 import { type SidebarVariant } from "@/components/browser-ui/main";
 import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 import { SidebarInner } from "./inner";
@@ -32,7 +26,7 @@ export function BrowserSidebar({
 }) {
   const isFloating = variant === "floating";
 
-  const { isVisible, startAnimation, stopAnimation, recordedSidebarSizeRef } = useBrowserSidebar();
+  const { isVisible, startAnimation, stopAnimation, recordedSidebarSizeRef, notifySidebarResize } = useBrowserSidebar();
   const { topbarHeight } = useAdaptiveTopbar();
 
   const panelRef = useRef<ImperativeResizablePanelWrapperHandle>(null);
@@ -86,16 +80,14 @@ export function BrowserSidebar({
   });
 
   // Sidebar Panel Size //
-  // Note: change in panel size does not trigger a re-render! instead, this only records the size for the next render. (which should be when the user is toggling sidebar)
+  // When the panel is resized (drag), notify the provider so BrowserContent
+  // can send updated layout params to the main process.
   const updateSidebarSize = useCallback(() => {
     const currentPanelSize = panelRef.current?.getSizePixels();
-    if (currentPanelSize && recordedSidebarSizeRef.current !== currentPanelSize) {
-      recordedSidebarSizeRef.current = currentPanelSize;
-
-      // Persist sidebar size to localStorage
-      saveSidebarSize(currentPanelSize);
+    if (currentPanelSize) {
+      notifySidebarResize(currentPanelSize);
     }
-  }, [recordedSidebarSizeRef]);
+  }, [notifySidebarResize]);
 
   // Keep persisted sidebar size up-to-date without polling.
   useEffect(() => {
