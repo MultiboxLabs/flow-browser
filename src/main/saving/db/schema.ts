@@ -71,3 +71,20 @@ export const recentlyClosed = sqliteTable(
 
 export type RecentlyClosedRow = typeof recentlyClosed.$inferSelect;
 export type RecentlyClosedInsert = typeof recentlyClosed.$inferInsert;
+
+// --- Pinned Tabs Table ---
+
+export const pinnedTabs = sqliteTable(
+  "pinned_tabs",
+  {
+    uniqueId: text("unique_id").primaryKey(),
+    profileId: text("profile_id").notNull(),
+    defaultUrl: text("default_url").notNull(),
+    faviconUrl: text("favicon_url"),
+    position: integer("position").notNull()
+  },
+  (table) => [index("idx_pinned_tabs_profile_id").on(table.profileId)]
+);
+
+export type PinnedTabRow = typeof pinnedTabs.$inferSelect;
+export type PinnedTabInsert = typeof pinnedTabs.$inferInsert;
