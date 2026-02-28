@@ -98,7 +98,10 @@ function getWindowTabsData(window: BrowserWindow) {
   const windowProfiles: string[] = [];
   const windowSpaces: string[] = [];
 
-  for (const tab of visibleTabs) {
+  // Build space/profile sets from ALL tabs (including ephemeral) so that
+  // focused/active tab maps include spaces whose only tab is ephemeral.
+  // The `tabDatas` array (sidebar tab list) still uses `visibleTabs` above.
+  for (const tab of tabs) {
     if (!windowProfiles.includes(tab.profileId)) {
       windowProfiles.push(tab.profileId);
     }
