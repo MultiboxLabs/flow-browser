@@ -144,7 +144,7 @@ export function PinnedTabButton({
         const targetIndex = pinnedTabs.findIndex((pt) => pt.uniqueId === pinnedTab.uniqueId);
         let newPosition: number;
         if (edge === "left") {
-          newPosition = targetIndex > 0 ? targetIndex - 0.5 : 0;
+          newPosition = targetIndex - 0.5;
         } else {
           newPosition = targetIndex + 0.5;
         }
