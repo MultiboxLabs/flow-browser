@@ -92,7 +92,7 @@ export function PinGridCarousel() {
   return (
     <div
       ref={scrollContainerRef}
-      className={cn("shrink-0", "flex overflow-x-hidden overflow-y-hidden", "[&::-webkit-scrollbar]:hidden")}
+      className={cn("shrink-0", "flex overflow-x-hidden", "[&::-webkit-scrollbar]:hidden")}
       style={{ scrollbarWidth: "none" }}
     >
       {pages.map((page) => (
