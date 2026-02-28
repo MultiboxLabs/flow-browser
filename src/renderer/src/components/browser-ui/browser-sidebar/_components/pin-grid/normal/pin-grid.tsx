@@ -89,7 +89,16 @@ export function PinGrid() {
   return (
     <div ref={dropRef}>
       <SidebarScrollArea className="max-h-40">
-        <div ref={ref} className={cn("grid gap-2", gridColumnClass)}>
+        <div
+          ref={ref}
+          className={cn(
+            "grid gap-2 transition-colors duration-150",
+            gridColumnClass,
+            // When dragging a tab over the pin grid that already has pins,
+            // show a subtle background highlight as a visual drop hint.
+            isDragOver && amountOfPinnedTabs > 0 && "rounded-xl bg-white/10 dark:bg-white/5"
+          )}
+        >
           {amountOfPinnedTabs === 0 ? (
             <PinGridEmptyState isDragOver={isDragOver} />
           ) : (
@@ -122,10 +131,10 @@ function PinGridEmptyState({ isDragOver }: { isDragOver: boolean }) {
         "transition-colors duration-150",
         isDragOver
           ? "border-white/40 bg-white/10 dark:border-white/30 dark:bg-white/5"
-          : "border-black/10 dark:border-white/10"
+          : "border-black/20 dark:border-white/20"
       )}
     >
-      <span className="text-xs text-black/30 dark:text-white/30 select-none">Drag tabs here to pin</span>
+      <span className="text-xs text-black/50 dark:text-white/50 select-none">Drag tabs here to pin</span>
     </div>
   );
 }
