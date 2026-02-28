@@ -1,7 +1,7 @@
 import { useFloatingSidebarTrigger } from "@/components/browser-ui/browser-sidebar/floating-sidebar-trigger";
 import { useSettings } from "@/components/providers/settings-provider";
 import { generateUUID } from "@/lib/utils";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useMount } from "react-use";
 
 // Configuration //
@@ -161,10 +161,12 @@ export function BrowserSidebarProvider({ children, hasSidebar = true }: BrowserS
   // For popup windows (hasSidebar=false), the sidebar is never made visible.
   const [isVisible, setVisible] = useState(false);
   const hasFirstRenderedRef = useRef(false);
-  if (hasSidebar && !hasFirstRenderedRef.current && attachedDirectionSetting) {
-    hasFirstRenderedRef.current = true;
-    setVisible(true);
-  }
+  useLayoutEffect(() => {
+    if (hasSidebar && !hasFirstRenderedRef.current && attachedDirectionSetting) {
+      hasFirstRenderedRef.current = true;
+      setVisible(true);
+    }
+  }, [hasSidebar, attachedDirectionSetting]);
 
   // Floating Sidebar //
   const isFloating = useFloatingSidebarTrigger(attachedDirectionRef, recordedSidebarSizeRef);

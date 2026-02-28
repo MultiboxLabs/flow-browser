@@ -214,7 +214,7 @@ function FullscreenGuard({ children }: { children: React.ReactNode }) {
   // }
   useEffect(() => {
     setForceFloating(isFullscreen);
-  });
+  }, [isFullscreen, setForceFloating]);
   return <>{children}</>;
 }
 

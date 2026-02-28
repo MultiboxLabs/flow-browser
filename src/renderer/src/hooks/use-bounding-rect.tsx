@@ -150,11 +150,6 @@ export function useBoundingRect<T extends HTMLElement>(
   }, [ref, start]);
 
   // ---- portal offset adjustment ----
-  const pxRef = useRef(portalX);
-  const pyRef = useRef(portalY);
-  pxRef.current = portalX;
-  pyRef.current = portalY;
-
   // Recompute the final rect only when `rect`, `portalX`, or `portalY` change.
   const finalRect = rect
     ? new DOMRect(rect.x + (portalX ?? 0), rect.y + (portalY ?? 0), rect.width, rect.height)

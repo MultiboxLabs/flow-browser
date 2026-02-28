@@ -11,7 +11,6 @@ import {
   useRef,
   useState
 } from "react";
-import { flushSync } from "react-dom";
 
 /**
  * Custom hook that provides a stable callback ref which sets state when
@@ -265,13 +264,19 @@ export function PixelBasedResizablePanel({
       // Keep the pixel width locked - don't let it stretch
       applyPixelWidth(currentSizePixelsRef.current);
 
-      // Update panel group size state FIRST so constraints are correct
-      flushSync(() => setPanelGroupSize(newGroupSize));
+      // Move state update + resize out of ResizeObserver timing to avoid
+      // flushSync inside a layout callback (React anti-pattern).
+      requestAnimationFrame(() => {
+        if (!panelRef.current || currentSizePixelsRef.current === undefined) return;
 
-      // Then maintain the pixel size by resizing to the new percentage (for library state)
-      panelRef.current.resize(pixelsToPercentage(currentSizePixelsRef.current, newGroupSize));
+        // Update panel group size state so constraints are correct
+        setPanelGroupSize(newGroupSize);
 
-      isResizingFromObserverRef.current = false;
+        // Then maintain the pixel size by resizing to the new percentage (for library state)
+        panelRef.current.resize(pixelsToPercentage(currentSizePixelsRef.current, newGroupSize));
+
+        isResizingFromObserverRef.current = false;
+      });
     });
 
     resizeObserver.observe(panelGroupElement);
