@@ -356,9 +356,17 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
   }, [getFocusedTab, currentSpace]);
 
   const addressUrl = useMemo(() => {
-    if (!focusedTab) return "";
+    let currentURL: string;
 
-    const currentURL = focusedTab.url;
+    if (focusedTab) {
+      currentURL = focusedTab.url;
+    } else if (currentSpace && tabsData?.focusedTabUrls[currentSpace.id]) {
+      // Focused tab is ephemeral (not in tabsData.tabs) — use the URL
+      // sent by the main process which includes all tabs.
+      currentURL = tabsData.focusedTabUrls[currentSpace.id];
+    } else {
+      return "";
+    }
 
     const transformedUrl = transformUrl(currentURL);
     if (transformedUrl === null) {
@@ -370,7 +378,7 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
         return "";
       }
     }
-  }, [focusedTab]);
+  }, [focusedTab, currentSpace, tabsData]);
 
   const groupsContextValue = useMemo(
     () => ({
