@@ -75,6 +75,10 @@ export interface TabCreationOptions {
   asleep?: boolean;
   position?: number;
 
+  // When true, the tab will not be persisted to the database.
+  // Used for pinned-tab-associated tabs that should not survive across sessions.
+  ephemeral?: boolean;
+
   // Old States to be restored
   title?: string;
   faviconURL?: string;
@@ -152,6 +156,8 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public createdAt: number;
   public lastActiveAt: number;
   public position: number;
+  /** When true, this tab is not saved to the database and will not survive app restart. */
+  public ephemeral: boolean;
 
   // Content properties (from WebContents)
   public title: string = "New Tab";
@@ -216,11 +222,13 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       faviconURL,
       navHistory = [],
       navHistoryIndex,
-      uniqueId
+      uniqueId,
+      ephemeral = false
     } = options;
 
     this._webContentsViewOptions = webContentsViewOptions;
     this.uniqueId = uniqueId || generateID();
+    this.ephemeral = ephemeral;
 
     // Stable counter-based ID (independent of webContents.id)
     this.id = nextTabId++;
