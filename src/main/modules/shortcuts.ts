@@ -80,6 +80,12 @@ const typedShortcuts = [
     name: "Toggle Sidebar",
     shortcut: "CommandOrControl+S",
     category: "Browser"
+  },
+  {
+    id: "tab.findInPage",
+    name: "Find in Page",
+    shortcut: "CommandOrControl+F",
+    category: "Tab"
   }
 ] as const satisfies ShortcutAction[];
 

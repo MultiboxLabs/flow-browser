@@ -35,6 +35,7 @@ import { FlowTabsAPI } from "~/flow/interfaces/browser/tabs";
 import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
+import { FlowFindInPageAPI } from "~/flow/interfaces/browser/find-in-page";
 import type {
   AssertCredentialErrorCodes,
   AssertCredentialResult,
@@ -713,6 +714,19 @@ const omniboxAPI: FlowOmniboxAPI = {
   }
 };
 
+// FIND IN PAGE API //
+const findInPageAPI: FlowFindInPageAPI = {
+  find: async (text: string, options?: { forward?: boolean; findNext?: boolean }) => {
+    return ipcRenderer.invoke("find-in-page:find", text, options);
+  },
+  stop: (action: "clearSelection" | "keepSelection" | "activateSelection") => {
+    return ipcRenderer.send("find-in-page:stop", action);
+  },
+  onToggle: (callback: () => void) => {
+    return listenOnIPCChannel("find-in-page:toggle", callback);
+  }
+};
+
 // SETTINGS API //
 const settingsAPI: FlowSettingsAPI = {
   getSetting: async (settingId: string) => {
@@ -832,6 +846,7 @@ const flowAPI: typeof flow = {
   }),
   omnibox: wrapAPI(omniboxAPI, "browser"),
   newTab: wrapAPI(newTabAPI, "browser"),
+  findInPage: wrapAPI(findInPageAPI, "browser"),
 
   // Session APIs
   profiles: wrapAPI(profilesAPI, "session", {
