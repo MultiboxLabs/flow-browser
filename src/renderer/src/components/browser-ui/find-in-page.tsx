@@ -14,7 +14,24 @@ function FindInPageBar({ onClose }: { onClose: () => void }) {
   queryRef.current = query;
 
   useEffect(() => {
-    setTimeout(() => inputRef.current?.focus(), 50);
+    const el = inputRef.current;
+    if (!el) return;
+
+    // The portal's webContents needs a moment to receive Electron-level
+    // focus (via autoFocus on PortalComponent). Once it does, calling
+    // .focus() on the DOM element will work. Use the portal window's own
+    // rAF to align with its paint cycle.
+    const win = el.ownerDocument.defaultView ?? window;
+    let inner: number;
+    const outer = win.requestAnimationFrame(() => {
+      inner = win.requestAnimationFrame(() => {
+        el.focus();
+      });
+    });
+    return () => {
+      win.cancelAnimationFrame(outer);
+      if (inner !== undefined) win.cancelAnimationFrame(inner);
+    };
   }, []);
 
   useEffect(() => {
@@ -188,6 +205,7 @@ export function FindInPage() {
   return (
     <PortalComponent
       visible={visible}
+      autoFocus={visible}
       zIndex={ViewLayer.OVERLAY}
       className="absolute"
       style={{

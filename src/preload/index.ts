@@ -534,6 +534,9 @@ const interfaceAPI: FlowInterfaceAPI = {
   setComponentWindowVisible: (componentId: string, visible: boolean) => {
     return ipcRenderer.send("interface:set-component-window-visible", componentId, visible);
   },
+  focusComponentWindow: (componentId: string) => {
+    return ipcRenderer.send("interface:focus-component-window", componentId);
+  },
 
   minimizeWindow: () => {
     return ipcRenderer.send("interface:minimize-window");
