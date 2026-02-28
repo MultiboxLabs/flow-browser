@@ -8,11 +8,27 @@ import { useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import { NavigationControls, NavButton } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
 import { PinGridGate } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/gate";
-import { Settings, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SpaceSwitcher } from "@/components/browser-ui/browser-sidebar/_components/space-switcher";
 import { SpacePagesCarousel } from "@/components/browser-ui/browser-sidebar/_components/space-pages-carousel";
 import { BrowserActionList } from "@/components/browser-ui/browser-sidebar/_components/browser-action-list";
+
+function SidebarIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM9 3v18" />
+    </svg>
+  );
+}
 
 export function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
   const { isAnimating, setVisible, mode } = useBrowserSidebar();
@@ -31,19 +47,7 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
             <SidebarWindowControlsMacOS offset={variant === "floating" ? 13 : 7} isAnimating={isAnimating} />
           )}
           <NavButton
-            icon={
-              mode.startsWith("attached") ? (
-                direction === "left" ? (
-                  <PanelLeftClose strokeWidth={2} className="size-4" />
-                ) : (
-                  <PanelRightClose strokeWidth={2} className="size-4" />
-                )
-              ) : direction === "left" ? (
-                <PanelLeftOpen strokeWidth={2} className="size-4" />
-              ) : (
-                <PanelRightOpen strokeWidth={2} className="size-4" />
-              )
-            }
+            icon={<SidebarIcon className="size-4" />}
             onClick={() => setVisible(!mode.startsWith("attached"))}
           />
         </div>
