@@ -20,7 +20,7 @@ import { pinnedTabsController } from "@/controllers/pinned-tabs-controller";
 tabPersistenceManager.start();
 
 // Load pinned tabs from database into memory
-pinnedTabsController.loadAll();
+await pinnedTabsController.loadAll();
 
 // Start cursor edge monitor (detects pointer near window edges for floating sidebar)
 initCursorEdgeMonitor();
