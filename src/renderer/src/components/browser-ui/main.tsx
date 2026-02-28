@@ -61,14 +61,35 @@ interface PresenceSidebarProps {
 export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction, order }: PresenceSidebarProps) {
   const shouldRender = targetSidebarModes.includes(sidebarMode);
   const isFloating = sidebarMode.startsWith("floating");
+
+  // Use variant-specific keys so AnimatePresence can overlap exit/enter
+  // animations during attached↔floating transitions. With a single key,
+  // the component just re-renders and swaps branches, leaving a gap while
+  // the portal sets up. With separate keys, the old sidebar exit-animates
+  // while the new one enters simultaneously.
+  const variantKey = isFloating ? "floating" : "attached";
+
+  // When transitioning between attached and floating in either direction,
+  // skip the entry animation so the new sidebar appears in-place (same
+  // visual position) instead of sliding in from off-screen.
+  const prevModeRef = useRef(sidebarMode);
+  let skipEntryAnimation = false;
+  if (prevModeRef.current !== sidebarMode) {
+    const wasAttached = prevModeRef.current.startsWith("attached");
+    const wasFloating = prevModeRef.current.startsWith("floating");
+    skipEntryAnimation = (wasAttached && isFloating) || (wasFloating && !isFloating);
+    prevModeRef.current = sidebarMode;
+  }
+
   return (
     <AnimatePresence>
       {shouldRender && (
         <BrowserSidebar
-          key="sidebar"
+          key={variantKey}
           direction={direction}
           variant={isFloating ? "floating" : "attached"}
           order={order}
+          skipEntryAnimation={skipEntryAnimation}
         />
       )}
     </AnimatePresence>

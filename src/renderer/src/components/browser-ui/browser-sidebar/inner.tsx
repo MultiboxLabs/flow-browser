@@ -44,7 +44,10 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
       <div className="shrink-0 flex items-center justify-between px-1 pb-2">
         <div className="flex items-center gap-1.5">
           {direction === "left" && platform === "darwin" && (
-            <SidebarWindowControlsMacOS offset={variant === "floating" ? 13 : 7} isAnimating={isAnimating} />
+            <SidebarWindowControlsMacOS
+              offset={variant === "floating" ? 13 : 7}
+              isAnimating={isAnimating || variant === "floating"}
+            />
           )}
           <NavButton
             icon={<SidebarIcon className="size-4" />}

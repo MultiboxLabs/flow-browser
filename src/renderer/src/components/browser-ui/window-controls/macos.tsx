@@ -1,6 +1,11 @@
 import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { useEffect, useRef, useState } from "react";
-import { useMount, useUnmount } from "react-use";
+
+// Module-level generation counter to coordinate concurrent instances.
+// During variant swaps (attached ↔ floating), both old and new instances
+// coexist briefly. The counter ensures only the most recent instance
+// controls visibility and position IPC calls.
+let globalGeneration = 0;
 
 export function SidebarWindowControlsMacOS({
   offset = 0,
@@ -11,6 +16,7 @@ export function SidebarWindowControlsMacOS({
 }) {
   const titlebarRef = useRef<HTMLDivElement>(null);
   const titlebarBounds = useBoundingRect(titlebarRef, { observingWithLoop: isAnimating });
+  const generationRef = useRef(0);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   useEffect(() => {
@@ -29,8 +35,9 @@ export function SidebarWindowControlsMacOS({
     };
   }, []);
 
+  // Position: only update if this is still the latest instance
   useEffect(() => {
-    if (titlebarBounds) {
+    if (titlebarBounds && generationRef.current === globalGeneration) {
       flow.interface.setWindowButtonPosition({
         x: titlebarBounds.left,
         y: titlebarBounds.top - offset
@@ -38,12 +45,25 @@ export function SidebarWindowControlsMacOS({
     }
   }, [titlebarBounds, offset]);
 
-  useMount(() => {
+  // Visibility: claim ownership on mount, release only if still the latest on unmount.
+  // Uses rAF to defer the unmount hide call, so the new instance's mount effect
+  // (which runs after the old instance's cleanup) has a chance to bump the generation first.
+  useEffect(() => {
+    globalGeneration++;
+    generationRef.current = globalGeneration;
     flow.interface.setWindowButtonVisibility(true);
-  });
-  useUnmount(() => {
-    flow.interface.setWindowButtonVisibility(false);
-  });
+
+    const myGeneration = globalGeneration;
+    return () => {
+      // Defer the hide call: by the time rAF fires, if a new instance has mounted,
+      // globalGeneration will have been bumped and we skip the hide.
+      requestAnimationFrame(() => {
+        if (globalGeneration === myGeneration) {
+          flow.interface.setWindowButtonVisibility(false);
+        }
+      });
+    };
+  }, []);
 
   if (isFullscreen) return null;
 

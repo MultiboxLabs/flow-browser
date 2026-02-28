@@ -18,48 +18,104 @@ const SIDEBAR_ANIMATE_CLASS = "duration-100 ease-in-out";
 export function BrowserSidebar({
   direction,
   variant,
-  order
+  order,
+  skipEntryAnimation = false
 }: {
   direction: AttachedDirection;
   variant: SidebarVariant;
   order: number;
+  skipEntryAnimation?: boolean;
 }) {
   const isFloating = variant === "floating";
 
-  const { isVisible, startAnimation, stopAnimation, recordedSidebarSizeRef, notifySidebarResize } = useBrowserSidebar();
+  const { isVisible, startAnimation, stopAnimation, recordedSidebarSizeRef, notifySidebarResize, mode } =
+    useBrowserSidebar();
   const { topbarHeight } = useAdaptiveTopbar();
 
   const panelRef = useRef<ImperativeResizablePanelWrapperHandle>(null);
 
-  // Animation Readiness //
-  // Ensure the browser paints the initial off-screen position before enabling
-  // the CSS transition. For portal windows (separate WebContentsViews), the
-  // double-rAF technique is unreliable because rAF timing may not align with
-  // the portal's paint cycle. Instead, we force a synchronous reflow on the
-  // animated element to guarantee the off-screen layout is computed, then
-  // wait a single frame for it to be painted.
-  const animatedRef = useRef<HTMLDivElement>(null);
-  const [isAnimationReady, setAnimationReady] = useState(false);
-  useLayoutEffect(() => {
-    if (animatedRef.current) {
-      void animatedRef.current.getBoundingClientRect();
-    }
-    const rafId = requestAnimationFrame(() => {
-      setAnimationReady(true);
-    });
-    return () => cancelAnimationFrame(rafId);
-  }, []);
-  const currentlyVisible = isVisible && isAnimationReady;
-
-  // AnimatedPresence Controller (from motion/react) //
+  // AnimatePresence Controller (from motion/react) //
+  // Declared early because isPresent is used in the animation readiness gate.
   const [isPresent, safeToRemove] = usePresence();
   const removingRef = useRef(false);
 
+  // Animation Readiness //
+  // Ensure the browser paints the initial off-screen position before enabling
+  // the CSS transition. For portal windows (separate WebContentsViews), we
+  // must use the *portal's* requestAnimationFrame — the main window's rAF
+  // does not align with the portal's paint cycle, which can cause the
+  // transition to have no "from" state (sidebar pops in with no animation).
+  // We force a synchronous reflow on the animated element, then double-rAF
+  // on the element's own window to guarantee the off-screen layout is
+  // painted before enabling the transition.
+  //
+  // When skipEntryAnimation is true (attached→floating transition), the
+  // sidebar should appear in-place instantly — no slide-in needed.
+  //
+  // isPresent is included in the dependency array so this effect re-runs
+  // when AnimatePresence re-uses the same component instance (e.g. the
+  // user hovers away then re-hovers before the exit finishes). Without
+  // this, isAnimationReady stays true from the first entry and the
+  // re-entry pops in with no slide animation.
+  const animatedRef = useRef<HTMLDivElement>(null);
+  const [isAnimationReady, setAnimationReady] = useState(skipEntryAnimation);
+  useLayoutEffect(() => {
+    // During exit, leave isAnimationReady untouched so the slide-out
+    // transition can finish naturally.
+    if (!isPresent) return;
+
+    if (skipEntryAnimation) {
+      setAnimationReady(true);
+      return;
+    }
+
+    // Reset for fresh entry or re-entry (same instance reused by AnimatePresence).
+    setAnimationReady(false);
+
+    const el = animatedRef.current;
+    if (el) {
+      void el.getBoundingClientRect(); // force reflow in the portal's document
+    }
+    // Use the element's owning window — critical for portal windows
+    const win = el?.ownerDocument?.defaultView ?? window;
+    let innerRafId: number;
+    // Double-rAF: first frame paints the off-screen position,
+    // second frame is safe to enable the transition.
+    const outerRafId = win.requestAnimationFrame(() => {
+      innerRafId = win.requestAnimationFrame(() => {
+        setAnimationReady(true);
+      });
+    });
+    return () => {
+      win.cancelAnimationFrame(outerRafId);
+      if (innerRafId !== undefined) win.cancelAnimationFrame(innerRafId);
+    };
+  }, [skipEntryAnimation, isPresent]);
+
+  // Combine all visibility signals.
+  // For attached sidebars, include isPresent so AnimatePresence exit triggers
+  // the collapse animation (needed during attached→floating where the context
+  // isVisible stays true because isFloating keeps it true).
+  // For floating sidebars, do NOT include isPresent — the floating sidebar's
+  // exit is either instant (→attached: just disappear, attached takes over)
+  // or driven by isVisible going false (→hidden: slide out naturally).
+  const currentlyVisible = isFloating ? isVisible && isAnimationReady : isVisible && isAnimationReady && isPresent;
+
   useEffect(() => {
-    // Remove from DOM 150ms after being removed from React
+    // Remove from DOM after being removed from React
     if (!isPresent) {
       if (removingRef.current) return;
       removingRef.current = true;
+
+      // Attached ↔ Floating: the other variant takes over in-place,
+      // so skip the exit animation and remove immediately.
+      const isSwappingVariants =
+        (isFloating && mode.startsWith("attached")) || (!isFloating && mode.startsWith("floating"));
+      if (isSwappingVariants) {
+        safeToRemove();
+        return;
+      }
+
       const animId = startAnimation();
       setTimeout(() => {
         if (removingRef.current) {
@@ -70,10 +126,13 @@ export function BrowserSidebar({
     } else {
       removingRef.current = false;
     }
-  }, [isPresent, safeToRemove, startAnimation, stopAnimation]);
+  }, [isPresent, safeToRemove, startAnimation, stopAnimation, isFloating, mode]);
 
   useMount(() => {
     // Register animation as started when the component is mounted, and wait until animation is complete.
+    // Skip when entry animation is skipped (attached→floating transition) — the sidebar
+    // appears in-place and the main process should snap bounds, not interpolate.
+    if (skipEntryAnimation) return;
     const animId = startAnimation();
     setTimeout(() => {
       stopAnimation(animId);

@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo } from "react";
 import { useUnmount } from "react-use";
+import { copyStylesToDocument } from "@/hooks/use-copy-styles";
 
 const MAX_IDLE_PORTALS = 10;
 const MIN_IDLE_PORTALS = 5;
@@ -89,9 +90,6 @@ function createPortal() {
   }
 
   // Reset any default margins/paddings and suppress scrollbars.
-  // NOTE: Do NOT inject <style> tags here — useCopyStyles() removes any
-  // portal <style>/<link> that doesn't match the main document. Scrollbar
-  // hiding rules live in main.css so they get copied automatically.
   const htmlStyle = containerWin.document.documentElement.style;
   htmlStyle.overflow = "hidden";
 
@@ -99,6 +97,12 @@ function createPortal() {
   bodyStyle.margin = "0";
   bodyStyle.padding = "0";
   bodyStyle.overflow = "hidden";
+
+  // Pre-warm: copy all Tailwind / app styles from the main document into
+  // the portal immediately so the very first render already has correct
+  // styles (dark mode, translate-x-full, etc.). useCopyStyles() in the
+  // React tree will later attach a MutationObserver to keep them in sync.
+  copyStylesToDocument(containerWin.document);
 
   const portal: Portal = {
     id: portalId,
