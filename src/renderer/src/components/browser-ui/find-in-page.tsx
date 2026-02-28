@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { ChevronUp, ChevronDown, X } from "lucide-react";
 import { PortalComponent } from "@/components/portal/portal";
@@ -92,7 +92,7 @@ function FindInPageBar({
         )}
       />
 
-      <span className="text-xs text-white/50 min-w-[4rem] text-center select-none tabular-nums">
+      <span className="text-xs text-white/50 min-w-16 text-center select-none tabular-nums">
         {query ? `${activeMatch} / ${totalMatches}` : ""}
       </span>
 
@@ -209,19 +209,15 @@ const TabFindInPage = memo(function TabFindInPage({
       className="fixed"
       style={portalStyle}
     >
-      <AnimatePresence>
-        {isFocused && (
-          <FindInPageBar
-            query={query}
-            activeMatch={activeMatch}
-            totalMatches={totalMatches}
-            onQueryChange={handleQueryChange}
-            onFindNext={handleFindNext}
-            onFindPrevious={handleFindPrevious}
-            onClose={handleClose}
-          />
-        )}
-      </AnimatePresence>
+      <FindInPageBar
+        query={query}
+        activeMatch={activeMatch}
+        totalMatches={totalMatches}
+        onQueryChange={handleQueryChange}
+        onFindNext={handleFindNext}
+        onFindPrevious={handleFindPrevious}
+        onClose={handleClose}
+      />
     </PortalComponent>
   );
 });
