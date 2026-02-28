@@ -83,6 +83,10 @@ class SpacesController extends TypedEventEmitter<SpacesControllerEvents> {
     this.cache.set(spaceId, spaceData);
   }
 
+  /**
+   * Synchronous cache lookup for a space's data.
+   * Returns undefined if the space is not in the cache.
+   */
   public getFromCache(spaceId: string): SpaceData | undefined {
     return this.cache.get(spaceId);
   }
