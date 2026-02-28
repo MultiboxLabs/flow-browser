@@ -20,7 +20,7 @@ interface PinGridProps {
 
 export function PinGrid({ profileId }: PinGridProps) {
   const [ref, { width }] = useMeasure<HTMLDivElement>();
-  const dropRef = useRef<HTMLDivElement>(null);
+  const gridDropRef = useRef<HTMLDivElement>(null);
   const { getPinnedTabs, createFromTab, click, doubleClick, reorder, showContextMenu } = usePinnedTabs();
   const focusedTabId = useFocusedTabId();
 
@@ -31,10 +31,22 @@ export function PinGrid({ profileId }: PinGridProps) {
   const amountOfPinnedTabs = pinnedTabs.length;
 
   // Drop target: accept tab drags to create pinned tabs
+  // The drop ref is on the grid div (inside SidebarScrollArea) rather than
+  // wrapping SidebarScrollArea, so that SidebarScrollArea remains a direct
+  // flex/block child with proper height resolution for its Viewport.
   const [isDragOver, setIsDragOver] = useState(false);
 
+  // Combine the measure ref and the drop ref onto the same element
+  const setGridRefs = useCallback(
+    (el: HTMLDivElement | null) => {
+      ref(el as HTMLDivElement);
+      (gridDropRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+    },
+    [ref]
+  );
+
   useEffect(() => {
-    const el = dropRef.current;
+    const el = gridDropRef.current;
     if (!el) return;
 
     return dropTargetForElements({
@@ -101,39 +113,37 @@ export function PinGrid({ profileId }: PinGridProps) {
   };
 
   return (
-    <div ref={dropRef}>
-      <SidebarScrollArea className="max-h-40">
-        <div
-          ref={ref}
-          className={cn(
-            "grid gap-2 transition-colors duration-150",
-            gridColumnClass,
-            // When dragging a tab over the pin grid that already has pins,
-            // show a subtle background highlight as a visual drop hint.
-            isDragOver && amountOfPinnedTabs > 0 && "rounded-xl bg-white/10 dark:bg-white/5"
-          )}
-        >
-          {amountOfPinnedTabs === 0 ? (
-            <PinGridEmptyState isDragOver={isDragOver} />
-          ) : (
-            pinnedTabs.map((pinnedTab) => (
-              <PinnedTabButton
-                key={pinnedTab.uniqueId}
-                pinnedTab={pinnedTab}
-                profileId={profileId}
-                isActive={pinnedTab.associatedTabId !== null && pinnedTab.associatedTabId === focusedTabId}
-                onClick={() => click(pinnedTab.uniqueId)}
-                onDoubleClick={() => doubleClick(pinnedTab.uniqueId)}
-                onContextMenu={() => showContextMenu(pinnedTab.uniqueId)}
-                onReorder={handleReorder}
-                onCreateFromTab={handleCreateFromTab}
-                pinnedTabs={pinnedTabs}
-              />
-            ))
-          )}
-        </div>
-      </SidebarScrollArea>
-    </div>
+    <SidebarScrollArea className="max-h-40">
+      <div
+        ref={setGridRefs}
+        className={cn(
+          "grid gap-2 transition-colors duration-150",
+          gridColumnClass,
+          // When dragging a tab over the pin grid that already has pins,
+          // show a subtle background highlight as a visual drop hint.
+          isDragOver && amountOfPinnedTabs > 0 && "rounded-xl bg-white/10 dark:bg-white/5"
+        )}
+      >
+        {amountOfPinnedTabs === 0 ? (
+          <PinGridEmptyState isDragOver={isDragOver} />
+        ) : (
+          pinnedTabs.map((pinnedTab) => (
+            <PinnedTabButton
+              key={pinnedTab.uniqueId}
+              pinnedTab={pinnedTab}
+              profileId={profileId}
+              isActive={pinnedTab.associatedTabId !== null && pinnedTab.associatedTabId === focusedTabId}
+              onClick={() => click(pinnedTab.uniqueId)}
+              onDoubleClick={() => doubleClick(pinnedTab.uniqueId)}
+              onContextMenu={() => showContextMenu(pinnedTab.uniqueId)}
+              onReorder={handleReorder}
+              onCreateFromTab={handleCreateFromTab}
+              pinnedTabs={pinnedTabs}
+            />
+          ))
+        )}
+      </div>
+    </SidebarScrollArea>
   );
 }
 
