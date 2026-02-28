@@ -54,9 +54,10 @@ export function createTabContextMenu(
         const sourceTab = await tabsController.createTab(
           overrideWindow ? overrideWindow.id : window.id,
           profileId,
-          spaceId
+          spaceId,
+          undefined,
+          { url }
         );
-        sourceTab.loadURL(url);
         tabsController.setActiveTab(sourceTab);
       };
 

@@ -140,10 +140,9 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
         const windowId = tabDetails.windowId;
         const window = windowId ? browserWindowsController.getWindowById(windowId) : undefined;
 
-        const tab = await tabsController.createTab(window?.id, profileId, undefined);
-        if (tabDetails.url) {
-          tab.loadURL(tabDetails.url);
-        }
+        const tab = await tabsController.createTab(window?.id, profileId, undefined, undefined, {
+          url: tabDetails.url
+        });
         if (tabDetails.active) {
           tabsController.setActiveTab(tab);
         }
