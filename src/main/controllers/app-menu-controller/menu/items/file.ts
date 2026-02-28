@@ -27,6 +27,25 @@ export const createFileMenu = (): MenuItemConstructorOptions => ({
       type: "separator"
     },
     {
+      label: "Toggle Command Palette",
+      accelerator: getCurrentShortcut("navigation.toggleCommandPalette"),
+      click: () => {
+        const window = getFocusedBrowserWindow();
+        if (!window) return;
+        const omnibox = window.omnibox;
+        if (omnibox.isVisible()) {
+          omnibox.hide();
+        } else {
+          omnibox.setBounds(null);
+          omnibox.loadInterface(null);
+          omnibox.show();
+        }
+      }
+    },
+    {
+      type: "separator"
+    },
+    {
       label: "Close Window",
       accelerator: getCurrentShortcut("browser.closeWindow"),
       click: () => {

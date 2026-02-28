@@ -55,6 +55,12 @@ const typedShortcuts = [
     shortcut: "CommandOrControl+Right",
     category: "Navigation"
   },
+  {
+    id: "navigation.toggleCommandPalette",
+    name: "Toggle Command Palette",
+    shortcut: "CommandOrControl+L",
+    category: "Navigation"
+  },
 
   // Browser
   {
