@@ -27,8 +27,8 @@ export const createFileMenu = (): MenuItemConstructorOptions => ({
       type: "separator"
     },
     {
-      label: "Focus Command Palette",
-      accelerator: getCurrentShortcut("navigation.focusCommandPalette"),
+      label: "Toggle Command Palette",
+      accelerator: getCurrentShortcut("navigation.toggleCommandPalette"),
       click: () => {
         const window = getFocusedBrowserWindow();
         if (!window) return;
