@@ -14,6 +14,8 @@ interface PinnedTabsContextValue {
   doubleClick: (pinnedTabId: string) => Promise<boolean>;
   /** Remove a pinned tab */
   remove: (pinnedTabId: string) => Promise<boolean>;
+  /** Unpin a tab back to the tab list (removes pin + makes associated tab persistent) */
+  unpinToTabList: (pinnedTabId: string) => Promise<boolean>;
   /** Reorder a pinned tab to a new position */
   reorder: (pinnedTabId: string, newPosition: number) => Promise<boolean>;
   /** Show context menu for a pinned tab */
@@ -77,6 +79,10 @@ export const PinnedTabsProvider = ({ children }: PinnedTabsProviderProps) => {
     return flow.pinnedTabs.remove(pinnedTabId);
   }, []);
 
+  const unpinToTabList = useCallback(async (pinnedTabId: string) => {
+    return flow.pinnedTabs.unpinToTabList(pinnedTabId);
+  }, []);
+
   const reorder = useCallback(async (pinnedTabId: string, newPosition: number) => {
     return flow.pinnedTabs.reorder(pinnedTabId, newPosition);
   }, []);
@@ -93,10 +99,21 @@ export const PinnedTabsProvider = ({ children }: PinnedTabsProviderProps) => {
       click,
       doubleClick,
       remove,
+      unpinToTabList,
       reorder,
       showContextMenu
     }),
-    [pinnedTabsByProfile, getPinnedTabs, createFromTab, click, doubleClick, remove, reorder, showContextMenu]
+    [
+      pinnedTabsByProfile,
+      getPinnedTabs,
+      createFromTab,
+      click,
+      doubleClick,
+      remove,
+      unpinToTabList,
+      reorder,
+      showContextMenu
+    ]
   );
 
   return <PinnedTabsContext.Provider value={contextValue}>{children}</PinnedTabsContext.Provider>;

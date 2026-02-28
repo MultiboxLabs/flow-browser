@@ -41,6 +41,14 @@ export interface FlowPinnedTabsAPI {
   remove: (pinnedTabId: string) => Promise<boolean>;
 
   /**
+   * Unpin a tab back to the tab list.
+   * Removes the pinned tab and makes the associated browser tab persistent
+   * so it reappears in the sidebar.
+   * @param pinnedTabId The unique ID of the pinned tab to unpin
+   */
+  unpinToTabList: (pinnedTabId: string) => Promise<boolean>;
+
+  /**
    * Reorder a pinned tab to a new position.
    * @param pinnedTabId The unique ID of the pinned tab
    * @param newPosition The new position index
