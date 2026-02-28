@@ -14,9 +14,13 @@ import { runOnboardingOrInitialWindow } from "@/app/onboarding";
 import { setupAppLifecycle } from "@/app/lifecycle";
 import { tabPersistenceManager } from "@/saving/tabs";
 import { initCursorEdgeMonitor } from "@/controllers/windows-controller/utils/cursor-edge-monitor";
+import { pinnedTabsController } from "@/controllers/pinned-tabs-controller";
 
 // Start tab persistence flush interval (writes dirty tabs to disk every ~2s)
 tabPersistenceManager.start();
+
+// Load pinned tabs from database into memory
+pinnedTabsController.loadAll();
 
 // Start cursor edge monitor (detects pointer near window edges for floating sidebar)
 initCursorEdgeMonitor();
