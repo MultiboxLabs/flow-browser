@@ -74,6 +74,16 @@ export const createViewMenu = (): MenuItemConstructorOptions => ({
         tabWc.toggleDevTools();
       }
     },
+    {
+      label: "Find in Page",
+      accelerator: getCurrentShortcut("tab.findInPage"),
+      click: () => {
+        const window = getFocusedBrowserWindow();
+        if (window) {
+          window.sendMessageToCoreWebContents("find-in-page:toggle");
+        }
+      }
+    },
     { type: "separator" },
     { role: "resetZoom" },
     { role: "zoomIn" },

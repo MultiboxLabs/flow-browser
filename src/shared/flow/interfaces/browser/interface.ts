@@ -52,6 +52,11 @@ export interface FlowInterfaceAPI {
   setComponentWindowVisible: (componentId: string, visible: boolean) => void;
 
   /**
+   * Focuses a component window's webContents so it receives keyboard input
+   */
+  focusComponentWindow: (componentId: string) => void;
+
+  /**
    * Moves popup window by a specific amount
    */
   moveWindowBy: (x: number, y: number) => void;

@@ -5,12 +5,13 @@ import { useCopyStyles } from "@/hooks/use-copy-styles";
 import { mergeRefs } from "@/lib/merge-refs";
 import { cn } from "@/lib/utils";
 import { ViewLayer } from "~/layers";
-import { createContext, useContext, useMemo, useRef } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 
 interface PortalComponentProps extends React.ComponentProps<"div"> {
   visible?: boolean;
   zIndex?: number;
+  autoFocus?: boolean;
 }
 
 type PortalContextValue = {
@@ -35,6 +36,7 @@ export function usePortalContext() {
 export function PortalComponent({
   visible = true,
   zIndex = ViewLayer.OVERLAY,
+  autoFocus = false,
   className,
   children,
   ref,
@@ -88,6 +90,21 @@ export function PortalComponent({
       console.warn("Failed to set portal visibility:", error);
     }
   }, [portal, visible]);
+
+  // Focus the portal's webContents when visible and autoFocus is enabled
+  const hasAutoFocusedRef = useRef(false);
+  useEffect(() => {
+    if (!portal?.window || portal.window.closed) return;
+    if (!visible || !autoFocus) return;
+    if (hasAutoFocusedRef.current) return;
+
+    hasAutoFocusedRef.current = true;
+    try {
+      flow.interface.focusComponentWindow(portal.id);
+    } catch (error) {
+      console.warn("Failed to focus portal:", error);
+    }
+  }, [portal, visible, autoFocus]);
 
   // Update z-index of the portal
   useMemo(() => {

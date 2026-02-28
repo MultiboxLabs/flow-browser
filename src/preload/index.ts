@@ -35,6 +35,7 @@ import { FlowTabsAPI } from "~/flow/interfaces/browser/tabs";
 import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
+import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/find-in-page";
 import type {
   AssertCredentialErrorCodes,
   AssertCredentialResult,
@@ -533,6 +534,9 @@ const interfaceAPI: FlowInterfaceAPI = {
   setComponentWindowVisible: (componentId: string, visible: boolean) => {
     return ipcRenderer.send("interface:set-component-window-visible", componentId, visible);
   },
+  focusComponentWindow: (componentId: string) => {
+    return ipcRenderer.send("interface:focus-component-window", componentId);
+  },
 
   minimizeWindow: () => {
     return ipcRenderer.send("interface:minimize-window");
@@ -713,6 +717,29 @@ const omniboxAPI: FlowOmniboxAPI = {
   }
 };
 
+// FIND IN PAGE API //
+const findInPageAPI: FlowFindInPageAPI = {
+  find: (text: string, options?: { forward?: boolean; findNext?: boolean }) => {
+    ipcRenderer.send("find-in-page:find", text, options);
+  },
+  stop: (action: "clearSelection" | "keepSelection" | "activateSelection") => {
+    ipcRenderer.send("find-in-page:stop", action);
+  },
+  onResult: (callback: (result: FindInPageResult) => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const wrappedCallback = (_event: any, data: FindInPageResult) => {
+      callback(data);
+    };
+    ipcRenderer.on("find-in-page:result", wrappedCallback);
+    return () => {
+      ipcRenderer.removeListener("find-in-page:result", wrappedCallback);
+    };
+  },
+  onToggle: (callback: () => void) => {
+    return listenOnIPCChannel("find-in-page:toggle", callback);
+  }
+};
+
 // SETTINGS API //
 const settingsAPI: FlowSettingsAPI = {
   getSetting: async (settingId: string) => {
@@ -832,6 +859,7 @@ const flowAPI: typeof flow = {
   }),
   omnibox: wrapAPI(omniboxAPI, "browser"),
   newTab: wrapAPI(newTabAPI, "browser"),
+  findInPage: wrapAPI(findInPageAPI, "browser"),
 
   // Session APIs
   profiles: wrapAPI(profilesAPI, "session", {

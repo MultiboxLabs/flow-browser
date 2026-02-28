@@ -92,11 +92,21 @@ export function initializePortalComponentWindows(browserWindow: BrowserWindow) {
   };
   ipcMain.on("interface:set-component-window-visible", setComponentWindowVisible);
 
+  const focusComponentWindow = (_event: IpcMainEvent, componentId: string) => {
+    const componentView = componentViews[componentId];
+    if (componentView && !componentView.webContents.isDestroyed()) {
+      debugPrint("PORTAL_COMPONENTS", "Focus Portal Window:", componentId);
+      componentView.webContents.focus();
+    }
+  };
+  ipcMain.on("interface:focus-component-window", focusComponentWindow);
+
   // Destroy the component windows
   const destroy = () => {
     ipcMain.off("interface:set-component-window-bounds", setComponentWindowBounds);
     ipcMain.off("interface:set-component-window-z-index", setComponentWindowZIndex);
     ipcMain.off("interface:set-component-window-visible", setComponentWindowVisible);
+    ipcMain.off("interface:focus-component-window", focusComponentWindow);
   };
   return destroy;
 }
