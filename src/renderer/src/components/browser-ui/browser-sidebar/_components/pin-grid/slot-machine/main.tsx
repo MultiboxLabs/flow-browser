@@ -49,7 +49,7 @@ function SlotButton({ faviconUrl, isActive }: { faviconUrl: string; isActive: bo
   return (
     <div
       className={cn(
-        "w-full h-12 rounded-xl overflow-hidden cursor-pointer",
+        "w-full h-12 rounded-xl overflow-hidden",
         "bg-black/10 hover:bg-black/15",
         "dark:bg-white/15 dark:hover:bg-white/20",
         "transition-[background-color,border-color,opacity] duration-100",
