@@ -5,7 +5,7 @@ import { useCopyStyles } from "@/hooks/use-copy-styles";
 import { mergeRefs } from "@/lib/merge-refs";
 import { cn } from "@/lib/utils";
 import { ViewLayer } from "~/layers";
-import { createContext, useContext, useEffect, useMemo, useRef } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 
 interface PortalComponentProps extends React.ComponentProps<"div"> {
@@ -81,7 +81,7 @@ export function PortalComponent({
   }, [children, bounds]);
 
   // Update visibility of the portal
-  useMemo(() => {
+  useLayoutEffect(() => {
     if (!portal?.window || portal.window.closed) return;
 
     try {
@@ -107,7 +107,7 @@ export function PortalComponent({
   }, [portal, visible, autoFocus]);
 
   // Update z-index of the portal
-  useMemo(() => {
+  useLayoutEffect(() => {
     if (!portal?.window || portal.window.closed) return;
 
     try {
@@ -118,7 +118,7 @@ export function PortalComponent({
   }, [portal, zIndex]);
 
   // Update bounds of the portal
-  useMemo(() => {
+  useLayoutEffect(() => {
     if (!portal?.window || portal.window.closed) return;
     if (!bounds) return;
 

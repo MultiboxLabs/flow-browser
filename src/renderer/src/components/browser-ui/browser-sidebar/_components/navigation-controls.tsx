@@ -1,7 +1,7 @@
 import { RefreshCWIcon, RefreshCWIconHandle } from "@/components/icons/refresh-cw";
 import { ArrowLeftIcon, ArrowLeftIconHandle } from "@/components/icons/arrow-left";
 import { ArrowRightIcon, ArrowRightIconHandle } from "@/components/icons/arrow-right";
-import { useFocusedTabId, useFocusedTabLoading } from "@/components/providers/tabs-provider";
+import { useAddressUrl, useFocusedTabId, useFocusedTabLoading } from "@/components/providers/tabs-provider";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { PortalPopover } from "@/components/portal/popover";
 import { PopoverTrigger } from "@/components/ui/popover";
@@ -282,6 +282,7 @@ function StopLoadingButton({ onStop }: { onStop: () => void }) {
 export function NavigationControls() {
   const focusedTabId = useFocusedTabId() ?? undefined;
   const isLoading = useFocusedTabLoading();
+  const addressUrl = useAddressUrl();
 
   const [entries, setEntries] = useState<NavigationEntryWithIndex[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -305,7 +306,7 @@ export function NavigationControls() {
       setEntries(status.navigationHistory.map((entry, index) => ({ ...entry, index })));
       setActiveIndex(status.activeIndex);
     });
-  }, [focusedTabId]);
+  }, [focusedTabId, isLoading, addressUrl]);
 
   const backwardEntries = useMemo(() => entries.slice(0, activeIndex).reverse(), [entries, activeIndex]);
   const forwardEntries = useMemo(() => entries.slice(activeIndex + 1), [entries, activeIndex]);
