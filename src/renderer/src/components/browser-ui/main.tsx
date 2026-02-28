@@ -256,7 +256,11 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
                     order={1}
                   />
                 )}
-                <ResizablePanel id="main" order={2} className={cn("flex-1 h-full py-3", topbarVisible && "pt-0")}>
+                <ResizablePanel
+                  id="main"
+                  order={2}
+                  className={cn("flex-1 h-full py-3 overflow-visible!", topbarVisible && "pt-0")}
+                >
                   <div className="w-full h-full flex items-center justify-center remove-app-drag">
                     {sidebarMode !== "attached-left" ? (
                       <div className="w-3" />
