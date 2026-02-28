@@ -8,6 +8,13 @@
       "when": 1771956412919,
       "tag": "0000_overrated_misty_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1772307807001,
+      "tag": "0001_tough_scream",
+      "breakpoints": true
     }
   ]
 }
