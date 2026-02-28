@@ -96,7 +96,7 @@ export function PinGridCarousel() {
       style={{ scrollbarWidth: "none" }}
     >
       {pages.map((page) => (
-        <div key={page.key} className="min-w-full w-full shrink-0">
+        <div key={page.key} className="min-w-full w-full shrink-0 px-1">
           <PinGrid profileId={page.profileId} />
         </div>
       ))}
