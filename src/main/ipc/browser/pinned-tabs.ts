@@ -42,6 +42,25 @@ tabsController.on("tab-removed", (tab) => {
   pinnedTabsController.onBrowserTabDestroyed(tab.id);
 });
 
+// --- Wire space changes ---
+// When the user switches spaces, move all ephemeral pinned-tab-associated tabs
+// from the same profile into the new space so they remain visible.
+// Pinned tabs are per-profile, not per-space, so their associated tabs should
+// follow the user across spaces within the same profile.
+tabsController.on("current-space-changed", (windowId, newSpaceId) => {
+  // Resolve the profile for the new space (synchronous cache lookup)
+  const space = spacesController.getCached(newSpaceId);
+  if (!space) return;
+
+  const associatedTabIds = pinnedTabsController.getAssociatedTabIdsForProfile(space.profileId);
+  for (const tabId of associatedTabIds) {
+    const tab = tabsController.getTabById(tabId);
+    if (tab && tab.ephemeral && tab.getWindow().id === windowId && tab.spaceId !== newSpaceId) {
+      tab.setSpace(newSpaceId);
+    }
+  }
+});
+
 // --- IPC Handlers ---
 
 /**
@@ -93,6 +112,12 @@ ipcMain.handle("pinned-tabs:click", async (event, pinnedTabId: string) => {
     // Tab is already associated — switch to it
     const tab = tabsController.getTabById(associatedTabId);
     if (tab && !tab.isDestroyed) {
+      // Move ephemeral tab to the current space if it's in a different one
+      // (pinned tabs are per-profile, so the associated tab should follow the user across spaces)
+      const currentSpaceId = window.currentSpaceId;
+      if (currentSpaceId && tab.ephemeral && tab.spaceId !== currentSpaceId) {
+        tab.setSpace(currentSpaceId);
+      }
       tabsController.setActiveTab(tab);
       return true;
     }
@@ -123,23 +148,27 @@ ipcMain.handle("pinned-tabs:double-click", async (event, pinnedTabId: string) =>
   const pinnedTab = pinnedTabsController.getById(pinnedTabId);
   if (!pinnedTab) return false;
 
+  const webContents = event.sender;
+  const window = browserWindowsController.getWindowFromWebContents(webContents);
+  if (!window) return false;
+
   const associatedTabId = pinnedTabsController.getAssociatedTabId(pinnedTabId);
   if (associatedTabId !== null) {
     const tab = tabsController.getTabById(associatedTabId);
     if (tab && !tab.isDestroyed) {
       // Navigate back to defaultUrl
       tab.loadURL(pinnedTab.defaultUrl);
+      // Move ephemeral tab to the current space if needed
+      const currentSpaceId = window.currentSpaceId;
+      if (currentSpaceId && tab.ephemeral && tab.spaceId !== currentSpaceId) {
+        tab.setSpace(currentSpaceId);
+      }
       tabsController.setActiveTab(tab);
       return true;
     }
   }
 
   // No valid associated tab — fall through to click behavior
-  // (re-invoke the click handler logic)
-  const webContents = event.sender;
-  const window = browserWindowsController.getWindowFromWebContents(webContents);
-  if (!window) return false;
-
   const spaceId = await getSpaceForPinnedTab(pinnedTab, window);
   if (!spaceId) return false;
 

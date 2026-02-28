@@ -298,6 +298,20 @@ class PinnedTabsController {
     return this.reverseAssociations.get(tabId) ?? null;
   }
 
+  /**
+   * Get all associated browser tab IDs for pinned tabs belonging to a profile.
+   */
+  getAssociatedTabIdsForProfile(profileId: string): number[] {
+    const result: number[] = [];
+    for (const [pinnedId, tabId] of this.associations) {
+      const pinnedTab = this.pinnedTabs.get(pinnedId);
+      if (pinnedTab && pinnedTab.profileId === profileId) {
+        result.push(tabId);
+      }
+    }
+    return result;
+  }
+
   // --- Internal helpers ---
 
   /**
