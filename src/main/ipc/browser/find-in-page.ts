@@ -15,65 +15,65 @@ function getFocusedTabWebContents(senderWebContents: Electron.WebContents) {
   return tab.webContents;
 }
 
-interface ActiveFindSession {
-  tabWc: WebContents;
-  handler: (event: Electron.Event, result: Electron.Result) => void;
-}
+// Maps tab webContents id → the chrome webContents to forward results to.
+// Updated on every find call so the persistent listener always knows where
+// to send results.
+const resultTarget = new Map<number, WebContents>();
 
-const activeSessions = new Map<number, ActiveFindSession>();
+// Tracks which tab webContents already have a persistent found-in-page
+// listener attached. WeakSet so destroyed webContents are GC'd.
+const listenedTabs = new WeakSet<WebContents>();
 
-function cleanupSession(senderWcId: number) {
-  const session = activeSessions.get(senderWcId);
-  if (session) {
-    session.tabWc.removeListener("found-in-page", session.handler);
-    activeSessions.delete(senderWcId);
-  }
+function ensureFoundInPageListener(tabWc: WebContents) {
+  if (listenedTabs.has(tabWc)) return;
+  listenedTabs.add(tabWc);
+
+  const tabWcId = tabWc.id;
+
+  tabWc.on("found-in-page", (_event, result) => {
+    const target = resultTarget.get(tabWcId);
+    if (!target || target.isDestroyed()) return;
+
+    target.send("find-in-page:result", {
+      activeMatchOrdinal: result.activeMatchOrdinal,
+      matches: result.matches
+    });
+  });
+
+  tabWc.once("destroyed", () => {
+    resultTarget.delete(tabWcId);
+  });
 }
 
 ipcMain.on(
   "find-in-page:find",
   (event, text: string, options?: { forward?: boolean; findNext?: boolean }) => {
-    const wc = getFocusedTabWebContents(event.sender);
-    if (!wc || !text) return;
+    const tabWc = getFocusedTabWebContents(event.sender);
+    if (!tabWc || !text) return;
 
-    const senderId = event.sender.id;
-
-    // Clean up any existing listener before setting up a new one
-    cleanupSession(senderId);
-
-    const handler = (_e: Electron.Event, result: Electron.Result) => {
-      if (event.sender.isDestroyed()) {
-        cleanupSession(senderId);
-        return;
-      }
-      event.sender.send("find-in-page:result", {
-        activeMatchOrdinal: result.activeMatchOrdinal,
-        matches: result.matches
-      });
-    };
-
-    activeSessions.set(senderId, { tabWc: wc, handler });
-    wc.on("found-in-page", handler);
+    resultTarget.set(tabWc.id, event.sender);
+    ensureFoundInPageListener(tabWc);
 
     try {
-      wc.findInPage(text, {
+      tabWc.findInPage(text, {
         forward: options?.forward ?? true,
         findNext: options?.findNext ?? false
       });
     } catch {
-      cleanupSession(senderId);
+      // Tab may have been destroyed between the check and the call
     }
   }
 );
 
 ipcMain.on("find-in-page:stop", (event, action: "clearSelection" | "keepSelection" | "activateSelection") => {
-  const wc = getFocusedTabWebContents(event.sender);
-  if (wc) {
-    try {
-      wc.stopFindInPage(action);
-    } catch {
-      // Tab may have been destroyed
-    }
+  const tabWc = getFocusedTabWebContents(event.sender);
+  if (!tabWc) return;
+
+  resultTarget.delete(tabWc.id);
+
+  try {
+    tabWc.stopFindInPage(action);
+  } catch {
+    // Tab may have been destroyed
   }
-  cleanupSession(event.sender.id);
 });
