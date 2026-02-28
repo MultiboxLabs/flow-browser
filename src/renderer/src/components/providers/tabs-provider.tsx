@@ -390,7 +390,12 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
     }),
     [focusedTab, addressUrl]
   );
-  const focusedTabId = focusedTab?.id ?? null;
+  // Use the raw numeric ID from the main process rather than deriving it
+  // from the resolved TabData object. The focused tab may be ephemeral
+  // (e.g. a pinned tab's associated tab) and therefore absent from
+  // tabsData.tabs / tabById — but its numeric ID is still valid and
+  // needed by the pin grid to detect active state.
+  const focusedTabId = (currentSpace && tabsData?.focusedTabIds[currentSpace.id]) ?? null;
   const isFocusedTabLoading = focusedTab?.isLoading ?? false;
   const isFocusedTabFullscreen = focusedTab?.fullScreen ?? false;
 
