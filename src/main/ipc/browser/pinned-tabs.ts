@@ -233,6 +233,15 @@ ipcMain.on("pinned-tabs:show-context-menu", (event, pinnedTabId: string) => {
     new MenuItem({
       label: "Unpin",
       click: () => {
+        // Destroy the associated ephemeral tab before removing the pin,
+        // so it doesn't remain alive but invisible in the background.
+        const tabId = pinnedTabsController.getAssociatedTabId(pinnedTabId);
+        if (tabId !== null) {
+          const tab = tabsController.getTabById(tabId);
+          if (tab && !tab.isDestroyed) {
+            tab.destroy();
+          }
+        }
         pinnedTabsController.remove(pinnedTabId);
       }
     })

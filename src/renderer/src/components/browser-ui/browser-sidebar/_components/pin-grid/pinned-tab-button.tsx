@@ -143,6 +143,16 @@ export function PinnedTabButton({
     };
   }, [pinnedTab.uniqueId, pinnedTab.position, pinnedTabs, onReorder]);
 
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      // Only handle left-click; right-click is for context menu
+      if (e.button === 0) {
+        onClick();
+      }
+    },
+    [onClick]
+  );
+
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -175,7 +185,7 @@ export function PinnedTabButton({
           isDragging && "opacity-40"
         )}
         style={activeBorderStyle}
-        onClick={onClick}
+        onMouseDown={handleMouseDown}
         onDoubleClick={onDoubleClick}
         onContextMenu={handleContextMenu}
       >
