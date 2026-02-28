@@ -54,7 +54,7 @@ class PinnedTabsController {
    * Load all pinned tabs from the database into memory.
    * Should be called once during app startup.
    */
-  async loadAll(): Promise<void> {
+  loadAll(): void {
     const db = getDb();
     const rows = db.select().from(schema.pinnedTabs).all();
     this.pinnedTabs.clear();
