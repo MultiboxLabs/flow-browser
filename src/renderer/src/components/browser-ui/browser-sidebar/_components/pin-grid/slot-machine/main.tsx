@@ -1,10 +1,80 @@
 import "../pin.css";
 
 import { cn } from "@/lib/utils";
-import { useState, useCallback, useRef } from "react";
-import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useUnmount } from "react-use";
+import { useFaviconColors, type FaviconColors, type RGB } from "@/hooks/use-favicon-color";
+
+/**
+ * Convert RGB to rgba string
+ */
+function rgba(color: RGB | null, opacity: number): string {
+  if (!color) return `rgba(255, 255, 255, ${opacity})`;
+  return `rgba(${color.r}, ${color.g}, ${color.b}, ${opacity})`;
+}
+
+/**
+ * Generate a border gradient using corner colors
+ */
+function generateBorderGradient(colors: FaviconColors, opacity: number): string {
+  const tl = rgba(colors.topLeft, opacity);
+  const tr = rgba(colors.topRight, opacity);
+  const br = rgba(colors.bottomRight, opacity);
+  const bl = rgba(colors.bottomLeft, opacity);
+  return `conic-gradient(from 45deg, ${tr} 0deg, ${br} 90deg, ${bl} 180deg, ${tl} 270deg, ${tr} 360deg)`;
+}
+
+/**
+ * Simple slot button — visual only, no drag-and-drop or context menus.
+ */
+function SlotButton({ faviconUrl, isActive }: { faviconUrl: string; isActive: boolean }) {
+  const faviconColors = useFaviconColors(faviconUrl);
+  const hasColors = faviconColors !== null;
+
+  const activeBorderStyle = useMemo(() => {
+    if (!isActive || !hasColors) return undefined;
+    return {
+      "--gradient-border": generateBorderGradient(faviconColors, 0.6)
+    } as React.CSSProperties;
+  }, [faviconColors, hasColors, isActive]);
+
+  const activeOverlayStyle = useMemo(() => {
+    if (!isActive || !hasColors) return undefined;
+    return {
+      backgroundImage: generateBorderGradient(faviconColors, 0.15)
+    } as React.CSSProperties;
+  }, [faviconColors, hasColors, isActive]);
+
+  return (
+    <div
+      className={cn(
+        "w-full h-12 rounded-xl overflow-hidden cursor-pointer",
+        "bg-black/10 hover:bg-black/15",
+        "dark:bg-white/15 dark:hover:bg-white/20",
+        "transition-[background-color,border-color,opacity] duration-100",
+        "flex items-center justify-center",
+        isActive && !hasColors && "border-2 border-white",
+        isActive && hasColors && "pinned-tab-active-border"
+      )}
+      style={activeBorderStyle}
+    >
+      <div id="overlay-overlay" className={cn("size-full", isActive && "bg-white/80 dark:bg-white/30")}>
+        <div id="overlay" className={cn("size-full", "flex items-center justify-center")} style={activeOverlayStyle}>
+          <div className="relative size-5">
+            <img
+              src={faviconUrl || undefined}
+              className="absolute rounded-sm user-drag-none object-contain overflow-hidden"
+            />
+            <div className="img-container">
+              <img src={faviconUrl || undefined} className="user-drag-none" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const POPULAR_WEBSITES: string[] = [
   "youtube.com",
@@ -145,7 +215,7 @@ export function SlotMachinePinGrid() {
           const isWinner = showWinners && index >= 3 && index <= 5;
 
           return (
-            <PinnedTabButton
+            <SlotButton
               key={index}
               faviconUrl={`https://www.google.com/s2/favicons?domain=${slot.domain}&sz=128`}
               isActive={isWinner}
