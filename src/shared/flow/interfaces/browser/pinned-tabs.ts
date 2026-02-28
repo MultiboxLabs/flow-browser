@@ -19,8 +19,9 @@ export interface FlowPinnedTabsAPI {
    * Create a pinned tab from an existing browser tab.
    * The tab's current URL becomes the pinned tab's defaultUrl.
    * @param tabId The ID of the browser tab to pin
+   * @param position Optional position in the pin grid to insert at
    */
-  createFromTab: (tabId: number) => Promise<PinnedTabData | null>;
+  createFromTab: (tabId: number, position?: number) => Promise<PinnedTabData | null>;
 
   /**
    * Click handler: activate or create the associated browser tab.

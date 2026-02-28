@@ -55,7 +55,7 @@ ipcMain.handle("pinned-tabs:get-data", async () => {
  * Create a pinned tab from an existing browser tab.
  * The tab's current URL becomes the pinned tab's defaultUrl.
  */
-ipcMain.handle("pinned-tabs:create-from-tab", async (_event, tabId: number) => {
+ipcMain.handle("pinned-tabs:create-from-tab", async (_event, tabId: number, position?: number) => {
   const tab = tabsController.getTabById(tabId);
   if (!tab) return null;
 
@@ -63,7 +63,7 @@ ipcMain.handle("pinned-tabs:create-from-tab", async (_event, tabId: number) => {
   if (!url) return null;
 
   const faviconUrl = tab.faviconURL ?? null;
-  const pinnedTab = pinnedTabsController.create(tab.profileId, url, faviconUrl);
+  const pinnedTab = pinnedTabsController.create(tab.profileId, url, faviconUrl, position);
 
   // Mark the tab as ephemeral so it won't be persisted across sessions
   tabsController.makeTabEphemeral(tab.id);

@@ -48,10 +48,16 @@ export function PinGrid() {
       },
       onDragEnter: () => setIsDragOver(true),
       onDragLeave: () => setIsDragOver(false),
-      onDrop: ({ source }) => {
+      onDrop: ({ source, location }) => {
         setIsDragOver(false);
         const data = source.data;
         if (!isTabGroupSource(data)) return;
+
+        // If the drop landed on a child PinnedTabButton (nested drop target),
+        // it already handled the insertion with a specific position — skip here.
+        const targets = location.current.dropTargets;
+        if (targets.length > 1 && targets[0].element !== el) return;
+
         createFromTab(data.primaryTabId);
       }
     });
@@ -63,6 +69,14 @@ export function PinGrid() {
       reorder(pinnedTabId, newPosition);
     },
     [reorder]
+  );
+
+  // Create-from-tab handler (when a browser tab is dropped between pinned tabs)
+  const handleCreateFromTab = useCallback(
+    (tabId: number, position: number) => {
+      createFromTab(tabId, position);
+    },
+    [createFromTab]
   );
 
   // Calculate columns based on container width
@@ -106,11 +120,13 @@ export function PinGrid() {
               <PinnedTabButton
                 key={pinnedTab.uniqueId}
                 pinnedTab={pinnedTab}
+                profileId={profileId}
                 isActive={pinnedTab.associatedTabId !== null && pinnedTab.associatedTabId === focusedTabId}
                 onClick={() => click(pinnedTab.uniqueId)}
                 onDoubleClick={() => doubleClick(pinnedTab.uniqueId)}
                 onContextMenu={() => showContextMenu(pinnedTab.uniqueId)}
                 onReorder={handleReorder}
+                onCreateFromTab={handleCreateFromTab}
                 pinnedTabs={pinnedTabs}
               />
             ))
