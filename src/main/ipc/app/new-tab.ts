@@ -12,8 +12,6 @@ export function openNewTab(window: BrowserWindow) {
     if (omnibox.isVisible()) {
       omnibox.hide();
     } else {
-      omnibox.loadInterface(null);
-      omnibox.setBounds(null);
       omnibox.show();
     }
   } else {

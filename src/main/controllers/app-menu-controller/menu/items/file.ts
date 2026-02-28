@@ -36,8 +36,6 @@ export const createFileMenu = (): MenuItemConstructorOptions => ({
         if (omnibox.isVisible()) {
           omnibox.hide();
         } else {
-          omnibox.setBounds(null);
-          omnibox.loadInterface(null);
           omnibox.show();
         }
       }
