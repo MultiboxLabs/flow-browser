@@ -21,7 +21,7 @@ interface SpaceContentPageProps {
 
 const SpaceContentPage = memo(function SpaceContentPage({ space, moveTab }: SpaceContentPageProps) {
   const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabsGroups();
-  const { getPinnedTabs } = usePinnedTabs();
+  const { getPinnedTabs, unpinToTabList } = usePinnedTabs();
   const isSpaceLight = useMemo(() => hex_is_light(space.bgStartColor || "#000000"), [space.bgStartColor]);
 
   // Build a set of browser tab IDs that are currently associated with pinned tabs.
@@ -72,6 +72,7 @@ const SpaceContentPage = memo(function SpaceContentPage({ space, moveTab }: Spac
                 position={tabGroup.position}
                 groupCount={sortedTabGroups.length}
                 moveTab={moveTab}
+                unpinToTabList={unpinToTabList}
               />
             ))}
           </AnimatePresence>
