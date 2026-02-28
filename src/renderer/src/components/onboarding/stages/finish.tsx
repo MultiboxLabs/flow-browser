@@ -8,7 +8,7 @@ export function OnboardingFinish({ advance }: { advance: OnboardingAdvanceCallba
     <>
       {/* Success Icon */}
       <motion.div
-        className="relative z-10 mb-8"
+        className="relative z-elevated mb-8"
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.8, opacity: 0 }}
@@ -21,7 +21,7 @@ export function OnboardingFinish({ advance }: { advance: OnboardingAdvanceCallba
 
       {/* Ready Badge */}
       <motion.div
-        className="relative z-10 mb-6 px-4 py-1 border border-green-500/50 rounded-full"
+        className="relative z-elevated mb-6 px-4 py-1 border border-green-500/50 rounded-full"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
@@ -32,7 +32,7 @@ export function OnboardingFinish({ advance }: { advance: OnboardingAdvanceCallba
 
       {/* Content */}
       <motion.div
-        className="relative z-10 text-center max-w-2xl px-4"
+        className="relative z-elevated text-center max-w-2xl px-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}

@@ -77,7 +77,7 @@ const Thumbsbar = ({ usePDFSlickStore, isThumbsbarOpen, thumbsRef }: ThumbsbarPr
         {isThumbsbarOpen && (
           <div
             className={clsx(
-              "absolute -left-px top-0 h-full z-10 w-1 transition-all duration-150 ease-in hover:delay-150 hover:duration-150",
+              "absolute -left-px top-0 h-full z-elevated w-1 transition-all duration-150 ease-in hover:delay-150 hover:duration-150",
               {
                 "dark:bg-blue-600 bg-blue-400": isResizing,
                 "bg-transparent hover:dark:bg-blue-600 hover:bg-blue-400": !isResizing

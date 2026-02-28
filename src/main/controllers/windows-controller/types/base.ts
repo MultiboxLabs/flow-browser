@@ -10,6 +10,7 @@ export interface BaseWindowEvents {
 
 export type BaseWindowOptions = {
   showAfterLoad?: boolean;
+  showDelay?: number;
   deferShowUntilAfterLoad?: boolean;
 };
 
@@ -36,7 +37,13 @@ export class BaseWindow<
       this.emit("loaded");
 
       if (options.showAfterLoad) {
-        this.showImmediately();
+        if (options.showDelay) {
+          setTimeout(() => {
+            this.showImmediately();
+          }, options.showDelay);
+        } else {
+          this.showImmediately();
+        }
       }
     });
 

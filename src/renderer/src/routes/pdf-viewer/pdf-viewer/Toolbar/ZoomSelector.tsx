@@ -63,7 +63,7 @@ const ZoomSelector = ({ usePDFSlickStore }: ZoomSelectorProps) => {
           leaveFrom="transform opacity-100 scale-100"
           leaveTo="transform opacity-0 scale-95"
         >
-          <Menu.Items className="absolute right-0 left-0 z-30 mt-2 w-full origin-top-right dark:divide-slate-500 divide-y divide-slate-200 rounded text-left dark:bg-slate-700 bg-white shadow-lg ring-1 dark:ring-white/10 ring-black/5 focus:outline-none">
+          <Menu.Items className="absolute right-0 left-0 z-popover mt-2 w-full origin-top-right dark:divide-slate-500 divide-y divide-slate-200 rounded text-left dark:bg-slate-700 bg-white shadow-lg ring-1 dark:ring-white/10 ring-black/5 focus:outline-none">
             <div className="py-1">
               {Array.from(presets.entries()).map(([value, label]) => (
                 <Menu.Item key={label}>

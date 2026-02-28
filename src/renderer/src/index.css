@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 @plugin "@tailwindcss/typography";
+@import "./css/main.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -58,18 +59,6 @@
 
   --space-background-start: oklch(1 0 0);
   --space-background-end: oklch(1 0 0);
-}
-
-.app-drag {
-  -webkit-app-region: drag;
-}
-
-.remove-app-drag {
-  -webkit-app-region: no-drag;
-}
-
-.user-drag-none {
-  -webkit-user-drag: none;
 }
 
 .dark {
@@ -158,49 +147,4 @@
 
 body {
   background-color: transparent !important;
-}
-
-/* Add these styles to hide scrollbars while allowing scroll */
-/* For Webkit browsers (Chrome, Safari) */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-/* For IE, Edge */
-.no-scrollbar {
-  -ms-overflow-style: none;
-  /* IE and Edge */
-  scrollbar-width: none;
-  /* Firefox */
-}
-
-/* You can optionally add a Firefox-specific rule if needed,
-   but scrollbar-width: none; is generally sufficient. */
-/*
-.no-scrollbar {
-  scrollbar-width: none;
-}
-*/
-
-/* Ensure the element itself is still scrollable */
-.no-scrollbar {
-  overflow: auto; /* Or scroll, depending on your needs */
-}
-
-.dimmed-space-background-start {
-  background: linear-gradient(
-    to bottom right,
-    color-mix(in oklab, var(--space-background-start), black 20%),
-    color-mix(in oklab, var(--space-background-start), black 20%)
-  );
-}
-
-.\*\:dimmed-space-background-start {
-  :is(& > *) {
-    background: linear-gradient(
-      to bottom right,
-      color-mix(in oklab, var(--space-background-start), black 20%),
-      color-mix(in oklab, var(--space-background-start), black 20%)
-    );
-  }
 }

@@ -11,7 +11,7 @@ import type { SpaceData } from "@/controllers/spaces-controller";
 
 // SHARED TYPES //
 import type { SharedExtensionData } from "~/types/extensions";
-import type { WindowTabsData } from "~/types/tabs";
+import type { TabData, WindowTabsData } from "~/types/tabs";
 import type { UpdateStatus } from "~/types/updates";
 import type { WindowState } from "~/flow/types";
 
@@ -427,6 +427,9 @@ const tabsAPI: FlowTabsAPI = {
   onDataUpdated: (callback: (data: WindowTabsData) => void) => {
     return listenOnIPCChannel("tabs:on-data-changed", callback);
   },
+  onTabsContentUpdated: (callback: (tabs: TabData[]) => void) => {
+    return listenOnIPCChannel("tabs:on-tabs-content-updated", callback);
+  },
   switchToTab: async (tabId: number) => {
     return ipcRenderer.invoke("tabs:switch-to-tab", tabId);
   },
@@ -482,6 +485,9 @@ const tabsAPI: FlowTabsAPI = {
 const pageAPI: FlowPageAPI = {
   setPageBounds: (bounds: { x: number; y: number; width: number; height: number }) => {
     return ipcRenderer.send("page:set-bounds", bounds);
+  },
+  setLayoutParams: (params) => {
+    return ipcRenderer.send("page:set-layout-params", params, Date.now());
   }
 };
 
@@ -514,6 +520,9 @@ const interfaceAPI: FlowInterfaceAPI = {
   },
   onToggleSidebar: (callback: () => void) => {
     return listenOnIPCChannel("sidebar:on-toggle", callback);
+  },
+  onCursorAtEdge: (callback: (event: import("~/flow/interfaces/browser/interface").CursorEdgeEvent) => void) => {
+    return listenOnIPCChannel("interface:cursor-at-edge", callback);
   },
   setComponentWindowBounds: (componentId: string, bounds: Electron.Rectangle) => {
     return ipcRenderer.send("interface:set-component-window-bounds", componentId, bounds);

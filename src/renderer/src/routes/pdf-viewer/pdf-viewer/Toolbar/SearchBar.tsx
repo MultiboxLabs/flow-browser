@@ -69,7 +69,7 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
       {isOpen && (
         <div className="absolute top-full mt-2 left-0 w-fit">
           <div
-            className={`h-9 flex items-center justify-between dark:bg-slate-700 bg-slate-100 dark:border-slate-500 border border-slate-300 dark:text-slate-200 text-xs select-none sticky top-0 rounded-sm z-10`}
+            className={`h-9 flex items-center justify-between dark:bg-slate-700 bg-slate-100 dark:border-slate-500 border border-slate-300 dark:text-slate-200 text-xs select-none sticky top-0 rounded-sm z-elevated`}
           >
             <div className="px-1 flex items-center gap-1">
               <input

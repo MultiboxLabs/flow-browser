@@ -17,7 +17,7 @@ const ButtonsBar = ({ usePDFSlickStore, isThumbsbarOpen, tab, setTab }: ButtonsB
   return (
     <div
       className={clsx(
-        "dark:bg-slate-600/70 bg-slate-100/70 z-10 flex flex-col p-1 py-2 space-y-3 items-center dark:border-r-slate-500 border-r border-r-slate-300 shadow-sm transition-all [box-shadow:1px_0_2px_0_rgb(0_0_0_/_0.05)]",
+        "dark:bg-slate-600/70 bg-slate-100/70 z-elevated flex flex-col p-1 py-2 space-y-3 items-center dark:border-r-slate-500 border-r border-r-slate-300 shadow-sm transition-all [box-shadow:1px_0_2px_0_rgb(0_0_0_/_0.05)]",
         {
           "translate-x-0 visible opacity-100": isThumbsbarOpen,
           "-translate-x-full invisible opacity-0": !isThumbsbarOpen

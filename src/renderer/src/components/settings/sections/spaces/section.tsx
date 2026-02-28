@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Plus, GripVertical } from "lucide-react";
 import { SpaceCard } from "./space-card";
+import { UILayer } from "~/layers";
 import { SpaceEditor } from "./space-editor";
 import { CreateSpaceDialog } from "./space-dialogs";
 import type { Space } from "~/flow/interfaces/sessions/spaces";
@@ -268,7 +269,7 @@ function DraggableSpaceCard({ space, activateEdit }: DraggableSpaceCardProps) {
       className="list-none"
       whileDrag={{
         scale: 1.02,
-        zIndex: 10
+        zIndex: UILayer.ELEVATED
       }}
       dragListener={false}
       onDragEnd={() => setIsDragging(false)}

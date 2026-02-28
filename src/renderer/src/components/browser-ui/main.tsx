@@ -1,46 +1,113 @@
-import BrowserContent from "@/components/browser-ui/browser-content";
-import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/resizable-sidebar";
-import { motion, AnimatePresence } from "motion/react";
+import { SpacesProvider, useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
-import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar";
-import { SpacesProvider } from "@/components/providers/spaces-provider";
-import { useEffect, useMemo, useRef } from "react";
-import { useState } from "react";
-import { TabsProvider, useTabs } from "@/components/providers/tabs-provider";
-import { SettingsProvider, useSettings } from "@/components/providers/settings-provider";
+import { AdaptiveTopbar, AdaptiveTopbarProvider, useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
+import {
+  type BrowserSidebarMode,
+  type AttachedDirection,
+  BrowserSidebarProvider,
+  useBrowserSidebar
+} from "@/components/browser-ui/browser-sidebar/provider";
+import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar/component";
+import { AnimatePresence, motion } from "motion/react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { SettingsProvider } from "@/components/providers/settings-provider";
+import { ResizableHandle, ResizablePanel } from "@/components/ui/resizable";
+import { ResizablePanelGroupWithProvider } from "@/components/ui/resizable-extras";
+import { UpdateEffect } from "@/components/browser-ui/update-effect";
+import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
+import {
+  TabsProvider,
+  useFocusedTab,
+  useFocusedTabFullscreen,
+  useFocusedTabLoading,
+  useTabsGroups
+} from "@/components/providers/tabs-provider";
 import { TabDisabler } from "@/components/logic/tab-disabler";
 import { BrowserActionProvider } from "@/components/providers/browser-action-provider";
 import { ExtensionsProviderWithSpaces } from "@/components/providers/extensions-provider";
-import { SidebarHoverDetector } from "@/components/browser-ui/sidebar/hover-detector";
 import MinimalToastProvider from "@/components/providers/minimal-toast-provider";
-import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
 import { ActionsProvider } from "@/components/providers/actions-provider";
-import { SidebarAddressBar } from "@/components/browser-ui/sidebar/header/address-bar/address-bar";
+import BrowserContent from "@/components/browser-ui/browser-content";
+import { NavigationControls } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
+import { AddressBar } from "@/components/browser-ui/browser-sidebar/_components/address-bar";
 
-export type CollapseMode = "icon" | "offcanvas";
-export type SidebarVariant = "sidebar" | "floating";
-export type SidebarSide = "left" | "right";
+export type BrowserUIType = "main" | "popup";
+export type SidebarVariant = "attached" | "floating";
 
-export type WindowType = "main" | "popup";
+function SidebarResizeHandle() {
+  const [isDown, setIsDown] = useState(false);
 
-function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowType }) {
-  const { open, setOpen } = useSidebar();
-  const { getSetting } = useSettings();
-  const { focusedTab, tabGroups } = useTabs();
+  return (
+    <div className="w-3 h-full remove-app-drag py-4 px-1 group">
+      <ResizableHandle
+        className={cn(
+          "w-full h-full rounded-full",
+          isDown ? "!bg-white/80" : "bg-transparent",
+          "group-hover:bg-white/50 transition-[background-color] duration-200"
+        )}
+        onPointerDown={() => setIsDown(true)}
+        onPointerUp={() => setIsDown(false)}
+      />
+    </div>
+  );
+}
 
-  const [variant, setVariant] = useState<SidebarVariant>("sidebar");
-  const [isHoveringSidebar, setIsHoveringSidebar] = useState(false);
+interface PresenceSidebarProps {
+  sidebarMode: BrowserSidebarMode;
+  targetSidebarModes: BrowserSidebarMode[];
+  direction: AttachedDirection;
+  order: number;
+}
+export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction, order }: PresenceSidebarProps) {
+  const shouldRender = targetSidebarModes.includes(sidebarMode);
+  const isFloating = sidebarMode.startsWith("floating");
 
-  const side: SidebarSide = getSetting<SidebarSide>("sidebarSide") ?? "left";
+  // Use variant-specific keys so AnimatePresence can overlap exit/enter
+  // animations during attached↔floating transitions. With a single key,
+  // the component just re-renders and swaps branches, leaving a gap while
+  // the portal sets up. With separate keys, the old sidebar exit-animates
+  // while the new one enters simultaneously.
+  const variantKey = isFloating ? "floating" : "attached";
 
-  const sidebarCollapseMode = getSetting<CollapseMode>("sidebarCollapseMode");
+  // When transitioning between attached and floating in either direction,
+  // skip the entry animation so the new sidebar appears in-place (same
+  // visual position) instead of sliding in from off-screen.
+  const prevModeRef = useRef(sidebarMode);
+  let skipEntryAnimation = false;
+  if (prevModeRef.current !== sidebarMode) {
+    const wasAttached = prevModeRef.current.startsWith("attached");
+    const wasFloating = prevModeRef.current.startsWith("floating");
+    skipEntryAnimation = (wasAttached && isFloating) || (wasFloating && !isFloating);
+    prevModeRef.current = sidebarMode;
+  }
 
-  const dynamicTitle: string | null = useMemo(() => {
-    if (!focusedTab) return null;
+  return (
+    <AnimatePresence>
+      {shouldRender && (
+        <BrowserSidebar
+          key={variantKey}
+          direction={direction}
+          variant={isFloating ? "floating" : "attached"}
+          order={order}
+          skipEntryAnimation={skipEntryAnimation}
+        />
+      )}
+    </AnimatePresence>
+  );
+}
 
-    return focusedTab.title;
-  }, [focusedTab]);
+// --- Isolated tab-dependent components --- //
+// These subscribe to useTabs() independently so the main layout tree
+// does NOT rerender on every tab data update (loading, title, url, etc.)
 
+const WindowTitle = memo(function WindowTitle() {
+  const focusedTab = useFocusedTab();
+  if (!focusedTab?.title) return null;
+  return <title>{`${focusedTab.title} | Flow`}</title>;
+});
+
+function AutoNewTab({ isReady }: { isReady: boolean }) {
+  const { tabGroups } = useTabsGroups();
   const openedNewTabRef = useRef(false);
   useEffect(() => {
     if (isReady && !openedNewTabRef.current) {
@@ -50,109 +117,189 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
       }
     }
   }, [isReady, tabGroups.length]);
+  return null;
+}
 
-  const isActiveTabLoading = focusedTab?.isLoading || false;
+const LoadingIndicator = memo(function LoadingIndicator() {
+  const isActiveTabLoading = useFocusedTabLoading();
+  const { isCurrentSpaceLight } = useSpaces();
 
-  useEffect(() => {
-    if (!isHoveringSidebar && open && variant === "floating") {
-      setOpen(false);
-    }
-  }, [isHoveringSidebar, open, variant, setOpen, setVariant]);
-
-  // Only show the browser content if the focused tab is in full screen mode
-  if (focusedTab?.fullScreen) {
-    return <BrowserContent />;
-  }
-
-  const sidebar = (
-    <BrowserSidebar
-      collapseMode={sidebarCollapseMode}
-      variant={variant}
-      side={side}
-      setIsHoveringSidebar={setIsHoveringSidebar}
-      setVariant={setVariant}
-    />
+  return (
+    <div
+      className={cn(
+        "absolute -top-2.5 left-0 w-full h-2 flex justify-center items-center z-elevated",
+        !isCurrentSpaceLight && "dark"
+      )}
+    >
+      <AnimatePresence>
+        {isActiveTabLoading && (
+          <motion.div
+            className="w-28 h-1 bg-gray-200/30 dark:bg-white/10 rounded-full overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              className="h-full bg-gray-800/90 dark:bg-white/90 rounded-full"
+              initial={{ x: "-100%" }}
+              animate={{ x: "100%" }}
+              transition={{
+                duration: 1,
+                ease: "easeInOut",
+                repeat: Infinity,
+                repeatType: "loop",
+                repeatDelay: 0.1
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
+});
+
+/**
+ * Compact toolbar for popup windows – replaces the sidebar with
+ * back/forward/reload controls and an address bar in a single row.
+ * Reports its measured height as contentTopOffset so the main process
+ * can push the tab's WebContentsView below it.
+ */
+function PopupToolbar() {
+  const { isCurrentSpaceLight } = useSpaces();
+  const { setContentTopOffset } = useAdaptiveTopbar();
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Measure once on mount + whenever the element resizes.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const report = () => setContentTopOffset(el.offsetHeight);
+    report();
+
+    const ro = new ResizeObserver(report);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      setContentTopOffset(0);
+    };
+  }, [setContentTopOffset]);
+
+  return (
+    <div ref={ref} className={cn("w-full flex items-center gap-2 px-1 pb-2", !isCurrentSpaceLight && "dark")}>
+      <NavigationControls />
+      <AddressBar />
+    </div>
+  );
+}
+
+/**
+ * Renders BrowserContent alone when the focused tab is fullscreen,
+ * otherwise renders children. Uses "children as props" pattern so that
+ * tab changes don't cause children to rerender (children refs are stable
+ * as long as the parent doesn't rerender).
+ */
+function FullscreenGuard({ children }: { children: React.ReactNode }) {
+  const isFullscreen = useFocusedTabFullscreen();
+  const { setForceFloating } = useBrowserSidebar();
+  // if (isFullscreen) {
+  //   // Wrap in a full-screen flex container so BrowserContent's flex-1 works
+  //   // and the measured pageBounds correctly fill the entire window.
+  //   return (
+  //     <div className="w-screen h-screen overflow-hidden flex flex-col">
+  //       <BrowserContent />
+  //     </div>
+  //   );
+  // }
+  useEffect(() => {
+    setForceFloating(isFullscreen);
+  }, [isFullscreen, setForceFloating]);
+  return <>{children}</>;
+}
+
+function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserUIType }) {
+  // NOTE: No useTabs() here! Tab-dependent logic is isolated in the
+  // components above to prevent the entire layout from rerendering.
+  const { mode: sidebarMode, attachedDirection } = useBrowserSidebar();
+  const { topbarVisible, topbarHeight } = useAdaptiveTopbar();
 
   const hasSidebar = type === "main";
 
   return (
-    <MinimalToastProvider sidebarSide={side}>
-      <ActionsProvider>
-        {dynamicTitle && <title>{`${dynamicTitle} | Flow`}</title>}
-        {/* Sidebar on Left Side */}
-        {hasSidebar && side === "left" && sidebar}
-
-        <SidebarInset className="bg-transparent">
+    <FullscreenGuard>
+      <MinimalToastProvider sidebarSide={attachedDirection}>
+        <ActionsProvider>
+          <WindowTitle />
+          <AutoNewTab isReady={isReady} />
           <div
             className={cn(
-              "dark flex-1 flex p-2 app-drag",
-              (open || (!open && sidebarCollapseMode === "icon")) &&
-                hasSidebar &&
-                variant === "sidebar" &&
-                (side === "left" ? "pl-0.5" : "pr-0.5"),
-              type === "popup" && "pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))]"
+              "w-screen h-screen overflow-hidden",
+              "bg-linear-to-br from-space-background-start/65 to-space-background-end/65",
+              "transition-colors duration-150",
+              "flex flex-col",
+              "app-drag"
             )}
           >
-            {/* Topbar */}
-            <div className="absolute top-0 left-0 w-full h-2 flex justify-center items-center">
-              <AnimatePresence>
-                {isActiveTabLoading && (
-                  <motion.div
-                    className="w-28 h-1 bg-gray-200/30 dark:bg-white/10 rounded-full overflow-hidden"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <motion.div
-                      className="h-full bg-gray-800/90 dark:bg-white/90 rounded-full"
-                      initial={{ x: "-100%" }}
-                      animate={{ x: "100%" }}
-                      transition={{
-                        duration: 1,
-                        ease: "easeInOut",
-                        repeat: Infinity,
-                        repeatType: "loop",
-                        repeatDelay: 0.1
-                      }}
-                    />
-                  </motion.div>
+            <ResizablePanelGroupWithProvider direction="horizontal" className="flex-1 flex flex-col!">
+              <AdaptiveTopbar />
+              <div
+                className={cn("w-full h-[calc(100vh-var(--topbar-height))] flex flex-row items-center justify-center")}
+                style={{ "--topbar-height": `${topbarHeight}px` } as React.CSSProperties}
+              >
+                {hasSidebar && (
+                  <PresenceSidebar
+                    sidebarMode={sidebarMode}
+                    targetSidebarModes={["attached-left", "floating-left"]}
+                    direction="left"
+                    order={1}
+                  />
                 )}
-              </AnimatePresence>
-            </div>
+                <ResizablePanel id="main" order={2} className={cn("flex-1 h-full py-3", topbarVisible && "pt-0")}>
+                  <div className="w-full h-full flex items-center justify-center remove-app-drag">
+                    {sidebarMode !== "attached-left" ? (
+                      <div className="w-3" />
+                    ) : (
+                      <SidebarResizeHandle key="left-sidebar-resize-handle" />
+                    )}
 
-            {/* Sidebar Hover Detector */}
-            <SidebarHoverDetector
-              side={side}
-              started={() => {
-                if (!open && variant === "sidebar" && sidebarCollapseMode === "offcanvas") {
-                  setIsHoveringSidebar(true);
-                  setVariant("floating");
-                  setOpen(true);
-                }
-              }}
-            />
+                    <div className="relative w-full h-full flex flex-col">
+                      <LoadingIndicator />
+                      {!hasSidebar && <PopupToolbar />}
+                      <BrowserContent />
+                    </div>
 
-            {/* Content */}
-            <div className="flex flex-col flex-1 h-full w-full">
-              <div className="remove-app-drag">{type === "popup" && <SidebarAddressBar className="rounded-lg" />}</div>
-              <BrowserContent />
-            </div>
+                    {sidebarMode !== "attached-right" ? (
+                      <div className="w-3" />
+                    ) : (
+                      <SidebarResizeHandle key="right-sidebar-resize-handle" />
+                    )}
+                  </div>
+                </ResizablePanel>
+                {hasSidebar && (
+                  <PresenceSidebar
+                    sidebarMode={sidebarMode}
+                    targetSidebarModes={["attached-right", "floating-right"]}
+                    direction="right"
+                    order={3}
+                  />
+                )}
+              </div>
+            </ResizablePanelGroupWithProvider>
+
+            {/* TODO: Implement update effect */}
+            {/* eslint-disable-next-line no-constant-binary-expression */}
+            {false && <UpdateEffect />}
           </div>
-        </SidebarInset>
-
-        {/* Sidebar on Right Side */}
-        {hasSidebar && side === "right" && sidebar}
-      </ActionsProvider>
-    </MinimalToastProvider>
+        </ActionsProvider>
+      </MinimalToastProvider>
+    </FullscreenGuard>
   );
 }
 
-export function BrowserUI({ type }: { type: WindowType }) {
+export function BrowserUI({ type }: { type: BrowserUIType }) {
   const [isReady, setIsReady] = useState(false);
 
-  // No transition on first load
   useEffect(() => {
     setTimeout(() => {
       setIsReady(true);
@@ -160,29 +307,23 @@ export function BrowserUI({ type }: { type: WindowType }) {
   }, []);
 
   return (
-    <div
-      className={cn(
-        "w-screen h-screen",
-        "bg-gradient-to-br from-space-background-start/75 to-space-background-end/75",
-        isReady && "transition-colors duration-300"
-      )}
-    >
-      <TabDisabler />
-      <SidebarProvider>
-        <SettingsProvider>
-          <SpacesProvider windowType={type}>
-            <TabsProvider>
-              <BrowserActionProvider>
-                <ExtensionsProviderWithSpaces>
-                  <AppUpdatesProvider>
+    <AppUpdatesProvider>
+      <SettingsProvider>
+        <BrowserSidebarProvider hasSidebar={type === "main"}>
+          <AdaptiveTopbarProvider>
+            <SpacesProvider windowType={type}>
+              <TabsProvider>
+                <BrowserActionProvider>
+                  <ExtensionsProviderWithSpaces>
+                    <TabDisabler />
                     <InternalBrowserUI isReady={isReady} type={type} />
-                  </AppUpdatesProvider>
-                </ExtensionsProviderWithSpaces>
-              </BrowserActionProvider>
-            </TabsProvider>
-          </SpacesProvider>
-        </SettingsProvider>
-      </SidebarProvider>
-    </div>
+                  </ExtensionsProviderWithSpaces>
+                </BrowserActionProvider>
+              </TabsProvider>
+            </SpacesProvider>
+          </AdaptiveTopbarProvider>
+        </BrowserSidebarProvider>
+      </SettingsProvider>
+    </AppUpdatesProvider>
   );
 }

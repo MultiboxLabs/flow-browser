@@ -101,7 +101,7 @@ export function ColorPicker({ defaultColor, label, onChange }: ColorPickerProps)
             onBlur={handleBlur}
             onFocus={handleFocus}
             onInput={handleColorChange}
-            className="h-10 w-full rounded-lg border cursor-pointer absolute inset-0 opacity-0 z-10"
+            className="h-10 w-full rounded-lg border cursor-pointer absolute inset-0 opacity-0 z-elevated"
           />
           <motion.div
             className="h-10 w-full rounded-lg border bg-background px-3 flex items-center text-sm shadow-xs cursor-pointer overflow-hidden"

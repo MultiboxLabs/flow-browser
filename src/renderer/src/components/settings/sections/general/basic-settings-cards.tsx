@@ -24,7 +24,7 @@ export function SettingsInput({ setting }: { setting: BasicSetting }) {
           <SelectTrigger className="w-full min-w-[180px]">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="remove-app-drag z-50">
+          <SelectContent className="remove-app-drag z-popover">
             {setting.options.map((option) => (
               <SelectItem key={option.id} value={option.id}>
                 {option.name}

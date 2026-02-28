@@ -18,7 +18,7 @@ export function OnboardingScreen({ children }: { children?: React.ReactNode }) {
       />
 
       {/* Container for the actual screen content */}
-      <div className="relative z-20 w-full h-full flex flex-col items-center justify-center p-4">
+      <div className="relative z-controls w-full h-full flex flex-col items-center justify-center p-4">
         {/* Render children passed to the component */}
         {children}
       </div>

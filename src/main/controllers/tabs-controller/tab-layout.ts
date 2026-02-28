@@ -3,13 +3,9 @@ import { TabBoundsController, isRectangleEqual } from "./bounds";
 import { TabLifecycleManager } from "./tab-lifecycle";
 import { getCurrentTimestamp } from "@/modules/utils";
 import { TabGroupMode } from "~/types/tabs";
+import { ViewLayer } from "~/layers";
 import { Rectangle } from "electron";
 import { type TabsController } from "./index";
-
-// Z-index constants
-const GLANCE_FRONT_ZINDEX = 3;
-export const TAB_ZINDEX = 2;
-const GLANCE_BACK_ZINDEX = 0;
 
 /**
  * Manages tab layout: bounds calculation, visibility, z-index positioning.
@@ -106,8 +102,18 @@ export class TabLayoutManager {
     // Auto-wake sleeping tabs when they become visible
     this.lifecycleManager.wakeUp();
 
-    // Get base bounds and fullscreen state
-    const pageBounds = window.pageBounds;
+    // Get base bounds and fullscreen state.
+    // In fullscreen, bypass the renderer-reported pageBounds and use the
+    // full window content area directly. This eliminates the timing gap
+    // between entering fullscreen and the renderer remeasuring/reporting
+    // new bounds — the tab fills the window immediately.
+    let pageBounds: Rectangle;
+    if (tab.fullScreen) {
+      const [contentWidth, contentHeight] = window.browserWindow.getContentSize();
+      pageBounds = { x: 0, y: 0, width: contentWidth, height: contentHeight };
+    } else {
+      pageBounds = window.pageBounds;
+    }
     const borderRadius = tab.fullScreen ? 0 : 8;
     if (borderRadius !== this.lastBorderRadius && tab.view) {
       tab.view.setBorderRadius(borderRadius);
@@ -119,7 +125,7 @@ export class TabLayoutManager {
     const lastTabGroupMode = this.lastTabGroupMode;
     let newBounds: Rectangle | null = null;
     let newTabGroupMode: TabGroupMode | null = null;
-    let zIndex = TAB_ZINDEX;
+    let zIndex: number = ViewLayer.TAB;
 
     if (!tabGroup) {
       newTabGroupMode = "normal";
@@ -129,7 +135,7 @@ export class TabLayoutManager {
       const isFront = tabGroup.frontTabId === tab.id;
       newBounds = this.calculateGlanceBounds(pageBounds, isFront);
 
-      zIndex = isFront ? GLANCE_FRONT_ZINDEX : GLANCE_BACK_ZINDEX;
+      zIndex = isFront ? ViewLayer.TAB_FRONT : ViewLayer.TAB_BACK;
     } else if (tabGroup.mode === "split") {
       newTabGroupMode = "split";
       // TODO: Implement split tab group layout

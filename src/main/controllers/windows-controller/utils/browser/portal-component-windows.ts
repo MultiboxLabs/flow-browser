@@ -1,8 +1,8 @@
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import { debugPrint } from "@/modules/output";
+import { ViewLayer } from "~/layers";
 import { ipcMain, IpcMainEvent, WebContentsView } from "electron";
 
-const DEFAULT_Z_INDEX = 3;
 const DEBUG_ENABLE_DEVTOOLS = false;
 
 export function initializePortalComponentWindows(browserWindow: BrowserWindow) {
@@ -35,7 +35,7 @@ export function initializePortalComponentWindows(browserWindow: BrowserWindow) {
         const webContents = componentView.webContents;
 
         componentView.setVisible(false);
-        browserWindow.viewManager.addOrUpdateView(componentView, DEFAULT_Z_INDEX);
+        browserWindow.viewManager.addOrUpdateView(componentView, ViewLayer.OVERLAY);
 
         debugPrint("PORTAL_COMPONENTS", "Created Portal Window:", componentId);
 

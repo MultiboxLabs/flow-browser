@@ -104,19 +104,36 @@ export function serializeTab(tab: Tab, windowGroupId: string, preSleepState?: Pr
 }
 
 /**
- * Serializes a Tab instance into full TabData for the renderer process.
- * Includes both persisted and runtime-only fields.
+ * Serializes a Tab instance into TabData for the renderer process.
+ * Includes persisted fields (minus navHistory) plus runtime-only fields.
+ *
+ * navHistory/navHistoryIndex are deliberately excluded — the renderer never
+ * reads them and they can be large. Skipping them avoids expensive
+ * serialization/IPC on every tab state update during page loads.
  *
  * @param tab - The tab to serialize
  * @param preSleepState - Optional pre-sleep state from TabLifecycleManager
  */
 export function serializeTabForRenderer(tab: Tab, preSleepState?: PreSleepState | null): TabData {
   const windowId = tab.getWindow().id;
-  const windowGroupId = `w-${windowId}`;
+
+  // Use pre-sleep URL for sleeping tabs (webContents would show about:blank)
+  const url = preSleepState?.url ?? tab.url;
 
   return {
-    // Persisted fields
-    ...serializeTab(tab, windowGroupId, preSleepState),
+    // Persisted fields (excluding navHistory/navHistoryIndex)
+    schemaVersion: TAB_SCHEMA_VERSION,
+    uniqueId: tab.uniqueId,
+    createdAt: tab.createdAt,
+    lastActiveAt: tab.lastActiveAt,
+    position: tab.position,
+    profileId: tab.profileId,
+    spaceId: tab.spaceId,
+    windowGroupId: `w-${windowId}`,
+    title: tab.title,
+    url,
+    faviconURL: tab.faviconURL,
+    muted: tab.muted,
 
     // Runtime-only fields
     id: tab.id,

@@ -4,7 +4,7 @@ import { BaseTabGroup, TabGroup } from "./tab-groups";
 import { TabBoundsController } from "./bounds";
 import { TabLayoutManager } from "./tab-layout";
 import { TabLifecycleManager } from "./tab-lifecycle";
-import { windowTabsChanged } from "@/ipc/browser/tabs";
+import { windowTabsChanged, windowTabContentChanged } from "@/ipc/browser/tabs";
 import { shouldArchiveTab, shouldSleepTab, tabPersistenceManager } from "@/saving/tabs";
 import { serializeTab, serializeTabGroup } from "@/saving/tabs/serialization";
 import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
@@ -24,7 +24,6 @@ const ARCHIVE_CHECK_INTERVAL_MS = 10 * 1000;
 
 type TabsControllerEvents = {
   "tab-created": [Tab];
-  "tab-changed": [Tab];
   "tab-removed": [Tab];
   "current-space-changed": [number, string];
   "active-tab-changed": [number, string];
@@ -95,21 +94,6 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     this.on("tab-removed", (tab) => {
       if (quitController.isQuitting) return;
       windowTabsChanged(tab.getWindow().id);
-    });
-
-    this.on("tab-changed", (tab) => {
-      // During quit, the database is already closed — skip all persistence
-      // and IPC. WebContents teardown fires navigation/load events that
-      // propagate here, and accessing the closed DB would crash.
-      if (quitController.isQuitting) return;
-
-      windowTabsChanged(tab.getWindow().id);
-
-      // Mark tab dirty for persistence
-      const windowGroupId = `w-${tab.getWindow().id}`;
-      const managers = this.getTabManagers(tab.id);
-      const serialized = serializeTab(tab, windowGroupId, managers?.lifecycle.preSleepState);
-      tabPersistenceManager.markDirty(tab.uniqueId, serialized);
     });
 
     // Archive/sleep check interval
@@ -293,18 +277,51 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
     // --- Setup event listeners ---
     tab.on("updated", (properties) => {
+      // During quit, the database is already closed — skip all persistence
+      // and IPC. WebContents teardown fires navigation/load events that
+      // propagate here, and accessing the closed DB would crash.
+      if (quitController.isQuitting) return;
+
       // When the tab's view is destroyed (sleep), reset cached view state
       // so that bounds and border radius are re-applied to the new view on wake.
       if (properties.includes("asleep") && tab.asleep) {
         layoutManager.onViewDestroyed();
       }
-      this.emit("tab-changed", tab);
+
+      // Content-only changes (title, url, isLoading, etc.) use the
+      // lightweight content-changed path which only serializes THIS tab
+      // instead of all tabs in the window.
+      windowTabContentChanged(tab.getWindow().id, tab.id);
+
+      // Mark tab dirty for persistence
+      const windowGroupId = `w-${tab.getWindow().id}`;
+      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
+      tabPersistenceManager.markDirty(tab.uniqueId, serialized);
     });
     tab.on("space-changed", () => {
-      this.emit("tab-changed", tab);
+      if (quitController.isQuitting) return;
+
+      // Structural change — needs full data refresh (tab moved between spaces)
+      windowTabsChanged(tab.getWindow().id);
+
+      // Mark tab dirty for persistence
+      const windowGroupId = `w-${tab.getWindow().id}`;
+      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
+      tabPersistenceManager.markDirty(tab.uniqueId, serialized);
     });
-    tab.on("window-changed", () => {
-      this.emit("tab-changed", tab);
+    tab.on("window-changed", (oldWindowId) => {
+      if (quitController.isQuitting) return;
+
+      // Structural change — refresh both old window (tab removed) and new window (tab added)
+      windowTabsChanged(tab.getWindow().id);
+      if (oldWindowId !== tab.getWindow().id) {
+        windowTabsChanged(oldWindowId);
+      }
+
+      // Mark tab dirty for persistence
+      const windowGroupId = `w-${tab.getWindow().id}`;
+      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
+      tabPersistenceManager.markDirty(tab.uniqueId, serialized);
     });
     tab.on("focused", () => {
       if (this.isTabActive(tab)) {
@@ -475,13 +492,20 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
         if (isActive && !tab.visible) {
           managers.layout.show();
         } else if (!isActive && tab.visible) {
+          // Exit fullscreen if the tab is no longer active
+          if (tab.fullScreen) {
+            managers.lifecycle.setFullScreen(false);
+          }
           managers.layout.hide();
         } else {
           // Update layout even if visibility hasn't changed, e.g., for split view resizing
           managers.layout.updateLayout();
         }
       } else {
-        // Not in active space
+        // Not in active space — also exit fullscreen if needed
+        if (tab.fullScreen) {
+          managers.lifecycle.setFullScreen(false);
+        }
         managers.layout.hide();
       }
     }

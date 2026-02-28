@@ -119,12 +119,39 @@ export class TabLifecycleManager {
       }
 
       const webContents = this.tab.webContents;
+      const view = this.tab.view;
       if (webContents) {
-        setTimeout(() => {
-          webContents.executeJavaScript(`if (document.fullscreenElement) { document.exitFullscreen(); }`, true);
-        }, 100);
+        // Slightly nudge the view bounds to force Chromium to recognize the
+        // viewport change, which is needed to properly exit HTML fullscreen.
+        if (view) {
+          setTimeout(() => {
+            const isViewValid = () => this.tab.view === view && this.tab.visible;
+
+            if (!isViewValid()) return;
+
+            const bounds = view.getBounds();
+            const newBounds = { ...bounds, width: bounds.width - 1 };
+            view.setBounds(newBounds);
+
+            setTimeout(() => {
+              if (!isViewValid()) return;
+
+              const currentBounds = view.getBounds();
+              if (newBounds.width !== currentBounds.width) return;
+              if (newBounds.height !== currentBounds.height) return;
+              if (newBounds.x !== currentBounds.x) return;
+              if (newBounds.y !== currentBounds.y) return;
+              view.setBounds(bounds);
+            }, 50);
+          }, 800);
+        }
+
+        webContents.executeJavaScript(`if (document.fullscreenElement) { document.exitFullscreen(); }`, true);
       }
     }
+
+    // Notify the tab so layout can be updated
+    this.tab.emit("fullscreen-changed", isFullScreen);
 
     return true;
   }
@@ -142,11 +169,16 @@ export class TabLifecycleManager {
 
     webContents.on("enter-html-full-screen", () => {
       this.setFullScreen(true);
-      // Notify the tab so layout can be updated
-      this.tab.emit("fullscreen-changed", true);
     });
 
     webContents.on("leave-html-full-screen", () => {
+      // Always update tab fullscreen state directly. Don't rely solely on
+      // the indirect chain (electronWindow.setFullScreen(false) → window
+      // "leave-full-screen" event) because if the OS window is already not
+      // fullscreen, that event never fires and the tab stays stuck.
+      this.setFullScreen(false);
+
+      // Also exit OS fullscreen if still active
       if (electronWindow.fullScreen) {
         electronWindow.setFullScreen(false);
       }
@@ -160,7 +192,6 @@ export class TabLifecycleManager {
 
     const disconnectLeaveFullScreen = window.connect("leave-full-screen", () => {
       this.setFullScreen(false);
-      this.tab.emit("fullscreen-changed", false);
     });
 
     this.disconnectLeaveFullScreen = disconnectLeaveFullScreen;
