@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { ChevronUp, ChevronDown, X } from "lucide-react";
@@ -11,28 +11,22 @@ const FIND_BAR_WIDTH = 380;
 const FIND_BAR_HEIGHT = 44;
 const FIND_BAR_PADDING = 8;
 
-interface PerTabFindState {
-  query: string;
-  activeMatch: number;
-  totalMatches: number;
-}
-
 function FindInPageBar({
-  query,
-  activeMatch,
-  totalMatches,
   onQueryChange,
   onFindNext,
   onFindPrevious,
-  onClose
+  onClose,
+  query,
+  activeMatch,
+  totalMatches
 }: {
-  query: string;
-  activeMatch: number;
-  totalMatches: number;
   onQueryChange: (value: string) => void;
   onFindNext: () => void;
   onFindPrevious: () => void;
   onClose: () => void;
+  query: string;
+  activeMatch: number;
+  totalMatches: number;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -145,166 +139,129 @@ function FindInPageBar({
   );
 }
 
-const DEFAULT_FIND_STATE: PerTabFindState = { query: "", activeMatch: 0, totalMatches: 0 };
-
-export function FindInPage() {
-  const focusedTabId = useFocusedTabId();
-
-  // Per-tab state stored in refs to avoid re-renders on tab switch
-  const perTabStateRef = useRef(new Map<number, PerTabFindState>());
-  const openTabsRef = useRef(new Set<number>());
-
-  // Reactive state for the currently displayed find bar
-  const [visible, setVisible] = useState(false);
+/**
+ * One instance per tab that has find-in-page open. Each owns its own
+ * query / match state. The portal is only visible when isFocused.
+ */
+const TabFindInPage = memo(function TabFindInPage({
+  tabId,
+  isFocused,
+  portalStyle,
+  onClose
+}: {
+  tabId: number;
+  isFocused: boolean;
+  portalStyle: React.CSSProperties;
+  onClose: (tabId: number) => void;
+}) {
   const [query, setQuery] = useState("");
   const [activeMatch, setActiveMatch] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
+  const queryRef = useRef(query);
+  queryRef.current = query;
 
+  // Only listen for results while this tab is focused
+  useEffect(() => {
+    if (!isFocused) return;
+    return flow.findInPage.onResult((result) => {
+      setActiveMatch(result.activeMatchOrdinal);
+      setTotalMatches(result.matches);
+    });
+  }, [isFocused]);
+
+  const handleQueryChange = useCallback(
+    (value: string) => {
+      setQuery(value);
+
+      if (!value) {
+        setActiveMatch(0);
+        setTotalMatches(0);
+        if (isFocused) flow.findInPage.stop("clearSelection");
+        return;
+      }
+
+      if (isFocused) {
+        flow.findInPage.find(value, { forward: true, findNext: true });
+      }
+    },
+    [isFocused]
+  );
+
+  const handleFindNext = useCallback(() => {
+    if (!queryRef.current || !isFocused) return;
+    flow.findInPage.find(queryRef.current, { forward: true, findNext: false });
+  }, [isFocused]);
+
+  const handleFindPrevious = useCallback(() => {
+    if (!queryRef.current || !isFocused) return;
+    flow.findInPage.find(queryRef.current, { forward: false, findNext: false });
+  }, [isFocused]);
+
+  const handleClose = useCallback(() => {
+    onClose(tabId);
+  }, [onClose, tabId]);
+
+  return (
+    <PortalComponent
+      visible={isFocused}
+      autoFocus={isFocused}
+      zIndex={ViewLayer.OVERLAY}
+      className="fixed"
+      style={portalStyle}
+    >
+      <AnimatePresence>
+        {isFocused && (
+          <FindInPageBar
+            query={query}
+            activeMatch={activeMatch}
+            totalMatches={totalMatches}
+            onQueryChange={handleQueryChange}
+            onFindNext={handleFindNext}
+            onFindPrevious={handleFindPrevious}
+            onClose={handleClose}
+          />
+        )}
+      </AnimatePresence>
+    </PortalComponent>
+  );
+});
+
+/**
+ * Top-level orchestrator. Manages which tabs have find bars open and
+ * renders one TabFindInPage per open tab.
+ */
+export function FindInPage() {
+  const focusedTabId = useFocusedTabId();
+  const [openTabIds, setOpenTabIds] = useState<number[]>([]);
   const focusedTabIdRef = useRef(focusedTabId);
+  focusedTabIdRef.current = focusedTabId;
 
-  // Anchor for content area positioning
   const anchorRef = useRef<HTMLDivElement>(null);
   const anchorRect = useBoundingRect(anchorRef);
 
-  // Load state for a given tab ID into reactive state
-  const loadTabState = useCallback((tabId: number | null) => {
-    if (tabId === null || !openTabsRef.current.has(tabId)) {
-      setVisible(false);
-      return;
-    }
-
-    const state = perTabStateRef.current.get(tabId) ?? DEFAULT_FIND_STATE;
-    setVisible(true);
-    setQuery(state.query);
-    setActiveMatch(state.activeMatch);
-    setTotalMatches(state.totalMatches);
-
-    // Re-trigger the search to restore highlights on the newly focused tab
-    if (state.query) {
-      flow.findInPage.find(state.query, { forward: true, findNext: true });
-    }
-  }, []);
-
-  // Handle focused tab changes
   useEffect(() => {
-    const prevTabId = focusedTabIdRef.current;
-    focusedTabIdRef.current = focusedTabId;
-
-    if (prevTabId === focusedTabId) return;
-
-    // Save state for the tab we're leaving
-    if (prevTabId !== null && openTabsRef.current.has(prevTabId)) {
-      // State is saved via the ref-captured values in saveCurrentTabState,
-      // but since this effect runs after render with stale closure values,
-      // we read from the DOM-consistent refs instead.
-      // The latest query/match state was already saved by the handlers below.
-    }
-
-    // Stop any active search (operates on the new focused tab, but
-    // the old tab's highlights are hidden with its WebContentsView)
-    flow.findInPage.stop("keepSelection");
-
-    // Load state for the new tab
-    loadTabState(focusedTabId);
-  }, [focusedTabId, loadTabState]);
-
-  // Listen for streaming results from the main process
-  useEffect(() => {
-    const unsubscribe = flow.findInPage.onResult((result) => {
-      setActiveMatch(result.activeMatchOrdinal);
-      setTotalMatches(result.matches);
-
-      // Keep per-tab state in sync
-      const tabId = focusedTabIdRef.current;
-      if (tabId !== null && openTabsRef.current.has(tabId)) {
-        const state = perTabStateRef.current.get(tabId);
-        if (state) {
-          state.activeMatch = result.activeMatchOrdinal;
-          state.totalMatches = result.matches;
-        }
-      }
-    });
-    return unsubscribe;
-  }, []);
-
-  // Listen for Ctrl+F toggle
-  useEffect(() => {
-    const unsubscribe = flow.findInPage.onToggle(() => {
+    return flow.findInPage.onToggle(() => {
       const tabId = focusedTabIdRef.current;
       if (tabId === null) return;
 
-      if (openTabsRef.current.has(tabId)) {
-        // Close for this tab
-        openTabsRef.current.delete(tabId);
-        perTabStateRef.current.delete(tabId);
-        flow.findInPage.stop("keepSelection");
-        setVisible(false);
-        setQuery("");
-        setActiveMatch(0);
-        setTotalMatches(0);
-      } else {
-        // Open for this tab
-        openTabsRef.current.add(tabId);
-        perTabStateRef.current.set(tabId, { ...DEFAULT_FIND_STATE });
-        setVisible(true);
-        setQuery("");
-        setActiveMatch(0);
-        setTotalMatches(0);
-      }
+      setOpenTabIds((prev) => {
+        if (prev.includes(tabId)) {
+          flow.findInPage.stop("keepSelection");
+          return prev.filter((id) => id !== tabId);
+        }
+        return [...prev, tabId];
+      });
     });
-    return unsubscribe;
   }, []);
 
-  const handleQueryChange = useCallback((value: string) => {
-    setQuery(value);
-
-    const tabId = focusedTabIdRef.current;
-    if (tabId !== null) {
-      const state = perTabStateRef.current.get(tabId);
-      if (state) state.query = value;
-    }
-
-    if (!value) {
-      setActiveMatch(0);
-      setTotalMatches(0);
-      flow.findInPage.stop("clearSelection");
-      return;
-    }
-
-    flow.findInPage.find(value, { forward: true, findNext: true });
-  }, []);
-
-  const handleFindNext = useCallback(() => {
-    if (!query) return;
-    flow.findInPage.find(query, { forward: true, findNext: false });
-  }, [query]);
-
-  const handleFindPrevious = useCallback(() => {
-    if (!query) return;
-    flow.findInPage.find(query, { forward: false, findNext: false });
-  }, [query]);
-
-  const handleClose = useCallback(() => {
-    const tabId = focusedTabIdRef.current;
-    if (tabId !== null) {
-      openTabsRef.current.delete(tabId);
-      perTabStateRef.current.delete(tabId);
-    }
-    flow.findInPage.stop("keepSelection");
-    setVisible(false);
-    setQuery("");
-    setActiveMatch(0);
-    setTotalMatches(0);
-  }, []);
-
-  // Stop search on unmount
-  useEffect(() => {
-    return () => {
+  const handleClose = useCallback((tabId: number) => {
+    if (tabId === focusedTabIdRef.current) {
       flow.findInPage.stop("keepSelection");
-    };
+    }
+    setOpenTabIds((prev) => prev.filter((id) => id !== tabId));
   }, []);
 
-  const portalStyle = anchorRect
+  const portalStyle: React.CSSProperties = anchorRect
     ? {
         top: anchorRect.y + FIND_BAR_PADDING,
         right: window.innerWidth - anchorRect.right + FIND_BAR_PADDING,
@@ -316,27 +273,15 @@ export function FindInPage() {
   return (
     <>
       <div ref={anchorRef} className="absolute inset-0 pointer-events-none" />
-      <PortalComponent
-        visible={visible}
-        autoFocus={visible}
-        zIndex={ViewLayer.OVERLAY}
-        className="fixed"
-        style={portalStyle}
-      >
-        <AnimatePresence>
-          {visible && (
-            <FindInPageBar
-              query={query}
-              activeMatch={activeMatch}
-              totalMatches={totalMatches}
-              onQueryChange={handleQueryChange}
-              onFindNext={handleFindNext}
-              onFindPrevious={handleFindPrevious}
-              onClose={handleClose}
-            />
-          )}
-        </AnimatePresence>
-      </PortalComponent>
+      {openTabIds.map((tabId) => (
+        <TabFindInPage
+          key={tabId}
+          tabId={tabId}
+          isFocused={tabId === focusedTabId}
+          portalStyle={portalStyle}
+          onClose={handleClose}
+        />
+      ))}
     </>
   );
 }
