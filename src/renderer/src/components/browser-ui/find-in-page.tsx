@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { ChevronUp, ChevronDown, X } from "lucide-react";
 import { PortalComponent } from "@/components/portal/portal";
 import { useBoundingRect } from "@/hooks/use-bounding-rect";
-import { useFocusedTabId } from "@/components/providers/tabs-provider";
+import { useFocusedTabId, useTabs } from "@/components/providers/tabs-provider";
 import { ViewLayer } from "~/layers";
 
 const FIND_BAR_WIDTH = 380;
@@ -228,7 +228,10 @@ const TabFindInPage = memo(function TabFindInPage({
  */
 export function FindInPage() {
   const focusedTabId = useFocusedTabId();
+  const { tabsData } = useTabs();
   const [openTabIds, setOpenTabIds] = useState<number[]>([]);
+  const openTabIdsRef = useRef(openTabIds);
+  openTabIdsRef.current = openTabIds;
   const focusedTabIdRef = useRef(focusedTabId);
   focusedTabIdRef.current = focusedTabId;
 
@@ -240,15 +243,24 @@ export function FindInPage() {
       const tabId = focusedTabIdRef.current;
       if (tabId === null) return;
 
-      setOpenTabIds((prev) => {
-        if (prev.includes(tabId)) {
-          flow.findInPage.stop("keepSelection");
-          return prev.filter((id) => id !== tabId);
-        }
-        return [...prev, tabId];
-      });
+      if (openTabIdsRef.current.includes(tabId)) {
+        flow.findInPage.stop("keepSelection");
+        setOpenTabIds((prev) => prev.filter((id) => id !== tabId));
+      } else {
+        setOpenTabIds((prev) => [...prev, tabId]);
+      }
     });
   }, []);
+
+  // Prune openTabIds when tabs are destroyed
+  useEffect(() => {
+    if (!tabsData) return;
+    const existingTabIds = new Set(tabsData.tabs.map((t) => t.id));
+    setOpenTabIds((prev) => {
+      const next = prev.filter((id) => existingTabIds.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [tabsData]);
 
   const handleClose = useCallback((tabId: number) => {
     if (tabId === focusedTabIdRef.current) {
