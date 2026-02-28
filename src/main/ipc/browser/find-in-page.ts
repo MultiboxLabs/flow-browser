@@ -54,29 +54,26 @@ function ensureFoundInPageListener(tabWc: WebContents) {
   });
 }
 
-ipcMain.on(
-  "find-in-page:find",
-  (event, text: string, options?: { forward?: boolean; findNext?: boolean }) => {
-    const tabWc = getFocusedTabWebContents(event.sender);
-    if (!tabWc || !text) return;
+ipcMain.on("find-in-page:find", (event, text: string, options?: { forward?: boolean; findNext?: boolean }) => {
+  const tabWc = getFocusedTabWebContents(event.sender);
+  if (!tabWc || !text) return;
 
-    ensureFoundInPageListener(tabWc);
+  ensureFoundInPageListener(tabWc);
 
-    try {
-      const requestId = tabWc.findInPage(text, {
-        forward: options?.forward ?? true,
-        findNext: options?.findNext ?? false
-      });
+  try {
+    const requestId = tabWc.findInPage(text, {
+      forward: options?.forward ?? true,
+      findNext: options?.findNext ?? false
+    });
 
-      sessions.set(tabWc.id, {
-        senderWc: event.sender,
-        activeRequestId: requestId
-      });
-    } catch {
-      // Tab may have been destroyed between the check and the call
-    }
+    sessions.set(tabWc.id, {
+      senderWc: event.sender,
+      activeRequestId: requestId
+    });
+  } catch {
+    // Tab may have been destroyed between the check and the call
   }
-);
+});
 
 ipcMain.on("find-in-page:stop", (event, action: "clearSelection" | "keepSelection" | "activateSelection") => {
   const tabWc = getFocusedTabWebContents(event.sender);
