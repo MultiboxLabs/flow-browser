@@ -743,6 +743,25 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   }
 
   /**
+   * Reverse of makeTabEphemeral: mark a tab as persistent so it will be
+   * persisted to the database again and reappear in the sidebar tab list.
+   */
+  public makeTabPersistent(tabId: number): void {
+    const tab = this.tabs.get(tabId);
+    if (!tab || !tab.ephemeral) return;
+    tab.ephemeral = false;
+
+    // Immediately serialize and mark dirty so it gets persisted on the next flush
+    const lifecycleManager = this.tabManagers.get(tabId)?.lifecycle;
+    const windowGroupId = `w-${tab.getWindow().id}`;
+    const serialized = serializeTab(tab, windowGroupId, lifecycleManager?.preSleepState);
+    tabPersistenceManager.markDirty(tab.uniqueId, serialized);
+
+    // Trigger a structural change so the renderer adds this tab back to the list
+    windowTabsChanged(tab.getWindow().id);
+  }
+
+  /**
    * Get a tab by webContents
    */
   public getTabByWebContents(webContents: WebContents): Tab | undefined {

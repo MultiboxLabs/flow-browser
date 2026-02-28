@@ -162,6 +162,25 @@ ipcMain.handle("pinned-tabs:remove", async (_event, pinnedTabId: string) => {
 });
 
 /**
+ * Unpin a tab back to the tab list.
+ * Removes the pinned tab and, if there is an associated browser tab,
+ * makes it persistent again so it reappears in the sidebar.
+ */
+ipcMain.handle("pinned-tabs:unpin-to-tab-list", async (_event, pinnedTabId: string) => {
+  const associatedTabId = pinnedTabsController.getAssociatedTabId(pinnedTabId);
+
+  // Remove the pinned tab (also clears the association)
+  pinnedTabsController.remove(pinnedTabId);
+
+  // Make the associated tab persistent so it reappears in the sidebar
+  if (associatedTabId !== null) {
+    tabsController.makeTabPersistent(associatedTabId);
+  }
+
+  return true;
+});
+
+/**
  * Reorder a pinned tab to a new position.
  */
 ipcMain.handle("pinned-tabs:reorder", async (_event, pinnedTabId: string, newPosition: number) => {
