@@ -368,7 +368,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
         return;
       }
 
-      // Add to recently closed (user-initiated close only)
+      // Add to recently closed and remove from persistence (skip for ephemeral tabs/profiles)
       if (shouldPersistTab(tab)) {
         const windowGroupId = `w-${tab.getWindow().id}`;
         const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
@@ -377,10 +377,8 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
         recentlyClosedManager
           .add(serialized, groupData)
           .catch((err) => console.error("[TabsController] Failed to save recently closed tab:", err));
-      }
 
-      // Remove from persistence
-      if (shouldPersistTab(tab)) {
+        // Remove from persistence
         tabPersistenceManager.markRemoved(tab.uniqueId);
       }
 
@@ -790,6 +788,20 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
    */
   public getTabById(tabId: number): Tab | undefined {
     return this.tabs.get(tabId);
+  }
+
+  /**
+   * Mark a tab as ephemeral so it will no longer be persisted to the database.
+   * Also removes any existing persisted data for this tab and notifies the
+   * renderer to refresh the tab list (so the tab disappears from the sidebar).
+   */
+  public makeTabEphemeral(tabId: number): void {
+    const tab = this.tabs.get(tabId);
+    if (!tab || tab.ephemeral) return;
+    tab.ephemeral = true;
+    tabPersistenceManager.markRemoved(tab.uniqueId);
+    // Trigger a structural change so the renderer drops this tab from the list
+    windowTabsChanged(tab.getWindow().id);
   }
 
   /**
