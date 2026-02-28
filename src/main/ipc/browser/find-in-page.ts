@@ -15,10 +15,15 @@ function getFocusedTabWebContents(senderWebContents: Electron.WebContents) {
   return tab.webContents;
 }
 
-// Maps tab webContents id → the chrome webContents to forward results to.
-// Updated on every find call so the persistent listener always knows where
-// to send results.
-const resultTarget = new Map<number, WebContents>();
+interface FindSession {
+  senderWc: WebContents;
+  activeRequestId: number;
+}
+
+// Maps tab webContents id → the active find session. Tracks both the
+// sender to forward results to AND the latest requestId so stale
+// found-in-page events from cancelled searches are filtered out.
+const sessions = new Map<number, FindSession>();
 
 // Tracks which tab webContents already have a persistent found-in-page
 // listener attached. WeakSet so destroyed webContents are GC'd.
@@ -31,17 +36,21 @@ function ensureFoundInPageListener(tabWc: WebContents) {
   const tabWcId = tabWc.id;
 
   tabWc.on("found-in-page", (_event, result) => {
-    const target = resultTarget.get(tabWcId);
-    if (!target || target.isDestroyed()) return;
+    const session = sessions.get(tabWcId);
+    if (!session || session.senderWc.isDestroyed()) return;
 
-    target.send("find-in-page:result", {
+    // Only forward events from the most recent findInPage call.
+    // Stale events from cancelled searches carry old requestIds.
+    if (result.requestId !== session.activeRequestId) return;
+
+    session.senderWc.send("find-in-page:result", {
       activeMatchOrdinal: result.activeMatchOrdinal,
       matches: result.matches
     });
   });
 
   tabWc.once("destroyed", () => {
-    resultTarget.delete(tabWcId);
+    sessions.delete(tabWcId);
   });
 }
 
@@ -51,13 +60,25 @@ ipcMain.on(
     const tabWc = getFocusedTabWebContents(event.sender);
     if (!tabWc || !text) return;
 
-    resultTarget.set(tabWc.id, event.sender);
     ensureFoundInPageListener(tabWc);
 
     try {
-      tabWc.findInPage(text, {
+      // Stop any active search before starting a new one. Without this,
+      // Electron may not properly restart the search with new text and
+      // instead continue cycling through old matches.
+      const isFollowUp = options?.findNext ?? false;
+      if (!isFollowUp) {
+        tabWc.stopFindInPage("keepSelection");
+      }
+
+      const requestId = tabWc.findInPage(text, {
         forward: options?.forward ?? true,
-        findNext: options?.findNext ?? false
+        findNext: isFollowUp
+      });
+
+      sessions.set(tabWc.id, {
+        senderWc: event.sender,
+        activeRequestId: requestId
       });
     } catch {
       // Tab may have been destroyed between the check and the call
@@ -69,7 +90,7 @@ ipcMain.on("find-in-page:stop", (event, action: "clearSelection" | "keepSelectio
   const tabWc = getFocusedTabWebContents(event.sender);
   if (!tabWc) return;
 
-  resultTarget.delete(tabWc.id);
+  sessions.delete(tabWc.id);
 
   try {
     tabWc.stopFindInPage(action);
