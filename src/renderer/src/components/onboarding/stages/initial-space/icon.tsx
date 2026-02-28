@@ -22,7 +22,6 @@ export function OnboardingSpaceIcon({
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Load current icon if exists
   useEffect(() => {
     const loadSpaceData = async () => {
       if (!profileId || !spaceId) return;
@@ -48,7 +47,6 @@ export function OnboardingSpaceIcon({
     loadSpaceData();
   }, [profileId, spaceId]);
 
-  // Save the space icon
   const saveIcon = async () => {
     if (!profileId || !spaceId || isSaving) return;
 
@@ -62,7 +60,6 @@ export function OnboardingSpaceIcon({
 
       setSaveSuccess(true);
 
-      // Automatically advance after short delay
       setTimeout(() => {
         advance();
       }, 1000);
@@ -77,13 +74,13 @@ export function OnboardingSpaceIcon({
   return (
     <>
       <motion.div
-        className="relative z-elevated text-center max-w-2xl px-4 mb-3"
+        className="relative z-elevated text-center max-w-2xl px-4 mb-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
       >
-        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Choose an Icon</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Space Icon</h1>
         <p className="text-gray-400 text-base">Pick a visual identity for your space</p>
       </motion.div>
 
@@ -92,7 +89,7 @@ export function OnboardingSpaceIcon({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+        transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
       >
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
@@ -108,7 +105,7 @@ export function OnboardingSpaceIcon({
             <div className="text-gray-400 max-w-md mb-3">{errorMessage}</div>
             <Button
               onClick={advance}
-              className="remove-app-drag cursor-pointer px-5 py-1.5 bg-[#0066FF]/10 hover:bg-[#0066FF]/20 text-white backdrop-blur-md border border-[#0066FF]/30"
+              className="cursor-pointer px-5 py-1.5 bg-[#0066FF]/10 hover:bg-[#0066FF]/20 text-white backdrop-blur-md border border-[#0066FF]/30"
             >
               Skip & Continue
             </Button>
@@ -117,39 +114,35 @@ export function OnboardingSpaceIcon({
           <div className="flex flex-col items-center justify-center h-40 text-center">
             <CheckCircle className="h-10 w-10 text-green-400 mb-2" />
             <div className="text-white text-lg font-medium mb-1">Icon Saved!</div>
-            <div className="text-gray-400 max-w-md mb-3">{"Let's continue with the next step."}</div>
+            <div className="text-gray-400 max-w-md">{"Moving to the next step..."}</div>
           </div>
         ) : (
-          <div className="overflow-hidden backdrop-blur-md bg-white/5 border border-white/10 rounded-lg p-4 remove-app-drag">
-            {/* Two-column layout for preview and picker */}
+          <div className="overflow-hidden backdrop-blur-md bg-white/5 border border-white/10 rounded-xl p-4">
             <div className="flex flex-col md:flex-row gap-4 items-start">
               {/* Icon Preview */}
-              <div className="flex-shrink-0 flex justify-center w-full md:w-auto mb-2 md:mb-0">
-                <div className="flex flex-col items-center gap-2 mr-2">
-                  <div className="size-16 rounded-full bg-white/10 backdrop-blur-sm grid place-items-center shadow-lg">
-                    <div className="h-8 w-8 text-white">
-                      <SpaceIcon id={selectedIcon} className="h-8 w-8" />
-                    </div>
+              <div className="flex-shrink-0 flex justify-center w-full md:w-auto">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="size-16 rounded-full bg-white/10 backdrop-blur-sm grid place-items-center">
+                    <SpaceIcon id={selectedIcon} className="h-8 w-8 text-white" />
                   </div>
-                  <div className="text-white/90 text-xs font-medium">Your Space Icon</div>
+                  <div className="text-white/60 text-xs">Preview</div>
                 </div>
               </div>
 
               {/* Space Icon Picker */}
               <div className="flex-1 w-full md:w-auto space-y-2">
                 <Label className="text-white text-sm">Select an Icon</Label>
-                <div className="bg-white/10 border border-white/30 rounded-md p-3">
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
                   <SpaceIconPicker selectedIcon={selectedIcon} onSelectIcon={setSelectedIcon} />
                 </div>
               </div>
             </div>
 
-            {/* Save Button */}
-            <div className="pt-3 flex justify-center">
+            <div className="pt-4 flex justify-center">
               <Button
                 onClick={saveIcon}
                 disabled={isSaving}
-                className="remove-app-drag cursor-pointer px-6 py-2 bg-[#0066FF] hover:bg-[#0055DD] text-white backdrop-blur-md border border-[#0066FF]/50"
+                className="cursor-pointer px-6 py-2 bg-[#0066FF] hover:bg-[#0055DD] text-white border border-[#0066FF]/50"
               >
                 {isSaving ? (
                   <>
@@ -165,19 +158,19 @@ export function OnboardingSpaceIcon({
         )}
       </motion.div>
 
-      {/* Bottom skip button */}
+      {/* Skip button */}
       {!isLoading && !errorMessage && !saveSuccess && (
-        <div className="my-3">
+        <div className="mt-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
+            transition={{ duration: 0.5, delay: 0.25, ease: "easeOut" }}
           >
             <Button
               onClick={advance}
               variant="ghost"
-              className="remove-app-drag cursor-pointer text-white/70 hover:text-white text-sm py-1"
+              className="cursor-pointer text-white/50 hover:text-white text-sm"
             >
               Skip
             </Button>

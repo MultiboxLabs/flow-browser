@@ -1,7 +1,7 @@
 import { OnboardingAdvanceCallback } from "@/components/onboarding/main";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
-import { Check, Loader2, AlertCircle } from "lucide-react";
+import { Check, Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface IconOption {
@@ -23,22 +23,18 @@ export function OnboardingIcon({ advance }: { advance: OnboardingAdvanceCallback
     const fetchIcons = async () => {
       setIsLoading(true);
       try {
-        // Check if platform supports icon customization
         const supported = await flow.icons.isPlatformSupported();
         setIsSupported(supported);
 
         if (!supported) {
-          // If not supported, just show not supported message
           setIsLoading(false);
           return;
         }
 
-        // Fetch both icons and current icon in parallel
         const [icons, currentIconId] = await Promise.all([flow.icons.getIcons(), flow.icons.getCurrentIcon()]);
 
         setSelectedIcon(currentIconId);
 
-        // Transform IconData to IconOption format
         const options: IconOption[] = icons.map((icon) => ({
           id: icon.id,
           name: icon.name,
@@ -50,7 +46,6 @@ export function OnboardingIcon({ advance }: { advance: OnboardingAdvanceCallback
         setIconOptions(options);
       } catch (error) {
         console.error("Failed to fetch icons:", error);
-        // Fallback to empty options if API fails
       } finally {
         setIsLoading(false);
       }
@@ -59,7 +54,6 @@ export function OnboardingIcon({ advance }: { advance: OnboardingAdvanceCallback
     fetchIcons();
   }, []);
 
-  // Handle icon selection
   const handleIconSelect = async (iconId: string) => {
     if (iconId === selectedIcon || isUpdating) return;
 
@@ -68,7 +62,6 @@ export function OnboardingIcon({ advance }: { advance: OnboardingAdvanceCallback
       const success = await flow.icons.setCurrentIcon(iconId);
       if (success) {
         setSelectedIcon(iconId);
-        // Update current status for icons
         setIconOptions((prev) =>
           prev.map((icon) => ({
             ...icon,
@@ -87,14 +80,14 @@ export function OnboardingIcon({ advance }: { advance: OnboardingAdvanceCallback
     <>
       {/* Header */}
       <motion.div
-        className="relative z-elevated text-center max-w-2xl px-4 mb-8"
+        className="relative z-elevated text-center max-w-2xl px-4 mb-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
       >
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Choose your icon</h1>
-        <p className="text-gray-400 text-lg">Select an icon for your Flow Browser</p>
+        <h1 className="text-4xl md:text-5xl font-bold text-white mb-3">Choose Your Icon</h1>
+        <p className="text-gray-400 text-lg">Personalize Flow Browser with an icon you love</p>
       </motion.div>
 
       {/* Icon Grid */}
@@ -103,7 +96,7 @@ export function OnboardingIcon({ advance }: { advance: OnboardingAdvanceCallback
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+        transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
       >
         {isLoading ? (
           <div className="flex items-center justify-center h-40">
@@ -115,9 +108,9 @@ export function OnboardingIcon({ advance }: { advance: OnboardingAdvanceCallback
         ) : !isSupported ? (
           <div className="flex flex-col items-center justify-center h-40 text-center">
             <AlertCircle className="h-10 w-10 text-amber-400 mb-3" />
-            <div className="text-white text-lg font-medium mb-1">Icon Customization Not Supported</div>
+            <div className="text-white text-lg font-medium mb-1">Icon Customization Unavailable</div>
             <div className="text-gray-400 max-w-md">
-              {"Your current operating system or environment doesn't support changing the application icon."}
+              {"Icon customization isn't supported on your current platform. You can skip this step."}
             </div>
           </div>
         ) : (
@@ -125,12 +118,13 @@ export function OnboardingIcon({ advance }: { advance: OnboardingAdvanceCallback
             {iconOptions.map((icon) => (
               <motion.div
                 key={icon.id}
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                className={`remove-app-drag flex items-center bg-white/10 backdrop-blur-md border rounded-md p-3 cursor-pointer ${
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                className={`flex items-center bg-white/5 backdrop-blur-md border rounded-lg p-3 cursor-pointer transition-colors ${
                   selectedIcon === icon.id
-                    ? "border-[#0066FF] ring-1 ring-[#0066FF]"
-                    : "border-white/20 hover:border-white/50"
+                    ? "border-[#0066FF] bg-[#0066FF]/10"
+                    : "border-white/10 hover:border-white/30 hover:bg-white/10"
                 } relative overflow-hidden ${isUpdating ? "opacity-70 pointer-events-none" : ""}`}
                 onClick={() => handleIconSelect(icon.id)}
               >
@@ -151,29 +145,21 @@ export function OnboardingIcon({ advance }: { advance: OnboardingAdvanceCallback
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex flex-col justify-center">
-                    <h3 className="font-medium text-base truncate text-white">{icon.name}</h3>
-                    {icon.author && <p className="text-xs text-gray-400 truncate">by {icon.author}</p>}
-                  </div>
+                  <h3 className="font-medium text-sm truncate text-white">{icon.name}</h3>
+                  {icon.author && <p className="text-xs text-gray-500 truncate">by {icon.author}</p>}
                 </div>
 
-                {selectedIcon === icon.id && !isUpdating && (
+                {selectedIcon === icon.id && (
                   <motion.div
                     initial={{ scale: 0.5, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="absolute top-1 right-1 h-5 w-5 bg-[#0066FF] rounded-full flex items-center justify-center shadow-md"
+                    className="absolute top-1.5 right-1.5 h-5 w-5 bg-[#0066FF] rounded-full flex items-center justify-center"
                   >
-                    <Check className="h-3 w-3 text-white" />
-                  </motion.div>
-                )}
-
-                {selectedIcon === icon.id && isUpdating && (
-                  <motion.div
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="absolute top-1 right-1 h-5 w-5 bg-[#0066FF] rounded-full flex items-center justify-center shadow-md"
-                  >
-                    <Loader2 className="h-3 w-3 text-white animate-spin" />
+                    {isUpdating ? (
+                      <Loader2 className="h-3 w-3 text-white animate-spin" />
+                    ) : (
+                      <Check className="h-3 w-3 text-white" />
+                    )}
                   </motion.div>
                 )}
               </motion.div>
@@ -183,19 +169,20 @@ export function OnboardingIcon({ advance }: { advance: OnboardingAdvanceCallback
       </motion.div>
 
       {/* Continue Button */}
-      <div className="my-8">
+      <div className="mt-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
+          transition={{ duration: 0.5, delay: 0.25, ease: "easeOut" }}
         >
           <Button
             onClick={advance}
-            className="remove-app-drag cursor-pointer px-12 py-6 text-lg bg-[#0066FF]/10 hover:bg-[#0066FF]/20 text-white backdrop-blur-md border border-[#0066FF]/30"
+            className="cursor-pointer px-10 py-6 text-lg bg-[#0066FF]/10 hover:bg-[#0066FF]/20 text-white backdrop-blur-md border border-[#0066FF]/30 gap-2"
             disabled={isLoading || isUpdating}
           >
-            {!isSupported ? "Skip" : isLoading || iconOptions.length === 0 ? "Skip" : "Continue"}
+            {!isSupported || isLoading || iconOptions.length === 0 ? "Skip" : "Continue"}
+            <ArrowRight className="h-5 w-5" />
           </Button>
         </motion.div>
       </div>

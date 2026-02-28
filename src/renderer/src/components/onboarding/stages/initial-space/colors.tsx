@@ -21,7 +21,6 @@ export function OnboardingSpaceColors({
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Load current space data
   useEffect(() => {
     const loadSpaceData = async () => {
       if (!profileId || !spaceId) return;
@@ -34,10 +33,8 @@ export function OnboardingSpaceColors({
         const space = spaces.find((s) => s.id === spaceId);
 
         if (space) {
-          // Set default colors if they don't exist
           if (!space.bgStartColor) space.bgStartColor = "#4285F4";
           if (!space.bgEndColor) space.bgEndColor = "#34A853";
-
           setSpaceData(space);
         }
       } catch (error) {
@@ -51,14 +48,12 @@ export function OnboardingSpaceColors({
     loadSpaceData();
   }, [profileId, spaceId]);
 
-  // Update space with new data
   const updateSpaceData = (updates: Partial<Space>) => {
     if (spaceData) {
       setSpaceData({ ...spaceData, ...updates });
     }
   };
 
-  // Save the space colors
   const saveColors = async () => {
     if (!profileId || !spaceId || !spaceData || isSaving) return;
 
@@ -71,12 +66,9 @@ export function OnboardingSpaceColors({
         bgEndColor: spaceData.bgEndColor
       });
 
-      // Set as current space
       await flow.spaces.setUsingSpace(profileId, spaceId);
-
       setSaveSuccess(true);
 
-      // Automatically advance after short delay
       setTimeout(() => {
         advance();
       }, 1000);
@@ -95,10 +87,10 @@ export function OnboardingSpaceColors({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
       >
-        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Choose Colors</h1>
-        <p className="text-gray-400 text-base">Select a background gradient for your space</p>
+        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Space Colors</h1>
+        <p className="text-gray-400 text-base">Choose a background gradient for your space</p>
       </motion.div>
 
       <motion.div
@@ -106,44 +98,42 @@ export function OnboardingSpaceColors({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+        transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
       >
         {isLoading ? (
-          <div className="flex items-center justify-center h-56">
+          <div className="flex items-center justify-center h-48">
             <div className="flex items-center space-x-2">
               <Loader2 className="h-5 w-5 animate-spin text-white" />
               <span className="text-white">Loading...</span>
             </div>
           </div>
         ) : errorMessage ? (
-          <div className="flex flex-col items-center justify-center h-56 text-center">
+          <div className="flex flex-col items-center justify-center h-48 text-center">
             <AlertCircle className="h-10 w-10 text-amber-400 mb-3" />
             <div className="text-white text-lg font-medium mb-1">Something went wrong</div>
             <div className="text-gray-400 max-w-md mb-4">{errorMessage}</div>
             <Button
               onClick={advance}
-              className="remove-app-drag cursor-pointer px-6 py-2 bg-[#0066FF]/10 hover:bg-[#0066FF]/20 text-white backdrop-blur-md border border-[#0066FF]/30"
+              className="cursor-pointer px-6 py-2 bg-[#0066FF]/10 hover:bg-[#0066FF]/20 text-white backdrop-blur-md border border-[#0066FF]/30"
             >
               Skip & Continue
             </Button>
           </div>
         ) : saveSuccess ? (
-          <div className="flex flex-col items-center justify-center h-56 text-center">
+          <div className="flex flex-col items-center justify-center h-48 text-center">
             <CheckCircle className="h-10 w-10 text-green-400 mb-3" />
             <div className="text-white text-lg font-medium mb-1">Colors Saved!</div>
-            <div className="text-gray-400 max-w-md mb-4">Your space is ready to use!</div>
+            <div className="text-gray-400 max-w-md">Your space is ready to use!</div>
           </div>
         ) : spaceData ? (
-          <div className="overflow-hidden backdrop-blur-md bg-white/5 border border-white/10 rounded-lg p-5 remove-app-drag">
-            {/* Use the BackgroundGradientEditor component */}
+          <div className="overflow-hidden backdrop-blur-md bg-white/5 border border-white/10 rounded-xl p-5">
             <BackgroundGradientEditor editedSpace={spaceData} updateEditedSpace={updateSpaceData} />
 
-            {/* Save Button */}
             <div className="pt-4 flex justify-center">
               <Button
                 onClick={saveColors}
                 disabled={isSaving}
-                className="remove-app-drag cursor-pointer px-8 py-2 bg-[#0066FF] hover:bg-[#0055DD] text-white backdrop-blur-md border border-[#0066FF]/50"
+                className="cursor-pointer px-8 py-2 bg-[#0066FF] hover:bg-[#0055DD] text-white border border-[#0066FF]/50"
               >
                 {isSaving ? (
                   <>
@@ -159,19 +149,19 @@ export function OnboardingSpaceColors({
         ) : null}
       </motion.div>
 
-      {/* Bottom skip button */}
+      {/* Skip button */}
       {!isLoading && !errorMessage && !saveSuccess && spaceData && (
-        <div className="my-4">
+        <div className="mt-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
+            transition={{ duration: 0.5, delay: 0.25, ease: "easeOut" }}
           >
             <Button
               onClick={advance}
               variant="ghost"
-              className="remove-app-drag cursor-pointer text-white/70 hover:text-white"
+              className="cursor-pointer text-white/50 hover:text-white"
             >
               Skip
             </Button>
