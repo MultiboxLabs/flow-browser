@@ -492,8 +492,8 @@ const pinnedTabsAPI: FlowPinnedTabsAPI = {
   onChanged: (callback: (data: Record<string, PinnedTabData[]>) => void) => {
     return listenOnIPCChannel("pinned-tabs:on-changed", callback);
   },
-  createFromTab: async (tabId: number) => {
-    return ipcRenderer.invoke("pinned-tabs:create-from-tab", tabId);
+  createFromTab: async (tabId: number, position?: number) => {
+    return ipcRenderer.invoke("pinned-tabs:create-from-tab", tabId, position);
   },
   click: async (pinnedTabId: string) => {
     return ipcRenderer.invoke("pinned-tabs:click", pinnedTabId);

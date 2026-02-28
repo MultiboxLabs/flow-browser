@@ -7,7 +7,7 @@ interface PinnedTabsContextValue {
   /** Get pinned tabs for a specific profile */
   getPinnedTabs: (profileId: string) => PinnedTabData[];
   /** Create a pinned tab from an existing browser tab */
-  createFromTab: (tabId: number) => Promise<PinnedTabData | null>;
+  createFromTab: (tabId: number, position?: number) => Promise<PinnedTabData | null>;
   /** Click a pinned tab (activate or create associated tab) */
   click: (pinnedTabId: string) => Promise<boolean>;
   /** Double-click a pinned tab (navigate back to default URL) */
@@ -63,8 +63,8 @@ export const PinnedTabsProvider = ({ children }: PinnedTabsProviderProps) => {
     [pinnedTabsByProfile]
   );
 
-  const createFromTab = useCallback(async (tabId: number) => {
-    return flow.pinnedTabs.createFromTab(tabId);
+  const createFromTab = useCallback(async (tabId: number, position?: number) => {
+    return flow.pinnedTabs.createFromTab(tabId, position);
   }, []);
 
   const click = useCallback(async (pinnedTabId: string) => {
