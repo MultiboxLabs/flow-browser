@@ -8,6 +8,7 @@ import "@/ipc/app/window-controls";
 // Browser APIs
 import "@/ipc/browser/browser";
 import "@/ipc/browser/tabs";
+import "@/ipc/browser/pinned-tabs";
 import "@/ipc/browser/page";
 import "@/ipc/browser/navigation";
 import "@/ipc/browser/interface";
