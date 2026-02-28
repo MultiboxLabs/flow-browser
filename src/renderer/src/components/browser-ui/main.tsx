@@ -27,6 +27,7 @@ import { BrowserActionProvider } from "@/components/providers/browser-action-pro
 import { ExtensionsProviderWithSpaces } from "@/components/providers/extensions-provider";
 import MinimalToastProvider from "@/components/providers/minimal-toast-provider";
 import { ActionsProvider } from "@/components/providers/actions-provider";
+import { PinnedTabsProvider } from "@/components/providers/pinned-tabs-provider";
 import BrowserContent from "@/components/browser-ui/browser-content";
 import { FindInPage } from "@/components/browser-ui/find-in-page";
 import { NavigationControls } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
@@ -315,12 +316,14 @@ export function BrowserUI({ type }: { type: BrowserUIType }) {
           <AdaptiveTopbarProvider>
             <SpacesProvider windowType={type}>
               <TabsProvider>
-                <BrowserActionProvider>
-                  <ExtensionsProviderWithSpaces>
-                    <TabDisabler />
-                    <InternalBrowserUI isReady={isReady} type={type} />
-                  </ExtensionsProviderWithSpaces>
-                </BrowserActionProvider>
+                <PinnedTabsProvider>
+                  <BrowserActionProvider>
+                    <ExtensionsProviderWithSpaces>
+                      <TabDisabler />
+                      <InternalBrowserUI isReady={isReady} type={type} />
+                    </ExtensionsProviderWithSpaces>
+                  </BrowserActionProvider>
+                </PinnedTabsProvider>
               </TabsProvider>
             </SpacesProvider>
           </AdaptiveTopbarProvider>
