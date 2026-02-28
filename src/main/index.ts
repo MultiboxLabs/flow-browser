@@ -32,6 +32,7 @@ function initializeApp() {
   printHeader();
 
   // Import everything
+  app.setActivationPolicy("regular");
   import("@/browser");
 
   return true;
