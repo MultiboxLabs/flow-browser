@@ -20,7 +20,9 @@ import { pinnedTabsController } from "@/controllers/pinned-tabs-controller";
 tabPersistenceManager.start();
 
 // Load pinned tabs from database into memory
-await pinnedTabsController.loadAll();
+// Note: loadAll() uses synchronous better-sqlite3 internally, so the work
+// completes immediately despite the async signature. No await needed.
+pinnedTabsController.loadAll();
 
 // Start cursor edge monitor (detects pointer near window edges for floating sidebar)
 initCursorEdgeMonitor();
