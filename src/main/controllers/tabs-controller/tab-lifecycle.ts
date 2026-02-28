@@ -93,6 +93,11 @@ export class TabLifecycleManager {
       this.tab.restoreNavigationHistory(this.preSleepState.navHistory, this.preSleepState.navHistoryIndex);
       this.preSleepState = null;
     }
+
+    // Apply background color for the restored URL (the "updated" listener
+    // won't fire because this.url was already set during sleep construction,
+    // so updateTabState() sees no URL change).
+    this.tab.applyUrlBackground();
   }
 
   // --- Fullscreen ---

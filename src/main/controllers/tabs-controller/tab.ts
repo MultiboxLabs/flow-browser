@@ -361,6 +361,27 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     });
   }
 
+  // --- Background Color ---
+
+  private static readonly WHITELISTED_PROTOCOLS = ["flow-internal:", "flow:"];
+  private static readonly COLOR_TRANSPARENT = "#00000000";
+  private static readonly COLOR_BACKGROUND = "#ffffffff";
+
+  /**
+   * Applies the correct background color based on the current URL.
+   * Internal protocols (flow:, flow-internal:) get a transparent background;
+   * everything else gets an opaque white background.
+   */
+  public applyUrlBackground(): void {
+    if (!this.url || !this.view) return;
+    const url = URL.parse(this.url);
+    if (url && Tab.WHITELISTED_PROTOCOLS.includes(url.protocol)) {
+      this.view.setBackgroundColor(Tab.COLOR_TRANSPARENT);
+    } else {
+      this.view.setBackgroundColor(Tab.COLOR_BACKGROUND);
+    }
+  }
+
   // --- Tab-Level Listeners (registered once, survive sleep/wake cycles) ---
 
   /**
@@ -377,22 +398,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     });
 
     // Transparent background for internal protocols
-    const WHITELISTED_PROTOCOLS = ["flow-internal:", "flow:"];
-    const COLOR_TRANSPARENT = "#00000000";
-    const COLOR_BACKGROUND = "#ffffffff";
     this.on("updated", (properties) => {
-      if (properties.includes("url") && this.url) {
-        if (!this.view) return;
-        const url = URL.parse(this.url);
-        if (url) {
-          if (WHITELISTED_PROTOCOLS.includes(url.protocol)) {
-            this.view.setBackgroundColor(COLOR_TRANSPARENT);
-          } else {
-            this.view.setBackgroundColor(COLOR_BACKGROUND);
-          }
-        } else {
-          this.view.setBackgroundColor(COLOR_BACKGROUND);
-        }
+      if (properties.includes("url")) {
+        this.applyUrlBackground();
       }
     });
   }
