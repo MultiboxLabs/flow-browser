@@ -8,6 +8,7 @@ import {
   type Edge
 } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import type { PinnedTabData } from "~/types/pinned-tabs";
+import type { TabGroupSourceData } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
 import "./pin.css";
 
 /**
@@ -43,23 +44,31 @@ function isPinnedTabSource(data: Record<string, unknown>): data is PinnedTabSour
   return data.type === "pinned-tab" && typeof data.pinnedTabId === "string";
 }
 
+function isTabGroupSource(data: Record<string, unknown>): data is TabGroupSourceData {
+  return data.type === "tab-group" && typeof data.primaryTabId === "number";
+}
+
 interface PinnedTabButtonProps {
   pinnedTab: PinnedTabData;
+  profileId: string | null;
   isActive: boolean;
   onClick: () => void;
   onDoubleClick: () => void;
   onContextMenu: () => void;
   onReorder: (pinnedTabId: string, newPosition: number) => void;
+  onCreateFromTab: (tabId: number, position: number) => void;
   pinnedTabs: PinnedTabData[];
 }
 
 export function PinnedTabButton({
   pinnedTab,
+  profileId,
   isActive,
   onClick,
   onDoubleClick,
   onContextMenu,
   onReorder,
+  onCreateFromTab,
   pinnedTabs
 }: PinnedTabButtonProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -109,7 +118,15 @@ export function PinnedTabButton({
 
     const dropCleanup = dropTargetForElements({
       element: el,
-      canDrop: ({ source }) => isPinnedTabSource(source.data),
+      canDrop: ({ source }) => {
+        const data = source.data;
+        if (isPinnedTabSource(data)) return true;
+        if (isTabGroupSource(data)) {
+          // Only accept tabs from the same profile
+          return !profileId || data.profileId === profileId;
+        }
+        return false;
+      },
       getData: ({ input, element }) => {
         return attachClosestEdge({}, { input, element, allowedEdges: ["left", "right"] });
       },
@@ -119,12 +136,11 @@ export function PinnedTabButton({
       onDrop: ({ source, self }) => {
         setClosestEdge(null);
         const sourceData = source.data;
-        if (!isPinnedTabSource(sourceData)) return;
 
         const edge = extractClosestEdge(self.data);
         if (!edge) return;
 
-        // Calculate new position
+        // Calculate new position based on edge
         const targetIndex = pinnedTabs.findIndex((pt) => pt.uniqueId === pinnedTab.uniqueId);
         let newPosition: number;
         if (edge === "left") {
@@ -133,7 +149,11 @@ export function PinnedTabButton({
           newPosition = targetIndex + 0.5;
         }
 
-        onReorder(sourceData.pinnedTabId, newPosition);
+        if (isPinnedTabSource(sourceData)) {
+          onReorder(sourceData.pinnedTabId, newPosition);
+        } else if (isTabGroupSource(sourceData)) {
+          onCreateFromTab(sourceData.primaryTabId, newPosition);
+        }
       }
     });
 
@@ -141,7 +161,7 @@ export function PinnedTabButton({
       dragCleanup();
       dropCleanup();
     };
-  }, [pinnedTab.uniqueId, pinnedTab.position, pinnedTabs, onReorder]);
+  }, [pinnedTab.uniqueId, pinnedTab.position, pinnedTabs, profileId, onReorder, onCreateFromTab]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {

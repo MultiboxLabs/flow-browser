@@ -88,15 +88,22 @@ class PinnedTabsController {
    * Create a new pinned tab.
    * @returns The created pinned tab data
    */
-  create(profileId: string, defaultUrl: string, faviconUrl: string | null): PersistedPinnedTabData {
+  create(profileId: string, defaultUrl: string, faviconUrl: string | null, position?: number): PersistedPinnedTabData {
     const uniqueId = generateID();
 
-    // Position: place at the end
-    let maxPosition = -1;
-    for (const pt of this.pinnedTabs.values()) {
-      if (pt.profileId === profileId && pt.position > maxPosition) {
-        maxPosition = pt.position;
+    let finalPosition: number;
+    if (position !== undefined) {
+      // Use the requested position (fractional is fine, normalizePositions will fix it)
+      finalPosition = position;
+    } else {
+      // Place at the end
+      let maxPosition = -1;
+      for (const pt of this.pinnedTabs.values()) {
+        if (pt.profileId === profileId && pt.position > maxPosition) {
+          maxPosition = pt.position;
+        }
       }
+      finalPosition = maxPosition + 1;
     }
 
     const data: PersistedPinnedTabData = {
@@ -104,7 +111,7 @@ class PinnedTabsController {
       profileId,
       defaultUrl,
       faviconUrl,
-      position: maxPosition + 1
+      position: finalPosition
     };
 
     // Persist immediately
@@ -114,6 +121,9 @@ class PinnedTabsController {
 
     // Update in-memory cache
     this.pinnedTabs.set(uniqueId, data);
+
+    // Normalize positions so fractional inserts become contiguous integers
+    this.normalizePositions(profileId);
     this.notifyChanged();
 
     return data;
