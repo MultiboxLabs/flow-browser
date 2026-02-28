@@ -1,6 +1,5 @@
 import { useSpaces } from "@/components/providers/spaces-provider";
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { cn } from "@/lib/utils";
+import { useMemo, useRef, useState } from "react";
 import { PinGrid } from "./normal/pin-grid";
 
 // --- PinGridCarousel --- //
@@ -8,6 +7,12 @@ import { PinGrid } from "./normal/pin-grid";
 // consecutive profile. Consecutive spaces sharing the same profile share
 // a single page, so switching between them causes no scroll animation.
 // Syncs with the current space — does NOT drive space changes on swipe.
+//
+// Uses CSS transform + transition instead of scroll-based animation so that
+// the outer container doesn't need to be a scroll container. This avoids
+// the CSS spec rule where `overflow-x: hidden` forces `overflow-y: auto`,
+// which would create a vertical scroll context that interferes with the
+// SidebarScrollArea inside each PinGrid page.
 
 interface PageGroup {
   profileId: string;
@@ -17,8 +22,8 @@ interface PageGroup {
 
 export function PinGridCarousel() {
   const { spaces, currentSpace } = useSpaces();
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const hasInitializedRef = useRef(false);
+  const [animate, setAnimate] = useState(false);
 
   // Group consecutive spaces with the same profile into pages.
   // Also build a mapping from space index → page index.
@@ -45,61 +50,28 @@ export function PinGridCarousel() {
 
   const currentPageIndex = spaceIndexToPage[currentSpaceIndex] ?? 0;
 
-  // Keep a ref so the ResizeObserver always reads the latest page index
-  const currentPageIndexRef = useRef(currentPageIndex);
-  currentPageIndexRef.current = currentPageIndex;
-
-  // Set initial scroll position instantly (before first paint)
-  useLayoutEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    if (!hasInitializedRef.current) {
-      hasInitializedRef.current = true;
-      container.scrollLeft = currentPageIndex * container.clientWidth;
-    }
-  }, [currentPageIndex]);
-
-  // When current page changes, smooth-scroll to the corresponding page
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container || !hasInitializedRef.current) return;
-
-    const targetScrollLeft = currentPageIndex * container.clientWidth;
-    if (Math.abs(container.scrollLeft - targetScrollLeft) < 2) return;
-
-    container.scrollTo({ left: targetScrollLeft, behavior: "smooth" });
-  }, [currentPageIndex]);
-
-  // Re-snap on container resize so the active page stays aligned
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    let lastWidth = container.clientWidth;
-
-    const observer = new ResizeObserver((entries) => {
-      const newWidth = entries[0]?.contentRect.width ?? container.clientWidth;
-      if (Math.abs(newWidth - lastWidth) < 1) return;
-      lastWidth = newWidth;
-      container.scrollLeft = currentPageIndexRef.current * newWidth;
-    });
-
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
+  // Enable transitions after initial render so the first page snaps instantly
+  if (!hasInitializedRef.current && pages.length > 0) {
+    hasInitializedRef.current = true;
+    // Schedule enabling animation after the first paint
+    requestAnimationFrame(() => setAnimate(true));
+  }
 
   return (
-    <div
-      ref={scrollContainerRef}
-      className={cn("shrink-0", "flex overflow-x-hidden", "[&::-webkit-scrollbar]:hidden")}
-      style={{ scrollbarWidth: "none" }}
-    >
-      {pages.map((page) => (
-        <div key={page.key} className="min-w-full w-full shrink-0 px-1">
-          <PinGrid profileId={page.profileId} />
-        </div>
-      ))}
+    <div className="shrink-0 overflow-clip">
+      <div
+        className="flex"
+        style={{
+          transform: `translateX(-${currentPageIndex * 100}%)`,
+          transition: animate ? "transform 300ms ease" : "none"
+        }}
+      >
+        {pages.map((page) => (
+          <div key={page.key} className="min-w-full w-full shrink-0 px-1">
+            <PinGrid profileId={page.profileId} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
