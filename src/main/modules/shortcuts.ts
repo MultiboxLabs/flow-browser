@@ -56,8 +56,8 @@ const typedShortcuts = [
     category: "Navigation"
   },
   {
-    id: "navigation.focusAddressBar",
-    name: "Focus Address Bar",
+    id: "navigation.focusCommandPalette",
+    name: "Focus Command Palette",
     shortcut: "CommandOrControl+L",
     category: "Navigation"
   },
