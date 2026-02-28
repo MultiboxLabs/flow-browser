@@ -36,6 +36,7 @@ import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
 import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/find-in-page";
+import { FlowHistoryAPI, VisitTypeValue } from "~/flow/interfaces/browser/history";
 import type {
   AssertCredentialErrorCodes,
   AssertCredentialResult,
@@ -833,6 +834,25 @@ const shortcutsAPI: FlowShortcutsAPI = {
   }
 };
 
+// HISTORY API //
+const historyAPI: FlowHistoryAPI = {
+  getSignificant: async () => {
+    return ipcRenderer.invoke("history:get-significant");
+  },
+  search: async (query: string, limit?: number) => {
+    return ipcRenderer.invoke("history:search", query, limit);
+  },
+  recordVisit: (url: string, title: string, visitType?: VisitTypeValue) => {
+    return ipcRenderer.send("history:record-visit", url, title, visitType);
+  },
+  getRecent: async (limit?: number) => {
+    return ipcRenderer.invoke("history:get-recent", limit);
+  },
+  getMostVisited: async (limit?: number) => {
+    return ipcRenderer.invoke("history:get-most-visited", limit);
+  }
+};
+
 // EXPOSE FLOW API //
 const flowAPI: typeof flow = {
   // App APIs
@@ -860,6 +880,7 @@ const flowAPI: typeof flow = {
   omnibox: wrapAPI(omniboxAPI, "browser"),
   newTab: wrapAPI(newTabAPI, "browser"),
   findInPage: wrapAPI(findInPageAPI, "browser"),
+  history: wrapAPI(historyAPI, "browser"),
 
   // Session APIs
   profiles: wrapAPI(profilesAPI, "session", {

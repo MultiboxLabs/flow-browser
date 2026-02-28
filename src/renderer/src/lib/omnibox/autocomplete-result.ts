@@ -1,4 +1,5 @@
 import { AutocompleteMatch } from "@/lib/omnibox/types";
+import { normalizeUrlForDedup } from "@/lib/omnibox/url-normalizer";
 
 export class AutocompleteResult {
   private matches: AutocompleteMatch[] = [];
@@ -16,20 +17,22 @@ export class AutocompleteResult {
     this.matches = [];
   }
 
-  // Simple deduplication: prioritize higher relevance for the same destinationUrl
+  /**
+   * Deduplication using dedupKey (normalized URL) when available,
+   * falling back to raw destinationUrl. Prioritizes higher relevance.
+   */
   deduplicate(): void {
     const uniqueMatches = new Map<string, AutocompleteMatch>();
     // Sort first to process higher relevance scores first
     this.matches.sort((a, b) => b.relevance - a.relevance);
 
     for (const match of this.matches) {
-      const key = match.destinationUrl; // Use destination URL as the primary key
+      // Use dedupKey if set by the provider, otherwise normalize the destination URL
+      const key = match.dedupKey ?? normalizeUrlForDedup(match.destinationUrl);
       if (!uniqueMatches.has(key)) {
         uniqueMatches.set(key, match);
       }
-      // If a duplicate exists but the current one is a different type we might want to keep it?
-      // The summary mentions merging, e.g. bookmark + history. This simple dedupe replaces.
-      // A more complex logic could merge properties or keep both if types differ significantly.
+      // Future: merge properties when types differ (e.g., bookmark + history)
     }
     this.matches = Array.from(uniqueMatches.values());
   }
@@ -40,7 +43,10 @@ export class AutocompleteResult {
       if (b.relevance !== a.relevance) {
         return b.relevance - a.relevance;
       }
-      // Add secondary sort criteria if needed (e.g., provider type, alphabetical)
+      // Secondary: prefer matches allowed to be default
+      if (a.allowedToBeDefault !== b.allowedToBeDefault) {
+        return a.allowedToBeDefault ? -1 : 1;
+      }
       return 0;
     });
   }

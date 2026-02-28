@@ -21,7 +21,7 @@ export class AutocompleteController {
 
   /** Starts a new autocomplete query for the given input. */
   start(input: AutocompleteInput): void {
-    console.log(`AutocompleteController: Starting query for "${input.text}" (type: ${input.type})`);
+    console.log(`AutocompleteController: Starting query for "${input.text}" (trigger: ${input.trigger})`);
     this.stop(); // Stop any previous query
 
     this.currentInput = input;
@@ -31,12 +31,11 @@ export class AutocompleteController {
     const requestId = generateUUID();
     this.currentRequestId = requestId;
 
-    // Special handling for ZeroSuggest on focus
-    if (input.type === "focus" && input.text === "") {
+    // Special handling for ZeroSuggest on focus with empty input
+    if (input.trigger === "focus" && input.text === "") {
       const zeroSuggestProvider = this.providers.find((p) => p instanceof ZeroSuggestProvider);
       if (zeroSuggestProvider) {
         this.activeProviders++;
-        // Bind `this` to ensure correct context in the callback
         zeroSuggestProvider.start(input, (results, continuous) => {
           this.onProviderResults(zeroSuggestProvider, requestId, results, continuous);
         });
@@ -47,9 +46,7 @@ export class AutocompleteController {
         // Don't run ZeroSuggestProvider on normal input
         if (provider instanceof ZeroSuggestProvider) return;
 
-        // Maybe add more logic here: e.g., disable search provider if offline?
         this.activeProviders++;
-        // Bind `this` to ensure correct context in the callback
         provider.start(input, (results, continuous) => {
           this.onProviderResults(provider, requestId, results, continuous);
         });

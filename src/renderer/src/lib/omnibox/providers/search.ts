@@ -3,7 +3,7 @@ import { OmniboxUpdateCallback } from "@/lib/omnibox/omnibox";
 import { AutocompleteInput, AutocompleteMatch } from "@/lib/omnibox/types";
 import { createSearchUrl, getSearchSuggestions } from "@/lib/search";
 import { getURLFromInput } from "@/lib/url";
-import { getStringSimilarity } from "@/lib/omnibox/data-providers/string-similarity";
+import { tokenize, allTermsMatch, findBestMatch } from "@/lib/omnibox/tokenizer";
 
 export class SearchProvider extends BaseProvider {
   name = "SearchProvider";
@@ -19,7 +19,6 @@ export class SearchProvider extends BaseProvider {
     const inputText = input.text;
 
     if (!inputText) {
-      // Don't fetch suggestions for URLs or very short inputs sometimes
       onResults([]);
       return;
     }
@@ -31,10 +30,10 @@ export class SearchProvider extends BaseProvider {
       providerName: this.name,
       relevance: url ? 1250 : 1300, // High score to appear near top, but below strong nav
       contents: inputText,
-      description: `Search for "${inputText}"`, // Or search engine name
+      description: `Search for "${inputText}"`,
       destinationUrl: createSearchUrl(inputText),
-      type: "verbatim", // Special type for clarity, often treated as search
-      isDefault: true // Usually the fallback default action
+      type: "verbatim",
+      isDefault: true
     };
     onResults([verbatimMatch], true); // Send verbatim immediately
 
@@ -46,16 +45,36 @@ export class SearchProvider extends BaseProvider {
       .then((suggestions) => {
         if (abortSignal.aborted) return;
 
+        const inputTerms = input.terms;
         const results: AutocompleteMatch[] = [];
+
         suggestions.forEach((suggestion, index) => {
           // Base relevance around 600-800, first suggestion is usually highest
           const baseRelevance = 800 - index * 50;
-          // Calculate similarity with original input
-          const similarity = getStringSimilarity(inputText, suggestion);
-          // Boost relevance based on similarity, cap suggestions below verbatim/history
-          const relevance = Math.min(1000, Math.ceil(baseRelevance + similarity * 200));
 
-          // Check if suggestion looks like a URL (navigational suggestion)
+          // Calculate match quality using tokenized matching
+          let matchBoost = 0;
+          if (inputTerms.length > 0) {
+            const suggestionTokens = tokenize(suggestion);
+            if (allTermsMatch(inputTerms, suggestionTokens)) {
+              // Good match — compute quality
+              let matchScore = 0;
+              for (const term of inputTerms) {
+                const best = findBestMatch(term, suggestionTokens);
+                if (best === "exact") matchScore += 1.0;
+                else if (best === "prefix") matchScore += 0.7;
+                else if (best === "substring") matchScore += 0.4;
+              }
+              matchBoost = (matchScore / inputTerms.length) * 200;
+            } else {
+              // Partial or no match — still include (server suggestion may be relevant)
+              matchBoost = 50;
+            }
+          }
+
+          // Cap suggestions below verbatim/history
+          const relevance = Math.min(1000, Math.ceil(baseRelevance + matchBoost));
+
           const type: AutocompleteMatch["type"] = "search-query";
           const destinationUrl = createSearchUrl(suggestion);
 
