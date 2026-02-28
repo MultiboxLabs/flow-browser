@@ -53,13 +53,13 @@ function FindInPageBar({ onClose }: { onClose: () => void }) {
   const findNext = useCallback(() => {
     const currentQuery = queryRef.current;
     if (!currentQuery) return;
-    flow.findInPage.find(currentQuery, { forward: true, findNext: true });
+    flow.findInPage.find(currentQuery, { forward: true, findNext: false });
   }, []);
 
   const findPrevious = useCallback(() => {
     const currentQuery = queryRef.current;
     if (!currentQuery) return;
-    flow.findInPage.find(currentQuery, { forward: false, findNext: true });
+    flow.findInPage.find(currentQuery, { forward: false, findNext: false });
   }, []);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,7 +73,7 @@ function FindInPageBar({ onClose }: { onClose: () => void }) {
       return;
     }
 
-    flow.findInPage.find(value, { forward: true, findNext: false });
+    flow.findInPage.find(value, { forward: true, findNext: true });
   }, []);
 
   const handleKeyDown = useCallback(
