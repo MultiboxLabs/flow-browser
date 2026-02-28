@@ -11,21 +11,24 @@ These dependencies are bundled into the `node_modules` of the app. These should 
 ### Local Database Dependencies
 
 - better-sqlite3 - SQLite Connector for the app.
+- drizzle-orm - ORM for the app.
 - knex - SQL Query Builder for the app.
 
 ### Uncategorized Dependencies
 
-- @ghostery/adblocker - Built-in adblocker for Flow.
+- @ghostery/adblocker-electron - Built-in adblocker for Flow.
 - @phosphor-icons/core - Material Icons for the app.
 - electron-chrome-extensions - Patches the chrome extensions API to ensure they work.
 - electron-chrome-web-store - Patches APIs the Chrome Web Store needs to work & make it think this is Chrome.
 - electron-context-menu - Context menu for the app.
 - electron-updater - Handles updating the app.
+- electron-webauthn - Handles WebAuthn (Passkeys) for websites on macOS.
 - icojs - ICO Parser for favicons.
 - mime-types - Provide mime types.
 - posthog-node - Provide analytics.
 - arktype - Handles Data Validation. (Better alternative to zod)
 - sharp - Image Processing.
+- tldts - Parse top-level domains from URLs.
 
 ## Dev Dependencies
 
@@ -43,7 +46,10 @@ These dependencies are either used in the build process, or they are only used i
 ### Other Build Dependencies
 
 - @vitejs/plugin-react - Plugin for vite to bundle the react frontend.
-- jju - Handles updating JSON while maintaining the current formatting. This is used for serval build scripts.
+- babel-plugin-react-compiler - Babel plugin to enable the React Compiler for optimized re-renders.
+- cross-env - Set environment variables cross-platform in npm scripts.
+- drizzle-kit - CLI tooling for Drizzle ORM migrations and schema management.
+- jju - Handles updating JSON while maintaining the current formatting. This is used for several build scripts.
 
 ### eslint Dependencies
 
@@ -60,6 +66,7 @@ These dependencies are either used in the build process, or they are only used i
 - react-dom - Powers the frontend.
 - @atlaskit/pragmatic-drag-and-drop - Helper for drag and drop tabs.
 - @atlaskit/pragmatic-drag-and-drop-react-drop-indicator - Helper for drag and drop tabs.
+- @iamevan/react-resizable-panels - Resizable panel layouts for the frontend.
 - lucide-react - Icons for the app.
 - @phosphor-icons/react - Icons for the app.
 - @pdfslick/react - Powers the Experimental PDF Viewer from PDFSlick.
