@@ -85,7 +85,11 @@ function getWindowTabsData(window: BrowserWindow) {
   const tabs = tabsController.getTabsInWindow(windowId);
   const tabGroups = tabsController.getTabGroupsInWindow(windowId);
 
-  const tabDatas = tabs.map((tab) => {
+  // Filter out ephemeral tabs — they are managed by the pin grid and should
+  // never appear in the sidebar tab list.
+  const visibleTabs = tabs.filter((tab) => !tab.ephemeral);
+
+  const tabDatas = visibleTabs.map((tab) => {
     const managers = tabsController.getTabManagers(tab.id);
     return serializeTabForRenderer(tab, managers?.lifecycle.preSleepState);
   });
@@ -94,7 +98,7 @@ function getWindowTabsData(window: BrowserWindow) {
   const windowProfiles: string[] = [];
   const windowSpaces: string[] = [];
 
-  for (const tab of tabs) {
+  for (const tab of visibleTabs) {
     if (!windowProfiles.includes(tab.profileId)) {
       windowProfiles.push(tab.profileId);
     }
@@ -196,7 +200,7 @@ function processQueues() {
     const updatedTabs: TabData[] = [];
     for (const tabId of tabIds) {
       const tab = tabsController.getTabById(tabId);
-      if (!tab) continue;
+      if (!tab || tab.ephemeral) continue;
 
       const managers = tabsController.getTabManagers(tabId);
       updatedTabs.push(serializeTabForRenderer(tab, managers?.lifecycle.preSleepState));

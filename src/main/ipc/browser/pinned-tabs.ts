@@ -65,6 +65,9 @@ ipcMain.handle("pinned-tabs:create-from-tab", async (_event, tabId: number) => {
   const faviconUrl = tab.faviconURL ?? null;
   const pinnedTab = pinnedTabsController.create(tab.profileId, url, faviconUrl);
 
+  // Mark the tab as ephemeral so it won't be persisted across sessions
+  tabsController.makeTabEphemeral(tab.id);
+
   // Associate the pinned tab with the browser tab
   pinnedTabsController.associateTab(pinnedTab.uniqueId, tab.id);
 
@@ -102,7 +105,8 @@ ipcMain.handle("pinned-tabs:click", async (event, pinnedTabId: string) => {
   if (!spaceId) return false;
 
   const newTab = await tabsController.createTab(window.id, pinnedTab.profileId, spaceId, undefined, {
-    url: pinnedTab.defaultUrl
+    url: pinnedTab.defaultUrl,
+    ephemeral: true
   });
 
   pinnedTabsController.associateTab(pinnedTabId, newTab.id);
@@ -140,7 +144,8 @@ ipcMain.handle("pinned-tabs:double-click", async (event, pinnedTabId: string) =>
   if (!spaceId) return false;
 
   const newTab = await tabsController.createTab(window.id, pinnedTab.profileId, spaceId, undefined, {
-    url: pinnedTab.defaultUrl
+    url: pinnedTab.defaultUrl,
+    ephemeral: true
   });
 
   pinnedTabsController.associateTab(pinnedTabId, newTab.id);
