@@ -15,7 +15,7 @@ interface PinnedTabsContextValue {
   /** Remove a pinned tab */
   remove: (pinnedTabId: string) => Promise<boolean>;
   /** Unpin a tab back to the tab list (removes pin + makes associated tab persistent) */
-  unpinToTabList: (pinnedTabId: string) => Promise<boolean>;
+  unpinToTabList: (pinnedTabId: string, position?: number) => Promise<boolean>;
   /** Reorder a pinned tab to a new position */
   reorder: (pinnedTabId: string, newPosition: number) => Promise<boolean>;
   /** Show context menu for a pinned tab */
@@ -79,8 +79,8 @@ export const PinnedTabsProvider = ({ children }: PinnedTabsProviderProps) => {
     return flow.pinnedTabs.remove(pinnedTabId);
   }, []);
 
-  const unpinToTabList = useCallback(async (pinnedTabId: string) => {
-    return flow.pinnedTabs.unpinToTabList(pinnedTabId);
+  const unpinToTabList = useCallback(async (pinnedTabId: string, position?: number) => {
+    return flow.pinnedTabs.unpinToTabList(pinnedTabId, position);
   }, []);
 
   const reorder = useCallback(async (pinnedTabId: string, newPosition: number) => {

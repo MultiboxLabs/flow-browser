@@ -38,9 +38,9 @@ export function TabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex }
 
       const sourceData = args.source.data;
 
-      // Handle pinned tab drops — unpin and show in tab list
+      // Handle pinned tab drops — unpin and show in tab list at the end
       if (isPinnedTabSource(sourceData)) {
-        unpinToTabList(sourceData.pinnedTabId);
+        unpinToTabList(sourceData.pinnedTabId, biggestIndex + 1);
         return;
       }
 

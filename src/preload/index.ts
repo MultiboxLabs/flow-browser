@@ -504,8 +504,8 @@ const pinnedTabsAPI: FlowPinnedTabsAPI = {
   remove: async (pinnedTabId: string) => {
     return ipcRenderer.invoke("pinned-tabs:remove", pinnedTabId);
   },
-  unpinToTabList: async (pinnedTabId: string) => {
-    return ipcRenderer.invoke("pinned-tabs:unpin-to-tab-list", pinnedTabId);
+  unpinToTabList: async (pinnedTabId: string, position?: number) => {
+    return ipcRenderer.invoke("pinned-tabs:unpin-to-tab-list", pinnedTabId, position);
   },
   reorder: async (pinnedTabId: string, newPosition: number) => {
     return ipcRenderer.invoke("pinned-tabs:reorder", pinnedTabId, newPosition);
