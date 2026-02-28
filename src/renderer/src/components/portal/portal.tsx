@@ -92,10 +92,13 @@ export function PortalComponent({
   }, [portal, visible]);
 
   // Focus the portal's webContents when visible and autoFocus is enabled
+  const hasAutoFocusedRef = useRef(false);
   useEffect(() => {
     if (!portal?.window || portal.window.closed) return;
     if (!visible || !autoFocus) return;
+    if (hasAutoFocusedRef.current) return;
 
+    hasAutoFocusedRef.current = true;
     try {
       flow.interface.focusComponentWindow(portal.id);
     } catch (error) {
