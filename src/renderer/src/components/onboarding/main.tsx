@@ -9,13 +9,7 @@ import { useState } from "react";
 
 export type OnboardingAdvanceCallback = () => void;
 
-const stages = [
-  OnboardingWelcome,
-  OnboardingInitialSpace,
-  OnboardingIcon,
-  OnboardingNewTab,
-  OnboardingFinish
-];
+const stages = [OnboardingWelcome, OnboardingInitialSpace, OnboardingIcon, OnboardingNewTab, OnboardingFinish];
 
 export function OnboardingMain() {
   const [stage, setStage] = useState<number>(0);

@@ -126,9 +126,7 @@ export function OnboardingCreateSpace({
           <div className="flex flex-col items-center justify-center h-48 text-center">
             <AlertCircle className="h-10 w-10 text-amber-400 mb-3" />
             <div className="text-white text-lg font-medium mb-1">Profile Not Found</div>
-            <div className="text-gray-400 max-w-md mb-4">
-              {"You can create spaces later from settings."}
-            </div>
+            <div className="text-gray-400 max-w-md mb-4">{"You can create spaces later from settings."}</div>
             <Button
               onClick={advance}
               className="cursor-pointer px-6 py-2 bg-[#0066FF]/10 hover:bg-[#0066FF]/20 text-white backdrop-blur-md border border-[#0066FF]/30"

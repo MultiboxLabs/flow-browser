@@ -21,11 +21,7 @@ export function OnboardingScreen({
               <div
                 key={i}
                 className={`h-1 rounded-full transition-all duration-300 ${
-                  i < currentStep
-                    ? "w-5 bg-[#0066FF]"
-                    : i === currentStep
-                      ? "w-5 bg-[#0066FF]/70"
-                      : "w-2 bg-white/20"
+                  i < currentStep ? "w-5 bg-[#0066FF]" : i === currentStep ? "w-5 bg-[#0066FF]/70" : "w-2 bg-white/20"
                 }`}
               />
             ))}

@@ -158,11 +158,7 @@ export function OnboardingSpaceColors({
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.5, delay: 0.25, ease: "easeOut" }}
           >
-            <Button
-              onClick={advance}
-              variant="ghost"
-              className="cursor-pointer text-white/50 hover:text-white"
-            >
+            <Button onClick={advance} variant="ghost" className="cursor-pointer text-white/50 hover:text-white">
               Skip
             </Button>
           </motion.div>
