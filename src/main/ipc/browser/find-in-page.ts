@@ -63,17 +63,9 @@ ipcMain.on(
     ensureFoundInPageListener(tabWc);
 
     try {
-      const isNewSession = options?.findNext ?? false;
-
-      // Stop any active search before starting a new session. Without
-      // this, Electron may not properly restart with the new text.
-      if (isNewSession) {
-        tabWc.stopFindInPage("keepSelection");
-      }
-
       const requestId = tabWc.findInPage(text, {
         forward: options?.forward ?? true,
-        findNext: isNewSession
+        findNext: options?.findNext ?? false
       });
 
       sessions.set(tabWc.id, {

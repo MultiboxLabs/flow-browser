@@ -41,12 +41,12 @@ function FindInPageBar({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     return () => {
-      flow.findInPage.stop("clearSelection");
+      flow.findInPage.stop("keepSelection");
     };
   }, []);
 
   const close = useCallback(() => {
-    flow.findInPage.stop("clearSelection");
+    flow.findInPage.stop("keepSelection");
     onClose();
   }, [onClose]);
 
@@ -180,7 +180,7 @@ export function FindInPage() {
     const unsubscribe = flow.findInPage.onToggle(() => {
       setVisible((prev) => {
         if (prev) {
-          flow.findInPage.stop("clearSelection");
+          flow.findInPage.stop("keepSelection");
           return false;
         }
         return true;
