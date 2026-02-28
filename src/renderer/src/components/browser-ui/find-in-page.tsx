@@ -3,7 +3,12 @@ import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { ChevronUp, ChevronDown, X } from "lucide-react";
 import { PortalComponent } from "@/components/portal/portal";
+import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { ViewLayer } from "~/layers";
+
+const FIND_BAR_WIDTH = 380;
+const FIND_BAR_HEIGHT = 44;
+const FIND_BAR_PADDING = 8;
 
 function FindInPageBar({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
@@ -92,19 +97,19 @@ function FindInPageBar({ onClose }: { onClose: () => void }) {
   );
 
   return (
-    <div className="w-screen h-screen flex justify-end p-2">
-      <motion.div
-        className={cn(
-          "flex items-center gap-1 px-3 py-1.5 h-fit",
-          "bg-neutral-900/95 backdrop-blur-md",
-          "border border-white/10 rounded-lg",
-          "shadow-lg shadow-black/30"
-        )}
-        initial={{ opacity: 0, y: -8, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -8, scale: 0.95 }}
-        transition={{ duration: 0.15, ease: "easeOut" }}
-      >
+    <motion.div
+      className={cn(
+        "w-full h-full",
+        "flex items-center gap-1 px-3 py-1.5",
+        "bg-neutral-900/95 backdrop-blur-md",
+        "border border-white/10 rounded-lg",
+        "shadow-lg shadow-black/30"
+      )}
+      initial={{ opacity: 0, y: -8, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.95 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
+    >
         <input
           ref={inputRef}
           type="text"
@@ -164,13 +169,14 @@ function FindInPageBar({ onClose }: { onClose: () => void }) {
         >
           <X size={16} />
         </button>
-      </motion.div>
-    </div>
+    </motion.div>
   );
 }
 
 export function FindInPage() {
   const [visible, setVisible] = useState(false);
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const anchorRect = useBoundingRect(anchorRef);
 
   const close = useCallback(() => {
     setVisible(false);
@@ -189,20 +195,27 @@ export function FindInPage() {
     return unsubscribe;
   }, []);
 
+  const portalStyle = anchorRect
+    ? {
+        top: anchorRect.y + FIND_BAR_PADDING,
+        right: window.innerWidth - anchorRect.right + FIND_BAR_PADDING,
+        width: FIND_BAR_WIDTH,
+        height: FIND_BAR_HEIGHT
+      }
+    : { top: 0, right: 0, width: FIND_BAR_WIDTH, height: FIND_BAR_HEIGHT };
+
   return (
-    <PortalComponent
-      visible={visible}
-      autoFocus={visible}
-      zIndex={ViewLayer.OVERLAY}
-      className="absolute"
-      style={{
-        top: 0,
-        right: 0,
-        width: "30%",
-        height: "50px"
-      }}
-    >
-      <AnimatePresence>{visible && <FindInPageBar onClose={close} />}</AnimatePresence>
-    </PortalComponent>
+    <>
+      <div ref={anchorRef} className="absolute inset-0 pointer-events-none" />
+      <PortalComponent
+        visible={visible}
+        autoFocus={visible}
+        zIndex={ViewLayer.OVERLAY}
+        className="fixed"
+        style={portalStyle}
+      >
+        <AnimatePresence>{visible && <FindInPageBar onClose={close} />}</AnimatePresence>
+      </PortalComponent>
+    </>
   );
 }
