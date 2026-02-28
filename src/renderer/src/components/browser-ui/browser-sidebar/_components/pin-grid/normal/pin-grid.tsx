@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
 import { SidebarScrollArea } from "@/components/browser-ui/browser-sidebar/_components/sidebar-scroll-area";
 import { usePinnedTabs } from "@/components/providers/pinned-tabs-provider";
-import { useSpaces } from "@/components/providers/spaces-provider";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import type { TabGroupSourceData } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
 import { useFocusedTabId } from "@/components/providers/tabs-provider";
@@ -15,16 +14,17 @@ function isTabGroupSource(data: Record<string, unknown>): data is TabGroupSource
   return data.type === "tab-group" && typeof data.primaryTabId === "number";
 }
 
-export function PinGrid() {
+interface PinGridProps {
+  profileId: string;
+}
+
+export function PinGrid({ profileId }: PinGridProps) {
   const [ref, { width }] = useMeasure<HTMLDivElement>();
   const dropRef = useRef<HTMLDivElement>(null);
-  const { currentSpace } = useSpaces();
   const { getPinnedTabs, createFromTab, click, doubleClick, reorder, showContextMenu } = usePinnedTabs();
   const focusedTabId = useFocusedTabId();
 
-  const profileId = currentSpace?.profileId ?? null;
   const pinnedTabs = useMemo(() => {
-    if (!profileId) return [];
     return getPinnedTabs(profileId);
   }, [profileId, getPinnedTabs]);
 
