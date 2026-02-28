@@ -115,9 +115,20 @@ export type WindowActiveTabIds = {
   [spaceId: string]: number[];
 };
 
+/**
+ * Maps spaceId → the URL of the focused tab in that space.
+ * Populated from ALL tabs (including ephemeral) so the renderer
+ * can display the address bar URL even when the focused tab is
+ * not in the `tabs` array (e.g. ephemeral pinned-tab tabs).
+ */
+export type WindowFocusedTabUrls = {
+  [spaceId: string]: string;
+};
+
 export type WindowTabsData = {
   tabs: TabData[];
   tabGroups: TabGroupData[];
   focusedTabIds: WindowFocusedTabIds;
   activeTabIds: WindowActiveTabIds;
+  focusedTabUrls: WindowFocusedTabUrls;
 };
