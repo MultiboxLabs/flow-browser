@@ -17,10 +17,6 @@ function FindInPageBar({ onClose }: { onClose: () => void }) {
     const el = inputRef.current;
     if (!el) return;
 
-    // The portal's webContents needs a moment to receive Electron-level
-    // focus (via autoFocus on PortalComponent). Once it does, calling
-    // .focus() on the DOM element will work. Use the portal window's own
-    // rAF to align with its paint cycle.
     const win = el.ownerDocument.defaultView ?? window;
     let inner: number;
     const outer = win.requestAnimationFrame(() => {
@@ -32,6 +28,15 @@ function FindInPageBar({ onClose }: { onClose: () => void }) {
       win.cancelAnimationFrame(outer);
       if (inner !== undefined) win.cancelAnimationFrame(inner);
     };
+  }, []);
+
+  // Listen for streaming results from the main process
+  useEffect(() => {
+    const unsubscribe = flow.findInPage.onResult((result) => {
+      setActiveMatch(result.activeMatchOrdinal);
+      setTotalMatches(result.matches);
+    });
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
@@ -48,23 +53,13 @@ function FindInPageBar({ onClose }: { onClose: () => void }) {
   const findNext = useCallback(() => {
     const currentQuery = queryRef.current;
     if (!currentQuery) return;
-    flow.findInPage.find(currentQuery, { forward: true, findNext: true }).then((result) => {
-      if (result) {
-        setActiveMatch(result.activeMatchOrdinal);
-        setTotalMatches(result.matches);
-      }
-    });
+    flow.findInPage.find(currentQuery, { forward: true, findNext: true });
   }, []);
 
   const findPrevious = useCallback(() => {
     const currentQuery = queryRef.current;
     if (!currentQuery) return;
-    flow.findInPage.find(currentQuery, { forward: false, findNext: true }).then((result) => {
-      if (result) {
-        setActiveMatch(result.activeMatchOrdinal);
-        setTotalMatches(result.matches);
-      }
-    });
+    flow.findInPage.find(currentQuery, { forward: false, findNext: true });
   }, []);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,15 +73,7 @@ function FindInPageBar({ onClose }: { onClose: () => void }) {
       return;
     }
 
-    flow.findInPage.find(value, { forward: true, findNext: false }).then((result) => {
-      if (result) {
-        setActiveMatch(result.activeMatchOrdinal);
-        setTotalMatches(result.matches);
-      } else {
-        setActiveMatch(0);
-        setTotalMatches(0);
-      }
-    });
+    flow.findInPage.find(value, { forward: true, findNext: false });
   }, []);
 
   const handleKeyDown = useCallback(

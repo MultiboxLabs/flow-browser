@@ -35,7 +35,7 @@ import { FlowTabsAPI } from "~/flow/interfaces/browser/tabs";
 import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
-import { FlowFindInPageAPI } from "~/flow/interfaces/browser/find-in-page";
+import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/find-in-page";
 import type {
   AssertCredentialErrorCodes,
   AssertCredentialResult,
@@ -719,11 +719,21 @@ const omniboxAPI: FlowOmniboxAPI = {
 
 // FIND IN PAGE API //
 const findInPageAPI: FlowFindInPageAPI = {
-  find: async (text: string, options?: { forward?: boolean; findNext?: boolean }) => {
-    return ipcRenderer.invoke("find-in-page:find", text, options);
+  find: (text: string, options?: { forward?: boolean; findNext?: boolean }) => {
+    ipcRenderer.send("find-in-page:find", text, options);
   },
   stop: (action: "clearSelection" | "keepSelection" | "activateSelection") => {
-    return ipcRenderer.send("find-in-page:stop", action);
+    ipcRenderer.send("find-in-page:stop", action);
+  },
+  onResult: (callback: (result: FindInPageResult) => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const wrappedCallback = (_event: any, data: FindInPageResult) => {
+      callback(data);
+    };
+    ipcRenderer.on("find-in-page:result", wrappedCallback);
+    return () => {
+      ipcRenderer.removeListener("find-in-page:result", wrappedCallback);
+    };
   },
   onToggle: (callback: () => void) => {
     return listenOnIPCChannel("find-in-page:toggle", callback);
