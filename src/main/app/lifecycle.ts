@@ -18,9 +18,12 @@ export function setupAppLifecycle() {
   });
 
   app.whenReady().then(() => {
-    app.on("activate", () => {
+    app.on("activate", async () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        browserWindowsController.create();
+        const completed = await hasCompletedOnboarding();
+        if (completed) {
+          browserWindowsController.create();
+        }
       }
     });
   });
