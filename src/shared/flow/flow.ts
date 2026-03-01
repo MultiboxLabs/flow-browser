@@ -11,6 +11,7 @@ import { FlowOmniboxAPI } from "~/flow/interfaces/browser/omnibox";
 import { FlowNewTabAPI } from "~/flow/interfaces/browser/newTab";
 import { FlowFindInPageAPI } from "~/flow/interfaces/browser/find-in-page";
 import { FlowHistoryAPI } from "~/flow/interfaces/browser/history";
+import { FlowOmniboxShortcutsAPI } from "~/flow/interfaces/browser/omnibox-shortcuts";
 
 import { FlowProfilesAPI } from "~/flow/interfaces/sessions/profiles";
 import { FlowSpacesAPI } from "~/flow/interfaces/sessions/spaces";
@@ -47,6 +48,7 @@ declare global {
     newTab: FlowNewTabAPI;
     findInPage: FlowFindInPageAPI;
     history: FlowHistoryAPI;
+    omniboxShortcuts: FlowOmniboxShortcutsAPI;
 
     // Session APIs
     profiles: FlowProfilesAPI;

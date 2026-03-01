@@ -96,3 +96,50 @@ export const history = sqliteTable(
 
 export type HistoryRow = typeof history.$inferSelect;
 export type HistoryInsert = typeof history.$inferInsert;
+
+// --- Omnibox Shortcuts Table ---
+// Learned input-to-destination mappings (e.g., typing "gi" → github.com).
+// Separate from history: history records *what* was visited, shortcuts record
+// *what the user selected in the omnibox given specific input text*.
+
+export const omniboxShortcuts = sqliteTable(
+  "omnibox_shortcuts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    inputText: text("input_text").notNull(), // what the user typed
+    destinationUrl: text("destination_url").notNull(),
+    destinationTitle: text("destination_title").notNull().default(""),
+    matchType: text("match_type").notNull(), // "history-url", "search-query", etc.
+    hitCount: integer("hit_count").notNull().default(1),
+    lastAccessTime: integer("last_access_time").notNull() // epoch ms
+  },
+  (table) => [
+    index("idx_omnibox_shortcuts_input").on(table.inputText),
+    index("idx_omnibox_shortcuts_destination").on(table.destinationUrl)
+  ]
+);
+
+export type OmniboxShortcutRow = typeof omniboxShortcuts.$inferSelect;
+export type OmniboxShortcutInsert = typeof omniboxShortcuts.$inferInsert;
+
+// --- Bookmarks Table ---
+// TODO: Bookmarks system not yet implemented in the app.
+// This schema is defined per the design doc for future use.
+// Phase 4 creates the BookmarkProvider as a stub pending a full bookmarks system.
+
+export const bookmarks = sqliteTable(
+  "bookmarks",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    url: text("url").notNull(),
+    title: text("title").notNull().default(""),
+    parentFolderId: integer("parent_folder_id"),
+    position: integer("position").notNull().default(0),
+    createdAt: integer("created_at").notNull(),
+    isFolder: integer("is_folder", { mode: "boolean" }).notNull().default(false)
+  },
+  (table) => [index("idx_bookmarks_url").on(table.url), index("idx_bookmarks_parent").on(table.parentFolderId)]
+);
+
+export type BookmarkRow = typeof bookmarks.$inferSelect;
+export type BookmarkInsert = typeof bookmarks.$inferInsert;

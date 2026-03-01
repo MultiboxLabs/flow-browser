@@ -15,6 +15,13 @@
       "when": 1772319557578,
       "tag": "0001_huge_the_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1772390798710,
+      "tag": "0002_naive_miek",
+      "breakpoints": true
     }
   ]
 }

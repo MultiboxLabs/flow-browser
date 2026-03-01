@@ -20,6 +20,11 @@ export class AutocompleteResult {
   /**
    * Deduplication using dedupKey (normalized URL) when available,
    * falling back to raw destinationUrl. Prioritizes higher relevance.
+   *
+   * Cross-provider merge rules (design doc section 8.2):
+   *   - If one match is a bookmark and the other is history, mark as bookmarked
+   *   - If one match is a shortcut and the other is history, keep the higher-scored one
+   *   - Preserve scoring signals from both matches where useful
    */
   deduplicate(): void {
     const uniqueMatches = new Map<string, AutocompleteMatch>();
@@ -29,12 +34,47 @@ export class AutocompleteResult {
     for (const match of this.matches) {
       // Use dedupKey if set by the provider, otherwise normalize the destination URL
       const key = match.dedupKey ?? normalizeUrlForDedup(match.destinationUrl);
-      if (!uniqueMatches.has(key)) {
+      const existing = uniqueMatches.get(key);
+
+      if (!existing) {
         uniqueMatches.set(key, match);
+      } else {
+        // Merge properties from the duplicate into the winner
+        this.mergeMatches(existing, match);
       }
-      // Future: merge properties when types differ (e.g., bookmark + history)
     }
     this.matches = Array.from(uniqueMatches.values());
+  }
+
+  /**
+   * Merge properties from a duplicate match into the winning (higher relevance) match.
+   * Per design doc section 8.2:
+   *   - If one is a bookmark match and the other is history, mark as bookmarked
+   *   - If one is a shortcut, preserve shortcut confidence
+   *   - Always keep the higher relevance match as the base
+   */
+  private mergeMatches(winner: AutocompleteMatch, duplicate: AutocompleteMatch): void {
+    // If either match is a bookmark, mark the winner as bookmarked
+    if (duplicate.type === "bookmark" || winner.type === "bookmark") {
+      if (winner.scoringSignals) {
+        winner.scoringSignals.isBookmarked = true;
+      }
+    }
+
+    // If the duplicate has inline completion and the winner doesn't, take it
+    if (!winner.inlineCompletion && duplicate.inlineCompletion) {
+      winner.inlineCompletion = duplicate.inlineCompletion;
+    }
+
+    // If the duplicate is allowed to be default and the winner isn't, inherit it
+    if (duplicate.allowedToBeDefault && !winner.allowedToBeDefault) {
+      winner.allowedToBeDefault = true;
+    }
+
+    // Prefer the richer description
+    if (!winner.description && duplicate.description) {
+      winner.description = duplicate.description;
+    }
   }
 
   sort(): void {

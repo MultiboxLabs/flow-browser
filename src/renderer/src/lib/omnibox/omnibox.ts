@@ -3,12 +3,15 @@ import { AutocompleteProvider } from "@/lib/omnibox/base-provider";
 import { SearchProvider } from "@/lib/omnibox/providers/search";
 import { HistoryURLProvider } from "@/lib/omnibox/providers/history-url";
 import { HistoryQuickProvider } from "@/lib/omnibox/providers/history-quick";
+import { ShortcutsProvider } from "@/lib/omnibox/providers/shortcut";
+import { BookmarkProvider } from "@/lib/omnibox/providers/bookmark";
 import { AutocompleteInput, AutocompleteMatch, InlineCompletion, InputType, InputTrigger } from "@/lib/omnibox/types";
 import { ZeroSuggestProvider } from "@/lib/omnibox/providers/zero-suggest";
 import { OpenTabProvider } from "@/lib/omnibox/providers/open-tab";
 import { OmniboxPedalProvider } from "@/lib/omnibox/providers/pedal";
 import { InMemoryURLIndex } from "@/lib/omnibox/in-memory-url-index";
 import { tokenizeInput } from "@/lib/omnibox/tokenizer";
+import { recordShortcutUsage } from "@/lib/omnibox/data-providers/shortcuts";
 
 /** Callback for match updates (results list). */
 export type OmniboxMatchCallback = (results: AutocompleteMatch[], continuous?: boolean) => void;
@@ -159,6 +162,8 @@ export class Omnibox {
     // Instantiate providers
     const providers: AutocompleteProvider[] = [
       new HistoryQuickProvider(this.imui), // Sync, uses IMUI — must come first
+      new BookmarkProvider(), // Sync stub — returns empty for now (Phase 4 TODO)
+      new ShortcutsProvider(), // Async but fast — learned input→destination mappings
       new SearchProvider(), // Includes verbatim search + network suggestions
       new HistoryURLProvider(), // Includes history + URL suggestions (async DB fallback)
       new OpenTabProvider() // Includes open tabs
@@ -258,6 +263,24 @@ export class Omnibox {
   }
 
   public openMatch(autocompleteMatch: AutocompleteMatch, whereToOpen: "current" | "new_tab"): void {
+    // Record the shortcut (input→destination mapping) for future suggestions.
+    // This is how the ShortcutsProvider learns user habits.
+    // Only record for non-pedal, non-open-tab matches with meaningful input.
+    const inputText = this.lastInputText.trim();
+    if (
+      inputText.length > 0 &&
+      autocompleteMatch.type !== "pedal" &&
+      autocompleteMatch.type !== "open-tab" &&
+      autocompleteMatch.type !== "zero-suggest"
+    ) {
+      recordShortcutUsage(
+        inputText,
+        autocompleteMatch.destinationUrl,
+        autocompleteMatch.description || autocompleteMatch.contents,
+        autocompleteMatch.type
+      );
+    }
+
     if (autocompleteMatch.type === "open-tab") {
       const [, tabId] = autocompleteMatch.destinationUrl.split(":");
       flow.tabs.switchToTab(parseInt(tabId));

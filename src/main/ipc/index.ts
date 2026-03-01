@@ -26,6 +26,7 @@ import "@/ipc/app/onboarding";
 
 // Data APIs
 import "@/ipc/data/history";
+import "@/ipc/data/omnibox-shortcuts";
 
 // Special
 import "@/ipc/listeners-manager";
