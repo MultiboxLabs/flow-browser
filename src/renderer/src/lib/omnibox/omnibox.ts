@@ -2,13 +2,25 @@ import { AutocompleteController } from "@/lib/omnibox/autocomplete-controller";
 import { AutocompleteProvider } from "@/lib/omnibox/base-provider";
 import { SearchProvider } from "@/lib/omnibox/providers/search";
 import { HistoryURLProvider } from "@/lib/omnibox/providers/history-url";
-import { AutocompleteInput, AutocompleteMatch, InputType, InputTrigger } from "@/lib/omnibox/types";
+import { HistoryQuickProvider } from "@/lib/omnibox/providers/history-quick";
+import { AutocompleteInput, AutocompleteMatch, InlineCompletion, InputType, InputTrigger } from "@/lib/omnibox/types";
 import { ZeroSuggestProvider } from "@/lib/omnibox/providers/zero-suggest";
 import { OpenTabProvider } from "@/lib/omnibox/providers/open-tab";
 import { OmniboxPedalProvider } from "@/lib/omnibox/providers/pedal";
+import { InMemoryURLIndex } from "@/lib/omnibox/in-memory-url-index";
 import { tokenizeInput } from "@/lib/omnibox/tokenizer";
 
-/** Callback function type for notifying the UI/consumer about updated suggestions. */
+/** Callback for match updates (results list). */
+export type OmniboxMatchCallback = (results: AutocompleteMatch[], continuous?: boolean) => void;
+
+/** Callback for inline completion updates. */
+export type OmniboxInlineCallback = (completion: InlineCompletion | null) => void;
+
+/**
+ * Combined callback — the internal plumbing uses this so the controller
+ * only has a single onUpdate point.  The Omnibox class bridges the two
+ * separate external callbacks into one.
+ */
 export type OmniboxUpdateCallback = (results: AutocompleteMatch[], continuous?: boolean) => void;
 
 export type OmniboxCreateOptions = {
@@ -117,11 +129,38 @@ export class Omnibox {
   private controller: AutocompleteController;
   private lastInputText: string = ""; // Track input to manage focus vs keystroke
 
-  constructor(onUpdate: OmniboxUpdateCallback, options?: OmniboxCreateOptions) {
-    // Instantiate providers based on the summary
+  /** The shared IMUI instance — populated on construction. */
+  private imui: InMemoryURLIndex;
+
+  /** External callback for inline completion updates. */
+  private onInlineCompletion: OmniboxInlineCallback | null = null;
+
+  constructor(
+    onUpdate: OmniboxMatchCallback,
+    options?: OmniboxCreateOptions & { onInlineCompletion?: OmniboxInlineCallback }
+  ) {
+    // Create the shared IMUI
+    this.imui = new InMemoryURLIndex();
+
+    // Store the inline completion callback
+    this.onInlineCompletion = options?.onInlineCompletion ?? null;
+
+    // Bridge: when controller updates, also compute and emit inline completion
+    const wrappedOnUpdate: OmniboxUpdateCallback = (results, continuous) => {
+      onUpdate(results, continuous);
+
+      // Compute inline completion from the top match that has one
+      if (this.onInlineCompletion) {
+        const inlineCandidate = this.computeBestInlineCompletion(results);
+        this.onInlineCompletion(inlineCandidate);
+      }
+    };
+
+    // Instantiate providers
     const providers: AutocompleteProvider[] = [
+      new HistoryQuickProvider(this.imui), // Sync, uses IMUI — must come first
       new SearchProvider(), // Includes verbatim search + network suggestions
-      new HistoryURLProvider(), // Includes history + URL suggestions
+      new HistoryURLProvider(), // Includes history + URL suggestions (async DB fallback)
       new OpenTabProvider() // Includes open tabs
     ];
 
@@ -135,7 +174,39 @@ export class Omnibox {
       providers.push(new OmniboxPedalProvider());
     }
 
-    this.controller = new AutocompleteController(providers, onUpdate);
+    this.controller = new AutocompleteController(providers, wrappedOnUpdate);
+
+    // Populate the IMUI asynchronously on construction
+    this.imui.populate();
+  }
+
+  /**
+   * Compute the best inline completion from the current set of matches.
+   * Per design doc section 7.1:
+   *   - Only from sync providers (HQP, BookmarkProvider, ShortcutsProvider)
+   *   - Prefix match required
+   *   - Only high-confidence matches (relevance > 1200)
+   *   - Only search-query/pedal types are excluded
+   */
+  private computeBestInlineCompletion(matches: AutocompleteMatch[]): InlineCompletion | null {
+    // The current input must not prevent inline autocomplete
+    const currentInput = this.controller.currentInput;
+    if (!currentInput || currentInput.preventInlineAutocomplete) return null;
+    if (currentInput.text.length < 2) return null;
+
+    for (const match of matches) {
+      if (!match.inlineCompletion) continue;
+      if (match.relevance < 1200) continue;
+      if (match.type === "search-query" || match.type === "pedal" || match.type === "verbatim") continue;
+
+      return {
+        fullUrl: match.destinationUrl,
+        completionText: match.inlineCompletion,
+        relevance: match.relevance
+      };
+    }
+
+    return null;
   }
 
   /**
@@ -144,6 +215,11 @@ export class Omnibox {
    * @param trigger Indicates why this query is being run (focus, keystroke, paste).
    */
   public handleInput(text: string, trigger: InputTrigger): void {
+    // On focus, try to refresh the IMUI if stale
+    if (trigger === "focus") {
+      this.imui.populate(); // Throttled internally
+    }
+
     const inputType = classifyInput(text);
     const terms = tokenizeInput(text);
     const preventInlineAutocomplete = shouldPreventInlineAutocomplete(trigger, inputType);
@@ -174,6 +250,11 @@ export class Omnibox {
   public stopQuery(): void {
     this.controller.stop();
     this.lastInputText = ""; // Reset last input on stop
+  }
+
+  /** Force a refresh of the IMUI (e.g., after many navigations). */
+  public async refreshIndex(): Promise<void> {
+    await this.imui.forceRefresh();
   }
 
   public openMatch(autocompleteMatch: AutocompleteMatch, whereToOpen: "current" | "new_tab"): void {
