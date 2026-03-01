@@ -2,7 +2,7 @@ import { Command, CommandItem, CommandList } from "@/components/ui/command";
 import { AutocompleteMatch, InlineCompletion } from "@/lib/omnibox/types";
 import { Omnibox } from "@/lib/omnibox/omnibox";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Search, History, Zap, Terminal, Settings, PlusSquare, Link, PuzzleIcon } from "lucide-react";
+import { Search, History, Zap, Terminal, Settings, PlusSquare, Link, PuzzleIcon, Globe } from "lucide-react";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { AnimatePresence } from "motion/react";
 import { motion } from "motion/react";
@@ -21,6 +21,8 @@ function getIconForType(type: AutocompleteMatch["type"], match: AutocompleteMatc
       return <History className="h-5 w-5 text-amber-500" />;
     case "url-what-you-typed":
       return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5" />;
+    case "navsuggest":
+      return <Globe className="h-5 w-5 text-blue-500" />;
     case "pedal":
       if (match.destinationUrl === "open_settings") {
         return <Settings className="h-5 w-5 text-blue-500" />;
@@ -51,6 +53,8 @@ function getActionForType(type: AutocompleteMatch["type"]) {
       return "History";
     case "url-what-you-typed":
       return "Go to";
+    case "navsuggest":
+      return "Navigate";
     case "pedal":
       return "Action";
     case "zero-suggest":
@@ -312,7 +316,7 @@ export function OmniboxMain() {
                         >
                           {match.contents}
                         </span>
-                        {match.type === "history-url" && match.description && (
+                        {(match.type === "history-url" || match.type === "navsuggest") && match.description && (
                           <span
                             className="text-xs text-black/50 dark:text-white/50 truncate block"
                             style={{ maxWidth: "100%" }}
