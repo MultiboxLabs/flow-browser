@@ -238,14 +238,14 @@ export class SearchProvider extends BaseProvider {
 
       if (suggestion.type === "NAVIGATION") {
         // NavSuggest: server says this is a URL, not a query
-        const navMatch = this.buildNavSuggestMatch(suggestion, input);
+        const navMatch = this.buildNavSuggestMatch(suggestion);
         if (navMatch) {
           results.push(navMatch);
           count++;
         }
       } else {
         // Regular search suggestion (QUERY, ENTITY, TAIL, CALCULATOR)
-        const searchMatch = this.buildSearchQueryMatch(suggestion, input);
+        const searchMatch = this.buildSearchQueryMatch(suggestion);
         results.push(searchMatch);
         count++;
       }
@@ -261,7 +261,7 @@ export class SearchProvider extends BaseProvider {
    * They get higher relevance than regular search suggestions because
    * the server is confident the user wants this URL.
    */
-  private buildNavSuggestMatch(suggestion: ParsedSuggestion, _input: AutocompleteInput): AutocompleteMatch | null {
+  private buildNavSuggestMatch(suggestion: ParsedSuggestion): AutocompleteMatch | null {
     const url = suggestion.url ?? suggestion.text;
 
     // Validate that this looks like a real URL
@@ -310,7 +310,7 @@ export class SearchProvider extends BaseProvider {
    * Build a search-query match from a regular suggestion.
    * Uses server relevance for ordering while keeping scores in the search range.
    */
-  private buildSearchQueryMatch(suggestion: ParsedSuggestion, _input: AutocompleteInput): AutocompleteMatch {
+  private buildSearchQueryMatch(suggestion: ParsedSuggestion): AutocompleteMatch {
     const relevance = mapServerRelevance(suggestion.serverRelevance, suggestion.type);
     const destinationUrl = createSearchUrl(suggestion.text);
 
