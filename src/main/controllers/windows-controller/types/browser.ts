@@ -175,6 +175,9 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       spacesController.get(spaceId).then((space) => {
         if (!space) return;
 
+        // win32 and linux only
+        if (process.platform === "darwin") return;
+
         browserWindow.setTitleBarOverlay({
           height: 30,
           symbolColor: hex_is_light(space.bgStartColor || "#ffffff") ? "black" : "white",
