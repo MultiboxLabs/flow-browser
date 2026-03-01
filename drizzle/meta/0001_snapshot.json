@@ -71,23 +71,17 @@
       "indexes": {
         "idx_history_url": {
           "name": "idx_history_url",
-          "columns": [
-            "url"
-          ],
+          "columns": ["url"],
           "isUnique": false
         },
         "idx_history_last_visit": {
           "name": "idx_history_last_visit",
-          "columns": [
-            "last_visit_time"
-          ],
+          "columns": ["last_visit_time"],
           "isUnique": false
         },
         "idx_history_typed_count": {
           "name": "idx_history_typed_count",
-          "columns": [
-            "typed_count"
-          ],
+          "columns": ["typed_count"],
           "isUnique": false
         }
       },
@@ -131,9 +125,7 @@
       "indexes": {
         "idx_recently_closed_closed_at": {
           "name": "idx_recently_closed_closed_at",
-          "columns": [
-            "closed_at"
-          ],
+          "columns": ["closed_at"],
           "isUnique": false
         }
       },
@@ -306,9 +298,7 @@
       "indexes": {
         "idx_tabs_window_group_id": {
           "name": "idx_tabs_window_group_id",
-          "columns": [
-            "window_group_id"
-          ],
+          "columns": ["window_group_id"],
           "isUnique": false
         }
       },
