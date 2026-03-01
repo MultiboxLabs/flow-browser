@@ -212,12 +212,17 @@ export async function setAppIcon(iconId: string) {
   }
 }
 
-setAppIcon("default").catch((error) => {
-  debugError("ICONS", "Failed initial setAppIcon call:", error);
-});
-
-app.whenReady().then(() => {
-  debugPrint("ICONS", "App ready, ensuring icon is updated.");
+// Defer initial icon setup until the app is ready.
+// Previously, setAppIcon("default") ran at import time, invoking sharp (which
+// uses libuv thread-pool workers). On Linux AppImage this could exhaust the
+// default 4-thread pool before the onboarding check's SettingsDataStore.get()
+// had a chance to run its fs operations, causing the app to stall at startup.
+app.whenReady().then(async () => {
+  debugPrint("ICONS", "App ready, setting initial icon and caching current icon.");
+  await setAppIcon("default").catch((error) => {
+    debugError("ICONS", "Failed initial setAppIcon call:", error);
+  });
+  await cacheCurrentIcon();
   updateAppIcon();
 });
 
@@ -261,7 +266,6 @@ async function cacheCurrentIcon() {
     await setAppIcon(currentIconId);
   }
 }
-cacheCurrentIcon();
 
 export function getCurrentIconId() {
   return currentIconId;
