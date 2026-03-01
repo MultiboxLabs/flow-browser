@@ -53,6 +53,16 @@ export interface AutocompleteMatch {
   allowedToBeDefault?: boolean;
 }
 
+/** Inline autocompletion candidate (design doc section 7). */
+export interface InlineCompletion {
+  /** The full URL that would be navigated to. */
+  fullUrl: string;
+  /** The text to append as ghost text (e.g., "hub.com/user/repo"). */
+  completionText: string;
+  /** Relevance of the match providing this completion. */
+  relevance: number;
+}
+
 /** Scoring signals for combined relevance computation */
 export interface ScoringSignals {
   // Behavioral signals

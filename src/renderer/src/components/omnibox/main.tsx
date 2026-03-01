@@ -1,7 +1,7 @@
 import { Command, CommandItem, CommandList } from "@/components/ui/command";
-import { AutocompleteMatch } from "@/lib/omnibox/types";
+import { AutocompleteMatch, InlineCompletion } from "@/lib/omnibox/types";
 import { Omnibox } from "@/lib/omnibox/omnibox";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Search, History, Zap, Terminal, Settings, PlusSquare, Link, PuzzleIcon } from "lucide-react";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { AnimatePresence } from "motion/react";
@@ -66,6 +66,7 @@ export function OmniboxMain() {
 
   const [input, setInput] = useState(currentInput || "");
   const [matches, setMatches] = useState<AutocompleteMatch[]>([]);
+  const [inlineCompletion, setInlineCompletion] = useState<InlineCompletion | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const omniboxRef = useRef<Omnibox | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -92,9 +93,13 @@ export function OmniboxMain() {
       console.log("Received Updated Suggestions:", updatedMatches.length);
       setMatches(updatedMatches);
     };
+    const handleInlineCompletion = (completion: InlineCompletion | null) => {
+      setInlineCompletion(completion);
+    };
     omniboxRef.current = new Omnibox(handleSuggestionsUpdate, {
       hasZeroSuggest: true,
-      hasPedals: true
+      hasPedals: true,
+      onInlineCompletion: handleInlineCompletion
     });
 
     if (omniboxRef.current) {
@@ -132,7 +137,17 @@ export function OmniboxMain() {
     }, 150);
   };
 
-  // Esc to close omnibox, Enter to navigate/search
+  // Accept inline completion: sets input to the full URL and clears the ghost text
+  const acceptInlineCompletion = useCallback(() => {
+    if (inlineCompletion) {
+      const newText = input + inlineCompletion.completionText;
+      setInput(newText);
+      setInlineCompletion(null);
+      omniboxRef.current?.handleInput(newText, "keystroke");
+    }
+  }, [inlineCompletion, input]);
+
+  // Esc to close omnibox, Enter to navigate/search, Tab/Right to accept inline completion
   useEffect(() => {
     const inputBox = inputRef.current;
     if (!inputBox) return;
@@ -144,6 +159,13 @@ export function OmniboxMain() {
           flow.omnibox.hide();
         }, 150);
         event.preventDefault();
+      } else if ((event.key === "Tab" || event.key === "ArrowRight") && inlineCompletion) {
+        // Accept inline completion on Tab or Right Arrow (when at end of input)
+        const atEnd = inputBox.selectionStart === inputBox.value.length;
+        if (event.key === "Tab" || atEnd) {
+          event.preventDefault();
+          acceptInlineCompletion();
+        }
       } else if (event.key === "Enter" && matches.length === 0 && input.trim() !== "") {
         // Use handleOpenMatch for verbatim input
         event.preventDefault();
@@ -160,10 +182,11 @@ export function OmniboxMain() {
     };
     inputBox.addEventListener("keydown", handleKeyDown);
     return () => inputBox.removeEventListener("keydown", handleKeyDown);
-  }, [input, matches.length, openIn]); // Added handleOpenMatch dependency implicitly via openIn
+  }, [input, matches.length, openIn, inlineCompletion, acceptInlineCompletion]);
 
   const handleInputChange = (value: string) => {
     setInput(value);
+    // Inline completion will be recalculated by the omnibox via callback
     omniboxRef.current?.handleInput(value, "keystroke");
   };
 
@@ -218,16 +241,32 @@ export function OmniboxMain() {
           }}
           disablePointerSelection
         >
-          <div className="flex items-center p-3.5 border-b border-black/10 dark:border-white/10 flex-shrink-0">
-            <CommandInput
-              placeholder="Search, navigate, or enter URL..."
-              value={input}
-              onValueChange={handleInputChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              ref={inputRef}
-              className="size-full outline-none text-lg font-medium placeholder:text-black/40 dark:placeholder:text-white/40"
-            />
+          <div className="flex items-center p-3.5 border-b border-black/10 dark:border-white/10 flex-shrink-0 relative">
+            <div className="relative flex-1">
+              <CommandInput
+                placeholder="Search, navigate, or enter URL..."
+                value={input}
+                onValueChange={handleInputChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                ref={inputRef}
+                className="size-full outline-none text-lg font-medium placeholder:text-black/40 dark:placeholder:text-white/40"
+              />
+              {/* Inline completion ghost text overlay */}
+              {inlineCompletion && input.length > 0 && (
+                <div
+                  className="absolute top-0 left-0 h-full flex items-center pointer-events-none text-lg font-medium"
+                  aria-hidden="true"
+                >
+                  {/* Invisible text matching the input to position the ghost text */}
+                  <span className="invisible whitespace-pre">{input}</span>
+                  {/* Ghost text in muted color */}
+                  <span className="text-black/30 dark:text-white/30 whitespace-pre">
+                    {inlineCompletion.completionText}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {matches.length > 0 && (
@@ -273,12 +312,12 @@ export function OmniboxMain() {
                         >
                           {match.contents}
                         </span>
-                        {match.type === "history-url" && (
+                        {match.type === "history-url" && match.description && (
                           <span
                             className="text-xs text-black/50 dark:text-white/50 truncate block"
                             style={{ maxWidth: "100%" }}
                           >
-                            {match.destinationUrl}
+                            {match.description}
                           </span>
                         )}
                       </div>
