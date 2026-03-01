@@ -57,20 +57,21 @@ export function UpdateBanner() {
         animate={{ opacity: 1, height: "auto", marginTop: 8 }}
         exit={{ opacity: 0, height: 0, marginTop: 0 }}
         transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        className="shrink-0 overflow-hidden"
+        className="shrink-0 overflow-hidden mb-2"
       >
         <div
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
           className={cn(
-            "w-full rounded-lg overflow-hidden",
-            "bg-black/[0.06] dark:bg-white/[0.08]",
+            "w-full rounded-xl overflow-hidden",
+            "border border-black/10 dark:border-white/15",
+            "bg-black/5 dark:bg-white/10",
             "transition-colors duration-150",
-            "hover:bg-black/[0.08] dark:hover:bg-white/[0.10]"
+            "hover:bg-gray-100/90 dark:hover:bg-black/80"
           )}
         >
           {/* Header — always visible */}
-          <div className="flex items-center justify-center py-2 px-3">
+          <div className="flex items-center justify-center py-1 px-3">
             <span className="text-xs font-semibold text-black/80 dark:text-white/90">New Update Available</span>
           </div>
 
@@ -86,9 +87,9 @@ export function UpdateBanner() {
                   ease: [0.22, 1, 0.36, 1],
                   opacity: { duration: 0.2 }
                 }}
-                className="overflow-hidden"
+                className="overflow-hidden bg-white dark:bg-black/5"
               >
-                <div className="mx-3 mb-0.5 h-px bg-black/10 dark:bg-white/10" />
+                <div className="mb-0.5 h-px bg-black/10 dark:bg-white/25" />
                 <motion.div
                   initial={{ y: 6, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
@@ -106,16 +107,16 @@ export function UpdateBanner() {
                       "w-full flex items-center justify-center",
                       "rounded-md py-1.5 px-3",
                       "text-xs font-medium",
-                      "bg-black/[0.08] dark:bg-white/[0.12]",
+                      "bg-black/8 dark:bg-white/12",
                       "text-black/80 dark:text-white/90",
                       "transition-colors duration-150",
-                      "hover:bg-black/[0.14] dark:hover:bg-white/[0.20]",
-                      "active:bg-black/[0.18] dark:active:bg-white/[0.25]",
+                      "hover:bg-black/14 dark:hover:bg-white/20",
+                      "active:bg-black/18 dark:active:bg-white/25",
                       "disabled:opacity-50 disabled:pointer-events-none",
                       "cursor-pointer"
                     )}
                     onClick={onButtonClick}
-                    disabled={isInstallingUpdate || isDownloadingUpdate}
+                    disabled={(isInstallingUpdate || isDownloadingUpdate) && !downloadFailed}
                   >
                     {getButtonIcon()}
                     {getButtonText()}
