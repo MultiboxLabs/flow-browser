@@ -2,7 +2,19 @@ import { Command, CommandItem, CommandList } from "@/components/ui/command";
 import { AutocompleteMatch, InlineCompletion } from "@/lib/omnibox/types";
 import { Omnibox } from "@/lib/omnibox/omnibox";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Search, History, Zap, Terminal, Settings, PlusSquare, Link, PuzzleIcon, Globe } from "lucide-react";
+import {
+  Search,
+  History,
+  Zap,
+  Terminal,
+  Settings,
+  PlusSquare,
+  Link,
+  PuzzleIcon,
+  Globe,
+  Bookmark,
+  ArrowUpRight
+} from "lucide-react";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { AnimatePresence } from "motion/react";
 import { motion } from "motion/react";
@@ -23,6 +35,10 @@ function getIconForType(type: AutocompleteMatch["type"], match: AutocompleteMatc
       return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5" />;
     case "navsuggest":
       return <Globe className="h-5 w-5 text-blue-500" />;
+    case "bookmark":
+      return <Bookmark className="h-5 w-5 text-yellow-500" />;
+    case "shortcut":
+      return <ArrowUpRight className="h-5 w-5 text-violet-500" />;
     case "pedal":
       if (match.destinationUrl === "open_settings") {
         return <Settings className="h-5 w-5 text-blue-500" />;
@@ -55,6 +71,10 @@ function getActionForType(type: AutocompleteMatch["type"]) {
       return "Go to";
     case "navsuggest":
       return "Navigate";
+    case "bookmark":
+      return "Bookmark";
+    case "shortcut":
+      return "Shortcut";
     case "pedal":
       return "Action";
     case "zero-suggest":
@@ -316,14 +336,18 @@ export function OmniboxMain() {
                         >
                           {match.contents}
                         </span>
-                        {(match.type === "history-url" || match.type === "navsuggest") && match.description && (
-                          <span
-                            className="text-xs text-black/50 dark:text-white/50 truncate block"
-                            style={{ maxWidth: "100%" }}
-                          >
-                            {match.description}
-                          </span>
-                        )}
+                        {(match.type === "history-url" ||
+                          match.type === "navsuggest" ||
+                          match.type === "bookmark" ||
+                          match.type === "shortcut") &&
+                          match.description && (
+                            <span
+                              className="text-xs text-black/50 dark:text-white/50 truncate block"
+                              style={{ maxWidth: "100%" }}
+                            >
+                              {match.description}
+                            </span>
+                          )}
                       </div>
                     </div>
                     <div className="flex items-center text-xs text-black/60 dark:text-white/60 flex-shrink-0 bg-black/5 dark:bg-white/10 rounded-md px-2 py-1">
