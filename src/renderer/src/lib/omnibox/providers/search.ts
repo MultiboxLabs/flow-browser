@@ -1,8 +1,7 @@
 import { BaseProvider } from "@/lib/omnibox/base-provider";
 import { OmniboxUpdateCallback } from "@/lib/omnibox/omnibox";
-import { AutocompleteInput, AutocompleteMatch } from "@/lib/omnibox/types";
+import { AutocompleteInput, AutocompleteMatch, InputType } from "@/lib/omnibox/types";
 import { createSearchUrl, getSearchSuggestions } from "@/lib/search";
-import { getURLFromInput } from "@/lib/url";
 import { tokenize, allTermsMatch, findBestMatch } from "@/lib/omnibox/tokenizer";
 
 export class SearchProvider extends BaseProvider {
@@ -23,17 +22,36 @@ export class SearchProvider extends BaseProvider {
       return;
     }
 
-    const url = getURLFromInput(inputText);
+    // Verbatim search relevance depends on input classification:
+    // - URL input: low (user clearly wants to navigate, not search)
+    // - Forced query: high (user explicitly wants search via '?' prefix)
+    // - Query/Unknown: high (search-first for text and ambiguous input)
+    let verbatimRelevance: number;
+    switch (input.inputType) {
+      case InputType.URL:
+        verbatimRelevance = 1100; // Below what-you-typed URL (1200)
+        break;
+      case InputType.FORCED_QUERY:
+        verbatimRelevance = 1350; // User explicitly wants search
+        break;
+      case InputType.QUERY:
+        verbatimRelevance = 1300; // Clearly a search query
+        break;
+      case InputType.UNKNOWN:
+      default:
+        verbatimRelevance = 1300; // Search-first for ambiguous input
+        break;
+    }
 
     // Add the verbatim search immediately
     const verbatimMatch: AutocompleteMatch = {
       providerName: this.name,
-      relevance: url ? 1250 : 1300, // High score to appear near top, but below strong nav
+      relevance: verbatimRelevance,
       contents: inputText,
       description: `Search for "${inputText}"`,
       destinationUrl: createSearchUrl(inputText),
       type: "verbatim",
-      isDefault: true
+      isDefault: input.inputType !== InputType.URL // Not default when input is a URL
     };
     onResults([verbatimMatch], true); // Send verbatim immediately
 
