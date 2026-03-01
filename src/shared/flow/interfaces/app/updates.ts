@@ -39,4 +39,10 @@ export interface FlowUpdatesAPI {
    * @returns Promise resolving to a boolean indicating if the installation was started
    */
   installUpdate: () => Promise<boolean>;
+
+  /**
+   * Checks if the app has just been updated (i.e. restarted after an update installation)
+   * @returns Promise resolving to a boolean indicating if the app was updated since last launch
+   */
+  hasUpdated: () => Promise<boolean>;
 }

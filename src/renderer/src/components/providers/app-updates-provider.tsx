@@ -7,6 +7,7 @@ interface AppUpdatesContextType {
   isDownloadingUpdate: boolean;
   isInstallingUpdate: boolean;
   isAutoUpdateSupported: boolean;
+  hasUpdated: boolean;
   checkForUpdates: () => Promise<boolean>;
   downloadUpdate: () => Promise<boolean>;
   installUpdate: () => Promise<boolean>;
@@ -23,6 +24,7 @@ export function AppUpdatesProvider({ children }: AppUpdatesProviderProps) {
   const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
   const [isInstallingUpdate, setIsInstallingUpdate] = useState(false);
   const [isAutoUpdateSupported, setIsAutoUpdateSupported] = useState(false);
+  const [hasUpdated, setHasUpdated] = useState(false);
 
   // Initialize update status
   useEffect(() => {
@@ -45,8 +47,18 @@ export function AppUpdatesProvider({ children }: AppUpdatesProviderProps) {
       }
     };
 
+    const checkHasUpdated = async () => {
+      try {
+        const updated = await flow.updates.hasUpdated();
+        setHasUpdated(updated);
+      } catch (error) {
+        console.error("Failed to check if app has updated:", error);
+      }
+    };
+
     fetchUpdateStatus();
     checkAutoUpdateSupport();
+    checkHasUpdated();
   }, []);
 
   // Listen for update status changes
@@ -110,6 +122,7 @@ export function AppUpdatesProvider({ children }: AppUpdatesProviderProps) {
     isDownloadingUpdate,
     isInstallingUpdate,
     isAutoUpdateSupported,
+    hasUpdated,
     checkForUpdates,
     downloadUpdate,
     installUpdate
