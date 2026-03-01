@@ -1,6 +1,14 @@
 import { cn } from "@/lib/utils";
 import { useFaviconColors, FaviconColors, RGB } from "@/hooks/use-favicon-color";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import {
+  attachClosestEdge,
+  extractClosestEdge,
+  type Edge
+} from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import type { PinnedTabData } from "~/types/pinned-tabs";
+import type { TabGroupSourceData } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
 import "./pin.css";
 
 /**
@@ -25,9 +33,50 @@ function generateBorderGradient(colors: FaviconColors, opacity: number): string 
   return `conic-gradient(from 45deg, ${tr} 0deg, ${br} 90deg, ${bl} 180deg, ${tl} 270deg, ${tr} 360deg)`;
 }
 
-export function PinnedTabButton({ faviconUrl, isActive }: { faviconUrl: string; isActive: boolean }) {
+// Drag source type for pinned tab reordering
+export type PinnedTabSourceData = {
+  type: "pinned-tab";
+  pinnedTabId: string;
+  position: number;
+};
+
+function isPinnedTabSource(data: Record<string, unknown>): data is PinnedTabSourceData {
+  return data.type === "pinned-tab" && typeof data.pinnedTabId === "string";
+}
+
+function isTabGroupSource(data: Record<string, unknown>): data is TabGroupSourceData {
+  return data.type === "tab-group" && typeof data.primaryTabId === "number";
+}
+
+interface PinnedTabButtonProps {
+  pinnedTab: PinnedTabData;
+  profileId: string | null;
+  isActive: boolean;
+  onClick: () => void;
+  onDoubleClick: () => void;
+  onContextMenu: () => void;
+  onReorder: (pinnedTabId: string, newPosition: number) => void;
+  onCreateFromTab: (tabId: number, position: number) => void;
+  pinnedTabs: PinnedTabData[];
+}
+
+export function PinnedTabButton({
+  pinnedTab,
+  profileId,
+  isActive,
+  onClick,
+  onDoubleClick,
+  onContextMenu,
+  onReorder,
+  onCreateFromTab,
+  pinnedTabs
+}: PinnedTabButtonProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const faviconUrl = pinnedTab.faviconUrl;
   const faviconColors = useFaviconColors(faviconUrl);
   const hasColors = faviconColors !== null;
+  const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Generate dynamic styles for active state based on the extracted colors
   const activeBorderStyle = useMemo(() => {
@@ -48,28 +97,128 @@ export function PinnedTabButton({ faviconUrl, isActive }: { faviconUrl: string; 
     } as React.CSSProperties;
   }, [faviconColors, hasColors, isActive]);
 
+  // Drag-and-drop for reordering
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const dragCleanup = draggable({
+      element: el,
+      getInitialData: () => {
+        const data: PinnedTabSourceData = {
+          type: "pinned-tab",
+          pinnedTabId: pinnedTab.uniqueId,
+          position: pinnedTab.position
+        };
+        return data;
+      },
+      onDragStart: () => setIsDragging(true),
+      onDrop: () => setIsDragging(false)
+    });
+
+    const dropCleanup = dropTargetForElements({
+      element: el,
+      canDrop: ({ source }) => {
+        const data = source.data;
+        if (isPinnedTabSource(data)) return true;
+        if (isTabGroupSource(data)) {
+          // Only accept tabs from the same profile
+          return !profileId || data.profileId === profileId;
+        }
+        return false;
+      },
+      getData: ({ input, element }) => {
+        return attachClosestEdge({}, { input, element, allowedEdges: ["left", "right"] });
+      },
+      onDragEnter: ({ self }) => setClosestEdge(extractClosestEdge(self.data)),
+      onDrag: ({ self }) => setClosestEdge(extractClosestEdge(self.data)),
+      onDragLeave: () => setClosestEdge(null),
+      onDrop: ({ source, self }) => {
+        setClosestEdge(null);
+        const sourceData = source.data;
+
+        const edge = extractClosestEdge(self.data);
+        if (!edge) return;
+
+        // Calculate new position based on edge
+        const targetIndex = pinnedTabs.findIndex((pt) => pt.uniqueId === pinnedTab.uniqueId);
+        let newPosition: number;
+        if (edge === "left") {
+          newPosition = targetIndex - 0.5;
+        } else {
+          newPosition = targetIndex + 0.5;
+        }
+
+        if (isPinnedTabSource(sourceData)) {
+          onReorder(sourceData.pinnedTabId, newPosition);
+        } else if (isTabGroupSource(sourceData)) {
+          onCreateFromTab(sourceData.primaryTabId, newPosition);
+        }
+      }
+    });
+
+    return () => {
+      dragCleanup();
+      dropCleanup();
+    };
+  }, [pinnedTab.uniqueId, pinnedTab.position, pinnedTabs, profileId, onReorder, onCreateFromTab]);
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      // Only handle left-click; right-click is for context menu
+      if (e.button === 0) {
+        onClick();
+      }
+    },
+    [onClick]
+  );
+
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      onContextMenu();
+    },
+    [onContextMenu]
+  );
+
   return (
-    <div
-      className={cn(
-        "w-full h-12 rounded-xl overflow-hidden",
-        "bg-black/10 hover:bg-black/15",
-        "dark:bg-white/15 dark:hover:bg-white/20",
-        "transition-[background-color,border-color] duration-100",
-        "flex items-center justify-center",
-        isActive && !hasColors && "border-2 border-white",
-        isActive && hasColors && "pinned-tab-active-border"
+    <div className="relative">
+      {/* Drop indicator - left */}
+      {closestEdge === "left" && (
+        <div className="absolute left-0 top-1 bottom-1 w-0.5 -translate-x-1 rounded-full bg-white/60" />
       )}
-      style={activeBorderStyle}
-    >
-      <div id="overlay-overlay" className={cn("size-full", isActive && "bg-white/80 dark:bg-white/30")}>
-        <div id="overlay" className={cn("size-full", "flex items-center justify-center")} style={activeOverlayStyle}>
-          <div className="relative size-5">
-            <img
-              src={faviconUrl || undefined}
-              className="absolute rounded-sm user-drag-none object-contain overflow-hidden"
-            />
-            <div className="img-container">
-              <img src={faviconUrl || undefined} className="user-drag-none" />
+      {/* Drop indicator - right */}
+      {closestEdge === "right" && (
+        <div className="absolute right-0 top-1 bottom-1 w-0.5 translate-x-1 rounded-full bg-white/60" />
+      )}
+
+      <div
+        ref={ref}
+        className={cn(
+          "w-full h-12 rounded-xl overflow-hidden",
+          "bg-black/10 hover:bg-black/15",
+          "dark:bg-white/15 dark:hover:bg-white/20",
+          "transition-[background-color,border-color,opacity] duration-100",
+          "flex items-center justify-center",
+          isActive && !hasColors && "border-2 border-white",
+          isActive && hasColors && "pinned-tab-active-border",
+          isDragging && "opacity-40"
+        )}
+        style={activeBorderStyle}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={onDoubleClick}
+        onContextMenu={handleContextMenu}
+      >
+        <div id="overlay-overlay" className={cn("size-full", isActive && "bg-white/80 dark:bg-white/30")}>
+          <div id="overlay" className={cn("size-full", "flex items-center justify-center")} style={activeOverlayStyle}>
+            <div className="relative size-5">
+              <img
+                src={faviconUrl || undefined}
+                className="absolute rounded-sm user-drag-none object-contain overflow-hidden"
+              />
+              <div className="img-container">
+                <img src={faviconUrl || undefined} className="user-drag-none" />
+              </div>
             </div>
           </div>
         </div>

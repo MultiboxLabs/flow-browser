@@ -6,6 +6,12 @@ import {
   dropTargetForElements,
   ElementDropTargetEventBasePayload
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import type { PinnedTabSourceData } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
+import { usePinnedTabs } from "@/components/providers/pinned-tabs-provider";
+
+function isPinnedTabSource(data: Record<string, unknown>): data is PinnedTabSourceData {
+  return data.type === "pinned-tab" && typeof data.pinnedTabId === "string";
+}
 
 type TabDropTargetProps = {
   spaceData: Space;
@@ -17,6 +23,7 @@ type TabDropTargetProps = {
 export function TabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex }: TabDropTargetProps) {
   const [showDropIndicator, setShowDropIndicator] = useState(false);
   const dropTargetRef = useRef<HTMLDivElement>(null);
+  const { unpinToTabList } = usePinnedTabs();
 
   const handleDoubleClick = () => {
     flow.newTab.open();
@@ -29,13 +36,21 @@ export function TabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex }
     function onDrop(args: ElementDropTargetEventBasePayload) {
       setShowDropIndicator(false);
 
-      const sourceData = args.source.data as TabGroupSourceData;
-      const sourceTabId = sourceData.primaryTabId;
+      const sourceData = args.source.data;
+
+      // Handle pinned tab drops — unpin and show in tab list at the end
+      if (isPinnedTabSource(sourceData)) {
+        unpinToTabList(sourceData.pinnedTabId, biggestIndex + 1);
+        return;
+      }
+
+      const tabGroupData = sourceData as TabGroupSourceData;
+      const sourceTabId = tabGroupData.primaryTabId;
 
       const newPos = biggestIndex + 1;
 
-      if (sourceData.spaceId !== spaceData.id) {
-        if (sourceData.profileId !== spaceData.profileId) {
+      if (tabGroupData.spaceId !== spaceData.id) {
+        if (tabGroupData.profileId !== spaceData.profileId) {
           // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
         } else {
           flow.tabs.moveTabToWindowSpace(sourceTabId, spaceData.id, newPos);
@@ -52,11 +67,19 @@ export function TabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex }
     const cleanupDropTarget = dropTargetForElements({
       element: el,
       canDrop: (args) => {
-        const sourceData = args.source.data as TabGroupSourceData;
-        if (sourceData.type !== "tab-group") {
+        const sourceData = args.source.data;
+
+        // Accept pinned tab drags (for unpinning)
+        if (isPinnedTabSource(sourceData)) {
+          return true;
+        }
+
+        // Accept tab group drags (existing behavior)
+        const tabGroupData = sourceData as TabGroupSourceData;
+        if (tabGroupData.type !== "tab-group") {
           return false;
         }
-        if (sourceData.profileId !== spaceData.profileId) {
+        if (tabGroupData.profileId !== spaceData.profileId) {
           // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
           return false;
         }
@@ -69,7 +92,7 @@ export function TabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex }
     });
 
     return cleanupDropTarget;
-  }, [spaceData.profileId, isSpaceLight, moveTab, biggestIndex, spaceData.id]);
+  }, [spaceData.profileId, isSpaceLight, moveTab, biggestIndex, spaceData.id, unpinToTabList]);
 
   return (
     <div className="relative flex-1 flex flex-col" ref={dropTargetRef} onDoubleClick={handleDoubleClick}>

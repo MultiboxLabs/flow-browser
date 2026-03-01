@@ -11,6 +11,11 @@ import {
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { attachClosestEdge, extractClosestEdge, Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import { DropIndicator } from "@/components/browser-ui/browser-sidebar/_components/drop-indicator";
+import type { PinnedTabSourceData } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
+
+function isPinnedTabSource(data: Record<string, unknown>): data is PinnedTabSourceData {
+  return data.type === "pinned-tab" && typeof data.pinnedTabId === "string";
+}
 
 // --- Types --- //
 
@@ -185,10 +190,11 @@ interface TabGroupProps {
   position: number;
   groupCount: number;
   moveTab: (tabId: number, newPosition: number) => void;
+  unpinToTabList: (pinnedTabId: string, position?: number) => Promise<boolean>;
 }
 
 export const TabGroup = memo(
-  function TabGroup({ tabGroup, isFocused, isSpaceLight, position, moveTab }: TabGroupProps) {
+  function TabGroup({ tabGroup, isFocused, isSpaceLight, position, moveTab, unpinToTabList }: TabGroupProps) {
     const { tabs, focusedTab } = tabGroup;
     const ref = useRef<HTMLDivElement>(null);
     const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
@@ -211,8 +217,22 @@ export const TabGroup = memo(
         const closestEdgeOfTarget: Edge | null = extractClosestEdge(args.self.data);
         setClosestEdge(null);
 
-        const sourceData = args.source.data as TabGroupSourceData;
-        const sourceTabId = sourceData.primaryTabId;
+        const sourceData = args.source.data;
+
+        // Handle pinned tab drops — unpin to tab list at the drop position
+        if (isPinnedTabSource(sourceData)) {
+          let newPos: number;
+          if (closestEdgeOfTarget === "top") {
+            newPos = position - 0.5;
+          } else {
+            newPos = position + 0.5;
+          }
+          unpinToTabList(sourceData.pinnedTabId, newPos);
+          return;
+        }
+
+        const tabGroupData = sourceData as TabGroupSourceData;
+        const sourceTabId = tabGroupData.primaryTabId;
 
         let newPos: number | undefined = undefined;
 
@@ -222,8 +242,8 @@ export const TabGroup = memo(
           newPos = position + 0.5;
         }
 
-        if (sourceData.spaceId !== tabGroup.spaceId) {
-          if (sourceData.profileId !== tabGroup.profileId) {
+        if (tabGroupData.spaceId !== tabGroup.spaceId) {
+          if (tabGroupData.profileId !== tabGroup.profileId) {
             // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
           } else {
             flow.tabs.moveTabToWindowSpace(sourceTabId, tabGroup.spaceId, newPos);
@@ -261,14 +281,21 @@ export const TabGroup = memo(
           );
         },
         canDrop: (args) => {
-          const sourceData = args.source.data as TabGroupSourceData;
-          if (sourceData.type !== "tab-group") {
+          const sourceData = args.source.data;
+
+          // Accept pinned tab drags (for unpinning)
+          if (isPinnedTabSource(sourceData)) {
+            return true;
+          }
+
+          const tabGroupData = sourceData as TabGroupSourceData;
+          if (tabGroupData.type !== "tab-group") {
             return false;
           }
-          if (sourceData.tabGroupId === tabGroup.id) {
+          if (tabGroupData.tabGroupId === tabGroup.id) {
             return false;
           }
-          if (sourceData.profileId !== tabGroup.profileId) {
+          if (tabGroupData.profileId !== tabGroup.profileId) {
             return false;
           }
           return true;
@@ -283,7 +310,7 @@ export const TabGroup = memo(
         draggableCleanup();
         cleanupDropTarget();
       };
-    }, [moveTab, tabGroup.id, position, primaryTabId, tabGroup.spaceId, tabGroup.profileId]);
+    }, [moveTab, unpinToTabList, tabGroup.id, position, primaryTabId, tabGroup.spaceId, tabGroup.profileId]);
 
     return (
       <motion.div
@@ -329,7 +356,8 @@ export const TabGroup = memo(
       prev.isSpaceLight === next.isSpaceLight &&
       prev.position === next.position &&
       prev.groupCount === next.groupCount &&
-      prev.moveTab === next.moveTab
+      prev.moveTab === next.moveTab &&
+      prev.unpinToTabList === next.unpinToTabList
     );
   }
 );

@@ -1,5 +1,6 @@
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { useTabsGroups } from "@/components/providers/tabs-provider";
+import { usePinnedTabs } from "@/components/providers/pinned-tabs-provider";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { SidebarScrollArea } from "./sidebar-scroll-area";
 import { SpaceTitle } from "./space-title";
@@ -20,8 +21,11 @@ interface SpaceContentPageProps {
 
 const SpaceContentPage = memo(function SpaceContentPage({ space, moveTab }: SpaceContentPageProps) {
   const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabsGroups();
+  const { unpinToTabList } = usePinnedTabs();
   const isSpaceLight = useMemo(() => hex_is_light(space.bgStartColor || "#000000"), [space.bgStartColor]);
 
+  // Ephemeral tabs (pinned-tab-associated) are already filtered out by the
+  // tabs provider, so getTabGroups returns only visible tab groups.
   const sortedTabGroups = useMemo(() => getTabGroups(space.id), [space.id, getTabGroups]);
   const activeTabGroup = useMemo(() => getActiveTabGroup(space.id), [getActiveTabGroup, space.id]);
   const focusedTab = useMemo(() => getFocusedTab(space.id), [getFocusedTab, space.id]);
@@ -43,6 +47,7 @@ const SpaceContentPage = memo(function SpaceContentPage({ space, moveTab }: Spac
                 position={tabGroup.position}
                 groupCount={sortedTabGroups.length}
                 moveTab={moveTab}
+                unpinToTabList={unpinToTabList}
               />
             ))}
           </AnimatePresence>

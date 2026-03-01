@@ -12,6 +12,7 @@ import type { SpaceData } from "@/controllers/spaces-controller";
 // SHARED TYPES //
 import type { SharedExtensionData } from "~/types/extensions";
 import type { TabData, WindowTabsData } from "~/types/tabs";
+import type { PinnedTabData } from "~/types/pinned-tabs";
 import type { UpdateStatus } from "~/types/updates";
 import type { WindowState } from "~/flow/types";
 
@@ -32,6 +33,7 @@ import { FlowSettingsAPI } from "~/flow/interfaces/settings/settings";
 import { FlowWindowsAPI } from "~/flow/interfaces/app/windows";
 import { FlowExtensionsAPI } from "~/flow/interfaces/app/extensions";
 import { FlowTabsAPI } from "~/flow/interfaces/browser/tabs";
+import { FlowPinnedTabsAPI } from "~/flow/interfaces/browser/pinned-tabs";
 import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
@@ -482,6 +484,37 @@ const tabsAPI: FlowTabsAPI = {
   }
 };
 
+// PINNED TABS API //
+const pinnedTabsAPI: FlowPinnedTabsAPI = {
+  getData: async () => {
+    return ipcRenderer.invoke("pinned-tabs:get-data");
+  },
+  onChanged: (callback: (data: Record<string, PinnedTabData[]>) => void) => {
+    return listenOnIPCChannel("pinned-tabs:on-changed", callback);
+  },
+  createFromTab: async (tabId: number, position?: number) => {
+    return ipcRenderer.invoke("pinned-tabs:create-from-tab", tabId, position);
+  },
+  click: async (pinnedTabId: string) => {
+    return ipcRenderer.invoke("pinned-tabs:click", pinnedTabId);
+  },
+  doubleClick: async (pinnedTabId: string) => {
+    return ipcRenderer.invoke("pinned-tabs:double-click", pinnedTabId);
+  },
+  remove: async (pinnedTabId: string) => {
+    return ipcRenderer.invoke("pinned-tabs:remove", pinnedTabId);
+  },
+  unpinToTabList: async (pinnedTabId: string, position?: number) => {
+    return ipcRenderer.invoke("pinned-tabs:unpin-to-tab-list", pinnedTabId, position);
+  },
+  reorder: async (pinnedTabId: string, newPosition: number) => {
+    return ipcRenderer.invoke("pinned-tabs:reorder", pinnedTabId, newPosition);
+  },
+  showContextMenu: (pinnedTabId: string) => {
+    return ipcRenderer.send("pinned-tabs:show-context-menu", pinnedTabId);
+  }
+};
+
 // PAGE API //
 const pageAPI: FlowPageAPI = {
   setPageBounds: (bounds: { x: number; y: number; width: number; height: number }) => {
@@ -854,6 +887,7 @@ const flowAPI: typeof flow = {
     newTab: "app",
     disablePictureInPicture: "all"
   }),
+  pinnedTabs: wrapAPI(pinnedTabsAPI, "browser"),
   page: wrapAPI(pageAPI, "browser"),
   navigation: wrapAPI(navigationAPI, "browser"),
   interface: wrapAPI(interfaceAPI, "browser", {
