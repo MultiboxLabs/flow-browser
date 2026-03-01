@@ -106,7 +106,8 @@ class PosthogController {
       this.client.identify({
         distinctId: identifier,
         properties: {
-          ...this.getAppInfoForPosthog()
+          ...this.getAppInfoForPosthog(),
+          active_session_id: this.sessionId
         }
       });
 

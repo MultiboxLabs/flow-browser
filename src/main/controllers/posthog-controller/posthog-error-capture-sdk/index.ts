@@ -28,11 +28,9 @@ export default class ErrorTracking {
   ): Promise<void> {
     const properties: EventMessage["properties"] = { ...additionalProperties };
 
-    // Given stateless nature of Node SDK we capture exceptions using personless processing when no
-    // user can be determined because a distinct_id is not provided e.g. exception autocapture
-    if (!distinctId) {
-      properties.$process_person_profile = false;
-    }
+    // Ensure exception events are associated with a person profile whenever a distinct_id exists.
+    // If we do not have one, fall back to personless processing.
+    properties.$process_person_profile = Boolean(distinctId);
 
     const exceptionProperties = await propertiesFromUnknownInput(this.stackParser, this.frameModifiers, error, hint);
 
