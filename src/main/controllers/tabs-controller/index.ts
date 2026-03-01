@@ -116,6 +116,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     // Archive/sleep check interval
     const interval = setInterval(() => {
       for (const tab of this.tabs.values()) {
+        if (tab.ephemeral) continue;
         if (!tab.visible && shouldArchiveTab(tab.lastActiveAt)) {
           tab.destroy();
           continue;
