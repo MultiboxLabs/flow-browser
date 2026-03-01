@@ -79,14 +79,14 @@ export class OmniboxShortcutsService {
       const db = getDb();
       const normalizedInput = inputText.toLowerCase().trim();
 
-      // Find shortcuts where the stored input is a prefix of what the user typed
-      // This means if user typed "gith", shortcuts for "gi", "git", "gith" all match
-      const pattern = `${normalizedInput}%`;
-
+      // Find shortcuts where the stored input is a prefix of what the user typed.
+      // e.g. if user typed "gith", shortcuts for "gi", "git", "gith" all match
+      // because each stored inputText is a prefix of "gith".
+      // SQL: WHERE 'gith' LIKE inputText || '%'
       return db
         .select()
         .from(schema.omniboxShortcuts)
-        .where(sql`${schema.omniboxShortcuts.inputText} LIKE ${pattern}`)
+        .where(sql`${normalizedInput} LIKE ${schema.omniboxShortcuts.inputText} || '%'`)
         .orderBy(desc(schema.omniboxShortcuts.lastAccessTime))
         .limit(limit)
         .all();
