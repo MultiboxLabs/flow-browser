@@ -1,12 +1,10 @@
 import { browserWindowsManager, windowsController } from "@/controllers/windows-controller";
 import { debugPrint } from "@/modules/output";
 import { ipcMain } from "electron";
+import { OmniboxShowOptions } from "~/flow/interfaces/browser/omnibox";
 
-ipcMain.on("omnibox:show", (event, bounds: Electron.Rectangle | null, params: { [key: string]: string } | null) => {
-  debugPrint(
-    "OMNIBOX",
-    `IPC: show-omnibox received with bounds: ${JSON.stringify(bounds)} and params: ${JSON.stringify(params)}`
-  );
+ipcMain.on("omnibox:show", (event, options?: OmniboxShowOptions) => {
+  debugPrint("OMNIBOX", `IPC: omnibox:show received with options: ${JSON.stringify(options)}`);
 
   const parentWindow = windowsController.getWindowFromWebContents(event.sender);
   if (!parentWindow) {
@@ -19,13 +17,11 @@ ipcMain.on("omnibox:show", (event, bounds: Electron.Rectangle | null, params: { 
   }
 
   const omnibox = parentWindow.omnibox;
-  omnibox.setBounds(bounds);
-  omnibox.loadInterface(params);
-  omnibox.show();
+  omnibox.show(options);
 });
 
 ipcMain.on("omnibox:hide", (event) => {
-  debugPrint("OMNIBOX", "IPC: hide-omnibox received");
+  debugPrint("OMNIBOX", "IPC: omnibox:hide received");
 
   const parentWindow = windowsController.getWindowFromWebContents(event.sender);
   if (!parentWindow) {
