@@ -1,15 +1,7 @@
 import { BaseTabGroup } from "@/controllers/tabs-controller/tab-groups";
 import { spacesController } from "@/controllers/spaces-controller";
 import { clipboard, ipcMain, Menu, MenuItem } from "electron";
-import {
-  PersistedTabGroupData,
-  TabData,
-  WindowActiveTabIds,
-  WindowFocusedTabIds,
-  WindowFocusedTabUrls,
-  WindowFocusedTabLoadingStates,
-  WindowFocusedTabFullscreenStates
-} from "~/types/tabs";
+import { PersistedTabGroupData, TabData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import { Tab } from "@/controllers/tabs-controller/tab";
@@ -93,11 +85,7 @@ function getWindowTabsData(window: BrowserWindow) {
   const tabs = tabsController.getTabsInWindow(windowId);
   const tabGroups = tabsController.getTabGroupsInWindow(windowId);
 
-  // Filter out ephemeral tabs — they are managed by the pin grid and should
-  // never appear in the sidebar tab list.
-  const visibleTabs = tabs.filter((tab) => !tab.ephemeral);
-
-  const tabDatas = visibleTabs.map((tab) => {
+  const tabDatas = tabs.map((tab) => {
     const managers = tabsController.getTabManagers(tab.id);
     return serializeTabForRenderer(tab, managers?.lifecycle.preSleepState);
   });
@@ -106,9 +94,6 @@ function getWindowTabsData(window: BrowserWindow) {
   const windowProfiles: string[] = [];
   const windowSpaces: string[] = [];
 
-  // Build space/profile sets from ALL tabs (including ephemeral) so that
-  // focused/active tab maps include spaces whose only tab is ephemeral.
-  // The `tabDatas` array (sidebar tab list) still uses `visibleTabs` above.
   for (const tab of tabs) {
     if (!windowProfiles.includes(tab.profileId)) {
       windowProfiles.push(tab.profileId);
@@ -120,17 +105,11 @@ function getWindowTabsData(window: BrowserWindow) {
 
   const focusedTabs: WindowFocusedTabIds = {};
   const activeTabs: WindowActiveTabIds = {};
-  const focusedTabUrls: WindowFocusedTabUrls = {};
-  const focusedTabLoadingStates: WindowFocusedTabLoadingStates = {};
-  const focusedTabFullscreenStates: WindowFocusedTabFullscreenStates = {};
 
   for (const spaceId of windowSpaces) {
     const focusedTab = tabsController.getFocusedTab(windowId, spaceId);
     if (focusedTab) {
       focusedTabs[spaceId] = focusedTab.id;
-      focusedTabUrls[spaceId] = focusedTab.url;
-      focusedTabLoadingStates[spaceId] = focusedTab.isLoading;
-      focusedTabFullscreenStates[spaceId] = focusedTab.fullScreen;
     }
 
     const activeTab = tabsController.getActiveTab(windowId, spaceId);
@@ -147,10 +126,7 @@ function getWindowTabsData(window: BrowserWindow) {
     tabs: tabDatas,
     tabGroups: tabGroupDatas,
     focusedTabIds: focusedTabs,
-    activeTabIds: activeTabs,
-    focusedTabUrls,
-    focusedTabLoadingStates,
-    focusedTabFullscreenStates
+    activeTabIds: activeTabs
   };
 }
 
@@ -220,7 +196,7 @@ function processQueues() {
     const updatedTabs: TabData[] = [];
     for (const tabId of tabIds) {
       const tab = tabsController.getTabById(tabId);
-      if (!tab || tab.ephemeral) continue;
+      if (!tab) continue;
 
       const managers = tabsController.getTabManagers(tabId);
       updatedTabs.push(serializeTabForRenderer(tab, managers?.lifecycle.preSleepState));
@@ -246,24 +222,11 @@ export function windowTabsChanged(windowId: number) {
  * Enqueue a content-only change for a single tab.
  * If no structural change occurs before processing, only the changed tabs'
  * data will be serialized and sent — much cheaper than a full refresh.
- *
- * For ephemeral tabs, we escalate to a structural change because the
- * lightweight content-update path excludes them, but the full refresh
- * includes their URL in `focusedTabUrls` (needed for the address bar).
  */
 export function windowTabContentChanged(windowId: number, tabId: number) {
   // If a structural change is already pending for this window, skip —
   // the full refresh will include this tab's changes.
   if (structuralQueue.has(windowId)) return;
-
-  // Ephemeral tabs are excluded from the content-update path, but their
-  // URL changes still matter for focusedTabUrls. Escalate to a full refresh.
-  const tab = tabsController.getTabById(tabId);
-  if (tab?.ephemeral) {
-    structuralQueue.add(windowId);
-    scheduleQueueProcessing();
-    return;
-  }
 
   let tabIds = contentQueue.get(windowId);
   if (!tabIds) {

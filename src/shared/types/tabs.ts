@@ -71,6 +71,7 @@ export type TabData = Omit<PersistedTabData, "navHistory" | "navHistoryIndex"> &
   fullScreen: boolean;
   isPictureInPicture: boolean;
   asleep: boolean;
+  ephemeral?: boolean; // true for pinned-tab-associated tabs that shouldn't appear in the sidebar tab list
 };
 
 /**
@@ -115,42 +116,9 @@ export type WindowActiveTabIds = {
   [spaceId: string]: number[];
 };
 
-/**
- * Maps spaceId → the URL of the focused tab in that space.
- * Populated from ALL tabs (including ephemeral) so the renderer
- * can display the address bar URL even when the focused tab is
- * not in the `tabs` array (e.g. ephemeral pinned-tab tabs).
- */
-export type WindowFocusedTabUrls = {
-  [spaceId: string]: string;
-};
-
-/**
- * Maps spaceId → the isLoading state of the focused tab in that space.
- * Populated from ALL tabs (including ephemeral) so the renderer
- * can display the loading indicator even when the focused tab is
- * not in the `tabs` array (e.g. ephemeral pinned-tab tabs).
- */
-export type WindowFocusedTabLoadingStates = {
-  [spaceId: string]: boolean;
-};
-
-/**
- * Maps spaceId → the fullScreen state of the focused tab in that space.
- * Populated from ALL tabs (including ephemeral) so the renderer
- * can reflect fullscreen state even when the focused tab is
- * not in the `tabs` array (e.g. ephemeral pinned-tab tabs).
- */
-export type WindowFocusedTabFullscreenStates = {
-  [spaceId: string]: boolean;
-};
-
 export type WindowTabsData = {
   tabs: TabData[];
   tabGroups: TabGroupData[];
   focusedTabIds: WindowFocusedTabIds;
   activeTabIds: WindowActiveTabIds;
-  focusedTabUrls: WindowFocusedTabUrls;
-  focusedTabLoadingStates: WindowFocusedTabLoadingStates;
-  focusedTabFullscreenStates: WindowFocusedTabFullscreenStates;
 };
