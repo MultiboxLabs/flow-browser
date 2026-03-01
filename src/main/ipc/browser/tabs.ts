@@ -6,7 +6,9 @@ import {
   TabData,
   WindowActiveTabIds,
   WindowFocusedTabIds,
-  WindowFocusedTabUrls
+  WindowFocusedTabUrls,
+  WindowFocusedTabLoadingStates,
+  WindowFocusedTabFullscreenStates
 } from "~/types/tabs";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
@@ -119,12 +121,16 @@ function getWindowTabsData(window: BrowserWindow) {
   const focusedTabs: WindowFocusedTabIds = {};
   const activeTabs: WindowActiveTabIds = {};
   const focusedTabUrls: WindowFocusedTabUrls = {};
+  const focusedTabLoadingStates: WindowFocusedTabLoadingStates = {};
+  const focusedTabFullscreenStates: WindowFocusedTabFullscreenStates = {};
 
   for (const spaceId of windowSpaces) {
     const focusedTab = tabsController.getFocusedTab(windowId, spaceId);
     if (focusedTab) {
       focusedTabs[spaceId] = focusedTab.id;
       focusedTabUrls[spaceId] = focusedTab.url;
+      focusedTabLoadingStates[spaceId] = focusedTab.isLoading;
+      focusedTabFullscreenStates[spaceId] = focusedTab.fullScreen;
     }
 
     const activeTab = tabsController.getActiveTab(windowId, spaceId);
@@ -142,7 +148,9 @@ function getWindowTabsData(window: BrowserWindow) {
     tabGroups: tabGroupDatas,
     focusedTabIds: focusedTabs,
     activeTabIds: activeTabs,
-    focusedTabUrls
+    focusedTabUrls,
+    focusedTabLoadingStates,
+    focusedTabFullscreenStates
   };
 }
 

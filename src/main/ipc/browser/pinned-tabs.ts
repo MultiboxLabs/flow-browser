@@ -50,16 +50,27 @@ tabsController.on("tab-removed", (tab) => {
 tabsController.on("current-space-changed", (windowId, newSpaceId) => {
   // Resolve the profile for the new space (synchronous cache lookup)
   const space = spacesController.getCached(newSpaceId);
-  if (!space) return;
+  if (space) {
+    movePinnedAssociatedTabs(windowId, newSpaceId, space.profileId);
+    return;
+  }
 
-  const associatedTabIds = pinnedTabsController.getAssociatedTabIdsForProfile(space.profileId);
+  // Cache miss — fetch asynchronously and then move tabs
+  spacesController.get(newSpaceId).then((fetched) => {
+    if (!fetched) return;
+    movePinnedAssociatedTabs(windowId, newSpaceId, fetched.profileId);
+  });
+});
+
+function movePinnedAssociatedTabs(windowId: number, newSpaceId: string, profileId: string) {
+  const associatedTabIds = pinnedTabsController.getAssociatedTabIdsForProfile(profileId);
   for (const tabId of associatedTabIds) {
     const tab = tabsController.getTabById(tabId);
     if (tab && tab.ephemeral && tab.getWindow().id === windowId && tab.spaceId !== newSpaceId) {
       tab.setSpace(newSpaceId);
     }
   }
-});
+}
 
 // --- IPC Handlers ---
 
@@ -90,7 +101,7 @@ ipcMain.handle("pinned-tabs:create-from-tab", async (_event, tabId: number, posi
   // Associate the pinned tab with the browser tab
   pinnedTabsController.associateTab(pinnedTab.uniqueId, tab.id);
 
-  return pinnedTab;
+  return { ...pinnedTab, associatedTabId: tab.id };
 });
 
 /**

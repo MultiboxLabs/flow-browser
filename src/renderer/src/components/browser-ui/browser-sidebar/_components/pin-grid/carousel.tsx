@@ -1,5 +1,5 @@
 import { useSpaces } from "@/components/providers/spaces-provider";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PinGrid } from "./normal/pin-grid";
 
 // --- PinGridCarousel --- //
@@ -22,7 +22,6 @@ interface PageGroup {
 
 export function PinGridCarousel() {
   const { spaces, currentSpace } = useSpaces();
-  const hasInitializedRef = useRef(false);
   const [animate, setAnimate] = useState(false);
 
   // Group consecutive spaces with the same profile into pages.
@@ -50,12 +49,13 @@ export function PinGridCarousel() {
 
   const currentPageIndex = spaceIndexToPage[currentSpaceIndex] ?? 0;
 
-  // Enable transitions after initial render so the first page snaps instantly
-  if (!hasInitializedRef.current && pages.length > 0) {
-    hasInitializedRef.current = true;
-    // Schedule enabling animation after the first paint
-    requestAnimationFrame(() => setAnimate(true));
-  }
+  // Enable transitions after initial render so the first page snaps instantly.
+  // Runs as an effect (not during render) to avoid mutating state/refs in the render phase.
+  useEffect(() => {
+    if (pages.length === 0) return;
+    const id = requestAnimationFrame(() => setAnimate(true));
+    return () => cancelAnimationFrame(id);
+  }, [pages.length > 0]);
 
   return (
     <div className="shrink-0 overflow-clip">
