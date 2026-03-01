@@ -59,7 +59,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       y: options.y,
       center: hasPositionOptions ? false : true,
 
-      titleBarStyle: process.platform === "darwin" ? "hidden" : undefined,
+      titleBarStyle: process.platform === "darwin" || process.platform === "win32" ? "hidden" : undefined,
       titleBarOverlay: {
         height: 30,
         symbolColor: nativeTheme.shouldUseDarkColors ? "white" : "black",
