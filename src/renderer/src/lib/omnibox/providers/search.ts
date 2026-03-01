@@ -1,9 +1,8 @@
 import { BaseProvider } from "@/lib/omnibox/base-provider";
 import { OmniboxUpdateCallback } from "@/lib/omnibox/omnibox";
-import { AutocompleteInput, AutocompleteMatch } from "@/lib/omnibox/types";
+import { AutocompleteInput, AutocompleteMatch, InputType } from "@/lib/omnibox/types";
 import { createSearchUrl, getSearchSuggestions } from "@/lib/search";
-import { getURLFromInput } from "@/lib/url";
-import { getStringSimilarity } from "@/lib/omnibox/data-providers/string-similarity";
+import { tokenize, allTermsMatch, findBestMatch } from "@/lib/omnibox/tokenizer";
 
 export class SearchProvider extends BaseProvider {
   name = "SearchProvider";
@@ -19,22 +18,40 @@ export class SearchProvider extends BaseProvider {
     const inputText = input.text;
 
     if (!inputText) {
-      // Don't fetch suggestions for URLs or very short inputs sometimes
       onResults([]);
       return;
     }
 
-    const url = getURLFromInput(inputText);
+    // Verbatim search relevance depends on input classification:
+    // - URL input: low (user clearly wants to navigate, not search)
+    // - Forced query: high (user explicitly wants search via '?' prefix)
+    // - Query/Unknown: high (search-first for text and ambiguous input)
+    let verbatimRelevance: number;
+    switch (input.inputType) {
+      case InputType.URL:
+        verbatimRelevance = 1100; // Below what-you-typed URL (1200)
+        break;
+      case InputType.FORCED_QUERY:
+        verbatimRelevance = 1350; // User explicitly wants search
+        break;
+      case InputType.QUERY:
+        verbatimRelevance = 1300; // Clearly a search query
+        break;
+      case InputType.UNKNOWN:
+      default:
+        verbatimRelevance = 1300; // Search-first for ambiguous input
+        break;
+    }
 
     // Add the verbatim search immediately
     const verbatimMatch: AutocompleteMatch = {
       providerName: this.name,
-      relevance: url ? 1250 : 1300, // High score to appear near top, but below strong nav
+      relevance: verbatimRelevance,
       contents: inputText,
-      description: `Search for "${inputText}"`, // Or search engine name
+      description: `Search for "${inputText}"`,
       destinationUrl: createSearchUrl(inputText),
-      type: "verbatim", // Special type for clarity, often treated as search
-      isDefault: true // Usually the fallback default action
+      type: "verbatim",
+      isDefault: input.inputType !== InputType.URL // Not default when input is a URL
     };
     onResults([verbatimMatch], true); // Send verbatim immediately
 
@@ -46,16 +63,36 @@ export class SearchProvider extends BaseProvider {
       .then((suggestions) => {
         if (abortSignal.aborted) return;
 
+        const inputTerms = input.terms;
         const results: AutocompleteMatch[] = [];
+
         suggestions.forEach((suggestion, index) => {
           // Base relevance around 600-800, first suggestion is usually highest
           const baseRelevance = 800 - index * 50;
-          // Calculate similarity with original input
-          const similarity = getStringSimilarity(inputText, suggestion);
-          // Boost relevance based on similarity, cap suggestions below verbatim/history
-          const relevance = Math.min(1000, Math.ceil(baseRelevance + similarity * 200));
 
-          // Check if suggestion looks like a URL (navigational suggestion)
+          // Calculate match quality using tokenized matching
+          let matchBoost = 0;
+          if (inputTerms.length > 0) {
+            const suggestionTokens = tokenize(suggestion);
+            if (allTermsMatch(inputTerms, suggestionTokens)) {
+              // Good match — compute quality
+              let matchScore = 0;
+              for (const term of inputTerms) {
+                const best = findBestMatch(term, suggestionTokens);
+                if (best === "exact") matchScore += 1.0;
+                else if (best === "prefix") matchScore += 0.7;
+                else if (best === "substring") matchScore += 0.4;
+              }
+              matchBoost = (matchScore / inputTerms.length) * 200;
+            } else {
+              // Partial or no match — still include (server suggestion may be relevant)
+              matchBoost = 50;
+            }
+          }
+
+          // Cap suggestions below verbatim/history
+          const relevance = Math.min(1000, Math.ceil(baseRelevance + matchBoost));
+
           const type: AutocompleteMatch["type"] = "search-query";
           const destinationUrl = createSearchUrl(suggestion);
 

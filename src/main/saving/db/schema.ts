@@ -71,3 +71,28 @@ export const recentlyClosed = sqliteTable(
 
 export type RecentlyClosedRow = typeof recentlyClosed.$inferSelect;
 export type RecentlyClosedInsert = typeof recentlyClosed.$inferInsert;
+
+// --- History Table ---
+
+export const history = sqliteTable(
+  "history",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    url: text("url").notNull(),
+    title: text("title").notNull().default(""),
+    visitCount: integer("visit_count").notNull().default(1),
+    typedCount: integer("typed_count").notNull().default(0),
+    lastVisitTime: integer("last_visit_time").notNull(), // epoch ms
+    firstVisitTime: integer("first_visit_time").notNull(), // epoch ms
+    // Bitfield: 0=link, 1=typed, 2=bookmark, 3=redirect, 4=reload
+    lastVisitType: integer("last_visit_type").notNull().default(0)
+  },
+  (table) => [
+    index("idx_history_url").on(table.url),
+    index("idx_history_last_visit").on(table.lastVisitTime),
+    index("idx_history_typed_count").on(table.typedCount)
+  ]
+);
+
+export type HistoryRow = typeof history.$inferSelect;
+export type HistoryInsert = typeof history.$inferInsert;

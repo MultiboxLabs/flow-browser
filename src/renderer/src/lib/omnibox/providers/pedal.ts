@@ -1,6 +1,5 @@
-import { AutocompleteInput } from "@/lib/omnibox-v2";
+import { AutocompleteInput } from "@/lib/omnibox/types";
 import { BaseProvider } from "@/lib/omnibox/base-provider";
-import { getStringSimilarity } from "@/lib/omnibox/data-providers/string-similarity";
 import { OmniboxUpdateCallback } from "@/lib/omnibox/omnibox";
 import { AutocompleteMatch } from "@/lib/omnibox/types";
 
@@ -38,25 +37,34 @@ export class OmniboxPedalProvider extends BaseProvider {
       return;
     }
 
-    // Match against known triggers
+    // Match against known triggers using simple prefix/includes matching.
+    // Pedals are short, known strings — full tokenized matching is overkill here.
     const results: AutocompleteMatch[] = [];
     for (const pedal of PEDALS) {
-      if (pedal.triggers.some((trigger) => inputText === trigger || getStringSimilarity(inputText, trigger) > 0)) {
-        // Score should be between 1100 - 1200
-        const bestSimilarity = pedal.triggers.reduce((best, trigger) => {
-          const similarity = getStringSimilarity(inputText, trigger);
-          return similarity > best ? similarity : best;
-        }, 0);
+      let bestScore = 0;
 
-        const relevance = Math.ceil(1100 + bestSimilarity * 100);
+      for (const trigger of pedal.triggers) {
+        if (inputText === trigger) {
+          // Exact match
+          bestScore = Math.max(bestScore, 1.0);
+        } else if (trigger.startsWith(inputText)) {
+          // Input is a prefix of the trigger
+          bestScore = Math.max(bestScore, 0.6 + (inputText.length / trigger.length) * 0.3);
+        } else if (trigger.includes(inputText)) {
+          // Input is a substring of the trigger
+          bestScore = Math.max(bestScore, 0.3 + (inputText.length / trigger.length) * 0.2);
+        }
+      }
+
+      if (bestScore > 0) {
+        const relevance = Math.ceil(1100 + bestScore * 100);
         results.push({
           providerName: this.name,
           relevance, // Very high relevance for direct actions
-          contents: pedal.description, // Display the action text
-          // Destination URL could be an internal settings page or command
+          contents: pedal.description,
           destinationUrl: pedal.action,
           type: "pedal",
-          isDefault: false // Pedals are often default if triggered
+          isDefault: false
         });
         // Typically only one pedal is shown at a time
         break;

@@ -8,6 +8,7 @@ import { BrowserWindow } from "@/controllers/windows-controller/types";
 import { LoadedProfile } from "@/controllers/loaded-profiles-controller";
 import { ViewLayer } from "~/layers";
 import { type TabsController } from "./index";
+import { historyService, VisitType } from "@/saving/history/history-service";
 
 export const SLEEP_MODE_URL = "about:blank?sleep=true";
 
@@ -573,6 +574,14 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     if (newUrl !== this.url) {
       this.url = newUrl;
       changedKeys.push("url");
+
+      // Record non-typed navigation in history.
+      // Typed navigations are already recorded in navigation:go-to IPC handler.
+      // We record here with LINK type as a fallback for link-clicks, redirects, etc.
+      // We use the current title (may be stale; will be updated on next title change).
+      if (newUrl && !newUrl.startsWith("about:")) {
+        historyService.recordVisit(newUrl, newTitle || this.title, VisitType.LINK);
+      }
     }
 
     const newIsLoading = webContents.isLoading();

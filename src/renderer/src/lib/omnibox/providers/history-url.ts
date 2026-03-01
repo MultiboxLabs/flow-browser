@@ -1,91 +1,259 @@
 import { BaseProvider } from "@/lib/omnibox/base-provider";
-import { getHistory } from "@/lib/omnibox/data-providers/history";
+import { searchHistory, getSignificantHistory, type HistoryEntry } from "@/lib/omnibox/data-providers/history";
 import { OmniboxUpdateCallback } from "@/lib/omnibox/omnibox";
-import { AutocompleteInput, AutocompleteMatch } from "@/lib/omnibox/types";
+import { AutocompleteInput, AutocompleteMatch, InputType } from "@/lib/omnibox/types";
 import { getURLFromInput } from "@/lib/url";
-import { getStringSimilarity } from "@/lib/omnibox/data-providers/string-similarity";
+import { tokenize, tokenizeInput, allTermsMatch, findBestMatch } from "@/lib/omnibox/tokenizer";
+import { calculateFrecency } from "@/lib/omnibox/frecency";
+import { normalizeUrlForDedup, stripSchemeAndWww } from "@/lib/omnibox/url-normalizer";
+
+/**
+ * Score match quality by analyzing how the input matches a candidate URL and title.
+ * Returns a score between 0 and 1.
+ */
+function scoreMatchQuality(terms: string[], url: string, title: string): number {
+  const urlLower = url.toLowerCase();
+  const titleLower = title.toLowerCase();
+
+  let parsedHost = "";
+  let parsedPath = "";
+  try {
+    const parsed = new URL(url);
+    parsedHost = parsed.hostname.replace(/^www\./, "").toLowerCase();
+    parsedPath = (parsed.pathname + parsed.search).toLowerCase();
+  } catch {
+    parsedHost = urlLower;
+  }
+
+  const hostTokens = tokenize(parsedHost);
+  const pathTokens = tokenize(parsedPath);
+  const titleTokens = tokenize(titleLower);
+
+  let score = 0;
+
+  for (const term of terms) {
+    // 1. Host match is most valuable
+    const hostMatch = findBestMatch(term, hostTokens);
+    if (hostMatch === "exact" || hostMatch === "prefix") {
+      score += 0.4;
+    } else if (hostMatch === "substring") {
+      score += 0.25;
+    }
+
+    // 2. Path match
+    const pathMatch = findBestMatch(term, pathTokens);
+    if (pathMatch !== "none") {
+      score += 0.15;
+    }
+
+    // 3. Title match
+    const titleMatch = findBestMatch(term, titleTokens);
+    if (titleMatch === "exact" || titleMatch === "prefix") {
+      score += 0.15;
+    } else if (titleMatch === "substring") {
+      score += 0.08;
+    }
+  }
+
+  // 4. Term coverage bonus
+  const allTokens = [...hostTokens, ...pathTokens, ...titleTokens];
+  const matchedTerms = terms.filter((t) => findBestMatch(t, allTokens) !== "none").length;
+  const termCoverage = terms.length > 0 ? matchedTerms / terms.length : 0;
+  score += termCoverage * 0.2;
+
+  return Math.min(score, 1);
+}
+
+/**
+ * Check if a URL prefix-matches the input (for inline autocompletion).
+ */
+function getInlineCompletion(inputText: string, url: string): string | undefined {
+  const inputLower = inputText.toLowerCase();
+  const stripped = stripSchemeAndWww(url).toLowerCase();
+
+  if (stripped.startsWith(inputLower) && stripped.length > inputLower.length) {
+    // Return the completion from the stripped URL
+    const fullStripped = stripSchemeAndWww(url);
+    return fullStripped.slice(inputLower.length);
+  }
+
+  return undefined;
+}
 
 export class HistoryURLProvider extends BaseProvider {
   name = "HistoryURLProvider";
 
+  // Cache significant history for sync-like matching
+  private significantHistory: HistoryEntry[] = [];
+  private lastFetchTime: number = 0;
+  private static CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  private async ensureCache(): Promise<void> {
+    const now = Date.now();
+    if (now - this.lastFetchTime > HistoryURLProvider.CACHE_TTL || this.significantHistory.length === 0) {
+      this.significantHistory = await getSignificantHistory();
+      this.lastFetchTime = now;
+    }
+  }
+
   start(input: AutocompleteInput, onResults: OmniboxUpdateCallback): void {
     const inputText = input.text;
-    const inputTextLowered = inputText.toLowerCase();
     if (!inputText) {
       onResults([]);
       return;
     }
 
-    const url = getURLFromInput(inputText);
-    if (url) {
-      const typedURLMatch: AutocompleteMatch = {
-        providerName: this.name,
-        relevance: 1300, // High score to appear near top, but below strong nav
-        contents: inputText,
-        description: "Open URL",
-        destinationUrl: url,
-        type: "url-what-you-typed", // Special type for clarity, often treated as search
-        isDefault: true // Usually the fallback default action
-      };
-      onResults([typedURLMatch], true); // Send typed URL immediately
+    const terms = input.terms.length > 0 ? input.terms : tokenizeInput(inputText);
+
+    // --- Synchronous part: what-you-typed match ---
+    if (input.inputType !== InputType.FORCED_QUERY) {
+      const url = getURLFromInput(inputText);
+      if (url) {
+        const typedURLMatch: AutocompleteMatch = {
+          providerName: this.name,
+          relevance: input.inputType === InputType.URL ? 1200 : 1150,
+          contents: inputText,
+          description: "Open URL",
+          destinationUrl: url,
+          type: "url-what-you-typed",
+          isDefault: true,
+          allowedToBeDefault: true,
+          dedupKey: normalizeUrlForDedup(url)
+        };
+        onResults([typedURLMatch], true); // Send immediately, more results coming
+      }
     }
 
-    getHistory().then((history) => {
-      const results: AutocompleteMatch[] = [];
-      for (const entry of history) {
-        const urlLower = entry.url.toLowerCase();
-        const titleLower = entry.title?.toLowerCase() ?? "";
+    // --- Async part: search cached significant history + DB fallback ---
+    this.matchHistory(input, terms, onResults);
+  }
 
-        // Calculate similarity against URL and Title
-        const urlSimilarity = getStringSimilarity(inputTextLowered, urlLower);
-        const titleSimilarity = titleLower ? getStringSimilarity(inputTextLowered, titleLower) : 0;
-        const bestSimilarity = Math.max(urlSimilarity, titleSimilarity);
+  private async matchHistory(
+    input: AutocompleteInput,
+    terms: string[],
+    onResults: OmniboxUpdateCallback
+  ): Promise<void> {
+    await this.ensureCache();
 
-        // Match if similarity is above threshold OR if it's a prefix match (for URL typing)
-        const isPrefixMatch =
-          urlLower.startsWith(inputTextLowered) ||
-          urlLower.startsWith("http://" + inputTextLowered) ||
-          urlLower.startsWith("https://" + inputTextLowered);
+    const results: AutocompleteMatch[] = [];
+    const inputText = input.text;
 
-        if (bestSimilarity > 0 || isPrefixMatch) {
-          // Base score on counts, boost significantly by similarity
-          // Range similar to pedals (1100-1200) + count bonuses
-          // Let's aim for base 900 + similarity * 300 + counts * 10? Capped around 1450?
-          const similarityScore = Math.ceil(900 + bestSimilarity * 300);
-          let relevance = similarityScore + entry.typedCount * 10 + entry.visitCount;
+    // Match against significant history (cached, fast)
+    for (const entry of this.significantHistory) {
+      const urlTokens = tokenize(entry.url);
+      const titleTokens = tokenize(entry.title);
+      const allTokens = [...urlTokens, ...titleTokens];
 
-          // Boost exact matches significantly for inline autocompletion
-          if (
-            urlLower === inputTextLowered ||
-            urlLower === "http://" + inputTextLowered ||
-            urlLower === "https://" + inputTextLowered
-          ) {
-            relevance = Math.max(relevance + 200, 1400); // Ensure high score for exact match
-          } else if (isPrefixMatch) {
-            // Give prefix matches a smaller boost
-            relevance = Math.max(relevance + 50, similarityScore + 50);
-          }
+      if (!allTermsMatch(terms, allTokens)) continue;
 
-          relevance = Math.min(relevance, 1450); // Cap general suggestions
+      // Score the match
+      const matchQuality = scoreMatchQuality(terms, entry.url, entry.title);
+      const frecency = calculateFrecency(entry.visitCount, entry.typedCount, entry.lastVisitTime, entry.lastVisitType);
+
+      // Compute relevance within the history-url range (900-1400)
+      const frecencyNorm = Math.min(Math.log1p(frecency) / Math.log1p(20), 1);
+      const inputLen = Math.min(Math.max(inputText.length, 1), 30);
+      const frecencyWeight = Math.max(0.3, 0.7 - inputLen * 0.02);
+      const matchWeight = 1.0 - frecencyWeight;
+      const combined = frecencyNorm * frecencyWeight + matchQuality * matchWeight;
+      let relevance = Math.round(900 + combined * 500);
+
+      // Bonus for typed URLs
+      if (entry.typedCount > 0) relevance += 20;
+
+      // Cap within range
+      relevance = Math.min(relevance, 1400);
+
+      const inlineCompletion = getInlineCompletion(inputText, entry.url);
+
+      results.push({
+        providerName: this.name,
+        relevance,
+        contents: entry.url,
+        description: entry.title,
+        destinationUrl: entry.url,
+        type: "history-url",
+        inlineCompletion,
+        isDefault: relevance > 1300,
+        allowedToBeDefault: relevance > 1200,
+        dedupKey: normalizeUrlForDedup(entry.url),
+        scoringSignals: {
+          typedCount: entry.typedCount,
+          visitCount: entry.visitCount,
+          elapsedTimeSinceLastVisit: Date.now() - entry.lastVisitTime,
+          frecency,
+          matchQualityScore: matchQuality,
+          hostMatchAtWordBoundary: matchQuality >= 0.4,
+          hasNonSchemeWwwMatch: matchQuality > 0,
+          isHostOnly: false,
+          isBookmarked: false,
+          hasOpenTabMatch: false,
+          urlLength: entry.url.length
+        }
+      });
+    }
+
+    // Sort by relevance and take top results
+    results.sort((a, b) => b.relevance - a.relevance);
+
+    // If we got few results from cache, also search the DB
+    if (results.length < 5 && inputText.length >= 2) {
+      try {
+        const dbResults = await searchHistory(inputText, 20);
+        for (const entry of dbResults) {
+          // Skip if already in results (by URL)
+          if (results.some((r) => r.destinationUrl === entry.url)) continue;
+
+          const urlTokens = tokenize(entry.url);
+          const titleTokens = tokenize(entry.title);
+          const allTokens = [...urlTokens, ...titleTokens];
+
+          if (!allTermsMatch(terms, allTokens)) continue;
+
+          const matchQuality = scoreMatchQuality(terms, entry.url, entry.title);
+          const frecency = calculateFrecency(
+            entry.visitCount,
+            entry.typedCount,
+            entry.lastVisitTime,
+            entry.lastVisitType
+          );
+
+          const frecencyNorm = Math.min(Math.log1p(frecency) / Math.log1p(20), 1);
+          const combined = frecencyNorm * 0.5 + matchQuality * 0.5;
+          const relevance = Math.min(Math.round(900 + combined * 400), 1300);
 
           results.push({
             providerName: this.name,
-            relevance: relevance,
-            contents: entry.url, // Display URL
-            description: entry.title, // Display title
+            relevance,
+            contents: entry.url,
+            description: entry.title,
             destinationUrl: entry.url,
             type: "history-url",
-            // Offer inline completion for strong prefix matches based on URL
-            inlineCompletion: isPrefixMatch && entry.url.length > inputText.length ? entry.url : undefined,
-            isDefault: relevance > 1400 // Good candidate for default if score is very high
+            inlineCompletion: getInlineCompletion(inputText, entry.url),
+            dedupKey: normalizeUrlForDedup(entry.url),
+            scoringSignals: {
+              typedCount: entry.typedCount,
+              visitCount: entry.visitCount,
+              elapsedTimeSinceLastVisit: Date.now() - entry.lastVisitTime,
+              frecency,
+              matchQualityScore: matchQuality,
+              hostMatchAtWordBoundary: false,
+              hasNonSchemeWwwMatch: matchQuality > 0,
+              isHostOnly: false,
+              isBookmarked: false,
+              hasOpenTabMatch: false,
+              urlLength: entry.url.length
+            }
           });
         }
-      }
 
-      // Sort locally by relevance before sending back (providers might do this)
-      results.sort((a, b) => b.relevance - a.relevance);
-      onResults(results);
-    });
+        results.sort((a, b) => b.relevance - a.relevance);
+      } catch {
+        // DB search failed, continue with cached results
+      }
+    }
+
+    onResults(results.slice(0, 5));
   }
 
   stop(): void {
