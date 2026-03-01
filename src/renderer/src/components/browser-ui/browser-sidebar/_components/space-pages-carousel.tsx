@@ -21,37 +21,12 @@ interface SpaceContentPageProps {
 
 const SpaceContentPage = memo(function SpaceContentPage({ space, moveTab }: SpaceContentPageProps) {
   const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabsGroups();
-  const { getPinnedTabs, unpinToTabList } = usePinnedTabs();
+  const { unpinToTabList } = usePinnedTabs();
   const isSpaceLight = useMemo(() => hex_is_light(space.bgStartColor || "#000000"), [space.bgStartColor]);
 
-  // Build a set of browser tab IDs that are currently associated with pinned tabs.
-  // These tabs are shown in the pin grid, so they should be hidden from the tab list.
-  const pinnedAssociatedTabIds = useMemo(() => {
-    const pinnedTabs = getPinnedTabs(space.profileId);
-    const ids = new Set<number>();
-    for (const pt of pinnedTabs) {
-      if (pt.associatedTabId !== null) {
-        ids.add(pt.associatedTabId);
-      }
-    }
-    return ids;
-  }, [space.profileId, getPinnedTabs]);
-
-  const sortedTabGroups = useMemo(() => {
-    const groups = getTabGroups(space.id);
-    if (pinnedAssociatedTabIds.size === 0) return groups;
-
-    // Filter out tabs that are associated with pinned tabs.
-    // If all tabs in a group are filtered, remove the entire group.
-    return groups
-      .map((group) => {
-        const filteredTabs = group.tabs.filter((tab) => !pinnedAssociatedTabIds.has(tab.id));
-        if (filteredTabs.length === group.tabs.length) return group;
-        if (filteredTabs.length === 0) return null;
-        return { ...group, tabs: filteredTabs };
-      })
-      .filter((group): group is NonNullable<typeof group> => group !== null);
-  }, [space.id, getTabGroups, pinnedAssociatedTabIds]);
+  // Ephemeral tabs (pinned-tab-associated) are already filtered out by the
+  // tabs provider, so getTabGroups returns only visible tab groups.
+  const sortedTabGroups = useMemo(() => getTabGroups(space.id), [space.id, getTabGroups]);
   const activeTabGroup = useMemo(() => getActiveTabGroup(space.id), [getActiveTabGroup, space.id]);
   const focusedTab = useMemo(() => getFocusedTab(space.id), [getFocusedTab, space.id]);
 

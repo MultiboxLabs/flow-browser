@@ -222,6 +222,9 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
 
       for (const tab of tabsData.tabs) {
         if (tabsWithGroups.has(tab.id)) continue;
+        // Ephemeral tabs (e.g. pinned-tab-associated) are included in tabById
+        // for focusedTab resolution but should not appear in the sidebar tab list.
+        if (tab.ephemeral) continue;
         allTabGroupDatas.push({
           // Synthetic group ID — uses string format to avoid collision with real group IDs
           id: `s-${tab.uniqueId}`,
@@ -356,21 +359,11 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
   }, [getFocusedTab, currentSpace]);
 
   const addressUrl = useMemo(() => {
-    let currentURL: string;
+    if (!focusedTab) return "";
 
-    if (focusedTab) {
-      currentURL = focusedTab.url;
-    } else if (currentSpace && tabsData?.focusedTabUrls[currentSpace.id]) {
-      // Focused tab is ephemeral (not in tabsData.tabs) — use the URL
-      // sent by the main process which includes all tabs.
-      currentURL = tabsData.focusedTabUrls[currentSpace.id];
-    } else {
-      return "";
-    }
-
-    const transformedUrl = transformUrl(currentURL);
+    const transformedUrl = transformUrl(focusedTab.url);
     if (transformedUrl === null) {
-      return currentURL;
+      return focusedTab.url;
     } else {
       if (transformedUrl) {
         return transformedUrl;
@@ -378,7 +371,7 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
         return "";
       }
     }
-  }, [focusedTab, currentSpace, tabsData]);
+  }, [focusedTab]);
 
   const groupsContextValue = useMemo(
     () => ({
@@ -404,10 +397,8 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
   // tabsData.tabs / tabById — but its numeric ID is still valid and
   // needed by the pin grid to detect active state.
   const focusedTabId = (currentSpace && tabsData?.focusedTabIds[currentSpace.id]) ?? null;
-  const isFocusedTabLoading =
-    focusedTab?.isLoading ?? (currentSpace && tabsData?.focusedTabLoadingStates[currentSpace.id]) ?? false;
-  const isFocusedTabFullscreen =
-    focusedTab?.fullScreen ?? (currentSpace && tabsData?.focusedTabFullscreenStates[currentSpace.id]) ?? false;
+  const isFocusedTabLoading = focusedTab?.isLoading ?? false;
+  const isFocusedTabFullscreen = focusedTab?.fullScreen ?? false;
 
   const contextValue = useMemo(
     () => ({

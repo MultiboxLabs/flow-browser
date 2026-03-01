@@ -142,7 +142,8 @@ export function serializeTabForRenderer(tab: Tab, preSleepState?: PreSleepState 
     audible: tab.audible,
     fullScreen: tab.fullScreen,
     isPictureInPicture: tab.isPictureInPicture,
-    asleep: tab.asleep
+    asleep: tab.asleep,
+    ephemeral: tab.ephemeral || undefined
   };
 }
 
