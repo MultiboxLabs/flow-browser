@@ -312,12 +312,12 @@ export function OmniboxMain() {
                         >
                           {match.contents}
                         </span>
-                        {match.type === "history-url" && (
+                        {match.type === "history-url" && match.description && (
                           <span
                             className="text-xs text-black/50 dark:text-white/50 truncate block"
                             style={{ maxWidth: "100%" }}
                           >
-                            {match.destinationUrl}
+                            {match.description}
                           </span>
                         )}
                       </div>
