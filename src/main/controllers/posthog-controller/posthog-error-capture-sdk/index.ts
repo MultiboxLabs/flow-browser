@@ -14,6 +14,7 @@ export default class ErrorTracking {
   private _exceptionAutocaptureEnabled: boolean;
 
   private fallbackDistinctId?: string;
+  private readonly additionalExceptionProperties?: Record<string, unknown>;
 
   static stackParser: StackParser;
   static frameModifiers: StackFrameModifierFn[];
@@ -45,10 +46,17 @@ export default class ErrorTracking {
     });
   }
 
-  constructor(client: PostHog, options: PostHogOptions & { fallbackDistinctId?: string }) {
+  constructor(
+    client: PostHog,
+    options: PostHogOptions & {
+      fallbackDistinctId?: string;
+      additionalExceptionProperties?: Record<string, unknown>;
+    }
+  ) {
     this.client = client;
     this._exceptionAutocaptureEnabled = options.enableExceptionAutocapture || false;
     this.fallbackDistinctId = options.fallbackDistinctId;
+    this.additionalExceptionProperties = options.additionalExceptionProperties;
 
     this.startAutocaptureIfEnabled();
   }
@@ -61,7 +69,13 @@ export default class ErrorTracking {
   }
 
   private onException(exception: unknown, hint: EventHint): void {
-    ErrorTracking.captureException(this.client, exception, hint, this.fallbackDistinctId);
+    ErrorTracking.captureException(
+      this.client,
+      exception,
+      hint,
+      this.fallbackDistinctId,
+      this.additionalExceptionProperties
+    );
   }
 
   private async onFatalError(): Promise<void> {

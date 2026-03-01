@@ -4,12 +4,84 @@ import ErrorTracking from "./posthog-error-capture-sdk";
 import { app } from "electron";
 import { PostHog } from "posthog-node";
 import { _getPosthogIdentifier } from "./identify";
+import { release } from "os";
+import { randomUUID } from "crypto";
+
+const SENSITIVE_PROPERTY_PATTERNS = [
+  /url/i,
+  /uri/i,
+  /history/i,
+  /tab/i,
+  /title/i,
+  /search/i,
+  /query/i,
+  /cookie/i,
+  /session/i,
+  /storage/i,
+  /password/i,
+  /token/i,
+  /auth/i,
+  /header/i,
+  /content/i,
+  /body/i,
+  /payload/i,
+  /html/i
+];
+
+const URL_REDACTION_PATTERN = /https?:\/\/\S+/gi;
+
+function isSensitivePropertyKey(key: string): boolean {
+  return SENSITIVE_PROPERTY_PATTERNS.some((pattern) => pattern.test(key));
+}
+
+function sanitizePropertyValue(value: unknown): unknown {
+  if (typeof value === "string") {
+    return value.replace(URL_REDACTION_PATTERN, "[REDACTED_URL]").slice(0, 400);
+  }
+
+  if (typeof value === "number" || typeof value === "boolean" || value === null) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return `[REDACTED_ARRAY:${value.length}]`;
+  }
+
+  if (typeof value === "object") {
+    return "[REDACTED_OBJECT]";
+  }
+
+  return "[REDACTED_VALUE]";
+}
+
+function sanitizeProperties(properties?: Record<string, unknown>): Record<string, unknown> {
+  if (!properties) {
+    return {};
+  }
+
+  const sanitized: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(properties)) {
+    if (isSensitivePropertyKey(key)) {
+      continue;
+    }
+
+    sanitized[key] = sanitizePropertyValue(value);
+  }
+
+  return sanitized;
+}
 
 class PosthogController {
   /**
    * The PostHog client.
    */
   private client: PostHog;
+
+  /**
+   * Stable PostHog session id for this app process lifetime.
+   */
+  private readonly sessionId: string = randomUUID();
 
   /**
    * Whether the PostHog identifier is ready.
@@ -41,7 +113,12 @@ class PosthogController {
       // Auto capture exceptions
       new ErrorTracking(this.client, {
         fallbackDistinctId: identifier,
-        enableExceptionAutocapture: true
+        enableExceptionAutocapture: true,
+        additionalExceptionProperties: {
+          ...this.getAppInfoForPosthog(),
+          $session_id: this.sessionId,
+          privacy_mode: "minimal"
+        }
       });
     });
 
@@ -69,11 +146,16 @@ class PosthogController {
    */
   public async captureEvent(event: string, properties?: Record<string, unknown>): Promise<void> {
     const identifier = await this.getPosthogIdentifier();
+    const appInfo = this.getAppInfoForPosthog();
+
     this.client.capture({
       distinctId: identifier,
       event,
       properties: {
-        ...properties
+        ...appInfo,
+        ...sanitizeProperties(properties),
+        $session_id: this.sessionId,
+        privacy_mode: "minimal"
       }
     });
   }
@@ -85,8 +167,13 @@ class PosthogController {
    */
   public async captureException(error: string, properties?: Record<string, unknown>): Promise<void> {
     const identifier = await this.getPosthogIdentifier();
+    const appInfo = this.getAppInfoForPosthog();
+
     this.client.captureException(error, identifier, {
-      ...properties
+      ...appInfo,
+      ...sanitizeProperties(properties),
+      $session_id: this.sessionId,
+      privacy_mode: "minimal"
     });
   }
 
@@ -96,8 +183,17 @@ class PosthogController {
    */
   private getAppInfoForPosthog() {
     return {
-      version: app.getVersion(),
+      app_version: app.getVersion(),
+      app_name: app.getName(),
+      app_packaged: app.isPackaged,
       platform: process.platform,
+      platform_version: release(),
+      arch: process.arch,
+      node_version: process.versions.node,
+      electron_version: process.versions.electron,
+      chrome_version: process.versions.chrome,
+      v8_version: process.versions.v8,
+      locale: app.getLocale(),
       environment: process.env.NODE_ENV
     };
   }
