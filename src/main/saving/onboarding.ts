@@ -17,15 +17,19 @@ let onboardingCompleted: boolean | null = null;
 export async function hasCompletedOnboarding() {
   if (onboardingCompleted) return true;
 
+  let grabbedOnboardingData: boolean = false;
   const onboardingData = await Promise.race([
     SettingsDataStore.get<string>(ONBOARDING_KEY),
     new Promise<undefined>((resolve) => {
       setTimeout(() => {
-        debugPrint("INITIALIZATION", "hasCompletedOnboarding() timed out after", ONBOARDING_CHECK_TIMEOUT_MS, "ms");
+        if (!grabbedOnboardingData) {
+          debugPrint("INITIALIZATION", "hasCompletedOnboarding() timed out after", ONBOARDING_CHECK_TIMEOUT_MS, "ms");
+        }
         resolve(undefined);
       }, ONBOARDING_CHECK_TIMEOUT_MS);
     })
   ]);
+  grabbedOnboardingData = true;
 
   const completed = onboardingData === ONBOARDING_VERSION;
   if (completed) onboardingCompleted = true;
