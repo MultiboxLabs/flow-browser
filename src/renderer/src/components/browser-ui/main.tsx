@@ -14,7 +14,7 @@ import { SettingsProvider } from "@/components/providers/settings-provider";
 import { ResizableHandle, ResizablePanel } from "@/components/ui/resizable";
 import { ResizablePanelGroupWithProvider } from "@/components/ui/resizable-extras";
 import { UpdateEffect } from "@/components/browser-ui/update-effect";
-import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
+import { AppUpdatesProvider, useAppUpdates } from "@/components/providers/app-updates-provider";
 import {
   TabsProvider,
   useFocusedTab,
@@ -219,6 +219,12 @@ function FullscreenGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+const ConditionalUpdateEffect = memo(function ConditionalUpdateEffect() {
+  const { hasUpdated } = useAppUpdates();
+  if (!hasUpdated) return null;
+  return <UpdateEffect />;
+});
+
 function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserUIType }) {
   // NOTE: No useTabs() here! Tab-dependent logic is isolated in the
   // components above to prevent the entire layout from rerendering.
@@ -293,9 +299,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
               </div>
             </ResizablePanelGroupWithProvider>
 
-            {/* TODO: Implement update effect */}
-            {/* eslint-disable-next-line no-constant-binary-expression */}
-            {false && <UpdateEffect />}
+            <ConditionalUpdateEffect />
           </div>
         </ActionsProvider>
       </MinimalToastProvider>
