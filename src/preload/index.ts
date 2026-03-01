@@ -804,6 +804,9 @@ const updatesAPI: FlowUpdatesAPI = {
   },
   installUpdate: async () => {
     return ipcRenderer.invoke("updates:install-update");
+  },
+  hasUpdated: async () => {
+    return ipcRenderer.invoke("updates:has-updated");
   }
 };
 
