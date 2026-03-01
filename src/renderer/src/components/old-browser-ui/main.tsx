@@ -17,7 +17,6 @@ import { AppUpdatesProvider } from "@/components/providers/app-updates-provider"
 import { ActionsProvider } from "@/components/providers/actions-provider";
 import { SidebarAddressBar } from "@/components/old-browser-ui/sidebar/header/address-bar/address-bar";
 
-export type CollapseMode = "icon" | "offcanvas";
 export type SidebarVariant = "sidebar" | "floating";
 export type SidebarSide = "left" | "right";
 
@@ -32,8 +31,6 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
   const [isHoveringSidebar, setIsHoveringSidebar] = useState(false);
 
   const side: SidebarSide = getSetting<SidebarSide>("sidebarSide") ?? "left";
-
-  const sidebarCollapseMode = getSetting<CollapseMode>("sidebarCollapseMode");
 
   const dynamicTitle: string | null = useMemo(() => {
     if (!focusedTab) return null;
@@ -65,13 +62,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
   }
 
   const sidebar = (
-    <BrowserSidebar
-      collapseMode={sidebarCollapseMode}
-      variant={variant}
-      side={side}
-      setIsHoveringSidebar={setIsHoveringSidebar}
-      setVariant={setVariant}
-    />
+    <BrowserSidebar variant={variant} side={side} setIsHoveringSidebar={setIsHoveringSidebar} setVariant={setVariant} />
   );
 
   const hasSidebar = type === "main";
@@ -87,10 +78,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
           <div
             className={cn(
               "dark flex-1 flex p-2 app-drag",
-              (open || (!open && sidebarCollapseMode === "icon")) &&
-                hasSidebar &&
-                variant === "sidebar" &&
-                (side === "left" ? "pl-0.5" : "pr-0.5"),
+              open && hasSidebar && variant === "sidebar" && (side === "left" ? "pl-0.5" : "pr-0.5"),
               type === "popup" && "pt-[calc(env(titlebar-area-y)+env(titlebar-area-height))]"
             )}
           >
@@ -126,7 +114,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: WindowTy
             <SidebarHoverDetector
               side={side}
               started={() => {
-                if (!open && variant === "sidebar" && sidebarCollapseMode === "offcanvas") {
+                if (!open && variant === "sidebar") {
                   setIsHoveringSidebar(true);
                   setVariant("floating");
                   setOpen(true);
