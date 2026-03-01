@@ -404,8 +404,10 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
   // tabsData.tabs / tabById — but its numeric ID is still valid and
   // needed by the pin grid to detect active state.
   const focusedTabId = (currentSpace && tabsData?.focusedTabIds[currentSpace.id]) ?? null;
-  const isFocusedTabLoading = focusedTab?.isLoading ?? false;
-  const isFocusedTabFullscreen = focusedTab?.fullScreen ?? false;
+  const isFocusedTabLoading =
+    focusedTab?.isLoading ?? (currentSpace && tabsData?.focusedTabLoadingStates[currentSpace.id]) ?? false;
+  const isFocusedTabFullscreen =
+    focusedTab?.fullScreen ?? (currentSpace && tabsData?.focusedTabFullscreenStates[currentSpace.id]) ?? false;
 
   const contextValue = useMemo(
     () => ({
