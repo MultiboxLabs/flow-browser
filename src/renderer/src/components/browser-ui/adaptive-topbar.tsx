@@ -1,4 +1,5 @@
 import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
+import { WindowControlsLinux } from "@/components/browser-ui/window-controls/linux";
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
 import { usePlatform } from "@/components/main/platform";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
@@ -32,7 +33,7 @@ export function AdaptiveTopbarProvider({ children }: AdaptiveTopbarProviderProps
   const { attachedDirection } = useBrowserSidebar();
 
   const topbarHeight = useMemo<number>(() => {
-    if (platform === "win32") {
+    if (platform === "win32" || platform === "linux") {
       return 30;
     }
 
@@ -82,12 +83,20 @@ export function AdaptiveTopbarProvider({ children }: AdaptiveTopbarProviderProps
 // Component //
 export function AdaptiveTopbar() {
   const { topbarHeight, topbarVisible, isFullscreen } = useAdaptiveTopbar();
+  const { platform } = usePlatform();
   if (!topbarVisible) return null;
   if (isFullscreen) return null;
   return (
-    <div className="w-full flex flex-row items-center" style={{ height: `${topbarHeight}px` }}>
+    <div className="w-full flex flex-row items-center app-drag" style={{ height: `${topbarHeight}px` }}>
       <div className="w-3" />
-      <SidebarWindowControlsMacOS />
+      {platform === "darwin" && <SidebarWindowControlsMacOS />}
+      {platform === "linux" && (
+        <>
+          <div className="flex-1" />
+          <WindowControlsLinux />
+          <div className="w-1" />
+        </>
+      )}
     </div>
   );
 }
