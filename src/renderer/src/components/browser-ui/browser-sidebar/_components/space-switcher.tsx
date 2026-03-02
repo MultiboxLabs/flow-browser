@@ -71,6 +71,18 @@ function SpaceButton({ space, isActive, compact }: SpaceButtonProps) {
 
     function handleDrop(sourceData: TabGroupSourceData) {
       stopDragging();
+
+      // Validate profile compatibility (needed for external drops where canDrop can't read data)
+      if (sourceData.profileId !== space.profileId) {
+        // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
+        return;
+      }
+
+      // Don't allow dropping on the space the tab is already in
+      if (sourceData.spaceId === space.id) {
+        return;
+      }
+
       // Move the tab to this space (no specific position — append to end)
       const sourceTabId = sourceData.primaryTabId;
       flow.tabs.moveTabToWindowSpace(sourceTabId, space.id);
