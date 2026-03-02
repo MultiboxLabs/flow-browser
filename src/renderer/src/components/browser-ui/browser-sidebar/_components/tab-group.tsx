@@ -9,8 +9,17 @@ import {
   dropTargetForElements,
   ElementDropTargetEventBasePayload
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import {
+  dropTargetForExternal,
+  ExternalDropTargetEventBasePayload
+} from "@atlaskit/pragmatic-drag-and-drop/external/adapter";
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { attachClosestEdge, extractClosestEdge, Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import type { Input } from "@atlaskit/pragmatic-drag-and-drop/types";
 import { DropIndicator } from "@/components/browser-ui/browser-sidebar/_components/drop-indicator";
+
+// MIME type for cross-window tab drag data
+const TAB_GROUP_MIME_TYPE = "application/x-flow-tab-group";
 
 // --- Types --- //
 
@@ -207,11 +216,14 @@ export const TabGroup = memo(
         setClosestEdge(edge);
       }
 
-      function onDrop(args: ElementDropTargetEventBasePayload) {
-        const closestEdgeOfTarget: Edge | null = extractClosestEdge(args.self.data);
+      function onExternalChange({ self }: ExternalDropTargetEventBasePayload) {
+        const edge = extractClosestEdge(self.data);
+        setClosestEdge(edge);
+      }
+
+      function handleDrop(sourceData: TabGroupSourceData, closestEdgeOfTarget: Edge | null) {
         setClosestEdge(null);
 
-        const sourceData = args.source.data as TabGroupSourceData;
         const sourceTabId = sourceData.primaryTabId;
 
         let newPos: number | undefined = undefined;
@@ -233,56 +245,98 @@ export const TabGroup = memo(
         }
       }
 
-      const draggableCleanup = draggable({
-        element: el,
-        getInitialData: () => {
-          const data: TabGroupSourceData = {
-            type: "tab-group",
-            tabGroupId: tabGroup.id,
-            primaryTabId: primaryTabId,
-            profileId: tabGroup.profileId,
-            spaceId: tabGroup.spaceId,
-            position: position
-          };
-          return data;
+      function onDrop(args: ElementDropTargetEventBasePayload) {
+        const closestEdgeOfTarget: Edge | null = extractClosestEdge(args.self.data);
+        const sourceData = args.source.data as TabGroupSourceData;
+        handleDrop(sourceData, closestEdgeOfTarget);
+      }
+
+      function onExternalDrop(args: ExternalDropTargetEventBasePayload) {
+        const closestEdgeOfTarget: Edge | null = extractClosestEdge(args.self.data);
+        setClosestEdge(null);
+
+        const raw = args.source.getStringData(TAB_GROUP_MIME_TYPE);
+        if (!raw) return;
+
+        try {
+          const sourceData = JSON.parse(raw) as TabGroupSourceData;
+          handleDrop(sourceData, closestEdgeOfTarget);
+        } catch {
+          // Invalid data from external source
         }
-      });
+      }
 
-      const cleanupDropTarget = dropTargetForElements({
-        element: el,
-        getData: ({ input, element }) => {
-          return attachClosestEdge(
-            {},
-            {
-              input,
-              element,
-              allowedEdges: ["top", "bottom"]
+      const edgeData = ({ input, element }: { input: Input; element: Element }) =>
+        attachClosestEdge(
+          {},
+          {
+            input,
+            element,
+            allowedEdges: ["top", "bottom"]
+          }
+        );
+
+      return combine(
+        draggable({
+          element: el,
+          getInitialData: () => {
+            const data: TabGroupSourceData = {
+              type: "tab-group",
+              tabGroupId: tabGroup.id,
+              primaryTabId: primaryTabId,
+              profileId: tabGroup.profileId,
+              spaceId: tabGroup.spaceId,
+              position: position
+            };
+            return data;
+          },
+          getInitialDataForExternal: () => {
+            const data: TabGroupSourceData = {
+              type: "tab-group",
+              tabGroupId: tabGroup.id,
+              primaryTabId: primaryTabId,
+              profileId: tabGroup.profileId,
+              spaceId: tabGroup.spaceId,
+              position: position
+            };
+            return { [TAB_GROUP_MIME_TYPE]: JSON.stringify(data) };
+          }
+        }),
+
+        dropTargetForElements({
+          element: el,
+          getData: ({ input, element }) => edgeData({ input, element }),
+          canDrop: (args) => {
+            const sourceData = args.source.data as TabGroupSourceData;
+            if (sourceData.type !== "tab-group") {
+              return false;
             }
-          );
-        },
-        canDrop: (args) => {
-          const sourceData = args.source.data as TabGroupSourceData;
-          if (sourceData.type !== "tab-group") {
-            return false;
-          }
-          if (sourceData.tabGroupId === tabGroup.id) {
-            return false;
-          }
-          if (sourceData.profileId !== tabGroup.profileId) {
-            return false;
-          }
-          return true;
-        },
-        onDrop: onDrop,
-        onDragEnter: onChange,
-        onDrag: onChange,
-        onDragLeave: () => setClosestEdge(null)
-      });
+            if (sourceData.tabGroupId === tabGroup.id) {
+              return false;
+            }
+            if (sourceData.profileId !== tabGroup.profileId) {
+              return false;
+            }
+            return true;
+          },
+          onDrop: onDrop,
+          onDragEnter: onChange,
+          onDrag: onChange,
+          onDragLeave: () => setClosestEdge(null)
+        }),
 
-      return () => {
-        draggableCleanup();
-        cleanupDropTarget();
-      };
+        dropTargetForExternal({
+          element: el,
+          getData: ({ input, element }) => edgeData({ input, element }),
+          canDrop: (args) => {
+            return args.source.types.includes(TAB_GROUP_MIME_TYPE);
+          },
+          onDrop: onExternalDrop,
+          onDragEnter: onExternalChange,
+          onDrag: onExternalChange,
+          onDragLeave: () => setClosestEdge(null)
+        })
+      );
     }, [moveTab, tabGroup.id, position, primaryTabId, tabGroup.spaceId, tabGroup.profileId]);
 
     return (
