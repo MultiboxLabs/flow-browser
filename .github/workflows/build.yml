@@ -1,7 +1,6 @@
 name: Build App
 
-permissions:
-  pull-requests: write
+permissions: {}
 
 on:
   # Allows you to run this workflow manually from the Actions tab
@@ -21,6 +20,8 @@ jobs:
   # Cannot find a way to do this yet without compromising security
   before-build-comment:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     if: github.event_name == 'pull_request'
     steps:
       - name: Comment PR with build status
@@ -115,6 +116,8 @@ jobs:
   after-build-comment:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     if: github.event_name == 'pull_request'
     steps:
       - name: Comment PR with artifact links
