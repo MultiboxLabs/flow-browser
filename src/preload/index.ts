@@ -858,7 +858,14 @@ const flowAPI: typeof flow = {
   navigation: wrapAPI(navigationAPI, "browser"),
   interface: wrapAPI(interfaceAPI, "browser", {
     moveWindowTo: "all",
-    resizeWindowTo: "all"
+    resizeWindowTo: "all",
+    // Window control methods are generic operations needed by any
+    // frameless window (e.g. settings on Linux), not just browser UI.
+    minimizeWindow: "all",
+    maximizeWindow: "all",
+    closeWindow: "all",
+    getWindowState: "all",
+    onWindowStateChanged: "all"
   }),
   omnibox: wrapAPI(omniboxAPI, "browser"),
   newTab: wrapAPI(newTabAPI, "browser"),
