@@ -1,0 +1,67 @@
+id: dev.iamevan.flow
+runtime: org.freedesktop.Platform
+runtime-version: "24.08"
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: "24.08"
+
+command: run.sh
+
+separate-locales: false
+
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=dri
+  - --filesystem=home
+  - --env=XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --talk-name=org.freedesktop.portal.Desktop
+  - --talk-name=org.freedesktop.portal.Settings
+  - --talk-name=org.freedesktop.portal.Notification
+  - --talk-name=org.freedesktop.portal.OpenURI
+  - --talk-name=org.freedesktop.portal.ScreenCast
+  - --talk-name=org.freedesktop.secrets
+  - --talk-name=org.freedesktop.portal.Inhibit
+  - --own-name=org.mpris.MediaPlayer2.flow
+
+modules:
+  - name: flow-browser
+    buildsystem: simple
+    build-commands:
+      - ar x flow-browser.deb
+      - tar xf data.tar.*
+      - mkdir -p /app/flow-browser
+      - cp -r opt/Flow/* /app/flow-browser/
+      - install -Dm755 run.sh /app/bin/run.sh
+      - install -Dm644 dev.iamevan.flow.desktop /app/share/applications/dev.iamevan.flow.desktop
+      - install -Dm644 dev.iamevan.flow.png /app/share/icons/hicolor/512x512/apps/dev.iamevan.flow.png
+      - install -Dm644 dev.iamevan.flow.metainfo.xml /app/share/metainfo/dev.iamevan.flow.metainfo.xml
+    sources:
+      - type: file
+        dest-filename: flow-browser.deb
+        url: https://github.com/MultiboxLabs/flow-browser/releases/download/v0.10.1/flow-browser_0.10.1_amd64.deb
+        sha256: 4bfc310d06a939fc80f0bbfbc9b1cd27851a1738d12a7031f263a0355c9f14bd
+        only-arches:
+          - x86_64
+        x-checker-data:
+          type: github
+          repo: MultiboxLabs/flow-browser
+          tag-pattern: ^v([\d.]+)$
+          asset-pattern: flow-browser_[\d.]+_amd64\.deb$
+          is-main-source: true
+      - type: script
+        dest-filename: run.sh
+        commands:
+          - export TMPDIR="$XDG_RUNTIME_DIR/app/$FLATPAK_ID"
+          - exec zypak-wrapper /app/flow-browser/flow-browser --ozone-platform-hint=auto --no-zygote --no-sandbox "$@"
+      - type: file
+        path: dev.iamevan.flow.desktop
+      - type: file
+        path: dev.iamevan.flow.png
+      - type: file
+        path: dev.iamevan.flow.metainfo.xml

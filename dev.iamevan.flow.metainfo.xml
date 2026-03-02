@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.iamevan.flow</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <name>Flow</name>
+  <summary>A modern privacy-focused browser with a minimalistic design</summary>
+
+  <description>
+    <p>
+      Flow is a modern, privacy-focused web browser built on Chromium with a clean,
+      minimalistic design. It aims to provide a fast, secure, and intuitive browsing
+      experience while respecting user privacy.
+    </p>
+    <p>Features include:</p>
+    <ul>
+      <li>Privacy-focused browsing with built-in protections</li>
+      <li>Clean, minimalistic user interface</li>
+      <li>Support for Chrome extensions</li>
+      <li>Multiple profile support</li>
+      <li>Wayland and X11 support</li>
+      <li>PDF viewing</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">dev.iamevan.flow.desktop</launchable>
+
+  <url type="homepage">https://github.com/MultiboxLabs/flow-browser</url>
+  <url type="bugtracker">https://github.com/MultiboxLabs/flow-browser/issues</url>
+  <url type="contact">https://flowbrowser.userjot.com/</url>
+
+  <developer id="dev.iamevan">
+    <name>iamEvan</name>
+  </developer>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Flow Browser main window</caption>
+      <image>https://raw.githubusercontent.com/MultiboxLabs/flow-browser/main/docs/assets/screenshots/beta-browser-1.png</image>
+    </screenshot>
+  </screenshots>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="0.10.1" date="2026-03-01">
+      <description>
+        <p>Latest release of Flow Browser.</p>
+      </description>
+    </release>
+  </releases>
+
+  <categories>
+    <category>Network</category>
+    <category>WebBrowser</category>
+  </categories>
+
+  <provides>
+    <binary>flow-browser</binary>
+  </provides>
+</component>
