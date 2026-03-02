@@ -12,6 +12,7 @@ import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 
 // MIME type for cross-window tab drag data
 const TAB_GROUP_MIME_TYPE = "application/x-flow-tab-group";
+const TAB_GROUP_PROFILE_MIME_PREFIX = "application/x-flow-tab-group-profile-";
 
 type SpaceButtonProps = {
   space: Space;
@@ -67,7 +68,7 @@ function SpaceButton({ space, isActive }: SpaceButtonProps) {
     function handleDrop(sourceData: TabGroupSourceData) {
       stopDragging();
 
-      // Validate profile compatibility (needed for external drops where canDrop can't read data)
+      // Validate profile compatibility
       if (sourceData.profileId !== space.profileId) {
         // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
         return;
@@ -90,11 +91,8 @@ function SpaceButton({ space, isActive }: SpaceButtonProps) {
           const sourceData = args.source.data as TabGroupSourceData;
           if (sourceData.type !== "tab-group") return false;
 
-          const sourceProfileId = sourceData.profileId;
-          const targetProfileId = space.profileId;
-
-          // TODO: @MOVE_TABS_BETWEEN_PROFILES Does not support moving tabs between profiles
-          if (sourceProfileId !== targetProfileId) return false;
+          // Does not support moving tabs between profiles
+          if (sourceData.profileId !== space.profileId) return false;
 
           // Don't allow dropping on the space the tab is already in
           if (sourceData.spaceId === space.id) return false;
@@ -113,7 +111,8 @@ function SpaceButton({ space, isActive }: SpaceButtonProps) {
       dropTargetForExternal({
         element,
         canDrop: (args) => {
-          return args.source.types.includes(TAB_GROUP_MIME_TYPE);
+          // Profile-specific MIME type lets us check compatibility during drag
+          return args.source.types.includes(TAB_GROUP_PROFILE_MIME_PREFIX + space.profileId);
         },
         onDragEnter: startDragging,
         onDrag: startDragging,

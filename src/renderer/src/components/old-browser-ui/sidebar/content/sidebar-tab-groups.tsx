@@ -206,6 +206,7 @@ export type TabGroupSourceData = {
 
 // MIME type for cross-window tab drag data
 const TAB_GROUP_MIME_TYPE = "application/x-flow-tab-group";
+const TAB_GROUP_PROFILE_MIME_PREFIX = "application/x-flow-tab-group-profile-";
 
 export function SidebarTabGroups({
   tabGroup,
@@ -240,7 +241,7 @@ export function SidebarTabGroups({
       setClosestEdge(edge);
     }
 
-    function handleDrop(sourceData: TabGroupSourceData, closestEdgeOfTarget: Edge | null) {
+    function handleDrop(sourceData: TabGroupSourceData, closestEdgeOfTarget: Edge | null, isExternal: boolean) {
       setClosestEdge(null);
 
       const sourceTabId = sourceData.primaryTabId;
@@ -253,7 +254,7 @@ export function SidebarTabGroups({
         newPos = position + 0.5;
       }
 
-      if (sourceData.spaceId !== tabGroup.spaceId) {
+      if (sourceData.spaceId !== tabGroup.spaceId || isExternal) {
         if (sourceData.profileId !== tabGroup.profileId) {
           // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
         } else {
@@ -268,7 +269,7 @@ export function SidebarTabGroups({
     function onDrop(args: ElementDropTargetEventBasePayload) {
       const closestEdgeOfTarget: Edge | null = extractClosestEdge(args.self.data);
       const sourceData = args.source.data as TabGroupSourceData;
-      handleDrop(sourceData, closestEdgeOfTarget);
+      handleDrop(sourceData, closestEdgeOfTarget, false);
     }
 
     function onExternalDrop(args: ExternalDropTargetEventBasePayload) {
@@ -280,7 +281,7 @@ export function SidebarTabGroups({
 
       try {
         const sourceData = JSON.parse(raw) as TabGroupSourceData;
-        handleDrop(sourceData, closestEdgeOfTarget);
+        handleDrop(sourceData, closestEdgeOfTarget, true);
       } catch {
         // Invalid data from external source
       }
@@ -319,7 +320,10 @@ export function SidebarTabGroups({
             spaceId: tabGroup.spaceId,
             position: position
           };
-          return { [TAB_GROUP_MIME_TYPE]: JSON.stringify(data) };
+          return {
+            [TAB_GROUP_MIME_TYPE]: JSON.stringify(data),
+            [TAB_GROUP_PROFILE_MIME_PREFIX + tabGroup.profileId]: ""
+          };
         }
       }),
 
@@ -353,7 +357,7 @@ export function SidebarTabGroups({
         element: el,
         getData: ({ input, element }) => edgeData({ input, element }),
         canDrop: (args) => {
-          return args.source.types.includes(TAB_GROUP_MIME_TYPE);
+          return args.source.types.includes(TAB_GROUP_PROFILE_MIME_PREFIX + tabGroup.profileId);
         },
         onDrop: onExternalDrop,
         onDragEnter: onExternalChange,

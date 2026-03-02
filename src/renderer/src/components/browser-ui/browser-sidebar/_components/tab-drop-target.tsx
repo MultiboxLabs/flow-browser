@@ -14,6 +14,7 @@ import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 
 // MIME type for cross-window tab drag data
 const TAB_GROUP_MIME_TYPE = "application/x-flow-tab-group";
+const TAB_GROUP_PROFILE_MIME_PREFIX = "application/x-flow-tab-group-profile-";
 
 type TabDropTargetProps = {
   spaceData: Space;
@@ -34,13 +35,13 @@ export function TabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex }
     const el = dropTargetRef.current;
     if (!el) return () => {};
 
-    function handleDrop(sourceData: TabGroupSourceData) {
+    function handleDrop(sourceData: TabGroupSourceData, isExternal: boolean) {
       setShowDropIndicator(false);
 
       const sourceTabId = sourceData.primaryTabId;
       const newPos = biggestIndex + 1;
 
-      if (sourceData.spaceId !== spaceData.id) {
+      if (sourceData.spaceId !== spaceData.id || isExternal) {
         if (sourceData.profileId !== spaceData.profileId) {
           // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
         } else {
@@ -53,7 +54,7 @@ export function TabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex }
 
     function onDrop(args: ElementDropTargetEventBasePayload) {
       const sourceData = args.source.data as TabGroupSourceData;
-      handleDrop(sourceData);
+      handleDrop(sourceData, false);
     }
 
     function onExternalDrop(args: ExternalDropTargetEventBasePayload) {
@@ -64,7 +65,7 @@ export function TabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex }
 
       try {
         const sourceData = JSON.parse(raw) as TabGroupSourceData;
-        handleDrop(sourceData);
+        handleDrop(sourceData, true);
       } catch {
         // Invalid data from external source
       }
@@ -97,7 +98,7 @@ export function TabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex }
       dropTargetForExternal({
         element: el,
         canDrop: (args) => {
-          return args.source.types.includes(TAB_GROUP_MIME_TYPE);
+          return args.source.types.includes(TAB_GROUP_PROFILE_MIME_PREFIX + spaceData.profileId);
         },
         onDrop: onExternalDrop,
         onDragEnter: onChange,
