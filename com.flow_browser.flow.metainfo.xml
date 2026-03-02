@@ -37,11 +37,22 @@
   <screenshots>
     <screenshot type="default">
       <caption>Flow Browser main window</caption>
-      <image>https://raw.githubusercontent.com/MultiboxLabs/flow-browser/main/docs/assets/screenshots/beta-browser-1.png</image>
+      <image>https://raw.githubusercontent.com/MultiboxLabs/flow-browser/v0.10.1/docs/assets/screenshots/beta-browser-1.png</image>
     </screenshot>
   </screenshots>
 
   <content_rating type="oars-1.1" />
+
+  <branding>
+    <color type="primary" scheme_preference="light">#f5f5f5</color>
+    <color type="primary" scheme_preference="dark">#1a1a2e</color>
+  </branding>
+
+  <requires>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <display_length compare="ge">768</display_length>
+  </requires>
 
   <releases>
     <release version="0.10.1" date="2026-03-01">
