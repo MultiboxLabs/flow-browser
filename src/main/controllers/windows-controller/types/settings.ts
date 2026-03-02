@@ -15,10 +15,9 @@ export class SettingsWindow extends BaseWindow {
       frame: false,
       roundedCorners: true,
 
-      // On Linux, "hidden" with frame:false activates the Window Controls
-      // Overlay code-path which is unsupported and prevents the window from
-      // rendering (ready-to-show never fires). Match BrowserWindow's pattern
-      // and leave it undefined on Linux.
+      // On Linux, "hidden" combined with frame:false prevents
+      // ready-to-show from firing. Match BrowserWindow's pattern and
+      // leave it undefined on Linux.
       titleBarStyle:
         process.platform === "darwin" ? "hiddenInset" : process.platform === "win32" ? "hidden" : undefined,
       titleBarOverlay: {
