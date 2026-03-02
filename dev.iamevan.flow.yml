@@ -70,7 +70,7 @@ modules:
         dest-filename: run.sh
         commands:
           - export TMPDIR="$XDG_RUNTIME_DIR/app/$FLATPAK_ID"
-          - exec zypak-wrapper /app/flow-browser/flow-browser --ozone-platform-hint=auto --no-zygote "$@"
+          - exec zypak-wrapper /app/flow-browser/flow-browser --ozone-platform-hint=auto "$@"
       - type: file
         path: dev.iamevan.flow.desktop
       - type: file
