@@ -7,6 +7,11 @@ import { SpaceIcon } from "@/lib/phosphor-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { TabGroupSourceData } from "@/components/old-browser-ui/sidebar/content/sidebar-tab-groups";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import { dropTargetForExternal } from "@atlaskit/pragmatic-drag-and-drop/external/adapter";
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
+
+// MIME type for cross-window tab drag data
+const TAB_GROUP_MIME_TYPE = "application/x-flow-tab-group";
 
 type SpaceButtonProps = {
   space: Space;
@@ -48,7 +53,6 @@ function SpaceButton({ space, isActive }: SpaceButtonProps) {
 
       if (!draggingTimeoutRef.current) {
         draggingTimeoutRef.current = setTimeout(() => {
-          console.log("clicked");
           onClickRef.current();
           removeDraggingTimeout();
         }, 100);
@@ -60,35 +64,63 @@ function SpaceButton({ space, isActive }: SpaceButtonProps) {
       removeDraggingTimeout();
     }
 
-    return dropTargetForElements({
-      element,
-      canDrop: (args) => {
-        const sourceData = args.source.data as TabGroupSourceData;
-        if (sourceData.type !== "tab-group") return false;
+    function handleDrop(sourceData: TabGroupSourceData) {
+      stopDragging();
+      // Move the tab to this space (no specific position — append to end)
+      const sourceTabId = sourceData.primaryTabId;
+      flow.tabs.moveTabToWindowSpace(sourceTabId, space.id);
+    }
 
-        const sourceProfileId = sourceData.profileId;
-        const targetProfileId = space.profileId;
+    return combine(
+      dropTargetForElements({
+        element,
+        canDrop: (args) => {
+          const sourceData = args.source.data as TabGroupSourceData;
+          if (sourceData.type !== "tab-group") return false;
 
-        // TODO: @MOVE_TABS_BETWEEN_PROFILES Does not support moving tabs between profiles
-        if (sourceProfileId !== targetProfileId) return false;
+          const sourceProfileId = sourceData.profileId;
+          const targetProfileId = space.profileId;
 
-        // Don't allow dropping on the space the tab is already in
-        if (sourceData.spaceId === space.id) return false;
+          // TODO: @MOVE_TABS_BETWEEN_PROFILES Does not support moving tabs between profiles
+          if (sourceProfileId !== targetProfileId) return false;
 
-        return true;
-      },
-      onDragEnter: startDragging,
-      onDrag: startDragging,
-      onDragLeave: stopDragging,
-      onDrop: (args) => {
-        stopDragging();
+          // Don't allow dropping on the space the tab is already in
+          if (sourceData.spaceId === space.id) return false;
 
-        // Move the tab to this space (no specific position — append to end)
-        const sourceData = args.source.data as TabGroupSourceData;
-        const sourceTabId = sourceData.primaryTabId;
-        flow.tabs.moveTabToWindowSpace(sourceTabId, space.id);
-      }
-    });
+          return true;
+        },
+        onDragEnter: startDragging,
+        onDrag: startDragging,
+        onDragLeave: stopDragging,
+        onDrop: (args) => {
+          const sourceData = args.source.data as TabGroupSourceData;
+          handleDrop(sourceData);
+        }
+      }),
+
+      dropTargetForExternal({
+        element,
+        canDrop: (args) => {
+          return args.source.types.includes(TAB_GROUP_MIME_TYPE);
+        },
+        onDragEnter: startDragging,
+        onDrag: startDragging,
+        onDragLeave: stopDragging,
+        onDrop: (args) => {
+          stopDragging();
+
+          const raw = args.source.getStringData(TAB_GROUP_MIME_TYPE);
+          if (!raw) return;
+
+          try {
+            const sourceData = JSON.parse(raw) as TabGroupSourceData;
+            handleDrop(sourceData);
+          } catch {
+            // Invalid data from external source
+          }
+        }
+      })
+    );
   }, [onClick, removeDraggingTimeout, space.profileId, space.id]);
 
   return (
