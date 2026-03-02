@@ -1,5 +1,6 @@
 import { tabsController } from "@/controllers/tabs-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { hasCompletedOnboarding } from "@/saving/onboarding";
 import { debugPrint } from "@/modules/output";
 
 /**
@@ -8,12 +9,11 @@ import { debugPrint } from "@/modules/output";
  * handler and session-restore independently create a window, resulting in two
  * visible windows.
  *
- * While onboarding is active, all incoming URLs are silently discarded so no
- * browser windows are created alongside the onboarding window.
+ * While onboarding has not been completed, all incoming URLs are silently
+ * discarded so no browser windows are created alongside the onboarding window.
  */
 let pendingStartupUrls: { useNewWindow: boolean; url: string }[] = [];
 let startupComplete = false;
-let onboardingActive = false;
 
 export function isValidOpenerUrl(url: string): boolean {
   const urlObject = URL.parse(url);
@@ -26,7 +26,8 @@ export function isValidOpenerUrl(url: string): boolean {
 }
 
 export async function handleOpenUrl(useNewWindow: boolean, url: string) {
-  if (onboardingActive) {
+  const onboardingCompleted = await hasCompletedOnboarding();
+  if (!onboardingCompleted) {
     debugPrint("INITIALIZATION", "discarded URL during onboarding:", url);
     return;
   }
@@ -73,24 +74,13 @@ export async function flushPendingUrls() {
 }
 
 /**
- * Marks startup as complete, enables onboarding mode, and discards any queued
- * URLs without opening them. All subsequent URLs are also silently dropped
- * until {@link setOnboardingComplete} is called.
+ * Marks startup as complete and discards any queued URLs without opening them.
+ * Used during onboarding where browser windows should not be created.
  */
 export function discardPendingUrls() {
   startupComplete = true;
-  onboardingActive = true;
   pendingStartupUrls = [];
-  debugPrint("INITIALIZATION", "discarded pending URLs (onboarding active)");
-}
-
-/**
- * Clears the onboarding guard so that future open-url / continue-activity
- * events are handled normally again.
- */
-export function setOnboardingComplete() {
-  onboardingActive = false;
-  debugPrint("INITIALIZATION", "onboarding complete, URL handling re-enabled");
+  debugPrint("INITIALIZATION", "discarded pending URLs (onboarding)");
 }
 
 export function processInitialUrl() {

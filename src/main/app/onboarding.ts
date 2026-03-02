@@ -16,8 +16,8 @@ export function runOnboardingOrInitialWindow() {
         onboarding.show();
         debugPrint("INITIALIZATION", "show onboarding window");
         // Discard any URLs queued during startup -- no browser windows should
-        // be created while onboarding is in progress. Mark startup complete so
-        // any subsequent open-url events are handled directly after onboarding.
+        // be created while onboarding is in progress. Any URLs arriving after
+        // this point are also discarded by handleOpenUrl via hasCompletedOnboarding().
         discardPendingUrls();
       } else {
         await createInitialWindow();
