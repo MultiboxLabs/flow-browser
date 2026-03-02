@@ -63,6 +63,16 @@ export async function flushPendingUrls() {
   }
 }
 
+/**
+ * Marks startup as complete and discards any queued URLs without opening them.
+ * Used during onboarding where browser windows should not be created.
+ */
+export function discardPendingUrls() {
+  startupComplete = true;
+  pendingStartupUrls = [];
+  debugPrint("INITIALIZATION", "discarded pending URLs (onboarding)");
+}
+
 export function processInitialUrl() {
   const commandLine = process.argv.slice(1);
   const targetUrl = commandLine.pop();

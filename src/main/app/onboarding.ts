@@ -3,7 +3,7 @@ import { debugPrint } from "@/modules/output";
 import { hasCompletedOnboarding } from "@/saving/onboarding";
 import { onboarding } from "@/controllers/windows-controller/interfaces/onboarding";
 import { restoreSession as createInitialWindow } from "@/saving/tabs/restore";
-import { flushPendingUrls } from "@/app/urls";
+import { flushPendingUrls, discardPendingUrls } from "@/app/urls";
 
 export function runOnboardingOrInitialWindow() {
   debugPrint("INITIALIZATION", "waiting for app.whenReady() before onboarding check");
@@ -15,9 +15,10 @@ export function runOnboardingOrInitialWindow() {
       if (!completed) {
         onboarding.show();
         debugPrint("INITIALIZATION", "show onboarding window");
-        // Mark startup complete so any subsequent open-url events are handled
-        // directly (pending URLs, if any, will create their own browser window).
-        await flushPendingUrls();
+        // Discard any URLs queued during startup -- no browser windows should
+        // be created while onboarding is in progress. Mark startup complete so
+        // any subsequent open-url events are handled directly after onboarding.
+        discardPendingUrls();
       } else {
         await createInitialWindow();
         debugPrint("INITIALIZATION", "show browser window");
@@ -29,7 +30,7 @@ export function runOnboardingOrInitialWindow() {
     } catch (error) {
       debugPrint("INITIALIZATION", "hasCompletedOnboarding() failed, falling back to onboarding:", error);
       onboarding.show();
-      await flushPendingUrls();
+      discardPendingUrls();
     }
   });
 }
