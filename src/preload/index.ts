@@ -763,6 +763,23 @@ const windowsAPI: FlowWindowsAPI = {
   },
   closeSettingsWindow: () => {
     return ipcRenderer.send("settings:close");
+  },
+
+  // Generic window controls (work for any internal window)
+  minimizeCurrentWindow: () => {
+    return ipcRenderer.send("window:minimize");
+  },
+  maximizeCurrentWindow: () => {
+    return ipcRenderer.send("window:maximize");
+  },
+  closeCurrentWindow: () => {
+    return ipcRenderer.send("window:close");
+  },
+  getCurrentWindowState: () => {
+    return ipcRenderer.invoke("window:get-state");
+  },
+  onCurrentWindowStateChanged: (callback: (state: WindowState) => void) => {
+    return listenOnIPCChannel("window:state-changed", callback);
   }
 };
 
