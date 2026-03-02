@@ -87,7 +87,7 @@ export function AdaptiveTopbar() {
   if (!topbarVisible) return null;
   if (isFullscreen) return null;
   return (
-    <div className="w-full flex flex-row items-center app-drag" style={{ height: `${topbarHeight}px` }}>
+    <div className="w-full flex flex-row items-center" style={{ height: `${topbarHeight}px` }}>
       <div className="w-3" />
       {platform === "darwin" && <SidebarWindowControlsMacOS />}
       {platform === "linux" && (
