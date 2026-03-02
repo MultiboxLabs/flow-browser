@@ -55,6 +55,17 @@ modules:
           tag-pattern: ^v([\d.]+)$
           asset-pattern: flow-browser_[\d.]+_amd64\.deb$
           is-main-source: true
+      - type: file
+        dest-filename: flow-browser.deb
+        url: https://github.com/MultiboxLabs/flow-browser/releases/download/v0.10.1/flow-browser_0.10.1_arm64.deb
+        sha256: 123df696008fad71f6747971b03fe829c3b93d17490ebc6475fad351305390fd
+        only-arches:
+          - aarch64
+        x-checker-data:
+          type: github
+          repo: MultiboxLabs/flow-browser
+          tag-pattern: ^v([\d.]+)$
+          asset-pattern: flow-browser_[\d.]+_arm64\.deb$
       - type: script
         dest-filename: run.sh
         commands:
