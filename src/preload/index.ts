@@ -763,6 +763,23 @@ const windowsAPI: FlowWindowsAPI = {
   },
   closeSettingsWindow: () => {
     return ipcRenderer.send("settings:close");
+  },
+
+  // Generic window controls (work for any internal window)
+  minimizeCurrentWindow: () => {
+    return ipcRenderer.send("window:minimize");
+  },
+  maximizeCurrentWindow: () => {
+    return ipcRenderer.send("window:maximize");
+  },
+  closeCurrentWindow: () => {
+    return ipcRenderer.send("window:close");
+  },
+  getCurrentWindowState: () => {
+    return ipcRenderer.invoke("window:get-state");
+  },
+  onCurrentWindowStateChanged: (callback: (state: WindowState) => void) => {
+    return listenOnIPCChannel("window:state-changed", callback);
   }
 };
 
@@ -858,14 +875,7 @@ const flowAPI: typeof flow = {
   navigation: wrapAPI(navigationAPI, "browser"),
   interface: wrapAPI(interfaceAPI, "browser", {
     moveWindowTo: "all",
-    resizeWindowTo: "all",
-    // Window control methods are needed by any frameless internal window
-    // (e.g. settings on Linux), not just browser UI.
-    minimizeWindow: "app",
-    maximizeWindow: "app",
-    closeWindow: "app",
-    getWindowState: "app",
-    onWindowStateChanged: "app"
+    resizeWindowTo: "all"
   }),
   omnibox: wrapAPI(omniboxAPI, "browser"),
   newTab: wrapAPI(newTabAPI, "browser"),

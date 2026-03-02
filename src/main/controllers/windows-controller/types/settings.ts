@@ -3,6 +3,8 @@ import { sessionsController } from "@/controllers/sessions-controller";
 import { BrowserWindow, nativeTheme } from "electron";
 
 export class SettingsWindow extends BaseWindow {
+  private _isBeingDestroyed = false;
+
   constructor() {
     const browserWindow = new BrowserWindow({
       width: 800,
@@ -41,8 +43,11 @@ export class SettingsWindow extends BaseWindow {
       backgroundColor: process.platform === "darwin" ? "#00000000" : "#000000"
     });
 
-    // Use settings.hide's behavior instead of the default one
+    // Intercept user-initiated closes (X button, Alt+F4) and hide instead.
+    // When destroy() is called programmatically, _isBeingDestroyed is set
+    // so the handler lets the close through normally.
     browserWindow.on("close", (event) => {
+      if (this._isBeingDestroyed) return;
       event.preventDefault();
       browserWindow.hide();
     });
@@ -70,5 +75,10 @@ export class SettingsWindow extends BaseWindow {
         }, 200);
       });
     }
+  }
+
+  public override destroy(force?: boolean) {
+    this._isBeingDestroyed = true;
+    return super.destroy(force);
   }
 }

@@ -3,6 +3,7 @@ import "@/ipc/app/app";
 import "@/ipc/app/extensions";
 import "@/ipc/app/updates";
 import "@/ipc/app/shortcuts";
+import "@/ipc/app/window-controls";
 
 // Browser APIs
 import "@/ipc/browser/browser";
