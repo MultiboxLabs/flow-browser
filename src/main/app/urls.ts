@@ -7,9 +7,13 @@ import { debugPrint } from "@/modules/output";
  * or fresh window) has been created. This avoids a race where both the URL
  * handler and session-restore independently create a window, resulting in two
  * visible windows.
+ *
+ * While onboarding is active, all incoming URLs are silently discarded so no
+ * browser windows are created alongside the onboarding window.
  */
 let pendingStartupUrls: { useNewWindow: boolean; url: string }[] = [];
 let startupComplete = false;
+let onboardingActive = false;
 
 export function isValidOpenerUrl(url: string): boolean {
   const urlObject = URL.parse(url);
@@ -22,6 +26,11 @@ export function isValidOpenerUrl(url: string): boolean {
 }
 
 export async function handleOpenUrl(useNewWindow: boolean, url: string) {
+  if (onboardingActive) {
+    debugPrint("INITIALIZATION", "discarded URL during onboarding:", url);
+    return;
+  }
+
   if (!startupComplete) {
     pendingStartupUrls.push({ useNewWindow, url });
     debugPrint("INITIALIZATION", "queued URL for after startup:", url);
@@ -64,13 +73,24 @@ export async function flushPendingUrls() {
 }
 
 /**
- * Marks startup as complete and discards any queued URLs without opening them.
- * Used during onboarding where browser windows should not be created.
+ * Marks startup as complete, enables onboarding mode, and discards any queued
+ * URLs without opening them. All subsequent URLs are also silently dropped
+ * until {@link setOnboardingComplete} is called.
  */
 export function discardPendingUrls() {
   startupComplete = true;
+  onboardingActive = true;
   pendingStartupUrls = [];
-  debugPrint("INITIALIZATION", "discarded pending URLs (onboarding)");
+  debugPrint("INITIALIZATION", "discarded pending URLs (onboarding active)");
+}
+
+/**
+ * Clears the onboarding guard so that future open-url / continue-activity
+ * events are handled normally again.
+ */
+export function setOnboardingComplete() {
+  onboardingActive = false;
+  debugPrint("INITIALIZATION", "onboarding complete, URL handling re-enabled");
 }
 
 export function processInitialUrl() {
