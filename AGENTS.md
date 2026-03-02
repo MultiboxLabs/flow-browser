@@ -27,6 +27,10 @@ Standard dev commands are in `package.json`. Quick reference:
 
 - The `postinstall` script (`electron-builder install-app-deps`) rebuilds native modules automatically during `bun install`.
 
+### Before pushing changes
+
+- Make sure to run `bun run lint`, `bun run typecheck`, `bun run format` and address any issues, or the CI might fail.
+
 ### Gotchas
 
 - The `electron` dependency is installed from a Castlabs fork (`@castlabs/electron-releases`) for Widevine DRM support. This is normal and expected.
