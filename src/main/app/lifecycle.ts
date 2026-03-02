@@ -31,4 +31,10 @@ export function setupAppLifecycle() {
   app.on("open-url", async (_event, url) => {
     handleOpenUrl(false, url);
   });
+
+  app.on("continue-activity", (_event, type, _userInfo, details) => {
+    if (type === "NSUserActivityTypeBrowsingWeb" && details.webpageURL) {
+      handleOpenUrl(false, details.webpageURL);
+    }
+  });
 }
