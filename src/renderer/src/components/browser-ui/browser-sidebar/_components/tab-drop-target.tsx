@@ -11,10 +11,7 @@ import {
   ExternalDropTargetEventBasePayload
 } from "@atlaskit/pragmatic-drag-and-drop/external/adapter";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
-
-// MIME type for cross-window tab drag data
-const TAB_GROUP_MIME_TYPE = "application/x-flow-tab-group";
-const TAB_GROUP_PROFILE_MIME_PREFIX = "application/x-flow-tab-group-profile-";
+import { TAB_GROUP_MIME_TYPE, TAB_GROUP_PROFILE_MIME_PREFIX } from "@/lib/tab-drag-mime";
 
 type TabDropTargetProps = {
   spaceData: Space;

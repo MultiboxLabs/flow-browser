@@ -19,6 +19,7 @@ import { attachClosestEdge, extractClosestEdge, Edge } from "@atlaskit/pragmatic
 import type { Input } from "@atlaskit/pragmatic-drag-and-drop/types";
 import { TabData } from "~/types/tabs";
 import { DropIndicator } from "@/components/old-browser-ui/sidebar/content/space-sidebar";
+import { TAB_GROUP_MIME_TYPE, TAB_GROUP_PROFILE_MIME_PREFIX } from "@/lib/tab-drag-mime";
 
 const MotionSidebarMenuButton = motion(SidebarMenuButton);
 
@@ -203,10 +204,6 @@ export type TabGroupSourceData = {
   spaceId: string;
   position: number;
 };
-
-// MIME type for cross-window tab drag data
-const TAB_GROUP_MIME_TYPE = "application/x-flow-tab-group";
-const TAB_GROUP_PROFILE_MIME_PREFIX = "application/x-flow-tab-group-profile-";
 
 export function SidebarTabGroups({
   tabGroup,

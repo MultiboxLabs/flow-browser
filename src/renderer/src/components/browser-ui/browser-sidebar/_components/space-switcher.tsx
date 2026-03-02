@@ -8,10 +8,7 @@ import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element
 import { dropTargetForExternal } from "@atlaskit/pragmatic-drag-and-drop/external/adapter";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { AnimatePresence, motion } from "motion/react";
-
-// MIME type for cross-window tab drag data
-const TAB_GROUP_MIME_TYPE = "application/x-flow-tab-group";
-const TAB_GROUP_PROFILE_MIME_PREFIX = "application/x-flow-tab-group-profile-";
+import { TAB_GROUP_MIME_TYPE, TAB_GROUP_PROFILE_MIME_PREFIX } from "@/lib/tab-drag-mime";
 
 // Layout constants (px)
 const ICON_SIZE = 28; // size-7
@@ -70,7 +67,7 @@ function SpaceButton({ space, isActive, compact }: SpaceButtonProps) {
       removeDraggingTimeout();
     }
 
-    function handleDrop(sourceData: TabGroupSourceData) {
+    function handleDrop(sourceData: TabGroupSourceData, isExternal: boolean) {
       stopDragging();
 
       // Validate profile compatibility
@@ -79,8 +76,8 @@ function SpaceButton({ space, isActive, compact }: SpaceButtonProps) {
         return;
       }
 
-      // Don't allow dropping on the space the tab is already in
-      if (sourceData.spaceId === space.id) {
+      // For external (cross-window) drops, always move via IPC even if same space
+      if (!isExternal && sourceData.spaceId === space.id) {
         return;
       }
 
@@ -109,7 +106,7 @@ function SpaceButton({ space, isActive, compact }: SpaceButtonProps) {
         onDragLeave: stopDragging,
         onDrop: (args) => {
           const sourceData = args.source.data as TabGroupSourceData;
-          handleDrop(sourceData);
+          handleDrop(sourceData, false);
         }
       }),
 
@@ -130,7 +127,7 @@ function SpaceButton({ space, isActive, compact }: SpaceButtonProps) {
 
           try {
             const sourceData = JSON.parse(raw) as TabGroupSourceData;
-            handleDrop(sourceData);
+            handleDrop(sourceData, true);
           } catch {
             // Invalid data from external source
           }

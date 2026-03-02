@@ -17,13 +17,7 @@ import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { attachClosestEdge, extractClosestEdge, Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import type { Input } from "@atlaskit/pragmatic-drag-and-drop/types";
 import { DropIndicator } from "@/components/browser-ui/browser-sidebar/_components/drop-indicator";
-
-// MIME type for cross-window tab drag data
-const TAB_GROUP_MIME_TYPE = "application/x-flow-tab-group";
-// Profile-specific MIME type prefix — used during external drag to check
-// profile compatibility without reading the actual payload (which is only
-// available on drop). Format: "application/x-flow-tab-group-profile-{profileId}"
-const TAB_GROUP_PROFILE_MIME_PREFIX = "application/x-flow-tab-group-profile-";
+import { TAB_GROUP_MIME_TYPE, TAB_GROUP_PROFILE_MIME_PREFIX } from "@/lib/tab-drag-mime";
 
 // --- Types --- //
 
