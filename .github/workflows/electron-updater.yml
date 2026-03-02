@@ -30,7 +30,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
         with:
-          bun-version: latest
+          bun-version: 1.2.0
 
       - name: Install Dependencies
         run: bun install --development --frozen-lockfile
@@ -93,7 +93,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
         with:
-          bun-version: latest
+          bun-version: 1.2.0
 
       - name: Install Dependencies
         run: bun install --development --frozen-lockfile
