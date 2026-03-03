@@ -18,7 +18,6 @@
         "icojs": "^0.20.1",
         "knex": "^3.1.0",
         "mime-types": "^3.0.1",
-        "objc-js": "^1.3.1",
         "objcjs-types": "^0.5.2",
         "posthog-node": "^5.28.2",
         "sharp": "^0.34.5",
@@ -79,6 +78,9 @@
         "typescript": "^5.8.3",
         "vite": "^8.0.0",
       },
+      "optionalDependencies": {
+        "objc-js": "^1.3.1",
+      },
     },
   },
   "trustedDependencies": [
@@ -90,6 +92,9 @@
     "electron",
     "better-sqlite3",
   ],
+  "patchedDependencies": {
+    "app-builder-lib@26.8.1": "patches/app-builder-lib@26.8.1.patch",
+  },
   "packages": {
     "7zip-bin": ["7zip-bin@5.2.0", "", {}, "sha512-ukTPVhqG4jNzMro2qA9HSCSSVJN3aN7tlb+hfqYCt3ER0yWroeA2VR38MNrOHLQ/cVj+DaIMad0kFCtWWowh/A=="],
 
