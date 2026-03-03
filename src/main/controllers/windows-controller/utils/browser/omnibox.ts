@@ -191,8 +191,11 @@ export class Omnibox {
     this.assertNotDestroyed();
 
     debugPrint("OMNIBOX", "Showing omnibox");
-    // Hide omnibox if it is already visible
-    this.hide();
+    // Reset view visibility without sending hide IPC event to the renderer.
+    // We only hide the native view here so we can re-show it cleanly.
+    // Sending a hide event would undo the sendShowEvent() that callers
+    // already dispatched before calling show().
+    this.view.setVisible(false);
 
     // Show UI
     this.view.setVisible(true);
