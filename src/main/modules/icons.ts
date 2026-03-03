@@ -13,8 +13,7 @@ import { windowsController } from "@/controllers/windows-controller";
 // Uses dynamic import() so Vite resolves the @/ alias and bundles the module.
 // Typed as `any` because objc-js is a macOS-only native addon that doesn't
 // install on Linux, so we cannot reference the module's types at compile time.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _macosIcon: any = null;
+let _macosIcon: typeof import("@/modules/macos-icon") | null = null;
 async function getMacosIcon() {
   if (process.platform !== "darwin") return null;
   if (!_macosIcon) {
@@ -193,13 +192,8 @@ function updateAppIcon() {
   debugPrint("ICONS", `Updating app icon for platform: ${process.platform}`);
 
   if (process.platform === "darwin") {
-    // On macOS, if the icon is "default" we do nothing — let Liquid Glass render.
-    if (!currentIcon) {
-      debugPrint("ICONS", "macOS: no current icon (default), skipping updateAppIcon.");
-      return;
-    }
-    app.dock?.setIcon(currentIcon);
-    debugPrint("ICONS", "Updated dock icon on macOS via app.dock.setIcon().");
+    // macOS dock icon is managed via NSDockTile (mac.setDockIcon) — no-op here.
+    return;
   } else if (process.platform === "linux") {
     if (!currentIcon) {
       debugPrint("ICONS", "No current icon set, skipping update.");
@@ -260,21 +254,16 @@ async function setCustomIconMacOS(iconId: string, imgBuffer: Buffer): Promise<bo
   // 1. Save transformed PNG to a persistent location
   const savedPath = savePersistentIcon(iconId, imgBuffer);
 
-  // 2. Set the running dock icon via NativeImage (existing Electron API)
-  const img = nativeImage.createFromBuffer(imgBuffer);
-  currentIcon = img;
-  app.dock?.setIcon(img);
-
-  // 3. Set the Finder/Spotlight/Launchpad icon on the .app bundle
+  // 2. Set the Finder/Spotlight/Launchpad icon on the .app bundle
   const bundlePath = mac.getAppBundlePath();
   if (bundlePath) {
     mac.setFinderIcon(savedPath, bundlePath);
   }
 
-  // 4. Also set the dock tile content view for crisp rendering
+  // 3. Set the dock tile content view for crisp rendering
   mac.setDockIcon(savedPath);
 
-  // 5. Write to shared file so DockTilePlugin can show it when app isn't running
+  // 4. Write to shared file so DockTilePlugin can show it when app isn't running
   mac.writeIconChoiceToSharedFile(savedPath);
 
   debugPrint("ICONS", "macOS: custom icon set complete:", iconId);
