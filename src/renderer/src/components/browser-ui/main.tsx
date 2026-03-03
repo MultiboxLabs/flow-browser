@@ -8,9 +8,11 @@ import {
   useBrowserSidebar
 } from "@/components/browser-ui/browser-sidebar/provider";
 import { BrowserSidebar } from "@/components/browser-ui/browser-sidebar/component";
+import { RippleSidebarProvider, useRippleSidebar } from "@/components/browser-ui/ripple-sidebar/provider";
+import { RippleSidebar } from "@/components/browser-ui/ripple-sidebar/component";
 import { AnimatePresence, motion } from "motion/react";
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { SettingsProvider } from "@/components/providers/settings-provider";
+import { SettingsProvider, useSettings } from "@/components/providers/settings-provider";
 import { ResizableHandle, ResizablePanel } from "@/components/ui/resizable";
 import { ResizablePanelGroupWithProvider } from "@/components/ui/resizable-extras";
 import { UpdateEffect } from "@/components/browser-ui/update-effect";
@@ -93,6 +95,23 @@ export function PresenceSidebar({ sidebarMode, targetSidebarModes, direction, or
           skipEntryAnimation={skipEntryAnimation}
         />
       )}
+    </AnimatePresence>
+  );
+}
+
+interface PresenceRippleSidebarProps {
+  direction: "left" | "right";
+  order: number;
+}
+function PresenceRippleSidebar({ direction, order }: PresenceRippleSidebarProps) {
+  const { isVisible, isEnabled } = useRippleSidebar();
+
+  // Don't render anything when Ripple is disabled in settings.
+  if (!isEnabled) return null;
+
+  return (
+    <AnimatePresence>
+      {isVisible && <RippleSidebar key="ripple-attached" direction={direction} order={order} />}
     </AnimatePresence>
   );
 }
@@ -229,9 +248,14 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
   // NOTE: No useTabs() here! Tab-dependent logic is isolated in the
   // components above to prevent the entire layout from rerendering.
   const { mode: sidebarMode, attachedDirection } = useBrowserSidebar();
+  const { isVisible: rippleVisible, side: rippleSide, isEnabled: rippleEnabled } = useRippleSidebar();
   const { topbarVisible, topbarHeight } = useAdaptiveTopbar();
 
   const hasSidebar = type === "main";
+
+  // Determine which sidebars are attached on each side for resize handle logic.
+  const hasAttachedLeft = sidebarMode === "attached-left" || (rippleVisible && rippleSide === "left");
+  const hasAttachedRight = sidebarMode === "attached-right" || (rippleVisible && rippleSide === "right");
 
   return (
     <FullscreenGuard>
@@ -254,6 +278,11 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
                 className={cn("w-full h-[calc(100vh-var(--topbar-height))] flex flex-row items-center justify-center")}
                 style={{ "--topbar-height": `${topbarHeight}px` } as React.CSSProperties}
               >
+                {/* Ripple sidebar on the left (when main sidebar is on the right) */}
+                {hasSidebar && rippleEnabled && rippleSide === "left" && (
+                  <PresenceRippleSidebar direction="left" order={0} />
+                )}
+
                 {hasSidebar && (
                   <PresenceSidebar
                     sidebarMode={sidebarMode}
@@ -268,10 +297,10 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
                   className={cn("flex-1 h-full py-3 overflow-visible!", topbarVisible && "pt-0")}
                 >
                   <div className="w-full h-full flex items-center justify-center remove-app-drag">
-                    {sidebarMode !== "attached-left" ? (
-                      <div className="w-3" />
-                    ) : (
+                    {hasAttachedLeft ? (
                       <SidebarResizeHandle key="left-sidebar-resize-handle" />
+                    ) : (
+                      <div className="w-3" />
                     )}
 
                     <div className="relative w-full h-full flex flex-col">
@@ -281,10 +310,10 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
                       <BrowserContent />
                     </div>
 
-                    {sidebarMode !== "attached-right" ? (
-                      <div className="w-3" />
-                    ) : (
+                    {hasAttachedRight ? (
                       <SidebarResizeHandle key="right-sidebar-resize-handle" />
+                    ) : (
+                      <div className="w-3" />
                     )}
                   </div>
                 </ResizablePanel>
@@ -296,6 +325,11 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
                     order={3}
                   />
                 )}
+
+                {/* Ripple sidebar on the right (when main sidebar is on the left) */}
+                {hasSidebar && rippleEnabled && rippleSide === "right" && (
+                  <PresenceRippleSidebar direction="right" order={4} />
+                )}
               </div>
             </ResizablePanelGroupWithProvider>
 
@@ -305,6 +339,17 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
       </MinimalToastProvider>
     </FullscreenGuard>
   );
+}
+
+/**
+ * Wrapper that reads the `rippleEnabled` setting and passes it to
+ * RippleSidebarProvider. Must be rendered inside SettingsProvider +
+ * BrowserSidebarProvider since both contexts are required.
+ */
+function RippleSidebarGate({ children }: { children: React.ReactNode }) {
+  const { getSetting } = useSettings();
+  const isEnabled = getSetting<boolean>("rippleEnabled") ?? false;
+  return <RippleSidebarProvider isEnabled={isEnabled}>{children}</RippleSidebarProvider>;
 }
 
 export function BrowserUI({ type }: { type: BrowserUIType }) {
@@ -320,18 +365,20 @@ export function BrowserUI({ type }: { type: BrowserUIType }) {
     <AppUpdatesProvider>
       <SettingsProvider>
         <BrowserSidebarProvider hasSidebar={type === "main"}>
-          <AdaptiveTopbarProvider>
-            <SpacesProvider windowType={type}>
-              <TabsProvider>
-                <BrowserActionProvider>
-                  <ExtensionsProviderWithSpaces>
-                    <TabDisabler />
-                    <InternalBrowserUI isReady={isReady} type={type} />
-                  </ExtensionsProviderWithSpaces>
-                </BrowserActionProvider>
-              </TabsProvider>
-            </SpacesProvider>
-          </AdaptiveTopbarProvider>
+          <RippleSidebarGate>
+            <AdaptiveTopbarProvider>
+              <SpacesProvider windowType={type}>
+                <TabsProvider>
+                  <BrowserActionProvider>
+                    <ExtensionsProviderWithSpaces>
+                      <TabDisabler />
+                      <InternalBrowserUI isReady={isReady} type={type} />
+                    </ExtensionsProviderWithSpaces>
+                  </BrowserActionProvider>
+                </TabsProvider>
+              </SpacesProvider>
+            </AdaptiveTopbarProvider>
+          </RippleSidebarGate>
         </BrowserSidebarProvider>
       </SettingsProvider>
     </AppUpdatesProvider>
