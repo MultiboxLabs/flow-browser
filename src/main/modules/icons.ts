@@ -266,6 +266,9 @@ async function setCustomIconMacOS(iconId: string, imgBuffer: Buffer): Promise<bo
   // 4. Write to shared file so DockTilePlugin can show it when app isn't running
   mac.writeIconChoiceToSharedFile(savedPath);
 
+  // 5. Invalidate the Dock's icon cache so changes are reflected immediately
+  mac.invalidateDockCache();
+
   debugPrint("ICONS", "macOS: custom icon set complete:", iconId);
   return true;
 }
