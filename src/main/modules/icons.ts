@@ -10,16 +10,15 @@ import { debugError, debugPrint } from "@/modules/output";
 import { windowsController } from "@/controllers/windows-controller";
 
 // Lazily-loaded macOS-specific helpers (only used on darwin).
-// Uses a sync getter so we avoid top-level await (CJS output doesn't support it).
+// Uses dynamic import() so Vite resolves the @/ alias and bundles the module.
 // Typed as `any` because objc-js is a macOS-only native addon that doesn't
 // install on Linux, so we cannot reference the module's types at compile time.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _macosIcon: any = null;
-function getMacosIcon() {
+async function getMacosIcon() {
   if (process.platform !== "darwin") return null;
   if (!_macosIcon) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    _macosIcon = require("@/modules/macos-icon");
+    _macosIcon = await import("@/modules/macos-icon");
   }
   return _macosIcon;
 }
@@ -221,7 +220,7 @@ function updateAppIcon() {
 // ---------------------------------------------------------------------------
 
 async function resetToDefaultMacOS(): Promise<boolean> {
-  const mac = getMacosIcon();
+  const mac = await getMacosIcon();
   if (!mac) return false;
 
   debugPrint("ICONS", "macOS: resetting to default (Liquid Glass)");
@@ -253,7 +252,7 @@ async function resetToDefaultMacOS(): Promise<boolean> {
 // ---------------------------------------------------------------------------
 
 async function setCustomIconMacOS(iconId: string, imgBuffer: Buffer): Promise<boolean> {
-  const mac = getMacosIcon();
+  const mac = await getMacosIcon();
   if (!mac) return false;
 
   debugPrint("ICONS", "macOS: setting custom icon persistently:", iconId);
