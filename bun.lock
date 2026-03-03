@@ -18,6 +18,8 @@
         "icojs": "^0.20.1",
         "knex": "^3.1.0",
         "mime-types": "^3.0.1",
+        "objc-js": "^1.3.1",
+        "objcjs-types": "^0.5.2",
         "posthog-node": "^5.28.2",
         "sharp": "^0.34.5",
         "tldts": "^7.0.25",
@@ -1536,6 +1538,8 @@
     "nuqs": ["nuqs@2.8.9", "", { "dependencies": { "@standard-schema/spec": "1.0.0" }, "peerDependencies": { "@remix-run/react": ">=2", "@tanstack/react-router": "^1", "next": ">=14.2.0", "react": ">=18.2.0 || ^19.0.0-0", "react-router": "^5 || ^6 || ^7", "react-router-dom": "^5 || ^6 || ^7" }, "optionalPeers": ["@remix-run/react", "@tanstack/react-router", "next", "react-router", "react-router-dom"] }, "sha512-8ou6AEwsxMWSYo2qkfZtYFVzngwbKmg4c00HVxC1fF6CEJv3Fwm6eoZmfVPALB+vw8Udo7KL5uy96PFcYe1BIQ=="],
 
     "objc-js": ["objc-js@1.3.1", "", { "dependencies": { "node-addon-api": "^8.5.0", "node-gyp-build": "^4.8.4" }, "os": "darwin" }, "sha512-2Ut+kCnLiiPkDOd6+4B+FJUnbg3SO5N/LCKI/lEahF4C/goYdsne6LGvvLFPplu+ofkeJLdTpEGkYQD7cgmbMg=="],
+
+    "objcjs-types": ["objcjs-types@0.5.2", "", { "peerDependencies": { "objc-js": "^1.3.1", "typescript": "^5" }, "bin": { "objcjs-types": "bin/objcjs-types.ts" } }, "sha512-C/vz7PSu6lc0B4cY1ezSD0998GyLxMDoKNuCpx1F0nmYe/mjg1NXrzf7aoxq6EqC33hI6AE77wX+oEA8euiiPw=="],
 
     "object-assign": ["object-assign@4.1.1", "", {}, "sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg=="],
 
