@@ -39,6 +39,7 @@ import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
 import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/find-in-page";
 import { FlowHistoryAPI } from "~/flow/interfaces/browser/history";
+import { FlowPasskeyOverlayAPI } from "~/flow/interfaces/browser/passkey-overlay";
 import type {
   AssertCredentialErrorCodes,
   AssertCredentialResult,
@@ -110,6 +111,10 @@ function tryPatchPasskeys() {
     type PatchedCredentialsContainer = Pick<CredentialsContainer, "create" | "get"> & {
       isAvailable: () => Promise<boolean>;
       isConditionalMediationAvailable: () => Promise<boolean>;
+      reportInputFocus: (rect: { x: number; y: number; width: number; height: number }) => void;
+      reportInputBlur: () => void;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onConditionalPasskeys: (callback: (passkeys: any[]) => void) => () => void;
     };
 
     let isWebauthnAddonAvailablePromise: Promise<boolean> | null = null;
@@ -153,7 +158,19 @@ function tryPatchPasskeys() {
         return isWebauthnAddonAvailablePromise;
       },
       isConditionalMediationAvailable: async () => {
-        return false;
+        return ipcRenderer.invoke("webauthn:is-conditional-available");
+      },
+      reportInputFocus: (rect) => {
+        ipcRenderer.send("webauthn:conditional-input-focus", rect);
+      },
+      reportInputBlur: () => {
+        ipcRenderer.send("webauthn:conditional-input-blur");
+      },
+      onConditionalPasskeys: (callback) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const wrapped = (_event: any, passkeys: any[]) => callback(passkeys);
+        ipcRenderer.on("webauthn:conditional-passkeys", wrapped);
+        return () => ipcRenderer.removeListener("webauthn:conditional-passkeys", wrapped);
       }
     };
     contextBridge.exposeInMainWorld("electronCredentials", patchedCredentialsContainer);
@@ -218,33 +235,185 @@ function tryPatchPasskeys() {
             return await oldCredentialsCreate(options);
           };
 
+          // ── Helper: throw DOMException for WebAuthn error codes ──
+          function throwWebauthnError(errorCode: string): never {
+            switch (errorCode) {
+              case "NotAllowedError":
+                throw new DOMException(
+                  "The operation either timed out or was not allowed. See: https://www.w3.org/TR/webauthn-2/#sctn-privacy-considerations-client.",
+                  "NotAllowedError"
+                );
+              case "SecurityError":
+                throw new DOMException("The calling domain is not a valid domain.", "SecurityError");
+              case "TypeError":
+                throw new DOMException("Failed to parse arguments.", "TypeError");
+              case "AbortError":
+                throw new DOMException("The operation was aborted.", "AbortError");
+              case "NotSupportedError":
+                throw new DOMException("The user agent does not support this operation.", "NotSupportedError");
+              default:
+                throw new DOMException("Unknown error.", "NotAllowedError");
+            }
+          }
+
+          // ── Helper: set up conditional UI focus/blur observers ──
+          function setupConditionalUI() {
+            const trackedInputs = new Set<HTMLInputElement>();
+
+            function isWebauthnInput(el: Element): el is HTMLInputElement {
+              if (!(el instanceof HTMLInputElement)) return false;
+              const ac = el.getAttribute("autocomplete") || "";
+              return ac.split(/\s+/).includes("webauthn");
+            }
+
+            function handleFocus(e: Event) {
+              const input = e.target as HTMLInputElement;
+              const rect = input.getBoundingClientRect();
+              patchedCredentials.reportInputFocus({
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height
+              });
+            }
+
+            function handleBlur() {
+              // Small delay to allow click events on the overlay to register
+              setTimeout(() => {
+                patchedCredentials.reportInputBlur();
+              }, 150);
+            }
+
+            function trackInput(input: HTMLInputElement) {
+              if (trackedInputs.has(input)) return;
+              trackedInputs.add(input);
+              input.addEventListener("focus", handleFocus);
+              input.addEventListener("blur", handleBlur);
+              // If this input already has focus, fire immediately
+              if (document.activeElement === input) {
+                handleFocus({ target: input } as unknown as Event);
+              }
+            }
+
+            function untrackInput(input: HTMLInputElement) {
+              if (!trackedInputs.has(input)) return;
+              trackedInputs.delete(input);
+              input.removeEventListener("focus", handleFocus);
+              input.removeEventListener("blur", handleBlur);
+            }
+
+            // Scan existing inputs
+            document.querySelectorAll("input").forEach((el) => {
+              if (isWebauthnInput(el)) trackInput(el);
+            });
+
+            // Watch for dynamically added/removed inputs
+            const observer = new MutationObserver((mutations) => {
+              for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) {
+                  if (node instanceof HTMLInputElement && isWebauthnInput(node)) {
+                    trackInput(node);
+                  } else if (node instanceof HTMLElement) {
+                    node.querySelectorAll("input").forEach((el) => {
+                      if (isWebauthnInput(el)) trackInput(el);
+                    });
+                  }
+                }
+                for (const node of mutation.removedNodes) {
+                  if (node instanceof HTMLInputElement) {
+                    untrackInput(node);
+                  } else if (node instanceof HTMLElement) {
+                    node.querySelectorAll("input").forEach((el) => {
+                      if (el instanceof HTMLInputElement) untrackInput(el);
+                    });
+                  }
+                }
+                // Handle autocomplete attribute changes
+                if (mutation.type === "attributes" && mutation.target instanceof HTMLInputElement) {
+                  if (isWebauthnInput(mutation.target)) {
+                    trackInput(mutation.target);
+                  } else {
+                    untrackInput(mutation.target);
+                  }
+                }
+              }
+            });
+
+            observer.observe(document.documentElement, {
+              childList: true,
+              subtree: true,
+              attributes: true,
+              attributeFilter: ["autocomplete"]
+            });
+
+            // Close overlay on scroll
+            const handleScroll = () => {
+              patchedCredentials.reportInputBlur();
+            };
+            window.addEventListener("scroll", handleScroll, { passive: true, capture: true });
+
+            // Return cleanup function
+            return () => {
+              observer.disconnect();
+              window.removeEventListener("scroll", handleScroll, true);
+              for (const input of trackedInputs) {
+                input.removeEventListener("focus", handleFocus);
+                input.removeEventListener("blur", handleBlur);
+              }
+              trackedInputs.clear();
+            };
+          }
+
           // navigator.credentials.get()
           credentials.get = async (options) => {
             if (options && (await shouldUseMacOSWebauthnAddon())) {
-              // Conditional mediation is not supported yet
+              // ── Conditional mediation flow ──
               if (options.mediation === "conditional") {
-                throw new DOMException("The user agent does not support this operation.", "NotSupportedError");
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                let cleanupObservers: any = null;
+
+                // Listen for passkey list from main process
+                const cleanupListener = patchedCredentials.onConditionalPasskeys((passkeys) => {
+                  if (passkeys.length === 0) return;
+                  cleanupObservers = setupConditionalUI();
+                });
+
+                // Start long-lived get (resolves when user selects or session is cancelled)
+                const resultPromise = patchedCredentials.get(options);
+
+                // Wire AbortSignal
+                if (options.signal) {
+                  options.signal.addEventListener(
+                    "abort",
+                    () => {
+                      cleanupObservers?.();
+                      cleanupListener();
+                      patchedCredentials.reportInputBlur();
+                    },
+                    { once: true }
+                  );
+                }
+
+                const result = await resultPromise;
+                cleanupObservers?.();
+                cleanupListener();
+
+                if (!result) return null;
+                const errorCode = result as unknown as AssertCredentialErrorCodes;
+                if (typeof errorCode === "string") {
+                  throwWebauthnError(errorCode);
+                }
+                return result;
               }
 
+              // ── Standard (non-conditional) flow ──
               if (options.publicKey) {
                 const result = await patchedCredentials.get(options);
 
                 // Cannot throw errors in patchedCredentials, so we need to handle the errors here.
                 const errorCode = result as unknown as AssertCredentialErrorCodes;
-                if (errorCode === "NotAllowedError") {
-                  // Mirror Chromium's error message.
-                  throw new DOMException(
-                    "The operation either timed out or was not allowed. See: https://www.w3.org/TR/webauthn-2/#sctn-privacy-considerations-client.",
-                    "NotAllowedError"
-                  );
-                } else if (errorCode === "SecurityError") {
-                  throw new DOMException("The calling domain is not a valid domain.", "SecurityError");
-                } else if (errorCode === "TypeError") {
-                  throw new DOMException("Failed to parse arguments.", "TypeError");
-                } else if (errorCode === "AbortError") {
-                  throw new DOMException("The operation was aborted.", "AbortError");
-                } else if (errorCode === "NotSupportedError") {
-                  throw new DOMException("The user agent does not support this operation.", "NotSupportedError");
+                if (typeof errorCode === "string") {
+                  throwWebauthnError(errorCode);
                 }
 
                 return result;
@@ -812,6 +981,22 @@ const findInPageAPI: FlowFindInPageAPI = {
   }
 };
 
+// PASSKEY OVERLAY API //
+const passkeyOverlayAPI: FlowPasskeyOverlayAPI = {
+  onShow: (callback) => {
+    return listenOnIPCChannel("webauthn:conditional-show-overlay", callback);
+  },
+  onHide: (callback) => {
+    return listenOnIPCChannel("webauthn:conditional-hide-overlay", callback);
+  },
+  select: (credentialId: string) => {
+    ipcRenderer.send("webauthn:conditional-select", credentialId);
+  },
+  dismiss: () => {
+    ipcRenderer.send("webauthn:conditional-dismiss");
+  }
+};
+
 // SETTINGS API //
 const settingsAPI: FlowSettingsAPI = {
   getSetting: async (settingId: string) => {
@@ -954,6 +1139,7 @@ const flowAPI: typeof flow = {
   omnibox: wrapAPI(omniboxAPI, "browser"),
   newTab: wrapAPI(newTabAPI, "browser"),
   findInPage: wrapAPI(findInPageAPI, "browser"),
+  passkeyOverlay: wrapAPI(passkeyOverlayAPI, "browser"),
 
   // Session APIs
   profiles: wrapAPI(profilesAPI, "session", {
