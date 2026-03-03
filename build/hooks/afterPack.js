@@ -1,6 +1,7 @@
 import { signAppWithVMP } from "./components/castlabs-evs.js";
 import { createNotarizationApiKeyFile } from "./components/notarization.js";
 import { copyAssetsCar } from "./components/macos.js";
+import { compileDockTilePlugin } from "./components/dock-tile-plugin.js";
 
 const vmpSignPlatforms = ["darwin"];
 
@@ -13,6 +14,13 @@ export async function handler(context) {
   // macOS needs to add the Assets.car containing the Liquid Glass icon
   if (process.platform === "darwin") {
     await copyAssetsCar(context.appOutDir)
+      .then(() => true)
+      .catch(() => false);
+  }
+
+  // macOS needs to compile and embed the NSDockTilePlugIn for persistent icons
+  if (process.platform === "darwin") {
+    await compileDockTilePlugin(context.appOutDir)
       .then(() => true)
       .catch(() => false);
   }

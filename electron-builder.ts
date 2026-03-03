@@ -101,7 +101,8 @@ const electronBuilderConfig: Configuration = {
     provisioningProfile: "build/profile.provisionprofile",
     extendInfo: {
       CFBundleIconName: "AppIcon",
-      NSUserActivityTypes: ["NSUserActivityTypeBrowsingWeb"]
+      NSUserActivityTypes: ["NSUserActivityTypeBrowsingWeb"],
+      NSDockTilePlugIn: "FlowDockTilePlugin"
     }
   },
   dmg: {
