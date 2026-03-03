@@ -34,6 +34,8 @@
   },
   "dependencies": {
     "@ghostery/adblocker-electron": "^2.14.1",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@opencode-ai/sdk": "^1.2.16",
     "@phosphor-icons/core": "^2.1.1",
     "arktype": "^2.1.25",
     "better-sqlite3": "^12.6.2",
