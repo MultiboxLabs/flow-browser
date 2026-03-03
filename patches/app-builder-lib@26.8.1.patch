@@ -1,0 +1,12 @@
+diff --git a/out/macPackager.js b/out/macPackager.js
+index 3738c0023feec567c29f31b194252968a5b3b0d4..c3cb19a73a397fef4c59fa45dadc2e51abb20c4a 100644
+--- a/out/macPackager.js
++++ b/out/macPackager.js
+@@ -296,7 +296,6 @@ class MacPackager extends platformPackager_1.PlatformPackager {
+                     }
+                 }
+                 return (file.endsWith(".kext") ||
+-                    file.startsWith("/Contents/PlugIns", appPath.length) ||
+                     file.includes("/node_modules/puppeteer/.local-chromium") ||
+                     file.includes("/node_modules/playwright-firefox/.local-browsers") ||
+                     file.includes("/node_modules/playwright/.local-browsers"));

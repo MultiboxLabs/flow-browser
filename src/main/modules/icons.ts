@@ -1,6 +1,7 @@
 import { app, NativeImage, nativeImage } from "electron";
 import path from "path";
 import { PATHS } from "./paths";
+import { FLOW_DATA_DIR } from "./paths";
 import fs from "fs";
 import sharp from "sharp";
 import { type } from "arktype";
@@ -8,17 +9,31 @@ import { SettingsDataStore } from "@/saving/settings";
 import { debugError, debugPrint } from "@/modules/output";
 import { windowsController } from "@/controllers/windows-controller";
 
+// Lazily-loaded macOS-specific helpers (only used on darwin).
+// Uses dynamic import() so Vite resolves the @/ alias and bundles the module.
+// Typed as `any` because objc-js is a macOS-only native addon that doesn't
+// install on Linux, so we cannot reference the module's types at compile time.
+let _macosIcon: typeof import("@/modules/macos-icon") | null = null;
+async function getMacosIcon() {
+  if (process.platform !== "darwin") return null;
+  if (!_macosIcon) {
+    _macosIcon = await import("@/modules/macos-icon");
+  }
+  return _macosIcon;
+}
+
 export const supportedPlatforms: NodeJS.Platform[] = [
-  // macOS: through app.dock.setIcon()
-  // Temporaily disabled for macOS as it is not compatible with the new Liquid Glass icon.
-  // Will be re-enabled once a solution is found.
-  // "darwin",
+  // macOS: persistent icons via NSWorkspace + NSDockTilePlugIn
+  "darwin",
 
   // Linux: through BrowserWindow.setIcon()
   "linux"
   // No support for Windows or other platforms
 ];
 const iconsDirectory = path.join(PATHS.ASSETS, "public", "icons");
+
+// Persistent icon directory — transformed PNGs saved here for macOS Finder/Dock
+const persistentIconsDir = path.join(FLOW_DATA_DIR, "icons");
 
 type IconData = {
   id: string;
@@ -153,6 +168,18 @@ async function transformAppIcon(imagePath: string): Promise<Buffer> {
   }
 }
 
+/**
+ * Save a transformed icon buffer to disk so the DockTilePlugin and
+ * NSWorkspace can reference it by absolute path.
+ */
+function savePersistentIcon(iconId: string, buffer: Buffer): string {
+  fs.mkdirSync(persistentIconsDir, { recursive: true });
+  const outPath = path.join(persistentIconsDir, `${iconId}.png`);
+  fs.writeFileSync(outPath, buffer);
+  debugPrint("ICONS", "Saved persistent icon to:", outPath);
+  return outPath;
+}
+
 function generateIconPath(iconId: string) {
   const imagePath = path.join(iconsDirectory, `${iconId}.png`);
   debugPrint("ICONS", "Generated icon path:", imagePath);
@@ -162,16 +189,16 @@ function generateIconPath(iconId: string) {
 let currentIcon: NativeImage | null = null;
 
 function updateAppIcon() {
-  if (!currentIcon) {
-    debugPrint("ICONS", "No current icon set, skipping update.");
-    return;
-  }
-
   debugPrint("ICONS", `Updating app icon for platform: ${process.platform}`);
+
   if (process.platform === "darwin") {
-    app.dock?.setIcon(currentIcon);
-    debugPrint("ICONS", "Updated dock icon on macOS.");
+    // macOS dock icon is managed via NSDockTile (mac.setDockIcon) — no-op here.
+    return;
   } else if (process.platform === "linux") {
+    if (!currentIcon) {
+      debugPrint("ICONS", "No current icon set, skipping update.");
+      return;
+    }
     const windows = windowsController.getAllWindows();
     debugPrint("ICONS", `Updating icon for ${windows.length} windows on Linux.`);
     for (const window of windows) {
@@ -182,8 +209,87 @@ function updateAppIcon() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// macOS: reset to default (Liquid Glass)
+// ---------------------------------------------------------------------------
+
+async function resetToDefaultMacOS(): Promise<boolean> {
+  const mac = await getMacosIcon();
+  if (!mac) return false;
+
+  debugPrint("ICONS", "macOS: resetting to default (Liquid Glass)");
+
+  // 1. Reset the running app's dock icon to the bundle icon
+  mac.resetAppIconImage();
+
+  // 2. Clear the Finder/Spotlight icon on the .app bundle
+  const bundlePath = mac.getAppBundlePath();
+  if (bundlePath) {
+    mac.clearFinderIcon(bundlePath);
+  }
+
+  // 3. Invalidate the Dock's icon cache
+  mac.invalidateDockCache();
+
+  // 4. Clear the shared file so the DockTilePlugin uses default
+  mac.writeIconChoiceToSharedFile(null);
+
+  // 5. Clear the in-memory NativeImage — nothing to push to windows
+  currentIcon = null;
+
+  debugPrint("ICONS", "macOS: reset to default complete");
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// macOS: set a custom icon persistently
+// ---------------------------------------------------------------------------
+
+async function setCustomIconMacOS(iconId: string, imgBuffer: Buffer): Promise<boolean> {
+  const mac = await getMacosIcon();
+  if (!mac) return false;
+
+  debugPrint("ICONS", "macOS: setting custom icon persistently:", iconId);
+
+  // 1. Save transformed PNG to a persistent location
+  const savedPath = savePersistentIcon(iconId, imgBuffer);
+
+  // 2. Set the Finder/Spotlight/Launchpad icon on the .app bundle
+  const bundlePath = mac.getAppBundlePath();
+  if (bundlePath) {
+    mac.setFinderIcon(savedPath, bundlePath);
+  }
+
+  // 3. Set the dock tile content view for crisp rendering
+  mac.setDockIcon(savedPath);
+
+  // 4. Write to shared file so DockTilePlugin can show it when app isn't running
+  mac.writeIconChoiceToSharedFile(savedPath);
+
+  // 5. Invalidate the Dock's icon cache so changes are reflected immediately
+  mac.invalidateDockCache();
+
+  debugPrint("ICONS", "macOS: custom icon set complete:", iconId);
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Main entry point
+// ---------------------------------------------------------------------------
+
 export async function setAppIcon(iconId: string) {
   debugPrint("ICONS", "Attempting to set app icon to:", iconId);
+
+  if (!supportedPlatforms.includes(process.platform)) {
+    debugPrint("ICONS", `Platform ${process.platform} not supported for setting app icon.`);
+    return false;
+  }
+
+  // macOS: "default" means restore Liquid Glass — do NOT transform or set anything
+  if (process.platform === "darwin" && iconId === "default") {
+    return resetToDefaultMacOS();
+  }
+
   const imagePath = generateIconPath(iconId);
 
   if (!fs.existsSync(imagePath) || !fs.statSync(imagePath).isFile()) {
@@ -191,16 +297,17 @@ export async function setAppIcon(iconId: string) {
     throw new Error(`Icon image not found: ${imagePath}`);
   }
 
-  if (!supportedPlatforms.includes(process.platform)) {
-    debugPrint("ICONS", `Platform ${process.platform} not supported for setting app icon.`);
-    return false;
-  }
-
   try {
     // Use the transformed icon
     const imgBuffer = await transformAppIcon(imagePath);
-    const img = nativeImage.createFromBuffer(imgBuffer);
 
+    // macOS: full persistent icon flow
+    if (process.platform === "darwin") {
+      return setCustomIconMacOS(iconId, imgBuffer);
+    }
+
+    // Linux: in-memory NativeImage only
+    const img = nativeImage.createFromBuffer(imgBuffer);
     currentIcon = img;
     debugPrint("ICONS", "Successfully created NativeImage from buffer.");
     updateAppIcon();
@@ -219,9 +326,15 @@ export async function setAppIcon(iconId: string) {
 // had a chance to run its fs operations, causing the app to stall at startup.
 app.whenReady().then(async () => {
   debugPrint("ICONS", "App ready, setting initial icon and caching current icon.");
-  await setAppIcon("default").catch((error) => {
-    debugError("ICONS", "Failed initial setAppIcon call:", error);
-  });
+
+  // On macOS, skip the initial setAppIcon("default") — Liquid Glass works
+  // automatically from Assets.car without any intervention.
+  if (process.platform !== "darwin") {
+    await setAppIcon("default").catch((error) => {
+      debugError("ICONS", "Failed initial setAppIcon call:", error);
+    });
+  }
+
   await cacheCurrentIcon();
   updateAppIcon();
 });
@@ -242,7 +355,10 @@ async function cacheCurrentIcon() {
 
     if (!iconId) {
       currentIconId = "default";
-      await setAppIcon(currentIconId);
+      // On macOS, "default" is a no-op — Liquid Glass works natively
+      if (process.platform !== "darwin") {
+        await setAppIcon(currentIconId);
+      }
       debugPrint("ICONS", "Set icon to default due to no icon ID found.");
       return;
     }
@@ -251,19 +367,28 @@ async function cacheCurrentIcon() {
     if (!(parseResult instanceof type.errors)) {
       currentIconId = parseResult;
       debugPrint("ICONS", "Successfully parsed and validated icon ID:", currentIconId);
+      // For macOS "default", skip — Liquid Glass is already rendering
+      if (process.platform === "darwin" && currentIconId === "default") {
+        debugPrint("ICONS", "macOS: default icon, skipping setAppIcon (Liquid Glass active).");
+        return;
+      }
       await setAppIcon(currentIconId);
     } else {
       debugError("ICONS", "Failed to parse icon ID from settings:", iconId, parseResult.summary);
       // Optionally set a default icon if parsing fails
       currentIconId = "default";
-      await setAppIcon(currentIconId);
+      if (process.platform !== "darwin") {
+        await setAppIcon(currentIconId);
+      }
       debugPrint("ICONS", "Set icon to default due to parsing error.");
     }
   } catch (error) {
     debugError("ICONS", "Error retrieving currentIcon from settings, using default:", error);
     // Use default value if error raised during retrieval
     currentIconId = "default";
-    await setAppIcon(currentIconId);
+    if (process.platform !== "darwin") {
+      await setAppIcon(currentIconId);
+    }
   }
 }
 
