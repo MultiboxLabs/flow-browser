@@ -191,11 +191,8 @@ export class Omnibox {
     this.assertNotDestroyed();
 
     debugPrint("OMNIBOX", "Showing omnibox");
-    // Reset view visibility without sending hide IPC event to the renderer.
-    // We only hide the native view here so we can re-show it cleanly.
-    // Sending a hide event would undo the sendShowEvent() that callers
-    // already dispatched before calling show().
-    this.view.setVisible(false);
+    // Hide omnibox if it is already visible (safe: hide() no longer sends IPC)
+    this.hide();
 
     // Show UI
     this.view.setVisible(true);
@@ -236,8 +233,13 @@ export class Omnibox {
     debugPrint("OMNIBOX", "Hiding omnibox");
     this.view.setVisible(false);
 
-    // Notify the renderer so it can reset state
-    this.sendHideEvent();
+    // Do NOT send a hide IPC event here. The native view visibility
+    // (view.setVisible) is the sole mechanism for main-process hides.
+    // Sending hide IPC caused a race condition: blur events during show()
+    // would trigger maybeHide() → hide() → sendHideEvent(), undoing the
+    // prior sendShowEvent() and leaving the renderer with isVisible=false.
+    // The renderer handles its own state for user-initiated hides (Escape,
+    // match selection) and the show handler always resets state on next open.
 
     if (omniboxWasFocused) {
       // Focuses the parent window instead
