@@ -11,12 +11,15 @@ import { windowsController } from "@/controllers/windows-controller";
 
 // Lazily-loaded macOS-specific helpers (only used on darwin).
 // Uses a sync getter so we avoid top-level await (CJS output doesn't support it).
-let _macosIcon: typeof import("@/modules/macos-icon") | null = null;
+// Typed as `any` because objc-js is a macOS-only native addon that doesn't
+// install on Linux, so we cannot reference the module's types at compile time.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _macosIcon: any = null;
 function getMacosIcon() {
   if (process.platform !== "darwin") return null;
   if (!_macosIcon) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    _macosIcon = require("@/modules/macos-icon") as typeof import("@/modules/macos-icon");
+    _macosIcon = require("@/modules/macos-icon");
   }
   return _macosIcon;
 }
