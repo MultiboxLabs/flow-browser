@@ -1,6 +1,7 @@
 {
   "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
   "include": ["src/main/**/*", "src/preload/**/*", "src/shared/**/*"],
+  "exclude": ["src/main/modules/macos-icon.ts"],
   "compilerOptions": {
     "composite": true,
     "moduleResolution": "bundler",
