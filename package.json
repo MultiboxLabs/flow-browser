@@ -46,7 +46,7 @@
     "icojs": "^0.20.1",
     "knex": "^3.1.0",
     "mime-types": "^3.0.1",
-    "objcjs-types": "^0.5.2",
+    "objcjs-types": "^0.5.3",
     "posthog-node": "^5.28.2",
     "sharp": "^0.34.5",
     "tldts": "^7.0.25"
