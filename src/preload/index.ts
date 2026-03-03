@@ -36,6 +36,8 @@ import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
 import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/find-in-page";
+import { FlowRippleAPI } from "~/flow/interfaces/ripple/interface";
+import type { RippleMode, RippleEvent } from "~/flow/interfaces/ripple/interface";
 import type {
   AssertCredentialErrorCodes,
   AssertCredentialResult,
@@ -836,6 +838,46 @@ const shortcutsAPI: FlowShortcutsAPI = {
   }
 };
 
+// RIPPLE API //
+const rippleAPI: FlowRippleAPI = {
+  initialize: async () => {
+    return ipcRenderer.invoke("ripple:initialize");
+  },
+  getStatus: async () => {
+    return ipcRenderer.invoke("ripple:get-status");
+  },
+  createSession: async (mode: RippleMode, tabId?: number) => {
+    return ipcRenderer.invoke("ripple:create-session", mode, tabId);
+  },
+  getOrCreateTabSession: async (tabId: number) => {
+    return ipcRenderer.invoke("ripple:get-or-create-tab-session", tabId);
+  },
+  sendPrompt: async (sessionId: string, text: string) => {
+    return ipcRenderer.invoke("ripple:send-prompt", sessionId, text);
+  },
+  abort: async (sessionId: string) => {
+    return ipcRenderer.invoke("ripple:abort", sessionId);
+  },
+  getSessions: async (mode?: RippleMode) => {
+    return ipcRenderer.invoke("ripple:get-sessions", mode);
+  },
+  getMessages: async (sessionId: string) => {
+    return ipcRenderer.invoke("ripple:get-messages", sessionId);
+  },
+  toggleFsAccess: async (sessionId: string, enabled: boolean) => {
+    return ipcRenderer.invoke("ripple:toggle-fs-access", sessionId, enabled);
+  },
+  onEvent: (callback: (event: RippleEvent) => void) => {
+    return listenOnIPCChannel("ripple:event", callback);
+  },
+  toggleSidebar: () => {
+    return ipcRenderer.send("ripple:toggle-sidebar");
+  },
+  onToggleSidebar: (callback: () => void) => {
+    return listenOnIPCChannel("ripple:on-toggle-sidebar", callback);
+  }
+};
+
 // EXPOSE FLOW API //
 const flowAPI: typeof flow = {
   // App APIs
@@ -876,6 +918,9 @@ const flowAPI: typeof flow = {
   settings: wrapAPI(settingsAPI, "settings"),
   icons: wrapAPI(iconsAPI, "settings"),
   openExternal: wrapAPI(openExternalAPI, "settings"),
-  onboarding: wrapAPI(onboardingAPI, "settings")
+  onboarding: wrapAPI(onboardingAPI, "settings"),
+
+  // Ripple AI Agent
+  ripple: wrapAPI(rippleAPI, "app")
 };
 contextBridge.exposeInMainWorld("flow", flowAPI);

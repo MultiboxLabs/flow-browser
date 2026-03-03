@@ -27,3 +27,6 @@ import "@/ipc/app/onboarding";
 // Special
 import "@/ipc/listeners-manager";
 import "@/ipc/webauthn";
+
+// Ripple AI Agent
+import "@/ipc/ripple";
