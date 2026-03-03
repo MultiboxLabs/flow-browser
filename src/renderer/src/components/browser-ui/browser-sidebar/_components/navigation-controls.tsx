@@ -299,13 +299,18 @@ export function NavigationControls() {
       return;
     }
 
+    let cancelled = false;
     flow.navigation.getTabNavigationStatus(tabId).then((status) => {
-      if (!status) return;
+      if (cancelled || !status) return;
       setCanGoBack(status.canGoBack);
       setCanGoForward(status.canGoForward);
       setEntries(status.navigationHistory.map((entry, index) => ({ ...entry, index })));
       setActiveIndex(status.activeIndex);
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [focusedTabId, isLoading, addressUrl]);
 
   const backwardEntries = useMemo(() => entries.slice(0, activeIndex).reverse(), [entries, activeIndex]);
