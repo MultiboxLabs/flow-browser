@@ -6,7 +6,7 @@ import { promisify } from "util";
 const execFileAsync = promisify(execFile);
 
 /**
- * Compile the FlowDockTilePlugin.docktileplugin bundle and place it in
+ * Compile the FlowDockTilePlugin.plugin bundle and place it in
  * the app's Contents/PlugIns/ directory.
  *
  * Uses `clang` (available on any Mac with Xcode Command Line Tools) to
@@ -34,7 +34,7 @@ export async function compileDockTilePlugin(appOutDir) {
 
   // Target bundle structure
   const pluginsDir = path.join(appPath, "Contents", "PlugIns");
-  const bundleDir = path.join(pluginsDir, "FlowDockTilePlugin.docktileplugin");
+  const bundleDir = path.join(pluginsDir, "FlowDockTilePlugin.plugin");
   const contentsDir = path.join(bundleDir, "Contents");
   const macosDir = path.join(contentsDir, "MacOS");
   const targetPlist = path.join(contentsDir, "Info.plist");

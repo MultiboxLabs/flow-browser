@@ -121,7 +121,7 @@ The plugin:
 **Bundle structure:**
 
 ```
-FlowDockTilePlugin.docktileplugin/
+FlowDockTilePlugin.plugin/
   Contents/
     Info.plist          (NSPrincipalClass = FlowDockTilePlugin)
     MacOS/
