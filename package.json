@@ -46,11 +46,13 @@
     "icojs": "^0.20.1",
     "knex": "^3.1.0",
     "mime-types": "^3.0.1",
-    "objc-js": "^1.3.1",
     "objcjs-types": "^0.5.2",
     "posthog-node": "^5.25.0",
     "sharp": "^0.34.5",
     "tldts": "^7.0.23"
+  },
+  "optionalDependencies": {
+    "objc-js": "^1.3.1"
   },
   "devDependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^1.6.1",
