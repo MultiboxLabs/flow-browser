@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, RotateCw, Search, Info, List } from "lucide-react";
+import { X, RotateCw, Search, Info, List, Clock, Database } from "lucide-react";
 import { Omnibox, OmniboxUpdateCallback } from "@/lib/omnibox/omnibox";
 import { AutocompleteMatch } from "@/lib/omnibox/types";
+import { ProviderTiming } from "@/lib/omnibox/autocomplete-controller";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -18,6 +19,12 @@ function Page() {
   const inputRef = useRef<HTMLInputElement>(null);
   const omniboxRef = useRef<Omnibox | null>(null);
   const [activeTab, setActiveTab] = useState("details");
+  const [providerTimings, setProviderTimings] = useState<ProviderTiming[]>([]);
+  const [imuiState, setImuiState] = useState<{
+    wordCount: number;
+    prefixCount: number;
+    lastRefresh: number | null;
+  }>({ wordCount: 0, prefixCount: 0, lastRefresh: null });
 
   useEffect(() => {
     // Initialize the Omnibox with a callback to update suggestions
@@ -25,12 +32,31 @@ function Page() {
       setSuggestions(results);
       // Clear the selected suggestion when the suggestion list changes
       setSelectedSuggestion(null);
+
+      // Update provider timings and IMUI state after each update
+      if (omniboxRef.current) {
+        setProviderTimings([...omniboxRef.current.providerTimings]);
+        setImuiState({
+          wordCount: omniboxRef.current.imuiWordCount,
+          prefixCount: omniboxRef.current.imuiPrefixCount,
+          lastRefresh: omniboxRef.current.imuiLastRefresh
+        });
+      }
     };
 
     omniboxRef.current = new Omnibox(handleSuggestionsUpdate, {
       hasZeroSuggest: true,
       hasPedals: true
     });
+
+    // Capture initial IMUI state
+    if (omniboxRef.current) {
+      setImuiState({
+        wordCount: omniboxRef.current.imuiWordCount,
+        prefixCount: omniboxRef.current.imuiPrefixCount,
+        lastRefresh: omniboxRef.current.imuiLastRefresh
+      });
+    }
 
     // Cleanup on unmount
     return () => {
@@ -90,6 +116,17 @@ function Page() {
         omniboxRef.current.handleInput("", "focus");
       }
     }, 100);
+  };
+
+  const formatTimestamp = (ts: number | null) => {
+    if (!ts) return "Never";
+    const date = new Date(ts);
+    return date.toLocaleTimeString();
+  };
+
+  const formatDuration = (ms: number) => {
+    if (ms < 1) return "<1ms";
+    return `${ms.toFixed(1)}ms`;
   };
 
   return (
@@ -261,24 +298,18 @@ function Page() {
           transition={{ duration: 0.3, delay: 0.2 }}
         >
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="details">
                 <Info className="h-4 w-4 mr-1" /> Details
               </TabsTrigger>
+              <TabsTrigger value="scoring">
+                <Search className="h-4 w-4 mr-1" /> Scoring
+              </TabsTrigger>
+              <TabsTrigger value="timings">
+                <Clock className="h-4 w-4 mr-1" /> Timings
+              </TabsTrigger>
               <TabsTrigger value="debug">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="h-4 w-4 mr-1"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM10.73 5.73a.75.75 0 0 0-1.06 1.06l2.47 2.47H6.75a.75.75 0 0 0 0 1.5h5.39l-2.47 2.47a.75.75 0 1 0 1.06 1.06l3.75-3.75a.75.75 0 0 0 0-1.06l-3.75-3.75Zm3.53 9.53a.75.75 0 0 0 1.06-1.06l-2.47-2.47h5.39a.75.75 0 0 0 0-1.5h-5.39l2.47-2.47a.75.75 0 1 0-1.06-1.06l-3.75 3.75a.75.75 0 0 0 0 1.06l3.75 3.75Z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Debug Info
+                <Database className="h-4 w-4 mr-1" /> Debug
               </TabsTrigger>
             </TabsList>
 
@@ -337,7 +368,7 @@ function Page() {
                             <div>
                               <span className="font-medium text-muted-foreground">Inline Completion:</span>
                               <p className="mt-1 font-mono bg-secondary/30 p-1 rounded inline-block">
-                                {'"{selectedSuggestion.inlineCompletion}"'}
+                                {`"${selectedSuggestion.inlineCompletion}"`}
                               </p>
                             </div>
                           )}
@@ -367,6 +398,142 @@ function Page() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="scoring" className="flex-grow overflow-hidden mt-0">
+              <Card className="h-full flex flex-col border-t-0 rounded-t-none">
+                <CardHeader className="py-2 px-4 border-b">
+                  <CardTitle className="text-base font-medium">Scoring Signals</CardTitle>
+                </CardHeader>
+                <ScrollArea className="flex-grow">
+                  <CardContent className="p-4 text-sm">
+                    {selectedSuggestion?.scoringSignals ? (
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-muted-foreground">
+                          Signals for: {selectedSuggestion.contents}
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="bg-secondary/30 p-2 rounded">
+                            <span className="text-xs text-muted-foreground">Frecency</span>
+                            <div className="font-mono font-medium">
+                              {selectedSuggestion.scoringSignals.frecency.toFixed(2)}
+                            </div>
+                          </div>
+                          <div className="bg-secondary/30 p-2 rounded">
+                            <span className="text-xs text-muted-foreground">Match Quality</span>
+                            <div className="font-mono font-medium">
+                              {selectedSuggestion.scoringSignals.matchQualityScore.toFixed(3)}
+                            </div>
+                          </div>
+                          <div className="bg-secondary/30 p-2 rounded">
+                            <span className="text-xs text-muted-foreground">Visit Count</span>
+                            <div className="font-mono font-medium">{selectedSuggestion.scoringSignals.visitCount}</div>
+                          </div>
+                          <div className="bg-secondary/30 p-2 rounded">
+                            <span className="text-xs text-muted-foreground">Typed Count</span>
+                            <div className="font-mono font-medium">{selectedSuggestion.scoringSignals.typedCount}</div>
+                          </div>
+                          <div className="bg-secondary/30 p-2 rounded">
+                            <span className="text-xs text-muted-foreground">URL Length</span>
+                            <div className="font-mono font-medium">{selectedSuggestion.scoringSignals.urlLength}</div>
+                          </div>
+                          <div className="bg-secondary/30 p-2 rounded">
+                            <span className="text-xs text-muted-foreground">Last Visit</span>
+                            <div className="font-mono font-medium text-xs">
+                              {selectedSuggestion.scoringSignals.elapsedTimeSinceLastVisit > 0
+                                ? `${Math.round(selectedSuggestion.scoringSignals.elapsedTimeSinceLastVisit / 60000)}m ago`
+                                : "N/A"}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-1 mt-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant={selectedSuggestion.scoringSignals.isBookmarked ? "default" : "outline"}>
+                              Bookmarked
+                            </Badge>
+                            <Badge variant={selectedSuggestion.scoringSignals.hasOpenTabMatch ? "default" : "outline"}>
+                              Open Tab
+                            </Badge>
+                            <Badge
+                              variant={
+                                selectedSuggestion.scoringSignals.hostMatchAtWordBoundary ? "default" : "outline"
+                              }
+                            >
+                              Host Word Match
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={selectedSuggestion.scoringSignals.isHostOnly ? "default" : "outline"}>
+                              Host Only
+                            </Badge>
+                            <Badge
+                              variant={selectedSuggestion.scoringSignals.hasNonSchemeWwwMatch ? "default" : "outline"}
+                            >
+                              Non-Scheme Match
+                            </Badge>
+                          </div>
+                        </div>
+                        {selectedSuggestion.dedupKey && (
+                          <div className="mt-2">
+                            <span className="text-xs text-muted-foreground">Dedup Key:</span>
+                            <div className="text-xs font-mono bg-secondary/20 p-1 rounded mt-1 break-all">
+                              {selectedSuggestion.dedupKey}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground py-8">
+                        <Search className="h-10 w-10 mb-3 text-muted-foreground/50" />
+                        <p>
+                          {selectedSuggestion
+                            ? "No scoring signals available for this match."
+                            : "Select a suggestion to view its scoring signals."}
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </ScrollArea>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="timings" className="flex-grow overflow-hidden mt-0">
+              <Card className="h-full flex flex-col border-t-0 rounded-t-none">
+                <CardHeader className="py-2 px-4 border-b">
+                  <CardTitle className="text-base font-medium">Provider Timings</CardTitle>
+                </CardHeader>
+                <ScrollArea className="flex-grow">
+                  <CardContent className="p-4 text-sm">
+                    {providerTimings.length > 0 ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="px-2 py-1">Provider</TableHead>
+                            <TableHead className="px-2 py-1 text-right">Duration</TableHead>
+                            <TableHead className="px-2 py-1 text-right">Matches</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {providerTimings.map((timing, i) => (
+                            <TableRow key={timing.providerName + i}>
+                              <TableCell className="px-2 py-1.5 font-medium">{timing.providerName}</TableCell>
+                              <TableCell className="px-2 py-1.5 text-right font-mono">
+                                {formatDuration(timing.endTime - timing.startTime)}
+                              </TableCell>
+                              <TableCell className="px-2 py-1.5 text-right">{timing.matchCount}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-center text-muted-foreground py-8">
+                        <Clock className="h-10 w-10 mb-3 text-muted-foreground/50" />
+                        <p>No timing data yet. Run a query to see provider timings.</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </ScrollArea>
               </Card>
             </TabsContent>
 
@@ -410,6 +577,30 @@ function Page() {
                           )}
                         </div>
                       </div>
+
+                      {/* IMUI State */}
+                      <div className="mt-4 pt-4 border-t">
+                        <h4 className="font-medium mb-2 text-muted-foreground flex items-center gap-1">
+                          <Database className="h-3.5 w-3.5" /> IMUI State
+                        </h4>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-secondary/30 p-2 rounded">
+                            <span className="text-xs text-muted-foreground">Words</span>
+                            <div className="font-mono font-medium">{imuiState.wordCount}</div>
+                          </div>
+                          <div className="bg-secondary/30 p-2 rounded">
+                            <span className="text-xs text-muted-foreground">Prefixes</span>
+                            <div className="font-mono font-medium">{imuiState.prefixCount}</div>
+                          </div>
+                          <div className="bg-secondary/30 p-2 rounded">
+                            <span className="text-xs text-muted-foreground">Last Refresh</span>
+                            <div className="font-mono font-medium text-xs">
+                              {formatTimestamp(imuiState.lastRefresh)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                       {selectedSuggestion && (
                         <div className="mt-4 pt-4 border-t">
                           <h4 className="font-medium mb-2 text-muted-foreground">Selected Suggestion Raw:</h4>
