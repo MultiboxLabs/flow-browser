@@ -151,7 +151,7 @@ const SidebarTab = memo(
         </div>
 
         {/* Right side: close button */}
-        <div className="shrink-0 flex items-center">
+        <div className="shrink-0 items-center hidden group-hover/tab:flex">
           <button
             className={cn(
               "size-5.5 shrink-0 rounded-sm p-0.5",
