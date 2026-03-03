@@ -9,6 +9,7 @@
 import { app } from "electron";
 import path from "path";
 import fs from "fs";
+// @ts-ignore This package is only available on macOS.
 import { callFunction } from "objc-js";
 import { NSApplication, NSImage, NSImageView, NSWorkspace, type _NSImage } from "objcjs-types/AppKit";
 import { NSStringFromString } from "objcjs-types/helpers";
