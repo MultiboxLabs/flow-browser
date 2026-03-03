@@ -14,12 +14,13 @@ import { callFunction } from "objc-js";
 import { NSApplication, NSImage, NSImageView, NSWorkspace } from "objcjs-types/AppKit";
 import { NSStringFromString } from "objcjs-types/helpers";
 import { debugError, debugPrint } from "@/modules/output";
+import { FLOW_DATA_DIR } from "@/modules/paths";
 
 // ---------------------------------------------------------------------------
 // Shared-file path for DockTilePlugin communication
 // ---------------------------------------------------------------------------
 
-const SHARED_DIR = path.join(app.getPath("home"), "Library", "Application Support", "Flow");
+const SHARED_DIR = FLOW_DATA_DIR;
 const SHARED_FILE = path.join(SHARED_DIR, "dock-tile-icon-path");
 
 // ---------------------------------------------------------------------------
@@ -121,8 +122,7 @@ export function setDockIcon(pngPath: string): boolean {
  */
 export function resetAppIconImage(): boolean {
   try {
-    // Pass nil to restore the bundle icon — cast needed because the type
-    // definition doesn't include null, but ObjC accepts nil here.
+    // Pass nil to restore the bundle icon
     NSApplication.sharedApplication().setApplicationIconImage$(null);
 
     // Also clear the dock tile content view so the bundle icon renders
