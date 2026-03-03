@@ -11,7 +11,7 @@ import path from "path";
 import fs from "fs";
 // @ts-ignore This package is only available on macOS.
 import { callFunction } from "objc-js";
-import { NSApplication, NSImage, NSImageView, NSWorkspace, type _NSImage } from "objcjs-types/AppKit";
+import { NSApplication, NSImage, NSImageView, NSWorkspace } from "objcjs-types/AppKit";
 import { NSStringFromString } from "objcjs-types/helpers";
 import { debugError, debugPrint } from "@/modules/output";
 
@@ -123,7 +123,7 @@ export function resetAppIconImage(): boolean {
   try {
     // Pass nil to restore the bundle icon — cast needed because the type
     // definition doesn't include null, but ObjC accepts nil here.
-    NSApplication.sharedApplication().setApplicationIconImage$(null as unknown as _NSImage);
+    NSApplication.sharedApplication().setApplicationIconImage$(null);
 
     // Also clear the dock tile content view so the bundle icon renders
     const dockTile = NSApplication.sharedApplication().dockTile();

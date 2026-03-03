@@ -33,7 +33,7 @@ export default defineConfig({
     ...commonOptions,
     build: {
       ...commonOptions.build,
-      externalizeDeps: { exclude: ["electron-context-menu", "hono", "objcjs-types"] }
+      externalizeDeps: { exclude: ["electron-context-menu", "hono", "objcjs-types"], include: ["objc-js"] }
     },
     resolve: {
       alias: {
