@@ -116,7 +116,7 @@ function GoBackButton({
 
       {backwardEntries.length > 0 && (
         <PortalPopover.Root open={open} onOpenChange={setOpen}>
-          <PopoverTrigger ref={triggerRef} className="absolute opacity-0 pointer-events-none" />
+          <PopoverTrigger ref={triggerRef} className="absolute inset-0 opacity-0 pointer-events-none" />
           <PortalPopover.Content className={cn("w-56 p-2", spaceInjectedClasses)}>
             {backwardEntries.map((entry, index) => (
               <div
@@ -203,7 +203,7 @@ function GoForwardButton({
 
       {forwardEntries.length > 0 && (
         <PortalPopover.Root open={open} onOpenChange={setOpen}>
-          <PopoverTrigger ref={triggerRef} className="absolute opacity-0 pointer-events-none" />
+          <PopoverTrigger ref={triggerRef} className="absolute inset-0 opacity-0 pointer-events-none" />
           <PortalPopover.Content className={cn("w-56 p-2", spaceInjectedClasses)}>
             {forwardEntries.map((entry, index) => (
               <div
