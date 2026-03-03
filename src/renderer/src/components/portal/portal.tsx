@@ -21,7 +21,7 @@ type PortalContextValue = {
   height: number | null;
 };
 
-const PortalContext = createContext<PortalContextValue>({
+export const PortalContext = createContext<PortalContextValue>({
   x: null,
   y: null,
   width: null,
