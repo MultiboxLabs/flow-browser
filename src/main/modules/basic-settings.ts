@@ -230,6 +230,15 @@ export const BasicSettings: BasicSetting[] = [
     defaultValue: false
   },
 
+  // [EXPERIMENTAL] Passkey Autofill
+  {
+    id: "enablePasskeyAutofill",
+    name: "Enable Passkey Autofill (macOS only)",
+    showName: true,
+    type: "boolean",
+    defaultValue: true
+  },
+
   // [ADVANCED] Enable mv2 extensions
   {
     id: "enableMv2Extensions",
@@ -294,7 +303,7 @@ export const BasicSettingCards: BasicSettingCard[] = [
   {
     title: "Experimental Settings",
     subtitle: "Experimental settings for Flow",
-    settings: ["enableFlowPdfViewer"]
+    settings: ["enableFlowPdfViewer", "enablePasskeyAutofill"]
   },
 
   // Advanced Settings Card

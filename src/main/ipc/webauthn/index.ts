@@ -2,6 +2,7 @@ import { getWebauthnAddon } from "@/ipc/webauthn/module";
 import { isPublicSuffix } from "@/ipc/webauthn/psl-check";
 import { tabsController } from "@/controllers/tabs-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { getSettingValueById } from "@/saving/settings";
 import { BrowserWindow, ipcMain } from "electron";
 import type {
   AssertCredentialErrorCodes,
@@ -156,6 +157,10 @@ ipcMain.handle(
     // ── Conditional mediation ──
 
     if (options.mediation === "conditional") {
+      if (getSettingValueById("enablePasskeyAutofill") === false) {
+        return "NotAllowedError";
+      }
+
       if (!publicKeyOptions) {
         return null;
       }
@@ -192,12 +197,30 @@ ipcMain.handle(
       event.sender.once("destroyed", cleanup);
       event.sender.once("did-navigate", cleanup);
 
+      // Hide overlay immediately when the user switches tabs
+      const disconnectActiveTabChanged = tabsController.connect("active-tab-changed", (windowId) => {
+        const tab = tabsController.getTabByWebContents(event.sender);
+        if (!tab) return;
+        if (tab.getWindow().id !== windowId) return;
+
+        // Check if this tab is still the active one
+        if (!tabsController.isTabActive(tab)) {
+          // Tab is no longer active — hide overlay but keep session alive
+          try {
+            tab.getWindow().sendMessageToCoreWebContents("webauthn:conditional-hide-overlay");
+          } catch {
+            // Window may already be destroyed
+          }
+        }
+      });
+
       return new Promise<AssertCredentialResult | AssertCredentialErrorCodes | null>((resolve) => {
         conditionalSessions.set(tabWcId, {
           resolve: (value) => {
             // Remove cleanup listeners once resolved
             event.sender.removeListener("destroyed", cleanup);
             event.sender.removeListener("did-navigate", cleanup);
+            disconnectActiveTabChanged();
             resolve(value);
           },
           publicKeyOptions,
@@ -357,6 +380,9 @@ ipcMain.handle("webauthn:is-available", async (): Promise<boolean> => {
 });
 
 ipcMain.handle("webauthn:is-conditional-available", async (): Promise<boolean> => {
+  if (getSettingValueById("enablePasskeyAutofill") === false) {
+    return false;
+  }
   const webauthn = await getWebauthnAddon();
   return webauthn !== null;
 });
