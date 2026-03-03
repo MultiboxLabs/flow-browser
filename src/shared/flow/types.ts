@@ -45,6 +45,23 @@ export interface PageLayoutParams {
    * this to the top padding when computing page bounds.  Defaults to 0.
    */
   contentTopOffset: number;
+
+  // --- Ripple sidebar (always on the opposite side of sidebarSide) ---
+
+  /** Pixel width of the Ripple sidebar panel. */
+  rippleSidebarWidth: number;
+
+  /**
+   * Whether the Ripple sidebar is currently visible (taking up layout space).
+   */
+  rippleSidebarVisible: boolean;
+
+  /**
+   * Whether the Ripple sidebar is currently animating (opening or closing).
+   * When true, the main process interpolates effectiveRippleSidebarWidth
+   * between the previous and target values over 100ms with ease-in-out timing.
+   */
+  rippleSidebarAnimating: boolean;
 }
 
 export type WindowState = {
