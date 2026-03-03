@@ -716,6 +716,12 @@ const omniboxAPI: FlowOmniboxAPI = {
   },
   hide: () => {
     return ipcRenderer.send("omnibox:hide");
+  },
+  onShow: (callback) => {
+    return listenOnIPCChannel("omnibox:do-show", callback);
+  },
+  onHide: (callback) => {
+    return listenOnIPCChannel("omnibox:do-hide", callback);
   }
 };
 
