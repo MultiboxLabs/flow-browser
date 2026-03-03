@@ -17,18 +17,16 @@ function FakeAddressBar({ className }: { className?: string }) {
 
     const inputBoxBounds = inputBox.getBoundingClientRect();
 
-    flow.omnibox.show(
-      {
+    flow.omnibox.show({
+      bounds: {
         x: inputBoxBounds.x,
         y: inputBoxBounds.y,
         width: inputBoxBounds.width * 2,
         height: inputBoxBounds.height * 8
       },
-      {
-        currentInput: addressUrl,
-        openIn: focusedTab ? "current" : "new_tab"
-      }
-    );
+      currentInput: addressUrl,
+      openIn: focusedTab ? "current" : "new_tab"
+    });
   };
 
   const simplifiedUrl = simplifyUrl(addressUrl);

@@ -27,7 +27,7 @@ import { FlowIconsAPI } from "~/flow/interfaces/settings/icons";
 import { FlowNewTabAPI } from "~/flow/interfaces/browser/newTab";
 import { FlowOpenExternalAPI } from "~/flow/interfaces/settings/openExternal";
 import { FlowOnboardingAPI } from "~/flow/interfaces/settings/onboarding";
-import { FlowOmniboxAPI } from "~/flow/interfaces/browser/omnibox";
+import { FlowOmniboxAPI, OmniboxShowOptions } from "~/flow/interfaces/browser/omnibox";
 import { FlowSettingsAPI } from "~/flow/interfaces/settings/settings";
 import { FlowWindowsAPI } from "~/flow/interfaces/app/windows";
 import { FlowExtensionsAPI } from "~/flow/interfaces/app/extensions";
@@ -709,11 +709,29 @@ const onboardingAPI: FlowOnboardingAPI = {
 
 // OMNIBOX API //
 const omniboxAPI: FlowOmniboxAPI = {
-  show: (bounds: Electron.Rectangle | null, params: { [key: string]: string } | null) => {
-    return ipcRenderer.send("omnibox:show", bounds, params);
+  show: (options?: OmniboxShowOptions) => {
+    ipcRenderer.send("omnibox:show", options);
   },
   hide: () => {
-    return ipcRenderer.send("omnibox:hide");
+    ipcRenderer.send("omnibox:hide");
+  },
+  onShow: (callback: (options: OmniboxShowOptions) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, options: OmniboxShowOptions) => {
+      callback(options);
+    };
+    ipcRenderer.on("omnibox:show-event", handler);
+    return () => {
+      ipcRenderer.removeListener("omnibox:show-event", handler);
+    };
+  },
+  onHide: (callback: () => void) => {
+    const handler = () => {
+      callback();
+    };
+    ipcRenderer.on("omnibox:hide-event", handler);
+    return () => {
+      ipcRenderer.removeListener("omnibox:hide-event", handler);
+    };
   }
 };
 

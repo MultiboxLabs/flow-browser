@@ -2,10 +2,9 @@ import { BrowserWindow, Rectangle, WebContents, WebContentsView } from "electron
 import { debugPrint } from "@/modules/output";
 import { clamp } from "@/modules/utils";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { OmniboxShowOptions } from "~/flow/interfaces/browser/omnibox";
 
 const omniboxes = new Map<BrowserWindow, Omnibox>();
-
-type QueryParams = { [key: string]: string };
 
 export class Omnibox {
   public view: WebContentsView;
@@ -14,23 +13,32 @@ export class Omnibox {
   private window: BrowserWindow;
   private bounds: Electron.Rectangle | null = null;
   private ignoreBlurEvents: boolean = false;
-
   private isDestroyed: boolean = false;
+
+  /** Resolves once the omnibox page has finished its initial load. */
+  private readyPromise: Promise<void>;
+  private resolveReady!: () => void;
+  private isReady: boolean = false;
 
   constructor(parentWindow: BrowserWindow) {
     debugPrint("OMNIBOX", `Creating new omnibox for window ${parentWindow.id}`);
-    const onmiboxView = new WebContentsView({
+
+    this.readyPromise = new Promise<void>((resolve) => {
+      this.resolveReady = resolve;
+    });
+
+    const omniboxView = new WebContentsView({
       webPreferences: {
         transparent: true
       }
     });
-    const onmiboxWC = onmiboxView.webContents;
+    const omniboxWC = omniboxView.webContents;
 
-    onmiboxView.setBorderRadius(13);
+    omniboxView.setBorderRadius(13);
 
-    // on focus lost, hide omnibox
-    onmiboxWC.on("blur", () => {
-      // Required cuz it (somehow) sends the blur event as soon as you opened the omnibox
+    // On focus lost, hide omnibox
+    omniboxWC.on("blur", () => {
+      // Required because it (somehow) sends the blur event as soon as you opened the omnibox.
       // Without this, the omnibox would be hidden as soon as you opened it.
       // This behaviour isn't on macOS.
       if (this.ignoreBlurEvents) {
@@ -41,21 +49,29 @@ export class Omnibox {
       debugPrint("OMNIBOX", "WebContents blur event received");
       this.maybeHide();
     });
+
     parentWindow.on("resize", () => {
       debugPrint("OMNIBOX", "Parent window resize event received");
       this.updateBounds();
     });
 
+    // Preload the omnibox page once and track readiness
+    omniboxWC.once("did-finish-load", () => {
+      debugPrint("OMNIBOX", "Initial page load complete — omnibox is ready");
+      this.isReady = true;
+      this.resolveReady();
+    });
+
     setTimeout(() => {
-      this.loadInterface(null);
+      this.loadInterface();
       this.updateBounds();
       this.hide();
     }, 0);
 
     omniboxes.set(parentWindow, this);
 
-    this.view = onmiboxView;
-    this.webContents = onmiboxWC;
+    this.view = omniboxView;
+    this.webContents = omniboxWC;
     this.window = parentWindow;
   }
 
@@ -65,30 +81,49 @@ export class Omnibox {
     }
   }
 
-  loadInterface(params: QueryParams | null) {
+  /**
+   * Loads the omnibox page. Called once during construction.
+   * After this, the page stays alive and is communicated with via IPC.
+   */
+  private loadInterface() {
     this.assertNotDestroyed();
+    debugPrint("OMNIBOX", "Loading omnibox interface (one-time)");
+    this.webContents.loadURL("flow-internal://omnibox/");
+  }
 
-    debugPrint("OMNIBOX", `Loading interface with params: ${JSON.stringify(params)}`);
-    const onmiboxWC = this.webContents;
+  /**
+   * Sends a show event to the omnibox renderer with the given options.
+   * If the page hasn't loaded yet, the event is queued until it's ready.
+   */
+  private sendShowEvent(options: OmniboxShowOptions) {
+    const params = {
+      currentInput: options.currentInput,
+      openIn: options.openIn
+    };
 
-    const url = new URL("flow-internal://omnibox/");
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.set(key, value);
-      });
-    }
-
-    const urlString = url.toString();
-    if (onmiboxWC.getURL() !== urlString) {
-      debugPrint("OMNIBOX", `Loading new URL: ${urlString}`);
-      onmiboxWC.loadURL(urlString);
+    if (this.isReady) {
+      debugPrint("OMNIBOX", `Sending show event with params: ${JSON.stringify(params)}`);
+      this.webContents.send("omnibox:show-event", params);
     } else {
-      debugPrint("OMNIBOX", "Reloading current URL");
-      onmiboxWC.reload();
+      debugPrint("OMNIBOX", "Page not ready — queuing show event");
+      this.readyPromise.then(() => {
+        debugPrint("OMNIBOX", `Sending queued show event with params: ${JSON.stringify(params)}`);
+        this.webContents.send("omnibox:show-event", params);
+      });
     }
   }
 
-  updateBounds() {
+  /**
+   * Sends a hide event to the omnibox renderer so it can clean up.
+   */
+  private sendHideEvent() {
+    if (this.isReady) {
+      debugPrint("OMNIBOX", "Sending hide event to renderer");
+      this.webContents.send("omnibox:hide-event");
+    }
+  }
+
+  private updateBounds() {
     this.assertNotDestroyed();
 
     if (this.bounds) {
@@ -136,12 +171,34 @@ export class Omnibox {
     return visible;
   }
 
-  show() {
+  /**
+   * Shows the omnibox with the given options.
+   * Handles bounds, sends params to the renderer via IPC, and focuses.
+   */
+  show(options?: OmniboxShowOptions) {
     this.assertNotDestroyed();
+    debugPrint("OMNIBOX", `Showing omnibox with options: ${JSON.stringify(options)}`);
 
-    debugPrint("OMNIBOX", "Showing omnibox");
-    // Hide omnibox if it is already visible
+    // Hide if already visible (resets state)
     this.hide();
+
+    // Set bounds
+    if (options?.bounds) {
+      const windowBounds = this.window.getBounds();
+      const newBounds: Electron.Rectangle = {
+        x: Math.min(options.bounds.x, windowBounds.width - options.bounds.width),
+        y: Math.min(options.bounds.y, windowBounds.height - options.bounds.height),
+        width: options.bounds.width,
+        height: options.bounds.height
+      };
+      this.bounds = newBounds;
+    } else {
+      this.bounds = null;
+    }
+    this.updateBounds();
+
+    // Send params to renderer via IPC (no page reload)
+    this.sendShowEvent(options ?? {});
 
     // Show UI
     this.view.setVisible(true);
@@ -182,8 +239,11 @@ export class Omnibox {
     debugPrint("OMNIBOX", "Hiding omnibox");
     this.view.setVisible(false);
 
+    // Notify the renderer so it can stop in-flight queries
+    this.sendHideEvent();
+
     if (omniboxWasFocused) {
-      // Focuses the parent window instead
+      // Focus the parent window instead
       this.window.webContents.focus();
     }
   }
@@ -201,9 +261,8 @@ export class Omnibox {
       return;
     }
 
-    // The user may need to access a
-    // program outside of the app. Closing the popup would then add
-    // inconvenience.
+    // The user may need to access a program outside of the app.
+    // Closing the popup would then add inconvenience.
     const hasFocus = browserWindowsController.getWindows().some((win) => {
       if (win.destroyed) {
         return false;
@@ -220,35 +279,10 @@ export class Omnibox {
     this.hide();
   }
 
-  _setBounds(bounds: Electron.Rectangle | null) {
-    debugPrint("OMNIBOX", `Setting bounds to: ${JSON.stringify(bounds)}`);
-    this.bounds = bounds;
-    this.updateBounds();
-  }
-
   destroy() {
     this.assertNotDestroyed();
 
     this.isDestroyed = true;
     this.webContents.close();
-  }
-
-  // Extra //
-  setBounds(bounds: Electron.Rectangle | null) {
-    const parentWindow = this.window;
-    if (bounds) {
-      const windowBounds = parentWindow.getBounds();
-
-      const newBounds: Electron.Rectangle = {
-        x: Math.min(bounds.x, windowBounds.width - bounds.width),
-        y: Math.min(bounds.y, windowBounds.height - bounds.height),
-        width: bounds.width,
-        height: bounds.height
-      };
-
-      this._setBounds(newBounds);
-    } else {
-      this._setBounds(null);
-    }
   }
 }

@@ -18,18 +18,16 @@ export const AddressBar = memo(function AddressBar() {
 
     const rect = el.getBoundingClientRect();
 
-    flow.omnibox.show(
-      {
+    flow.omnibox.show({
+      bounds: {
         x: rect.x,
         y: rect.y,
         width: rect.width * 2,
         height: rect.height * 8
       },
-      {
-        currentInput: addressUrl,
-        openIn: focusedTabId ? "current" : "new_tab"
-      }
-    );
+      currentInput: addressUrl,
+      openIn: focusedTabId ? "current" : "new_tab"
+    });
   }, [addressUrl, focusedTabId]);
 
   return (

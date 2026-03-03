@@ -1,7 +1,7 @@
 import { Command, CommandItem, CommandList } from "@/components/ui/command";
 import { AutocompleteMatch } from "@/lib/omnibox/types";
 import { Omnibox } from "@/lib/omnibox/omnibox";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Search, History, Zap, Terminal, Settings, PlusSquare, Link, PuzzleIcon } from "lucide-react";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { AnimatePresence } from "motion/react";
@@ -60,18 +60,15 @@ function getActionForType(type: AutocompleteMatch["type"]) {
 }
 
 export function OmniboxMain() {
-  const params = new URLSearchParams(window.location.search);
-  const currentInput = params.get("currentInput");
-  const openIn: "current" | "new_tab" = params.get("openIn") === "current" ? "current" : "new_tab";
-
-  const [input, setInput] = useState(currentInput || "");
+  const [input, setInput] = useState("");
   const [matches, setMatches] = useState<AutocompleteMatch[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const omniboxRef = useRef<Omnibox | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const [openIn, setOpenIn] = useState<"current" | "new_tab">("new_tab");
   const [selectedValue, setSelectedValue] = useState("");
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [windowHeight, setWindowHeight] = useState(window.innerHeight);
 
   const { appliedTheme: theme } = useTheme();
@@ -86,7 +83,7 @@ export function OmniboxMain() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Initialize omnibox
+  // Initialize omnibox instance once (persists across show/hide cycles)
   useEffect(() => {
     const handleSuggestionsUpdate = (updatedMatches: AutocompleteMatch[]) => {
       console.log("Received Updated Suggestions:", updatedMatches.length);
@@ -97,14 +94,44 @@ export function OmniboxMain() {
       hasPedals: true
     });
 
-    if (omniboxRef.current) {
-      omniboxRef.current.handleInput(input, "focus");
-    }
-
     return () => {
       omniboxRef.current?.stopQuery();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Listen for show/hide events from the main process
+  useEffect(() => {
+    const unsubscribeShow = flow.omnibox.onShow((options) => {
+      // Reset state for the new session
+      const newInput = options.currentInput ?? "";
+      const newOpenIn = options.openIn ?? "new_tab";
+
+      setInput(newInput);
+      setOpenIn(newOpenIn);
+      setMatches([]);
+      setSelectedValue("");
+      setIsOpen(true);
+
+      // Focus input and trigger initial query
+      setTimeout(() => {
+        inputRef.current?.focus();
+        setTimeout(() => {
+          inputRef.current?.select();
+        }, 10);
+      }, 0);
+
+      // Trigger initial query (zero-suggest or pre-filled input)
+      omniboxRef.current?.handleInput(newInput, "focus");
+    });
+
+    const unsubscribeHide = flow.omnibox.onHide(() => {
+      omniboxRef.current?.stopQuery();
+    });
+
+    return () => {
+      unsubscribeShow();
+      unsubscribeHide();
+    };
   }, []);
 
   // If the selected value is not in the matches, set it to the first match
@@ -115,22 +142,14 @@ export function OmniboxMain() {
     }
   }, [selectedValue, matches]);
 
-  // Focus on omnibox input
-  useEffect(() => {
-    inputRef.current?.focus();
-    setTimeout(() => {
-      inputRef.current?.select();
-    }, 10);
-  }, []);
-
   // Re-introduce handleOpenMatch adapting logic from omnibox.ts
-  const handleOpenMatch = (match: AutocompleteMatch, whereToOpen: "current" | "new_tab") => {
+  const handleOpenMatch = useCallback((match: AutocompleteMatch, whereToOpen: "current" | "new_tab") => {
     setIsOpen(false);
     setTimeout(() => {
       omniboxRef.current?.openMatch(match, whereToOpen);
       flow.omnibox.hide();
     }, 150);
-  };
+  }, []);
 
   // Esc to close omnibox, Enter to navigate/search
   useEffect(() => {
@@ -160,7 +179,7 @@ export function OmniboxMain() {
     };
     inputBox.addEventListener("keydown", handleKeyDown);
     return () => inputBox.removeEventListener("keydown", handleKeyDown);
-  }, [input, matches.length, openIn]); // Added handleOpenMatch dependency implicitly via openIn
+  }, [input, matches.length, openIn, handleOpenMatch]);
 
   const handleInputChange = (value: string) => {
     setInput(value);
