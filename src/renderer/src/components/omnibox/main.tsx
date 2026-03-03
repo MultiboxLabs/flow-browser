@@ -21,6 +21,7 @@ import { motion } from "motion/react";
 import { CommandInput } from "cmdk";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/main/theme";
+import { OmniboxShowParams } from "~/flow/interfaces/browser/omnibox";
 
 const SHOW_INSTRUCTIONS = true;
 
@@ -84,20 +85,20 @@ function getActionForType(type: AutocompleteMatch["type"]) {
 }
 
 export function OmniboxMain() {
-  const params = new URLSearchParams(window.location.search);
-  const currentInput = params.get("currentInput");
-  const openIn: "current" | "new_tab" = params.get("openIn") === "current" ? "current" : "new_tab";
-
-  const [input, setInput] = useState(currentInput || "");
+  // --- State ---
+  const [input, setInput] = useState("");
   const [matches, setMatches] = useState<AutocompleteMatch[]>([]);
   const [inlineCompletion, setInlineCompletion] = useState<InlineCompletion | null>(null);
+  const [selectedValue, setSelectedValue] = useState("");
+  const [isVisible, setIsVisible] = useState(false);
+  const [windowHeight, setWindowHeight] = useState(window.innerHeight);
+
+  // Current openIn mode — updated on each show event
+  const openInRef = useRef<"current" | "new_tab">("new_tab");
+
   const inputRef = useRef<HTMLInputElement>(null);
   const omniboxRef = useRef<Omnibox | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const [selectedValue, setSelectedValue] = useState("");
-  const [isOpen, setIsOpen] = useState(true);
-  const [windowHeight, setWindowHeight] = useState(window.innerHeight);
 
   const { appliedTheme: theme } = useTheme();
 
@@ -111,7 +112,7 @@ export function OmniboxMain() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Initialize omnibox
+  // --- Initialize Omnibox instance once (persistent) ---
   useEffect(() => {
     const handleSuggestionsUpdate = (updatedMatches: AutocompleteMatch[]) => {
       console.log("Received Updated Suggestions:", updatedMatches.length);
@@ -126,14 +127,74 @@ export function OmniboxMain() {
       onInlineCompletion: handleInlineCompletion
     });
 
-    if (omniboxRef.current) {
-      omniboxRef.current.handleInput(input, "focus");
-    }
-
     return () => {
       omniboxRef.current?.stopQuery();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // --- Listen for IPC show/hide events from main process ---
+  useEffect(() => {
+    const cleanupShow = flow.omnibox.onShow((params: OmniboxShowParams) => {
+      console.log("Omnibox: received show event", params);
+
+      // Update openIn mode
+      openInRef.current = params.openIn ?? "new_tab";
+
+      // Reset state for the new show
+      const initialInput = params.currentInput ?? "";
+      setInput(initialInput);
+      setMatches([]);
+      setInlineCompletion(null);
+      setSelectedValue("");
+      setIsVisible(true);
+
+      // Trigger the omnibox query (focus trigger for initial population)
+      omniboxRef.current?.handleInput(initialInput, "focus");
+
+      // Focus the input field
+      setTimeout(() => {
+        inputRef.current?.focus();
+        if (initialInput) {
+          inputRef.current?.select();
+        }
+      }, 10);
+    });
+
+    const cleanupHide = flow.omnibox.onHide(() => {
+      console.log("Omnibox: received hide event");
+      setIsVisible(false);
+      omniboxRef.current?.stopQuery();
+    });
+
+    return () => {
+      cleanupShow();
+      cleanupHide();
+    };
+  }, []);
+
+  // --- Handle initial URL params for the first load (backward compat) ---
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const currentInput = params.get("currentInput");
+    const openIn = params.get("openIn") === "current" ? "current" : "new_tab";
+
+    if (currentInput !== null || params.has("openIn")) {
+      // First load was triggered with URL params (before IPC was set up)
+      openInRef.current = openIn as "current" | "new_tab";
+      setInput(currentInput || "");
+      setIsVisible(true);
+
+      if (omniboxRef.current) {
+        omniboxRef.current.handleInput(currentInput || "", "focus");
+      }
+
+      setTimeout(() => {
+        inputRef.current?.focus();
+        if (currentInput) {
+          inputRef.current?.select();
+        }
+      }, 10);
+    }
   }, []);
 
   // If the selected value is not in the matches, set it to the first match
@@ -144,22 +205,14 @@ export function OmniboxMain() {
     }
   }, [selectedValue, matches]);
 
-  // Focus on omnibox input
-  useEffect(() => {
-    inputRef.current?.focus();
-    setTimeout(() => {
-      inputRef.current?.select();
-    }, 10);
-  }, []);
-
   // Re-introduce handleOpenMatch adapting logic from omnibox.ts
-  const handleOpenMatch = (match: AutocompleteMatch, whereToOpen: "current" | "new_tab") => {
-    setIsOpen(false);
+  const handleOpenMatch = useCallback((match: AutocompleteMatch, whereToOpen: "current" | "new_tab") => {
+    setIsVisible(false);
     setTimeout(() => {
       omniboxRef.current?.openMatch(match, whereToOpen);
       flow.omnibox.hide();
     }, 150);
-  };
+  }, []);
 
   // Accept inline completion: sets input to the full URL and clears the ghost text
   const acceptInlineCompletion = useCallback(() => {
@@ -171,14 +224,15 @@ export function OmniboxMain() {
     }
   }, [inlineCompletion, input]);
 
-  // Esc to close omnibox, Enter to navigate/search, Tab/Right to accept inline completion
+  // Esc to close omnibox, Enter to navigate/search, Tab/Right to accept inline completion,
+  // Arrow keys to navigate results (with lock)
   useEffect(() => {
     const inputBox = inputRef.current;
     if (!inputBox) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setIsOpen(false);
+        setIsVisible(false);
         setTimeout(() => {
           flow.omnibox.hide();
         }, 150);
@@ -190,6 +244,9 @@ export function OmniboxMain() {
           event.preventDefault();
           acceptInlineCompletion();
         }
+      } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        // Notify the controller about arrow key navigation to suppress result updates
+        omniboxRef.current?.onUserArrowKey();
       } else if (event.key === "Enter" && matches.length === 0 && input.trim() !== "") {
         // Use handleOpenMatch for verbatim input
         event.preventDefault();
@@ -201,12 +258,12 @@ export function OmniboxMain() {
           relevance: 9999,
           isDefault: false
         };
-        handleOpenMatch(verbatimMatch, openIn);
+        handleOpenMatch(verbatimMatch, openInRef.current);
       }
     };
     inputBox.addEventListener("keydown", handleKeyDown);
     return () => inputBox.removeEventListener("keydown", handleKeyDown);
-  }, [input, matches.length, openIn, inlineCompletion, acceptInlineCompletion]);
+  }, [input, matches.length, inlineCompletion, acceptInlineCompletion, handleOpenMatch]);
 
   const handleInputChange = (value: string) => {
     setInput(value);
@@ -216,7 +273,7 @@ export function OmniboxMain() {
 
   // Use the handleOpenMatch helper
   const handleSelect = (match: AutocompleteMatch) => {
-    handleOpenMatch(match, openIn);
+    handleOpenMatch(match, openInRef.current);
   };
 
   const handleFocus = () => {
@@ -244,7 +301,7 @@ export function OmniboxMain() {
       className="flex flex-col justify-start items-center min-h-screen max-h-screen w-full overflow-hidden p-[1px]"
       ref={containerRef}
     >
-      <div className="w-full h-full mx-auto" style={{ maxHeight: "100vh", opacity: isOpen ? 1 : 0 }}>
+      <div className="w-full h-full mx-auto" style={{ maxHeight: "100vh", opacity: isVisible ? 1 : 0 }}>
         <Command
           className={cn(
             "rounded-xl border backdrop-blur-xl overflow-hidden",
@@ -297,7 +354,6 @@ export function OmniboxMain() {
             <CommandList
               className="flex-1 px-1.5 py-2 overflow-y-auto no-scrollbar"
               style={{
-                // scrollbarWidth: "thin",
                 scrollbarColor: theme === "dark" ? "rgba(255,255,255,0.2) transparent" : "rgba(0,0,0,0.2) transparent",
                 maxHeight: calculateMaxListHeight()
               }}

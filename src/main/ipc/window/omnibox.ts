@@ -20,7 +20,11 @@ ipcMain.on("omnibox:show", (event, bounds: Electron.Rectangle | null, params: { 
 
   const omnibox = parentWindow.omnibox;
   omnibox.setBounds(bounds);
-  omnibox.loadInterface(params);
+  // Send params via IPC instead of reloading
+  omnibox.sendShowEvent({
+    currentInput: params?.currentInput ?? null,
+    openIn: (params?.openIn as "current" | "new_tab") ?? "new_tab"
+  });
   omnibox.show();
 });
 
