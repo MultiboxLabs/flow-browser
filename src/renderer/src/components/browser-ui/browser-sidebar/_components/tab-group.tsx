@@ -17,19 +17,15 @@ import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { attachClosestEdge, extractClosestEdge, Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import type { Input } from "@atlaskit/pragmatic-drag-and-drop/types";
 import { DropIndicator } from "@/components/browser-ui/browser-sidebar/_components/drop-indicator";
-import { TAB_GROUP_MIME_TYPE, TAB_GROUP_PROFILE_MIME_PREFIX } from "@/lib/tab-drag-mime";
+import {
+  TabGroupSourceData,
+  canDropExternalTabGroup,
+  canDropElementTabGroup,
+  parseExternalTabGroupDrop,
+  makeTabGroupExternalPayload
+} from "@/lib/tab-drag-mime";
 
-// --- Types --- //
-
-export type TabGroupSourceData = {
-  type: "tab-group";
-  tabGroupId: string;
-  primaryTabId: number;
-  profileId: string;
-  spaceId: string;
-  position: number;
-  dragToken?: string;
-};
+export type { TabGroupSourceData };
 
 // --- SidebarTab (memoized) --- //
 
@@ -259,16 +255,9 @@ export const TabGroup = memo(
         const closestEdgeOfTarget: Edge | null = extractClosestEdge(args.self.data);
         setClosestEdge(null);
 
-        const raw = args.source.getStringData(TAB_GROUP_MIME_TYPE);
-        if (!raw) return;
-
-        try {
-          const sourceData = JSON.parse(raw) as TabGroupSourceData;
-          if (!sourceData.dragToken) return;
-          handleDrop(sourceData, closestEdgeOfTarget, true);
-        } catch {
-          // Invalid data from external source
-        }
+        const sourceData = parseExternalTabGroupDrop(args.source);
+        if (!sourceData) return;
+        handleDrop(sourceData, closestEdgeOfTarget, true);
       }
 
       const edgeData = ({ input, element }: { input: Input; element: Element }) =>
@@ -305,10 +294,7 @@ export const TabGroup = memo(
               ...generateBasicTabGroupSourceData(),
               dragToken
             };
-            return {
-              [TAB_GROUP_MIME_TYPE]: JSON.stringify(data),
-              [TAB_GROUP_PROFILE_MIME_PREFIX + tabGroup.profileId]: ""
-            };
+            return makeTabGroupExternalPayload(data);
           }
         }),
 
@@ -316,17 +302,10 @@ export const TabGroup = memo(
           element: el,
           getData: ({ input, element }) => edgeData({ input, element }),
           canDrop: (args) => {
-            const sourceData = args.source.data as TabGroupSourceData;
-            if (sourceData.type !== "tab-group") {
-              return false;
-            }
-            if (sourceData.tabGroupId === tabGroup.id) {
-              return false;
-            }
-            if (sourceData.profileId !== tabGroup.profileId) {
-              return false;
-            }
-            return true;
+            return canDropElementTabGroup(args.source.data, {
+              profileId: tabGroup.profileId,
+              excludeTabGroupId: tabGroup.id
+            });
           },
           onDrop: onDrop,
           onDragEnter: onChange,
@@ -337,9 +316,7 @@ export const TabGroup = memo(
         dropTargetForExternal({
           element: el,
           getData: ({ input, element }) => edgeData({ input, element }),
-          canDrop: (args) => {
-            return args.source.types.includes(TAB_GROUP_PROFILE_MIME_PREFIX + tabGroup.profileId);
-          },
+          canDrop: (args) => canDropExternalTabGroup(args.source.types, tabGroup.profileId),
           onDrop: onExternalDrop,
           onDragEnter: onExternalChange,
           onDrag: onExternalChange,

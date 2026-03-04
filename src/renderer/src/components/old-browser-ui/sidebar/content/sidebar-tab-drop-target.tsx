@@ -1,4 +1,9 @@
-import { TabGroupSourceData } from "@/components/old-browser-ui/sidebar/content/sidebar-tab-groups";
+import {
+  TabGroupSourceData,
+  canDropExternalTabGroup,
+  canDropElementTabGroup,
+  parseExternalTabGroupDrop
+} from "@/lib/tab-drag-mime";
 import { DropIndicator } from "@/components/old-browser-ui/sidebar/content/space-sidebar";
 import { useEffect, useRef, useState } from "react";
 import { Space } from "~/flow/interfaces/sessions/spaces";
@@ -11,7 +16,6 @@ import {
   ExternalDropTargetEventBasePayload
 } from "@atlaskit/pragmatic-drag-and-drop/external/adapter";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
-import { TAB_GROUP_MIME_TYPE, TAB_GROUP_PROFILE_MIME_PREFIX } from "@/lib/tab-drag-mime";
 
 type SidebarTabDropTargetProps = {
   spaceData: Space;
@@ -58,16 +62,9 @@ export function SidebarTabDropTarget({ spaceData, isSpaceLight, moveTab, biggest
     function onExternalDrop(args: ExternalDropTargetEventBasePayload) {
       setShowDropIndicator(false);
 
-      const raw = args.source.getStringData(TAB_GROUP_MIME_TYPE);
-      if (!raw) return;
-
-      try {
-        const sourceData = JSON.parse(raw) as TabGroupSourceData;
-        if (!sourceData.dragToken) return;
-        handleDrop(sourceData, true);
-      } catch {
-        // Invalid data from external source
-      }
+      const sourceData = parseExternalTabGroupDrop(args.source);
+      if (!sourceData) return;
+      handleDrop(sourceData, true);
     }
 
     function onChange() {
@@ -77,19 +74,7 @@ export function SidebarTabDropTarget({ spaceData, isSpaceLight, moveTab, biggest
     return combine(
       dropTargetForElements({
         element: el,
-        canDrop: (args) => {
-          const sourceData = args.source.data as TabGroupSourceData;
-          if (sourceData.type !== "tab-group") {
-            return false;
-          }
-
-          if (sourceData.profileId !== spaceData.profileId) {
-            // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
-            return false;
-          }
-
-          return true;
-        },
+        canDrop: (args) => canDropElementTabGroup(args.source.data, { profileId: spaceData.profileId }),
         onDrop: onDrop,
         onDragEnter: onChange,
         onDrag: onChange,
@@ -98,9 +83,7 @@ export function SidebarTabDropTarget({ spaceData, isSpaceLight, moveTab, biggest
 
       dropTargetForExternal({
         element: el,
-        canDrop: (args) => {
-          return args.source.types.includes(TAB_GROUP_PROFILE_MIME_PREFIX + spaceData.profileId);
-        },
+        canDrop: (args) => canDropExternalTabGroup(args.source.types, spaceData.profileId),
         onDrop: onExternalDrop,
         onDragEnter: onChange,
         onDrag: onChange,

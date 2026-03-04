@@ -3,12 +3,16 @@ import { cn } from "@/lib/utils";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { SpaceIcon } from "@/lib/phosphor-icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { TabGroupSourceData } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
+import {
+  type TabGroupSourceData,
+  canDropExternalTabGroup,
+  canDropElementTabGroup,
+  parseExternalTabGroupDrop
+} from "@/lib/tab-drag-mime";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { dropTargetForExternal } from "@atlaskit/pragmatic-drag-and-drop/external/adapter";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { AnimatePresence, motion } from "motion/react";
-import { TAB_GROUP_MIME_TYPE, TAB_GROUP_PROFILE_MIME_PREFIX } from "@/lib/tab-drag-mime";
 
 // Layout constants (px)
 const ICON_SIZE = 28; // size-7
@@ -89,18 +93,11 @@ function SpaceButton({ space, isActive, compact }: SpaceButtonProps) {
     return combine(
       dropTargetForElements({
         element,
-        canDrop: (args) => {
-          const sourceData = args.source.data as TabGroupSourceData;
-          if (sourceData.type !== "tab-group") return false;
-
-          // Does not support moving tabs between profiles
-          if (sourceData.profileId !== space.profileId) return false;
-
-          // Don't allow dropping on the space the tab is already in
-          if (sourceData.spaceId === space.id) return false;
-
-          return true;
-        },
+        canDrop: (args) =>
+          canDropElementTabGroup(args.source.data, {
+            profileId: space.profileId,
+            excludeSpaceId: space.id
+          }),
         onDragEnter: startDragging,
         onDrag: startDragging,
         onDragLeave: stopDragging,
@@ -112,26 +109,16 @@ function SpaceButton({ space, isActive, compact }: SpaceButtonProps) {
 
       dropTargetForExternal({
         element,
-        canDrop: (args) => {
-          // Profile-specific MIME type lets us check compatibility during drag
-          return args.source.types.includes(TAB_GROUP_PROFILE_MIME_PREFIX + space.profileId);
-        },
+        canDrop: (args) => canDropExternalTabGroup(args.source.types, space.profileId),
         onDragEnter: startDragging,
         onDrag: startDragging,
         onDragLeave: stopDragging,
         onDrop: (args) => {
           stopDragging();
 
-          const raw = args.source.getStringData(TAB_GROUP_MIME_TYPE);
-          if (!raw) return;
-
-          try {
-            const sourceData = JSON.parse(raw) as TabGroupSourceData;
-            if (!sourceData.dragToken) return;
-            handleDrop(sourceData, true);
-          } catch {
-            // Invalid data from external source
-          }
+          const sourceData = parseExternalTabGroupDrop(args.source);
+          if (!sourceData) return;
+          handleDrop(sourceData, true);
         }
       })
     );
