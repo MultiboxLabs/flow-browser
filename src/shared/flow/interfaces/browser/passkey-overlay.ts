@@ -17,6 +17,8 @@ export interface PasskeyOverlayPosition {
 export interface FlowPasskeyOverlayAPI {
   onShow: IPCListener<[{ passkeys: PasskeyCredentialInfo[]; position: PasskeyOverlayPosition }]>;
   onHide: IPCListener<[void]>;
+  onSelectionChange: IPCListener<[number]>;
   select: (credentialId: string) => void;
   dismiss: () => void;
+  setSelection: (index: number) => void;
 }

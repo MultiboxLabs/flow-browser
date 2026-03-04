@@ -989,11 +989,17 @@ const passkeyOverlayAPI: FlowPasskeyOverlayAPI = {
   onHide: (callback) => {
     return listenOnIPCChannel("webauthn:conditional-hide-overlay", callback);
   },
+  onSelectionChange: (callback) => {
+    return listenOnIPCChannel("webauthn:conditional-update-selection", callback);
+  },
   select: (credentialId: string) => {
     ipcRenderer.send("webauthn:conditional-select", credentialId);
   },
   dismiss: () => {
     ipcRenderer.send("webauthn:conditional-dismiss");
+  },
+  setSelection: (index: number) => {
+    ipcRenderer.send("webauthn:conditional-set-selection", index);
   }
 };
 
