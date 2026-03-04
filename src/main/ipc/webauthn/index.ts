@@ -195,7 +195,7 @@ ipcMain.handle(
       };
 
       event.sender.once("destroyed", cleanup);
-      event.sender.once("did-navigate", cleanup);
+      event.sender.once("did-start-navigation", cleanup);
 
       // Hide overlay immediately when the user switches tabs
       const disconnectActiveTabChanged = tabsController.connect("active-tab-changed", (windowId) => {
@@ -219,7 +219,7 @@ ipcMain.handle(
           resolve: (value) => {
             // Remove cleanup listeners once resolved
             event.sender.removeListener("destroyed", cleanup);
-            event.sender.removeListener("did-navigate", cleanup);
+            event.sender.removeListener("did-start-navigation", cleanup);
             disconnectActiveTabChanged();
             resolve(value);
           },
@@ -317,6 +317,14 @@ ipcMain.on("webauthn:conditional-select", async (event, credentialId: string) =>
   // Hide the overlay immediately
   browserWindow.sendMessageToCoreWebContents("webauthn:conditional-hide-overlay");
 
+  // Validate that the credential ID was in the set presented to the user
+  const isKnownCredential = session.passkeys.some((p) => p.id === credentialId);
+  if (!isKnownCredential) {
+    session.resolve("NotAllowedError");
+    conditionalSessions.delete(focusedTab.webContents.id);
+    return;
+  }
+
   const webauthn = await getWebauthnAddon();
   if (!webauthn) {
     session.resolve("NotSupportedError");
@@ -349,6 +357,13 @@ ipcMain.on("webauthn:conditional-select", async (event, credentialId: string) =>
     nativeWindowHandle: win.getNativeWindowHandle()
   });
 
+  // Guard against stale session reference after async gap — the session may
+  // have been cancelled/replaced by navigation or tab destruction while the
+  // biometric prompt was open.
+  if (conditionalSessions.get(focusedTab.webContents.id) !== session) {
+    return;
+  }
+
   if (result.success === false) {
     session.resolve(result.error);
   } else {
@@ -379,6 +394,8 @@ ipcMain.handle("webauthn:is-available", async (): Promise<boolean> => {
   return webauthn !== null;
 });
 
+// Platform-version check (e.g. macOS 13.3+) is deferred to listPasskeys() at
+// runtime; we only gate on addon availability and the user setting here.
 ipcMain.handle("webauthn:is-conditional-available", async (): Promise<boolean> => {
   if (getSettingValueById("enablePasskeyAutofill") === false) {
     return false;
