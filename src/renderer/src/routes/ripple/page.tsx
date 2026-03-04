@@ -1,11 +1,13 @@
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { RippleMessageInfo, RippleMessagePart, RippleStatus } from "~/flow/interfaces/ripple/interface";
+import type { RippleMessageInfo, RippleMessagePart } from "~/flow/interfaces/ripple/interface";
 import {
   getRippleClient,
   resetRippleClient,
   listAvailableModels,
+  convertSdkPart,
   convertSdkMessage,
+  RIPPLE_WORK_SYSTEM_PROMPT,
   type RippleClient,
   type RippleModelOption
 } from "@/lib/ripple-client";
@@ -40,10 +42,11 @@ type SessionListItem = {
  *
  * Full-page chat interface with session list sidebar.
  * Uses the OpenCode SDK client directly in the renderer.
+ * Uses promptAsync + event.subscribe for real-time streaming.
  */
 function Page() {
   // Server status
-  const [status, setStatus] = useState<RippleStatus>("stopped");
+  const [status, setStatus] = useState<"stopped" | "starting" | "running" | "error">("stopped");
   const [isInitializing, setIsInitializing] = useState(false);
 
   // SDK client ref
@@ -51,8 +54,15 @@ function Page() {
 
   // Session state
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<RippleMessageInfo[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+
+  // Streaming state: accumulated parts by messageID → partID → Part
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const streamingPartsRef = useRef<Map<string, Map<string, any>>>(new Map());
+  // Track message roles from message.updated events
+  const messageRolesRef = useRef<Map<string, "user" | "assistant">>(new Map());
 
   // Session list
   const [sessions, setSessions] = useState<SessionListItem[]>([]);
@@ -66,6 +76,14 @@ function Page() {
   // Auto-scroll ref
   const scrollRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
+
+  // Event subscription abort controller
+  const eventAbortRef = useRef<AbortController | null>(null);
+
+  // Keep sessionIdRef in sync
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
 
   // Initialize OpenCode server + SDK client
   useEffect(() => {
@@ -135,7 +153,6 @@ function Page() {
       .list()
       .then(({ data }: { data?: unknown }) => {
         if (cancelled || !data) return;
-        // data is an array of session objects
         const sessionList = data as SessionListItem[];
         setSessions(sessionList);
       })
@@ -147,6 +164,103 @@ function Page() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
+  // Subscribe to SSE events for streaming when client is ready
+  useEffect(() => {
+    if (status !== "running" || !clientRef.current) return;
+
+    const client = clientRef.current;
+    const abortController = new AbortController();
+    eventAbortRef.current = abortController;
+
+    async function listenForEvents() {
+      try {
+        const { stream } = await client.event.subscribe({
+          signal: abortController.signal
+        });
+
+        for await (const event of stream) {
+          if (abortController.signal.aborted) break;
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const evt = event as any;
+          if (!evt || !evt.type) continue;
+
+          const currentSessionId = sessionIdRef.current;
+          if (!currentSessionId) continue;
+
+          if (evt.type === "message.updated") {
+            const msg = evt.properties?.info;
+            if (!msg || msg.sessionID !== currentSessionId) continue;
+
+            // Track role for this message
+            messageRolesRef.current.set(msg.id, msg.role);
+
+            // If it's an assistant message, ensure we have it in our messages list
+            if (msg.role === "assistant") {
+              setMessages((prev) => {
+                const exists = prev.some((m) => m.id === msg.id);
+                if (!exists) {
+                  return [
+                    ...prev,
+                    {
+                      id: msg.id,
+                      sessionId: currentSessionId,
+                      role: "assistant",
+                      parts: [],
+                      createdAt: msg.time?.created ? new Date(msg.time.created).toISOString() : new Date().toISOString()
+                    }
+                  ];
+                }
+                return prev;
+              });
+            }
+          } else if (evt.type === "message.part.updated") {
+            const part = evt.properties?.part;
+            if (!part || part.sessionID !== currentSessionId) continue;
+
+            // Skip user message parts (we have optimistic user messages)
+            const role = messageRolesRef.current.get(part.messageID);
+            if (role === "user") continue;
+
+            // Accumulate parts
+            if (!streamingPartsRef.current.has(part.messageID)) {
+              streamingPartsRef.current.set(part.messageID, new Map());
+            }
+            streamingPartsRef.current.get(part.messageID)!.set(part.id, part);
+
+            // Convert accumulated parts to RippleMessageParts and update state
+            const partsMap = streamingPartsRef.current.get(part.messageID)!;
+            const convertedParts: RippleMessagePart[] = [];
+            for (const p of partsMap.values()) {
+              const converted = convertSdkPart(p);
+              if (converted) convertedParts.push(converted);
+            }
+
+            setMessages((prev) => prev.map((m) => (m.id === part.messageID ? { ...m, parts: convertedParts } : m)));
+          } else if (evt.type === "session.idle") {
+            const sid = evt.properties?.sessionID;
+            if (sid === currentSessionId) {
+              setIsStreaming(false);
+              // Clear streaming parts for this session's messages
+              streamingPartsRef.current.clear();
+            }
+          }
+        }
+      } catch (e) {
+        // AbortError is expected on cleanup
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        console.error("[Ripple Work] Event stream error:", e);
+      }
+    }
+
+    listenForEvents();
+
+    return () => {
+      abortController.abort();
+      eventAbortRef.current = null;
+    };
   }, [status]);
 
   // Auto-scroll on new messages
@@ -185,6 +299,8 @@ function Page() {
 
       setSessionId(data.id);
       setMessages([]);
+      streamingPartsRef.current.clear();
+      messageRolesRef.current.clear();
 
       // Add to session list
       setSessions((prev) => [{ id: data.id, title: "Work Session", time: { created: Date.now() } }, ...prev]);
@@ -198,6 +314,8 @@ function Page() {
     if (!clientRef.current) return;
 
     setSessionId(sid);
+    streamingPartsRef.current.clear();
+    messageRolesRef.current.clear();
 
     try {
       const { data } = await clientRef.current.session.messages({ path: { id: sid } });
@@ -211,7 +329,7 @@ function Page() {
     }
   }, []);
 
-  // Send a prompt
+  // Send a prompt using promptAsync (fire-and-forget, streaming via events)
   const handleSend = useCallback(
     async (text: string) => {
       if (!clientRef.current) return;
@@ -250,25 +368,23 @@ function Page() {
       setMessages((prev) => [...prev, userMsg]);
       setIsStreaming(true);
 
+      // Clear any stale streaming parts
+      streamingPartsRef.current.clear();
+
       try {
-        await client.session.prompt({
+        await client.session.promptAsync({
           path: { id: activeSessionId },
           body: {
             parts: [{ type: "text", text }],
+            system: RIPPLE_WORK_SYSTEM_PROMPT,
             ...(selectedModel
               ? { model: { providerID: selectedModel.providerID, modelID: selectedModel.modelID } }
               : {})
           }
         });
-
-        // Reload all messages to get final state
-        const { data: allMessages } = await client.session.messages({ path: { id: activeSessionId } });
-        if (allMessages) {
-          setMessages(allMessages.map((msg: unknown) => convertSdkMessage(msg, activeSessionId!)));
-        }
+        // Response is 204 — streaming happens via event.subscribe
       } catch (e) {
         console.error("[Ripple Work] Send prompt error:", e);
-      } finally {
         setIsStreaming(false);
       }
     },
@@ -286,7 +402,7 @@ function Page() {
     }
     setIsStreaming(false);
 
-    // Reload messages
+    // Reload messages to get final state
     try {
       const { data } = await clientRef.current.session.messages({ path: { id: sessionId } });
       if (data) {

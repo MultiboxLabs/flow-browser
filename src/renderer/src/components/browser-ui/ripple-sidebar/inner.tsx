@@ -1,11 +1,13 @@
 import { useFocusedTabId } from "@/components/providers/tabs-provider";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { RippleMessageInfo, RippleStatus } from "~/flow/interfaces/ripple/interface";
+import type { RippleMessageInfo, RippleMessagePart } from "~/flow/interfaces/ripple/interface";
 import {
   getRippleClient,
   resetRippleClient,
   listAvailableModels,
+  convertSdkPart,
   convertSdkMessage,
+  RIPPLE_BROWSE_SYSTEM_PROMPT,
   type RippleClient,
   type RippleModelOption
 } from "@/lib/ripple-client";
@@ -34,12 +36,13 @@ function saveModel(model: { providerID: string; modelID: string }) {
  *
  * Browse Mode sidebar. Uses the OpenCode SDK client directly in the renderer.
  * One session per tab, tracked in a ref map.
+ * Uses promptAsync + event.subscribe for real-time streaming.
  */
 export function RippleSidebarInner() {
   const tabId = useFocusedTabId();
 
   // Server status
-  const [status, setStatus] = useState<RippleStatus>("stopped");
+  const [status, setStatus] = useState<"stopped" | "starting" | "running" | "error">("stopped");
   const [isInitializing, setIsInitializing] = useState(false);
 
   // SDK client ref
@@ -50,13 +53,28 @@ export function RippleSidebarInner() {
 
   // Current session for active tab
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<RippleMessageInfo[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+
+  // Streaming state: accumulated parts by messageID → partID → Part
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const streamingPartsRef = useRef<Map<string, Map<string, any>>>(new Map());
+  // Track message roles from message.updated events
+  const messageRolesRef = useRef<Map<string, "user" | "assistant">>(new Map());
 
   // Model selection
   const [models, setModels] = useState<RippleModelOption[]>([]);
   const [selectedModel, setSelectedModel] = useState<{ providerID: string; modelID: string } | null>(loadSavedModel());
   const [modelsLoading, setModelsLoading] = useState(false);
+
+  // Event subscription abort controller
+  const eventAbortRef = useRef<AbortController | null>(null);
+
+  // Keep sessionIdRef in sync
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
 
   // Initialize the OpenCode server + SDK client on first render
   useEffect(() => {
@@ -68,7 +86,6 @@ export function RippleSidebarInner() {
         if (!cancelled) setStatus(currentStatus);
 
         if (currentStatus === "running") {
-          // Server already running, just create client
           const sdkClient = await getRippleClient();
           if (!cancelled) {
             clientRef.current = sdkClient;
@@ -127,6 +144,103 @@ export function RippleSidebarInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
+  // Subscribe to SSE events for streaming when client is ready
+  useEffect(() => {
+    if (status !== "running" || !clientRef.current) return;
+
+    const client = clientRef.current;
+    const abortController = new AbortController();
+    eventAbortRef.current = abortController;
+
+    async function listenForEvents() {
+      try {
+        const { stream } = await client.event.subscribe({
+          signal: abortController.signal
+        });
+
+        for await (const event of stream) {
+          if (abortController.signal.aborted) break;
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const evt = event as any;
+          if (!evt || !evt.type) continue;
+
+          const currentSessionId = sessionIdRef.current;
+          if (!currentSessionId) continue;
+
+          if (evt.type === "message.updated") {
+            const msg = evt.properties?.info;
+            if (!msg || msg.sessionID !== currentSessionId) continue;
+
+            // Track role for this message
+            messageRolesRef.current.set(msg.id, msg.role);
+
+            // If it's an assistant message, ensure we have it in our messages list
+            if (msg.role === "assistant") {
+              setMessages((prev) => {
+                const exists = prev.some((m) => m.id === msg.id);
+                if (!exists) {
+                  return [
+                    ...prev,
+                    {
+                      id: msg.id,
+                      sessionId: currentSessionId,
+                      role: "assistant",
+                      parts: [],
+                      createdAt: msg.time?.created ? new Date(msg.time.created).toISOString() : new Date().toISOString()
+                    }
+                  ];
+                }
+                return prev;
+              });
+            }
+          } else if (evt.type === "message.part.updated") {
+            const part = evt.properties?.part;
+            if (!part || part.sessionID !== currentSessionId) continue;
+
+            // Skip user message parts (we have optimistic user messages)
+            const role = messageRolesRef.current.get(part.messageID);
+            if (role === "user") continue;
+
+            // Accumulate parts
+            if (!streamingPartsRef.current.has(part.messageID)) {
+              streamingPartsRef.current.set(part.messageID, new Map());
+            }
+            streamingPartsRef.current.get(part.messageID)!.set(part.id, part);
+
+            // Convert accumulated parts to RippleMessageParts and update state
+            const partsMap = streamingPartsRef.current.get(part.messageID)!;
+            const convertedParts: RippleMessagePart[] = [];
+            for (const p of partsMap.values()) {
+              const converted = convertSdkPart(p);
+              if (converted) convertedParts.push(converted);
+            }
+
+            setMessages((prev) => prev.map((m) => (m.id === part.messageID ? { ...m, parts: convertedParts } : m)));
+          } else if (evt.type === "session.idle") {
+            const sid = evt.properties?.sessionID;
+            if (sid === currentSessionId) {
+              setIsStreaming(false);
+              // Clear streaming parts for this session's messages
+              streamingPartsRef.current.clear();
+            }
+          }
+        }
+      } catch (e) {
+        // AbortError is expected on cleanup
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        console.error("[Ripple Browse] Event stream error:", e);
+      }
+    }
+
+    listenForEvents();
+
+    return () => {
+      abortController.abort();
+      eventAbortRef.current = null;
+    };
+  }, [status]);
+
   // Get or create session when tab changes
   useEffect(() => {
     if (status !== "running" || tabId == null || !clientRef.current) return;
@@ -182,7 +296,7 @@ export function RippleSidebarInner() {
     saveModel(model);
   }, []);
 
-  // Send prompt
+  // Send prompt using promptAsync (fire-and-forget, streaming via events)
   const handleSend = useCallback(
     async (text: string) => {
       if (!clientRef.current || !sessionId) return;
@@ -200,26 +314,23 @@ export function RippleSidebarInner() {
       setMessages((prev) => [...prev, userMsg]);
       setIsStreaming(true);
 
+      // Clear any stale streaming parts
+      streamingPartsRef.current.clear();
+
       try {
-        await client.session.prompt({
+        await client.session.promptAsync({
           path: { id: sessionId },
           body: {
             parts: [{ type: "text", text }],
+            system: RIPPLE_BROWSE_SYSTEM_PROMPT,
             ...(selectedModel
               ? { model: { providerID: selectedModel.providerID, modelID: selectedModel.modelID } }
               : {})
           }
         });
-
-        // Prompt returns the full message list or the assistant response.
-        // After prompt completes, reload all messages to get the final state.
-        const { data: allMessages } = await client.session.messages({ path: { id: sessionId } });
-        if (allMessages) {
-          setMessages(allMessages.map((msg: unknown) => convertSdkMessage(msg, sessionId)));
-        }
+        // Response is 204 — streaming happens via event.subscribe
       } catch (e) {
         console.error("[Ripple] Send prompt error:", e);
-      } finally {
         setIsStreaming(false);
       }
     },
