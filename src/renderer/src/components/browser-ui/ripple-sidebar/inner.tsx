@@ -323,6 +323,7 @@ export function RippleSidebarInner() {
           body: {
             parts: [{ type: "text", text }],
             system: RIPPLE_BROWSE_SYSTEM_PROMPT,
+            agent: "browse",
             ...(selectedModel
               ? { model: { providerID: selectedModel.providerID, modelID: selectedModel.modelID } }
               : {})

@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { createServer, type Server } from "http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "http";
 import { tabsController } from "@/controllers/tabs-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { z } from "zod";
@@ -11,9 +11,12 @@ import { z } from "zod";
  * Runs an HTTP-based MCP server inside the Electron main process,
  * providing tools for AI agents to interact with web pages.
  * The server has direct access to Electron's webContents API.
+ *
+ * Uses STATELESS mode: a fresh McpServer + Transport is created per request.
+ * This avoids transport reuse issues and is the pattern recommended by the MCP SDK
+ * for servers that don't need server-initiated notifications.
  */
 
-let mcpServer: McpServer | null = null;
 let httpServer: Server | null = null;
 let serverPort: number | null = null;
 
@@ -315,41 +318,104 @@ function registerBrowserTools(server: McpServer) {
   );
 }
 
+/** Create a fresh McpServer with browser tools registered. */
+function createBrowserMcpServer(): McpServer {
+  const server = new McpServer({
+    name: "flow-browser",
+    version: "1.0.0"
+  });
+  registerBrowserTools(server);
+  return server;
+}
+
+/** Collect the full request body as a string. */
+function collectBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => resolve(Buffer.concat(chunks).toString()));
+    req.on("error", reject);
+  });
+}
+
+/** Send a JSON-RPC error response. */
+function sendJsonRpcError(res: ServerResponse, statusCode: number, code: number, message: string) {
+  res.writeHead(statusCode, { "Content-Type": "application/json" });
+  res.end(
+    JSON.stringify({
+      jsonrpc: "2.0",
+      error: { code, message },
+      id: null
+    })
+  );
+}
+
 /**
  * Start the MCP Browser Tools server on a dynamic port.
  * Returns the port number.
+ *
+ * Uses stateless mode: each POST request creates a fresh McpServer +
+ * StreamableHTTPServerTransport, processes the request, then cleans up.
+ * GET and DELETE return 405 (not applicable in stateless mode).
  */
 export async function startMcpBrowserServer(): Promise<number> {
   if (serverPort !== null) return serverPort;
 
-  mcpServer = new McpServer({
-    name: "flow-browser",
-    version: "1.0.0"
-  });
-
-  registerBrowserTools(mcpServer);
-
   httpServer = createServer(async (req, res) => {
-    if (req.url === "/mcp" && req.method === "POST") {
-      const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-      await mcpServer!.connect(transport);
-
-      // Collect request body
-      const chunks: Buffer[] = [];
-      req.on("data", (chunk) => chunks.push(chunk));
-      req.on("end", async () => {
-        const body = Buffer.concat(chunks).toString();
-
-        // Create a fake request-like object for the transport
-        const fakeReq = Object.assign(req, {
-          body: JSON.parse(body)
-        });
-
-        await transport.handleRequest(fakeReq, res);
-      });
-    } else {
+    // Only handle /mcp path (strip query string and trailing slash)
+    const urlPath = (req.url || "").split("?")[0].replace(/\/+$/, "");
+    if (urlPath !== "/mcp") {
       res.writeHead(404);
       res.end("Not found");
+      return;
+    }
+
+    if (req.method === "POST") {
+      // Stateless mode: create a fresh server + transport per request
+      const mcpServer = createBrowserMcpServer();
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: undefined // stateless mode
+      });
+
+      try {
+        // Connect server to transport (wires up onmessage/send callbacks)
+        await mcpServer.connect(transport);
+
+        // Collect and parse the request body
+        const bodyStr = await collectBody(req);
+        let parsedBody: unknown;
+        try {
+          parsedBody = JSON.parse(bodyStr);
+        } catch {
+          sendJsonRpcError(res, 400, -32700, "Parse error");
+          await transport.close();
+          await mcpServer.close();
+          return;
+        }
+
+        // Handle the request — transport writes directly to res
+        await transport.handleRequest(req, res, parsedBody);
+
+        // Clean up when the response is done
+        res.on("close", () => {
+          transport.close();
+          mcpServer.close();
+        });
+      } catch (e) {
+        console.error("[Ripple MCP] Error handling POST:", e);
+        if (!res.headersSent) {
+          sendJsonRpcError(res, 500, -32603, "Internal server error");
+        }
+        await transport.close();
+        await mcpServer.close();
+      }
+    } else if (req.method === "GET" || req.method === "DELETE") {
+      // Stateless mode: GET (SSE stream) and DELETE (session close) are not applicable
+      sendJsonRpcError(res, 405, -32000, "Method not allowed.");
+    } else {
+      // Other methods (PUT, PATCH, etc.)
+      res.writeHead(405, { Allow: "GET, POST, DELETE" });
+      res.end("Method not allowed");
     }
   });
 
@@ -370,10 +436,6 @@ export async function startMcpBrowserServer(): Promise<number> {
 
 /** Stop the MCP Browser Tools server. */
 export async function stopMcpBrowserServer(): Promise<void> {
-  if (mcpServer) {
-    await mcpServer.close();
-    mcpServer = null;
-  }
   if (httpServer) {
     httpServer.close();
     httpServer = null;

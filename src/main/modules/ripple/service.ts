@@ -7,6 +7,10 @@ import type { RippleStatus } from "~/flow/interfaces/ripple/interface";
  *
  * Session management, messages, and model selection are handled
  * directly by the SDK client in the renderer process.
+ *
+ * Configures two custom agents:
+ *   - "browse": Only MCP browser tools (no filesystem/bash access)
+ *   - "work": Full access to all tools
  */
 class RippleService {
   private opencode: Awaited<ReturnType<typeof createOpencode>> | null = null;
@@ -48,6 +52,30 @@ class RippleService {
             "flow-browser": {
               type: "remote",
               url: `http://127.0.0.1:${mcpPort}/mcp`
+            }
+          },
+          agent: {
+            // Browse agent: only MCP browser tools, no filesystem/bash access
+            browse: {
+              description: "Browser interaction agent with access to web page tools only",
+              mode: "primary",
+              permission: {
+                edit: "deny",
+                bash: "deny",
+                webfetch: "deny",
+                external_directory: "deny"
+              }
+            },
+            // Work agent: full access to all tools
+            work: {
+              description: "Full-access work agent for desktop and filesystem tasks",
+              mode: "primary",
+              permission: {
+                edit: "allow",
+                bash: "allow",
+                webfetch: "allow",
+                external_directory: "allow"
+              }
             }
           }
         }

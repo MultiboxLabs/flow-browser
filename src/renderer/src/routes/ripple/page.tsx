@@ -377,6 +377,7 @@ function Page() {
           body: {
             parts: [{ type: "text", text }],
             system: RIPPLE_WORK_SYSTEM_PROMPT,
+            agent: "work",
             ...(selectedModel
               ? { model: { providerID: selectedModel.providerID, modelID: selectedModel.modelID } }
               : {})
