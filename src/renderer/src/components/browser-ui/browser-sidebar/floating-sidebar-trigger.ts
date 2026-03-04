@@ -11,7 +11,8 @@ import { type CursorEdgeEvent } from "~/flow/interfaces/browser/interface";
  */
 export function useFloatingSidebarTrigger(
   attachedDirectionRef: React.RefObject<AttachedDirection>,
-  sidebarSizeRef: React.RefObject<number>
+  sidebarSizeRef: React.RefObject<number>,
+  isLockedRef: React.RefObject<boolean>
 ) {
   const [isFloating, setIsFloating] = useState(false);
   const isFloatingRef = useRef(isFloating);
@@ -54,8 +55,10 @@ export function useFloatingSidebarTrigger(
         const shouldDetach = direction === "left" ? event.x > outThreshold : event.x < window.innerWidth - outThreshold;
 
         if (shouldDetach) {
-          setIsFloating(false);
-          clearDwell();
+          if (!isLockedRef.current) {
+            setIsFloating(false);
+            clearDwell();
+          }
         }
       }
     };
@@ -66,7 +69,7 @@ export function useFloatingSidebarTrigger(
       removeListener();
       clearDwell();
     };
-  }, [attachedDirectionRef, sidebarSizeRef]);
+  }, [attachedDirectionRef, sidebarSizeRef, isLockedRef]);
 
   return isFloating;
 }
