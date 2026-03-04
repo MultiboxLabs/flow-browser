@@ -1,46 +1,73 @@
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type {
-  RippleMessageInfo,
-  RippleSessionInfo,
-  RippleEvent,
-  RippleMessagePart,
-  RippleStatus
-} from "~/flow/interfaces/ripple/interface";
+import type { RippleMessageInfo, RippleMessagePart, RippleStatus } from "~/flow/interfaces/ripple/interface";
+import {
+  getRippleClient,
+  resetRippleClient,
+  listAvailableModels,
+  convertSdkMessage,
+  type RippleClient,
+  type RippleModelOption
+} from "@/lib/ripple-client";
+import { ModelPicker } from "@/components/browser-ui/ripple-sidebar/_components/model-picker";
+
+const WORK_MODEL_KEY = "ripple-work-model";
+
+function loadSavedModel(): { providerID: string; modelID: string } | null {
+  try {
+    const raw = localStorage.getItem(WORK_MODEL_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function saveModel(model: { providerID: string; modelID: string }) {
+  localStorage.setItem(WORK_MODEL_KEY, JSON.stringify(model));
+}
+
+/** Session info as returned by client.session.list() */
+type SessionListItem = {
+  id: string;
+  title?: string;
+  createdAt?: string;
+  time?: { created?: number };
+};
 
 /**
  * Work Mode page — flow://ripple
  *
  * Full-page chat interface with session list sidebar.
- * Has full filesystem + browser access by default.
+ * Uses the OpenCode SDK client directly in the renderer.
  */
 function Page() {
   // Server status
   const [status, setStatus] = useState<RippleStatus>("stopped");
   const [isInitializing, setIsInitializing] = useState(false);
 
+  // SDK client ref
+  const clientRef = useRef<RippleClient | null>(null);
+
   // Session state
-  const [session, setSession] = useState<RippleSessionInfo | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<RippleMessageInfo[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
 
-  // Streaming message accumulator
-  const streamingMessageRef = useRef<{
-    id: string;
-    sessionId: string;
-    role: "assistant";
-    parts: RippleMessagePart[];
-  } | null>(null);
-
-  // UI state
-  const [sessions, setSessions] = useState<RippleSessionInfo[]>([]);
+  // Session list
+  const [sessions, setSessions] = useState<SessionListItem[]>([]);
   const [showSidebar, setShowSidebar] = useState(true);
+
+  // Model selection
+  const [models, setModels] = useState<RippleModelOption[]>([]);
+  const [selectedModel, setSelectedModel] = useState<{ providerID: string; modelID: string } | null>(loadSavedModel());
+  const [modelsLoading, setModelsLoading] = useState(false);
 
   // Auto-scroll ref
   const scrollRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
 
-  // Initialize OpenCode server
+  // Initialize OpenCode server + SDK client
   useEffect(() => {
     let cancelled = false;
 
@@ -50,21 +77,20 @@ function Page() {
         if (!cancelled) setStatus(currentStatus);
 
         if (currentStatus === "running") {
-          // Load existing work sessions
-          const workSessions = await flow.ripple.getSessions("work");
-          if (!cancelled) setSessions(workSessions);
+          const sdkClient = await getRippleClient();
+          if (!cancelled) {
+            clientRef.current = sdkClient;
+            setStatus("running");
+          }
           return;
         }
 
         setIsInitializing(true);
-        const success = await flow.ripple.initialize();
+        const sdkClient = await getRippleClient();
         if (!cancelled) {
-          setStatus(success ? "running" : "error");
+          clientRef.current = sdkClient;
+          setStatus("running");
           setIsInitializing(false);
-          if (success) {
-            const workSessions = await flow.ripple.getSessions("work");
-            if (!cancelled) setSessions(workSessions);
-          }
         }
       } catch {
         if (!cancelled) {
@@ -80,68 +106,48 @@ function Page() {
     };
   }, []);
 
-  // Subscribe to Ripple events
+  // Load available models + session list once running
   useEffect(() => {
-    const removeListener = flow.ripple.onEvent((event: RippleEvent) => {
-      switch (event.type) {
-        case "status-changed":
-          setStatus(event.status);
-          break;
+    if (status !== "running" || !clientRef.current) return;
 
-        case "message-start":
-          streamingMessageRef.current = {
-            id: event.messageId,
-            sessionId: event.sessionId,
-            role: "assistant",
-            parts: []
-          };
-          setIsStreaming(true);
-          break;
+    let cancelled = false;
+    const client = clientRef.current;
 
-        case "message-part":
-          if (streamingMessageRef.current && streamingMessageRef.current.id === event.messageId) {
-            streamingMessageRef.current.parts = [...streamingMessageRef.current.parts, event.part];
-            setMessages((prev) => {
-              const existing = prev.findIndex((m) => m.id === event.messageId);
-              const updated: RippleMessageInfo = {
-                ...streamingMessageRef.current!,
-                createdAt: new Date().toISOString()
-              };
-              if (existing >= 0) {
-                const next = [...prev];
-                next[existing] = updated;
-                return next;
-              }
-              return [...prev, updated];
-            });
-          }
-          break;
+    // Load models
+    setModelsLoading(true);
+    listAvailableModels(client)
+      .then(({ models: availableModels, defaultModel }) => {
+        if (cancelled) return;
+        setModels(availableModels);
+        setModelsLoading(false);
 
-        case "message-complete":
-          streamingMessageRef.current = null;
-          setIsStreaming(false);
-          break;
+        if (!selectedModel && defaultModel) {
+          setSelectedModel(defaultModel);
+          saveModel(defaultModel);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setModelsLoading(false);
+      });
 
-        case "session-updated":
-          if (event.session.mode === "work") {
-            setSessions((prev) => {
-              const idx = prev.findIndex((s) => s.id === event.session.id);
-              if (idx >= 0) {
-                const next = [...prev];
-                next[idx] = event.session;
-                return next;
-              }
-              return [event.session, ...prev];
-            });
-          }
-          break;
-      }
-    });
+    // Load session list
+    client.session
+      .list()
+      .then(({ data }: { data?: unknown }) => {
+        if (cancelled || !data) return;
+        // data is an array of session objects
+        const sessionList = data as SessionListItem[];
+        setSessions(sessionList);
+      })
+      .catch(() => {
+        // ignore
+      });
 
     return () => {
-      removeListener();
+      cancelled = true;
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -161,46 +167,72 @@ function Page() {
     isAtBottomRef.current = scrollHeight - scrollTop - clientHeight < 40;
   };
 
+  // Handle model change
+  const handleSelectModel = useCallback((model: { providerID: string; modelID: string }) => {
+    setSelectedModel(model);
+    saveModel(model);
+  }, []);
+
   // Create a new work session
   const handleNewSession = useCallback(async () => {
-    if (status !== "running") return;
+    if (status !== "running" || !clientRef.current) return;
 
     try {
-      const newSession = await flow.ripple.createSession("work");
-      setSession(newSession);
+      const { data } = await clientRef.current.session.create({
+        body: { title: "Work Session" }
+      });
+      if (!data) return;
+
+      setSessionId(data.id);
       setMessages([]);
+
+      // Add to session list
+      setSessions((prev) => [{ id: data.id, title: "Work Session", time: { created: Date.now() } }, ...prev]);
     } catch (e) {
       console.error("[Ripple Work] Failed to create session:", e);
     }
   }, [status]);
 
   // Select an existing session
-  const handleSelectSession = useCallback(
-    async (sessionId: string) => {
-      const selected = sessions.find((s) => s.id === sessionId);
-      if (!selected) return;
+  const handleSelectSession = useCallback(async (sid: string) => {
+    if (!clientRef.current) return;
 
-      setSession(selected);
-      try {
-        const msgs = await flow.ripple.getMessages(sessionId);
-        setMessages(msgs);
-      } catch {
+    setSessionId(sid);
+
+    try {
+      const { data } = await clientRef.current.session.messages({ path: { id: sid } });
+      if (data) {
+        setMessages(data.map((msg: unknown) => convertSdkMessage(msg, sid)));
+      } else {
         setMessages([]);
       }
-    },
-    [sessions]
-  );
+    } catch {
+      setMessages([]);
+    }
+  }, []);
 
   // Send a prompt
   const handleSend = useCallback(
     async (text: string) => {
-      let activeSession = session;
+      if (!clientRef.current) return;
+
+      const client = clientRef.current;
+      let activeSessionId = sessionId;
 
       // Auto-create a session if none exists
-      if (!activeSession) {
+      if (!activeSessionId) {
         try {
-          activeSession = await flow.ripple.createSession("work");
-          setSession(activeSession);
+          const { data } = await client.session.create({
+            body: { title: "Work Session" }
+          });
+          if (!data) return;
+
+          activeSessionId = data.id;
+          setSessionId(activeSessionId);
+          setSessions((prev) => [
+            { id: activeSessionId!, title: "Work Session", time: { created: Date.now() } },
+            ...prev
+          ]);
         } catch (e) {
           console.error("[Ripple Work] Failed to create session:", e);
           return;
@@ -210,7 +242,7 @@ function Page() {
       // Optimistically add user message
       const userMsg: RippleMessageInfo = {
         id: `user-${Date.now()}`,
-        sessionId: activeSession.id,
+        sessionId: activeSessionId,
         role: "user",
         parts: [{ type: "text", text }],
         createdAt: new Date().toISOString()
@@ -219,27 +251,51 @@ function Page() {
       setIsStreaming(true);
 
       try {
-        await flow.ripple.sendPrompt(activeSession.id, text);
+        await client.session.prompt({
+          path: { id: activeSessionId },
+          body: {
+            parts: [{ type: "text", text }],
+            ...(selectedModel
+              ? { model: { providerID: selectedModel.providerID, modelID: selectedModel.modelID } }
+              : {})
+          }
+        });
+
+        // Reload all messages to get final state
+        const { data: allMessages } = await client.session.messages({ path: { id: activeSessionId } });
+        if (allMessages) {
+          setMessages(allMessages.map((msg: unknown) => convertSdkMessage(msg, activeSessionId!)));
+        }
       } catch (e) {
         console.error("[Ripple Work] Send prompt error:", e);
+      } finally {
         setIsStreaming(false);
       }
     },
-    [session]
+    [sessionId, selectedModel]
   );
 
   // Abort generation
   const handleAbort = useCallback(async () => {
-    if (!session) return;
+    if (!clientRef.current || !sessionId) return;
 
     try {
-      await flow.ripple.abort(session.id);
+      await clientRef.current.session.abort({ path: { id: sessionId } });
     } catch {
       // ignore
     }
     setIsStreaming(false);
-    streamingMessageRef.current = null;
-  }, [session]);
+
+    // Reload messages
+    try {
+      const { data } = await clientRef.current.session.messages({ path: { id: sessionId } });
+      if (data) {
+        setMessages(data.map((msg: unknown) => convertSdkMessage(msg, sessionId)));
+      }
+    } catch {
+      // ignore
+    }
+  }, [sessionId]);
 
   // Loading state
   if (status === "stopped" || isInitializing) {
@@ -267,8 +323,14 @@ function Page() {
             onClick={async () => {
               setIsInitializing(true);
               setStatus("starting");
-              const success = await flow.ripple.initialize();
-              setStatus(success ? "running" : "error");
+              resetRippleClient();
+              try {
+                const sdkClient = await getRippleClient();
+                clientRef.current = sdkClient;
+                setStatus("running");
+              } catch {
+                setStatus("error");
+              }
               setIsInitializing(false);
             }}
             className="mt-2 px-4 py-2 text-sm bg-white/10 hover:bg-white/15 text-white/70 rounded-md transition-colors"
@@ -314,11 +376,13 @@ function Page() {
                     className={cn(
                       "w-full text-left px-3 py-2.5 text-sm transition-colors",
                       "hover:bg-white/5",
-                      session?.id === s.id ? "bg-white/10 text-white/90" : "text-white/50"
+                      sessionId === s.id ? "bg-white/10 text-white/90" : "text-white/50"
                     )}
                   >
                     <div className="truncate">{s.title || "Untitled session"}</div>
-                    <div className="text-[10px] text-white/25 mt-0.5">{formatTimestamp(s.createdAt)}</div>
+                    <div className="text-[10px] text-white/25 mt-0.5">
+                      {formatTimestamp(s.time?.created, s.createdAt)}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -344,6 +408,17 @@ function Page() {
           </button>
           <span className="text-sm font-medium text-white/80">Ripple</span>
           <span className="text-xs text-white/30">Work Mode</span>
+
+          {/* Model picker in header */}
+          <div className="ml-auto w-56">
+            <ModelPicker
+              models={models}
+              selectedModel={selectedModel}
+              onSelectModel={handleSelectModel}
+              isLoading={modelsLoading}
+              compact
+            />
+          </div>
         </div>
 
         {/* Messages */}
@@ -655,9 +730,11 @@ function SidebarIcon() {
 
 // ─── Utilities ───────────────────────────────────────────────────
 
-function formatTimestamp(isoString: string): string {
+function formatTimestamp(epochMs?: number, isoString?: string): string {
   try {
-    const date = new Date(isoString);
+    const date = epochMs ? new Date(epochMs) : isoString ? new Date(isoString) : null;
+    if (!date) return "";
+
     const now = new Date();
     const diff = now.getTime() - date.getTime();
 

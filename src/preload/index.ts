@@ -37,7 +37,6 @@ import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
 import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/find-in-page";
 import { FlowRippleAPI } from "~/flow/interfaces/ripple/interface";
-import type { RippleMode, RippleEvent } from "~/flow/interfaces/ripple/interface";
 import type {
   AssertCredentialErrorCodes,
   AssertCredentialResult,
@@ -846,29 +845,8 @@ const rippleAPI: FlowRippleAPI = {
   getStatus: async () => {
     return ipcRenderer.invoke("ripple:get-status");
   },
-  createSession: async (mode: RippleMode, tabId?: number) => {
-    return ipcRenderer.invoke("ripple:create-session", mode, tabId);
-  },
-  getOrCreateTabSession: async (tabId: number) => {
-    return ipcRenderer.invoke("ripple:get-or-create-tab-session", tabId);
-  },
-  sendPrompt: async (sessionId: string, text: string) => {
-    return ipcRenderer.invoke("ripple:send-prompt", sessionId, text);
-  },
-  abort: async (sessionId: string) => {
-    return ipcRenderer.invoke("ripple:abort", sessionId);
-  },
-  getSessions: async (mode?: RippleMode) => {
-    return ipcRenderer.invoke("ripple:get-sessions", mode);
-  },
-  getMessages: async (sessionId: string) => {
-    return ipcRenderer.invoke("ripple:get-messages", sessionId);
-  },
-  toggleFsAccess: async (sessionId: string, enabled: boolean) => {
-    return ipcRenderer.invoke("ripple:toggle-fs-access", sessionId, enabled);
-  },
-  onEvent: (callback: (event: RippleEvent) => void) => {
-    return listenOnIPCChannel("ripple:event", callback);
+  getServerUrl: async () => {
+    return ipcRenderer.invoke("ripple:get-server-url");
   },
   toggleSidebar: () => {
     return ipcRenderer.send("ripple:toggle-sidebar");

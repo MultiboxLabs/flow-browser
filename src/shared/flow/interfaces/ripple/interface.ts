@@ -6,7 +6,7 @@ export type RippleMode = "browse" | "work";
 /** Status of the Ripple OpenCode server. */
 export type RippleStatus = "stopped" | "starting" | "running" | "error";
 
-/** Ripple session summary (sent to renderer). */
+/** Ripple session summary (used in renderer). */
 export type RippleSessionInfo = {
   id: string;
   title?: string;
@@ -21,7 +21,7 @@ export type RippleMessagePart =
   | { type: "tool-invocation"; toolName: string; args: Record<string, unknown>; result?: string; state: string }
   | { type: "step-start"; title?: string };
 
-/** Ripple message (sent to renderer). */
+/** Ripple message (used in renderer). */
 export type RippleMessageInfo = {
   id: string;
   sessionId: string;
@@ -30,45 +30,21 @@ export type RippleMessageInfo = {
   createdAt: string;
 };
 
-/** Events streamed from main process to renderer. */
-export type RippleEvent =
-  | { type: "status-changed"; status: RippleStatus; error?: string }
-  | { type: "message-start"; sessionId: string; messageId: string; role: "assistant" }
-  | { type: "message-part"; sessionId: string; messageId: string; part: RippleMessagePart }
-  | { type: "message-complete"; sessionId: string; messageId: string }
-  | { type: "session-updated"; session: RippleSessionInfo };
-
-// API //
+/**
+ * Simplified Ripple IPC API.
+ *
+ * Session management, messages, and model selection are handled directly
+ * by the OpenCode SDK client in the renderer process.
+ */
 export interface FlowRippleAPI {
-  /** Initialize the Ripple OpenCode server. Returns true if successful. */
-  initialize: () => Promise<boolean>;
+  /** Initialize the Ripple OpenCode server. Returns the server URL or null on failure. */
+  initialize: () => Promise<{ url: string } | null>;
 
   /** Get the current server status. */
   getStatus: () => Promise<RippleStatus>;
 
-  /** Create a new session. For browse mode, pass the tabId. */
-  createSession: (mode: RippleMode, tabId?: number) => Promise<RippleSessionInfo>;
-
-  /** Get or create a session for a specific tab (browse mode). */
-  getOrCreateTabSession: (tabId: number) => Promise<RippleSessionInfo>;
-
-  /** Send a prompt message. Returns the assistant response. */
-  sendPrompt: (sessionId: string, text: string) => Promise<void>;
-
-  /** Abort the current generation in a session. */
-  abort: (sessionId: string) => Promise<boolean>;
-
-  /** List all sessions, optionally filtered by mode. */
-  getSessions: (mode?: RippleMode) => Promise<RippleSessionInfo[]>;
-
-  /** Get messages for a session. */
-  getMessages: (sessionId: string) => Promise<RippleMessageInfo[]>;
-
-  /** Toggle filesystem access for a browse-mode session. */
-  toggleFsAccess: (sessionId: string, enabled: boolean) => Promise<boolean>;
-
-  /** Subscribe to Ripple events. */
-  onEvent: IPCListener<[RippleEvent]>;
+  /** Get the server URL (null if not running). */
+  getServerUrl: () => Promise<string | null>;
 
   /** Toggle the Ripple sidebar visibility. */
   toggleSidebar: () => void;
