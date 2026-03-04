@@ -4,6 +4,7 @@ import { tabsController } from "@/controllers/tabs-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { getSettingValueById } from "@/saving/settings";
 import { BrowserWindow, ipcMain } from "electron";
+import type { WebContents } from "electron";
 import type {
   AssertCredentialErrorCodes,
   AssertCredentialResult,
@@ -41,6 +42,9 @@ interface ConditionalSession {
   passkeys: PasskeyCredentialInfo[];
   currentOrigin: string;
   topFrameOrigin: string | undefined;
+  tabWebContents: WebContents;
+  selectedIndex: number; // -1 = no selection
+  overlayVisible: boolean;
 }
 
 const conditionalSessions = new Map<number, ConditionalSession>();
@@ -51,6 +55,135 @@ function cancelConditionalSession(tabWcId: number, reason: AssertCredentialError
     session.resolve(reason);
     conditionalSessions.delete(tabWcId);
   }
+}
+
+/** Send the current selectedIndex to the browser chrome renderer for display. */
+function sendSelectionUpdate(session: ConditionalSession) {
+  const tab = tabsController.getTabByWebContents(session.tabWebContents);
+  if (!tab) return;
+  try {
+    tab.getWindow().sendMessageToCoreWebContents("webauthn:conditional-update-selection", session.selectedIndex);
+  } catch {
+    // Window may already be destroyed
+  }
+}
+
+/**
+ * Handle keyboard input from the tab's webContents when a conditional session
+ * is active and the overlay is visible. Uses `before-input-event` so we can
+ * synchronously prevent default behavior (critical for Enter).
+ */
+function handleBeforeInput(tabWcId: number, event: Electron.Event, input: Electron.Input) {
+  if (input.type !== "keyDown") return;
+
+  const session = conditionalSessions.get(tabWcId);
+  if (!session || !session.overlayVisible) return;
+
+  switch (input.key) {
+    case "ArrowDown":
+      event.preventDefault();
+      session.selectedIndex = Math.min(session.selectedIndex + 1, session.passkeys.length - 1);
+      sendSelectionUpdate(session);
+      break;
+    case "ArrowUp":
+      event.preventDefault();
+      if (session.selectedIndex > 0) {
+        session.selectedIndex = session.selectedIndex - 1;
+      }
+      sendSelectionUpdate(session);
+      break;
+    case "Enter":
+      if (session.selectedIndex >= 0 && session.passkeys[session.selectedIndex]) {
+        event.preventDefault();
+        const tab = tabsController.getTabByWebContents(session.tabWebContents);
+        if (tab) {
+          const passkey = session.passkeys[session.selectedIndex];
+          try {
+            tab.getWindow().sendMessageToCoreWebContents("webauthn:conditional-hide-overlay");
+          } catch {
+            // Window may already be destroyed
+          }
+          session.overlayVisible = false;
+          performConditionalSelect(tabWcId, session, passkey.id);
+        }
+      }
+      // If nothing selected, let Enter pass through to the page
+      break;
+    case "Escape":
+      event.preventDefault();
+      session.overlayVisible = false;
+      session.selectedIndex = -1;
+      {
+        const tab = tabsController.getTabByWebContents(session.tabWebContents);
+        if (tab) {
+          try {
+            tab.getWindow().sendMessageToCoreWebContents("webauthn:conditional-hide-overlay");
+          } catch {
+            // Window may already be destroyed
+          }
+        }
+      }
+      break;
+  }
+}
+
+/**
+ * Perform the actual credential selection for a conditional session.
+ * Shared by both the keyboard Enter handler and the click-based select IPC.
+ */
+async function performConditionalSelect(tabWcId: number, session: ConditionalSession, credentialId: string) {
+  // Validate that the credential ID was in the set presented to the user
+  const isKnownCredential = session.passkeys.some((p) => p.id === credentialId);
+  if (!isKnownCredential) {
+    session.resolve("NotAllowedError");
+    conditionalSessions.delete(tabWcId);
+    return;
+  }
+
+  const webauthn = await getWebauthnAddon();
+  if (!webauthn) {
+    session.resolve("NotSupportedError");
+    conditionalSessions.delete(tabWcId);
+    return;
+  }
+
+  const tab = tabsController.getTabByWebContents(session.tabWebContents);
+  const win = tab ? BrowserWindow.fromId(tab.getWindow().browserWindow.id) : null;
+  if (!win) {
+    session.resolve("NotAllowedError");
+    conditionalSessions.delete(tabWcId);
+    return;
+  }
+
+  const conditionalOptions = {
+    ...session.publicKeyOptions,
+    allowCredentials: [
+      {
+        type: "public-key" as const,
+        id: Buffer.from(credentialId, "base64url")
+      }
+    ]
+  } as PublicKeyCredentialRequestOptions;
+
+  const result = await webauthn.getCredential(conditionalOptions, {
+    currentOrigin: session.currentOrigin,
+    topFrameOrigin: session.topFrameOrigin,
+    isPublicSuffix,
+    nativeWindowHandle: win.getNativeWindowHandle()
+  });
+
+  // Guard against stale session reference after async gap
+  if (conditionalSessions.get(tabWcId) !== session) {
+    return;
+  }
+
+  if (result.success === false) {
+    session.resolve(result.error);
+  } else {
+    session.resolve(result.data);
+  }
+
+  conditionalSessions.delete(tabWcId);
 }
 
 // ─── webauthn:create ─────────────────────────────────────────────────────────
@@ -206,6 +339,11 @@ ipcMain.handle(
         // Check if this tab is still the active one
         if (!tabsController.isTabActive(tab)) {
           // Tab is no longer active — hide overlay but keep session alive
+          const session = conditionalSessions.get(tabWcId);
+          if (session) {
+            session.overlayVisible = false;
+            session.selectedIndex = -1;
+          }
           try {
             tab.getWindow().sendMessageToCoreWebContents("webauthn:conditional-hide-overlay");
           } catch {
@@ -214,19 +352,30 @@ ipcMain.handle(
         }
       });
 
+      // Intercept keyboard events (arrows, enter, escape) from the tab's
+      // webContents so we can navigate the overlay without stealing focus.
+      const beforeInputHandler = (_event: Electron.Event, input: Electron.Input) => {
+        handleBeforeInput(tabWcId, _event, input);
+      };
+      event.sender.on("before-input-event", beforeInputHandler);
+
       return new Promise<AssertCredentialResult | AssertCredentialErrorCodes | null>((resolve) => {
         conditionalSessions.set(tabWcId, {
           resolve: (value) => {
             // Remove cleanup listeners once resolved
             event.sender.removeListener("destroyed", cleanup);
             event.sender.removeListener("did-start-navigation", cleanup);
+            event.sender.removeListener("before-input-event", beforeInputHandler);
             disconnectActiveTabChanged();
             resolve(value);
           },
           publicKeyOptions,
           passkeys: listResult.credentials,
           currentOrigin,
-          topFrameOrigin
+          topFrameOrigin,
+          tabWebContents: event.sender,
+          selectedIndex: -1,
+          overlayVisible: false
         });
       });
     }
@@ -284,6 +433,9 @@ ipcMain.on(
       height: Math.min(session.passkeys.length * PASSKEY_ITEM_HEIGHT + OVERLAY_HEADER_HEIGHT, OVERLAY_MAX_HEIGHT)
     };
 
+    session.overlayVisible = true;
+    session.selectedIndex = -1;
+
     browserWindow.sendMessageToCoreWebContents("webauthn:conditional-show-overlay", {
       passkeys: session.passkeys,
       position
@@ -292,6 +444,12 @@ ipcMain.on(
 );
 
 ipcMain.on("webauthn:conditional-input-blur", (event) => {
+  const session = conditionalSessions.get(event.sender.id);
+  if (session) {
+    session.overlayVisible = false;
+    session.selectedIndex = -1;
+  }
+
   const tab = tabsController.getTabByWebContents(event.sender);
   if (!tab) return;
 
@@ -311,66 +469,31 @@ ipcMain.on("webauthn:conditional-select", async (event, credentialId: string) =>
   const focusedTab = tabsController.getFocusedTab(browserWindow.id, spaceId);
   if (!focusedTab?.webContents) return;
 
-  const session = conditionalSessions.get(focusedTab.webContents.id);
+  const tabWcId = focusedTab.webContents.id;
+  const session = conditionalSessions.get(tabWcId);
   if (!session) return;
 
   // Hide the overlay immediately
   browserWindow.sendMessageToCoreWebContents("webauthn:conditional-hide-overlay");
+  session.overlayVisible = false;
 
-  // Validate that the credential ID was in the set presented to the user
-  const isKnownCredential = session.passkeys.some((p) => p.id === credentialId);
-  if (!isKnownCredential) {
-    session.resolve("NotAllowedError");
-    conditionalSessions.delete(focusedTab.webContents.id);
-    return;
-  }
+  performConditionalSelect(tabWcId, session, credentialId);
+});
 
-  const webauthn = await getWebauthnAddon();
-  if (!webauthn) {
-    session.resolve("NotSupportedError");
-    conditionalSessions.delete(focusedTab.webContents.id);
-    return;
-  }
+ipcMain.on("webauthn:conditional-set-selection", (event, index: number) => {
+  const browserWindow = browserWindowsController.getWindowFromWebContents(event.sender);
+  if (!browserWindow) return;
 
-  const win = BrowserWindow.fromWebContents(event.sender);
-  if (!win) {
-    session.resolve("NotAllowedError");
-    conditionalSessions.delete(focusedTab.webContents.id);
-    return;
-  }
+  const spaceId = browserWindow.currentSpaceId;
+  if (!spaceId) return;
 
-  // Build options with only the selected credential in allowCredentials
-  const conditionalOptions = {
-    ...session.publicKeyOptions,
-    allowCredentials: [
-      {
-        type: "public-key" as const,
-        id: Buffer.from(credentialId, "base64url")
-      }
-    ]
-  } as PublicKeyCredentialRequestOptions;
+  const focusedTab = tabsController.getFocusedTab(browserWindow.id, spaceId);
+  if (!focusedTab?.webContents) return;
 
-  const result = await webauthn.getCredential(conditionalOptions, {
-    currentOrigin: session.currentOrigin,
-    topFrameOrigin: session.topFrameOrigin,
-    isPublicSuffix,
-    nativeWindowHandle: win.getNativeWindowHandle()
-  });
+  const session = conditionalSessions.get(focusedTab.webContents.id);
+  if (!session) return;
 
-  // Guard against stale session reference after async gap — the session may
-  // have been cancelled/replaced by navigation or tab destruction while the
-  // biometric prompt was open.
-  if (conditionalSessions.get(focusedTab.webContents.id) !== session) {
-    return;
-  }
-
-  if (result.success === false) {
-    session.resolve(result.error);
-  } else {
-    session.resolve(result.data);
-  }
-
-  conditionalSessions.delete(focusedTab.webContents.id);
+  session.selectedIndex = index;
 });
 
 ipcMain.on("webauthn:conditional-dismiss", (event) => {

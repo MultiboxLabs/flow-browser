@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { KeyRound, X } from "lucide-react";
@@ -42,66 +42,21 @@ function PasskeyItem({
 
 function PasskeyDropdown({
   passkeys,
+  selectedIndex,
+  isLight,
   onSelect,
-  onDismiss
+  onDismiss,
+  onMouseEnterItem
 }: {
   passkeys: PasskeyCredentialInfo[];
+  selectedIndex: number;
+  isLight: boolean;
   onSelect: (id: string) => void;
   onDismiss: () => void;
+  onMouseEnterItem: (index: number) => void;
 }) {
-  // Start with no selection (-1). Arrow down selects the first item.
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const selectedIndexRef = useRef(selectedIndex);
-  selectedIndexRef.current = selectedIndex;
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const doc = el.ownerDocument;
-    const win = doc.defaultView ?? window;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case "ArrowDown":
-          e.preventDefault();
-          setSelectedIndex((prev) => {
-            if (prev < passkeys.length - 1) return prev + 1;
-            return prev;
-          });
-          break;
-        case "ArrowUp":
-          e.preventDefault();
-          setSelectedIndex((prev) => {
-            if (prev > 0) return prev - 1;
-            return prev;
-          });
-          break;
-        case "Enter": {
-          // Only intercept enter if an item is selected
-          const idx = selectedIndexRef.current;
-          if (idx >= 0 && passkeys[idx]) {
-            e.preventDefault();
-            onSelect(passkeys[idx].id);
-          }
-          break;
-        }
-        case "Escape":
-          e.preventDefault();
-          onDismiss();
-          break;
-      }
-    };
-
-    win.addEventListener("keydown", handleKeyDown, true);
-    return () => {
-      win.removeEventListener("keydown", handleKeyDown, true);
-    };
-  }, [passkeys, onSelect, onDismiss]);
-
   return (
     <motion.div
-      ref={containerRef}
       className={cn(
         "w-full overflow-hidden outline-none",
         "bg-white/95 dark:bg-neutral-900/95 backdrop-blur-md",
@@ -127,14 +82,20 @@ function PasskeyDropdown({
         </button>
       </div>
 
-      <div className="max-h-[220px] overflow-y-auto">
+      <div
+        className="max-h-[220px] overflow-y-auto"
+        style={{
+          scrollbarWidth: "thin",
+          scrollbarColor: isLight ? "rgba(0,0,0,0.2) transparent" : "rgba(255,255,255,0.2) transparent"
+        }}
+      >
         {passkeys.map((passkey, index) => (
           <PasskeyItem
             key={passkey.id}
             passkey={passkey}
             isSelected={index === selectedIndex}
             onSelect={onSelect}
-            onMouseEnter={() => setSelectedIndex(index)}
+            onMouseEnter={() => onMouseEnterItem(index)}
           />
         ))}
       </div>
@@ -146,6 +107,7 @@ export function PasskeyOverlay() {
   const [visible, setVisible] = useState(false);
   const [passkeys, setPasskeys] = useState<PasskeyCredentialInfo[]>([]);
   const [position, setPosition] = useState<PasskeyOverlayPosition>({ x: 0, y: 0, width: 300, height: 200 });
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const [shownForTabId, setShownForTabId] = useState<number | null>(null);
   const focusedTabId = useFocusedTabId();
 
@@ -154,6 +116,7 @@ export function PasskeyOverlay() {
       setPasskeys(data.passkeys);
       setPosition(data.position);
       setShownForTabId(focusedTabId);
+      setSelectedIndex(-1);
       setVisible(true);
     });
   }, [focusedTabId]);
@@ -161,6 +124,12 @@ export function PasskeyOverlay() {
   useEffect(() => {
     return flow.passkeyOverlay.onHide(() => {
       setVisible(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    return flow.passkeyOverlay.onSelectionChange((index: number) => {
+      setSelectedIndex(index);
     });
   }, []);
 
@@ -179,6 +148,11 @@ export function PasskeyOverlay() {
     setVisible(false);
   }, []);
 
+  const handleMouseEnterItem = useCallback((index: number) => {
+    setSelectedIndex(index);
+    flow.passkeyOverlay.setSelection(index);
+  }, []);
+
   const portalStyle: React.CSSProperties = {
     top: position.y,
     left: position.x,
@@ -191,7 +165,14 @@ export function PasskeyOverlay() {
       <div className={cn(!isCurrentSpaceLight && "dark")}>
         <AnimatePresence>
           {isEffectivelyVisible && passkeys.length > 0 && (
-            <PasskeyDropdown passkeys={passkeys} onSelect={handleSelect} onDismiss={handleDismiss} />
+            <PasskeyDropdown
+              passkeys={passkeys}
+              selectedIndex={selectedIndex}
+              isLight={isCurrentSpaceLight}
+              onSelect={handleSelect}
+              onDismiss={handleDismiss}
+              onMouseEnterItem={handleMouseEnterItem}
+            />
           )}
         </AnimatePresence>
       </div>
