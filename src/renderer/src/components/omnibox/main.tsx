@@ -2,19 +2,7 @@ import { Command, CommandItem, CommandList } from "@/components/ui/command";
 import { AutocompleteMatch, InlineCompletion } from "@/lib/omnibox/types";
 import { Omnibox } from "@/lib/omnibox/omnibox";
 import { useEffect, useRef, useState, useCallback } from "react";
-import {
-  Search,
-  History,
-  Zap,
-  Terminal,
-  Settings,
-  PlusSquare,
-  Link,
-  PuzzleIcon,
-  Globe,
-  Bookmark,
-  ArrowUpRight
-} from "lucide-react";
+import { Search, Zap, Settings, PlusSquare, PuzzleIcon, Globe } from "lucide-react";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { AnimatePresence } from "motion/react";
 import { motion } from "motion/react";
@@ -23,7 +11,8 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/main/theme";
 import { OmniboxShowParams } from "~/flow/interfaces/browser/omnibox";
 
-const SHOW_INSTRUCTIONS = true;
+const SHOW_INSTRUCTIONS = false;
+const DESCRIPTION_ENABLED = false;
 
 function getIconForType(type: AutocompleteMatch["type"], match: AutocompleteMatch) {
   switch (type) {
@@ -31,15 +20,15 @@ function getIconForType(type: AutocompleteMatch["type"], match: AutocompleteMatc
     case "verbatim":
       return <Search className="h-5 w-5 text-primary" />;
     case "history-url":
-      return <History className="h-5 w-5 text-amber-500" />;
+      return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5" />;
     case "url-what-you-typed":
       return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5" />;
     case "navsuggest":
-      return <Globe className="h-5 w-5 text-blue-500" />;
+      return <Globe className="h-5 w-5 text-primary" />;
     case "bookmark":
-      return <Bookmark className="h-5 w-5 text-yellow-500" />;
+      return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5" />;
     case "shortcut":
-      return <ArrowUpRight className="h-5 w-5 text-violet-500" />;
+      return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5" />;
     case "pedal":
       if (match.destinationUrl === "open_settings") {
         return <Settings className="h-5 w-5 text-blue-500" />;
@@ -52,35 +41,19 @@ function getIconForType(type: AutocompleteMatch["type"], match: AutocompleteMatc
       }
       return <Zap className="h-5 w-5 text-purple-500" />;
     case "open-tab":
-      return <Terminal className="h-5 w-5 text-teal-600 dark:text-teal-500" />;
+      return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5" />;
     case "zero-suggest":
     default:
-      return <Link className="h-5 w-5 text-gray-500" />;
+      return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5" />;
   }
 }
 
 function getActionForType(type: AutocompleteMatch["type"]) {
   switch (type) {
-    case "search-query":
-    case "verbatim":
-      return "Search";
     case "open-tab":
       return "Switch to Tab";
-    case "history-url":
-      return "History";
-    case "url-what-you-typed":
-      return "Go to";
-    case "navsuggest":
-      return "Navigate";
-    case "bookmark":
-      return "Bookmark";
-    case "shortcut":
-      return "Shortcut";
-    case "pedal":
-      return "Action";
-    case "zero-suggest":
     default:
-      return "Navigate";
+      return null;
   }
 }
 
@@ -298,7 +271,7 @@ export function OmniboxMain() {
 
   return (
     <div
-      className="flex flex-col justify-start items-center min-h-screen max-h-screen w-full overflow-hidden p-[1px]"
+      className="flex flex-col justify-start items-center min-h-screen max-h-screen w-full overflow-hidden p-px"
       ref={containerRef}
     >
       <div className="w-full h-full mx-auto" style={{ maxHeight: "100vh", opacity: isVisible ? 1 : 0 }}>
@@ -322,7 +295,7 @@ export function OmniboxMain() {
           }}
           disablePointerSelection
         >
-          <div className="flex items-center p-3.5 border-b border-black/10 dark:border-white/10 flex-shrink-0 relative">
+          <div className="flex items-center p-3.5 border-b border-black/10 dark:border-white/10 shrink-0 relative">
             <div className="relative flex-1">
               <CommandInput
                 placeholder="Search, navigate, or enter URL..."
@@ -375,14 +348,14 @@ export function OmniboxMain() {
                     className={cn(
                       "flex items-center justify-between my-0.5 px-3 py-2 cursor-pointer rounded-lg transition-colors",
                       "hover:bg-black/5 dark:hover:bg-white/10",
-                      "aria-selected:!bg-black/10 dark:aria-selected:!bg-white/15"
+                      "aria-selected:bg-black/10! dark:aria-selected:bg-white/15!"
                     )}
                     key={match.destinationUrl}
                     value={match.destinationUrl}
                     onSelect={() => handleSelect(match)}
                   >
                     <div className="flex items-center min-w-0 flex-1 mr-3">
-                      <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/5">
+                      <div className={cn("w-8 h-8 mr-2 shrink-0 flex items-center justify-center rounded-full")}>
                         {getIconForType(match.type, match)}
                       </div>
                       <div className="max-w-[70%] overflow-hidden">
@@ -392,10 +365,11 @@ export function OmniboxMain() {
                         >
                           {match.contents}
                         </span>
-                        {(match.type === "history-url" ||
-                          match.type === "navsuggest" ||
-                          match.type === "bookmark" ||
-                          match.type === "shortcut") &&
+                        {DESCRIPTION_ENABLED &&
+                          (match.type === "history-url" ||
+                            match.type === "navsuggest" ||
+                            match.type === "bookmark" ||
+                            match.type === "shortcut") &&
                           match.description && (
                             <span
                               className="text-xs text-black/50 dark:text-white/50 truncate block"
@@ -406,9 +380,11 @@ export function OmniboxMain() {
                           )}
                       </div>
                     </div>
-                    <div className="flex items-center text-xs text-black/60 dark:text-white/60 flex-shrink-0 bg-black/5 dark:bg-white/10 rounded-md px-2 py-1">
-                      <span>{getActionForType(match.type)}</span>
-                    </div>
+                    {getActionForType(match.type) && (
+                      <div className="flex items-center text-xs text-black/60 dark:text-white/60 shrink-0 bg-black/5 dark:bg-white/10 rounded-md px-2 py-1">
+                        <span>{getActionForType(match.type)}</span>
+                      </div>
+                    )}
                   </CommandItem>
                 ))}
               </AnimatePresence>
@@ -416,7 +392,7 @@ export function OmniboxMain() {
           )}
 
           {input && SHOW_INSTRUCTIONS && (
-            <div className="px-3 py-2 text-xs text-black/50 dark:text-white/50 border-t border-black/10 dark:border-white/10 flex-shrink-0">
+            <div className="px-3 py-2 text-xs text-black/50 dark:text-white/50 border-t border-black/10 dark:border-white/10 shrink-0">
               <div className="flex justify-between">
                 <div>
                   Press <kbd className="px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10">↑</kbd>{" "}
