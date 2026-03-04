@@ -658,6 +658,10 @@ const appAPI: FlowAppAPI = {
     return ipcRenderer.invoke("app:get-default-browser");
   },
 
+  getDragToken: async () => {
+    return ipcRenderer.invoke("app:get-drag-token");
+  },
+
   // Special Exception: This is allowed for all pages everywhere.
   getPlatform: () => {
     return process.platform;
@@ -840,7 +844,8 @@ const shortcutsAPI: FlowShortcutsAPI = {
 const flowAPI: typeof flow = {
   // App APIs
   app: wrapAPI(appAPI, "app", {
-    getPlatform: "all"
+    getPlatform: "all",
+    getDragToken: "browser"
   }),
   windows: wrapAPI(windowsAPI, "app"),
   extensions: wrapAPI(extensionsAPI, "app"),

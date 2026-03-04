@@ -32,4 +32,10 @@ export interface FlowAppAPI {
    * Gets the default browser
    */
   getDefaultBrowser: () => Promise<boolean>;
+
+  /**
+   * Returns the session-scoped drag token used to authenticate cross-window
+   * tab drag-and-drop payloads. Only accessible to browser UI pages.
+   */
+  getDragToken: () => Promise<string>;
 }

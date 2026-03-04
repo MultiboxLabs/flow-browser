@@ -9,6 +9,7 @@ import { dropTargetForExternal } from "@atlaskit/pragmatic-drag-and-drop/externa
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { AnimatePresence, motion } from "motion/react";
 import { TAB_GROUP_MIME_TYPE, TAB_GROUP_PROFILE_MIME_PREFIX } from "@/lib/tab-drag-mime";
+import { getSessionDragToken } from "@/lib/tab-drag-token";
 
 // Layout constants (px)
 const ICON_SIZE = 28; // size-7
@@ -127,6 +128,7 @@ function SpaceButton({ space, isActive, compact }: SpaceButtonProps) {
 
           try {
             const sourceData = JSON.parse(raw) as TabGroupSourceData;
+            if (sourceData.sessionToken !== getSessionDragToken()) return;
             handleDrop(sourceData, true);
           } catch {
             // Invalid data from external source

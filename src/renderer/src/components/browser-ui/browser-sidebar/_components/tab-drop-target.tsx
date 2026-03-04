@@ -12,6 +12,7 @@ import {
 } from "@atlaskit/pragmatic-drag-and-drop/external/adapter";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { TAB_GROUP_MIME_TYPE, TAB_GROUP_PROFILE_MIME_PREFIX } from "@/lib/tab-drag-mime";
+import { getSessionDragToken } from "@/lib/tab-drag-token";
 
 type TabDropTargetProps = {
   spaceData: Space;
@@ -62,6 +63,7 @@ export function TabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex }
 
       try {
         const sourceData = JSON.parse(raw) as TabGroupSourceData;
+        if (sourceData.sessionToken !== getSessionDragToken()) return;
         handleDrop(sourceData, true);
       } catch {
         // Invalid data from external source

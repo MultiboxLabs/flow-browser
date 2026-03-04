@@ -18,6 +18,7 @@ import { attachClosestEdge, extractClosestEdge, Edge } from "@atlaskit/pragmatic
 import type { Input } from "@atlaskit/pragmatic-drag-and-drop/types";
 import { DropIndicator } from "@/components/browser-ui/browser-sidebar/_components/drop-indicator";
 import { TAB_GROUP_MIME_TYPE, TAB_GROUP_PROFILE_MIME_PREFIX } from "@/lib/tab-drag-mime";
+import { getSessionDragToken } from "@/lib/tab-drag-token";
 
 // --- Types --- //
 
@@ -28,6 +29,7 @@ export type TabGroupSourceData = {
   profileId: string;
   spaceId: string;
   position: number;
+  sessionToken?: string;
 };
 
 // --- SidebarTab (memoized) --- //
@@ -295,7 +297,8 @@ export const TabGroup = memo(
               primaryTabId: primaryTabId,
               profileId: tabGroup.profileId,
               spaceId: tabGroup.spaceId,
-              position: position
+              position: position,
+              sessionToken: getSessionDragToken()
             };
             return {
               [TAB_GROUP_MIME_TYPE]: JSON.stringify(data),
