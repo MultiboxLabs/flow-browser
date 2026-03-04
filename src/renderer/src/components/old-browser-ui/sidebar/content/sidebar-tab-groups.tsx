@@ -20,7 +20,6 @@ import type { Input } from "@atlaskit/pragmatic-drag-and-drop/types";
 import { TabData } from "~/types/tabs";
 import { DropIndicator } from "@/components/old-browser-ui/sidebar/content/space-sidebar";
 import { TAB_GROUP_MIME_TYPE, TAB_GROUP_PROFILE_MIME_PREFIX } from "@/lib/tab-drag-mime";
-import { getSessionDragToken } from "@/lib/tab-drag-token";
 
 const MotionSidebarMenuButton = motion(SidebarMenuButton);
 
@@ -204,7 +203,7 @@ export type TabGroupSourceData = {
   profileId: string;
   spaceId: string;
   position: number;
-  sessionToken?: string;
+  dragToken?: string;
 };
 
 export function SidebarTabGroups({
@@ -258,7 +257,7 @@ export function SidebarTabGroups({
           // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
         } else {
           // move tab to new space
-          flow.tabs.moveTabToWindowSpace(sourceTabId, tabGroup.spaceId, newPos);
+          flow.tabs.moveTabToWindowSpace(sourceTabId, tabGroup.spaceId, newPos, sourceData.dragToken);
         }
       } else if (newPos !== undefined) {
         moveTab(sourceTabId, newPos);
@@ -280,6 +279,7 @@ export function SidebarTabGroups({
 
       try {
         const sourceData = JSON.parse(raw) as TabGroupSourceData;
+        if (!sourceData.dragToken) return;
         handleDrop(sourceData, closestEdgeOfTarget, true);
       } catch {
         // Invalid data from external source
@@ -311,14 +311,17 @@ export function SidebarTabGroups({
           return data;
         },
         getInitialDataForExternal: () => {
+          const primaryTabId = tabGroup.tabs[0].id;
+          const dragToken = crypto.randomUUID();
+          flow.tabs.registerDragToken(dragToken, primaryTabId);
           const data: TabGroupSourceData = {
             type: "tab-group",
             tabGroupId: tabGroup.id,
-            primaryTabId: tabGroup.tabs[0].id,
+            primaryTabId,
             profileId: tabGroup.profileId,
             spaceId: tabGroup.spaceId,
             position: position,
-            sessionToken: getSessionDragToken()
+            dragToken
           };
           return {
             [TAB_GROUP_MIME_TYPE]: JSON.stringify(data),

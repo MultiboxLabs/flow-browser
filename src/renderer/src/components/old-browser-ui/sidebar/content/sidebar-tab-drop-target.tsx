@@ -12,7 +12,6 @@ import {
 } from "@atlaskit/pragmatic-drag-and-drop/external/adapter";
 import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { TAB_GROUP_MIME_TYPE, TAB_GROUP_PROFILE_MIME_PREFIX } from "@/lib/tab-drag-mime";
-import { getSessionDragToken } from "@/lib/tab-drag-token";
 
 type SidebarTabDropTargetProps = {
   spaceData: Space;
@@ -44,7 +43,7 @@ export function SidebarTabDropTarget({ spaceData, isSpaceLight, moveTab, biggest
           // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
         } else {
           // move tab to new space
-          flow.tabs.moveTabToWindowSpace(sourceTabId, spaceData.id, newPos);
+          flow.tabs.moveTabToWindowSpace(sourceTabId, spaceData.id, newPos, sourceData.dragToken);
         }
       } else {
         moveTab(sourceTabId, newPos);
@@ -64,7 +63,7 @@ export function SidebarTabDropTarget({ spaceData, isSpaceLight, moveTab, biggest
 
       try {
         const sourceData = JSON.parse(raw) as TabGroupSourceData;
-        if (sourceData.sessionToken !== getSessionDragToken()) return;
+        if (!sourceData.dragToken) return;
         handleDrop(sourceData, true);
       } catch {
         // Invalid data from external source

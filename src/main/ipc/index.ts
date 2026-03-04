@@ -1,6 +1,5 @@
 // App APIs
 import "@/ipc/app/app";
-import "@/ipc/app/drag-token";
 import "@/ipc/app/extensions";
 import "@/ipc/app/updates";
 import "@/ipc/app/shortcuts";

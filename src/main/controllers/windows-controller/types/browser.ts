@@ -85,6 +85,8 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       backgroundMaterial: "none" // on Windows (Disabled as it interferes with rounded corners)
     });
 
+    browserWindow.webContents.openDevTools({ mode: "detach" });
+
     // Wait for default session to be ready
     sessionsController.whenDefaultSessionReady().then(() => {
       // Load the correct UI
