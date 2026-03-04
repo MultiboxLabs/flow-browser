@@ -74,8 +74,19 @@ export interface FlowTabsAPI {
    * @param tabId The id of the tab to move
    * @param spaceId The id of the space to move the tab to
    * @param newPosition The new position of the tab
+   * @param dragToken One-use token authenticating a cross-window external drop
    */
-  moveTabToWindowSpace: (tabId: number, spaceId: string, newPosition?: number) => Promise<boolean>;
+  moveTabToWindowSpace: (tabId: number, spaceId: string, newPosition?: number, dragToken?: string) => Promise<boolean>;
+
+  /**
+   * Register a one-use drag token for a cross-window tab drag.
+   * Must be called at the start of an external drag (getInitialDataForExternal).
+   * The token is tied to the specific tab and is consumed on the first valid
+   * call to moveTabToWindowSpace, preventing replay.
+   * @param token Randomly generated token for this drag
+   * @param tabId The id of the tab being dragged
+   */
+  registerDragToken: (token: string, tabId: number) => void;
 
   /**
    * Move multiple tabs to a new space in one operation

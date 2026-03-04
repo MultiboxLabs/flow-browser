@@ -9,19 +9,23 @@ import {
   dropTargetForElements,
   ElementDropTargetEventBasePayload
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import {
+  dropTargetForExternal,
+  ExternalDropTargetEventBasePayload
+} from "@atlaskit/pragmatic-drag-and-drop/external/adapter";
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { attachClosestEdge, extractClosestEdge, Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import type { Input } from "@atlaskit/pragmatic-drag-and-drop/types";
 import { DropIndicator } from "@/components/browser-ui/browser-sidebar/_components/drop-indicator";
+import {
+  TabGroupSourceData,
+  canDropExternalTabGroup,
+  canDropElementTabGroup,
+  parseExternalTabGroupDrop,
+  makeTabGroupExternalPayload
+} from "@/lib/tab-drag-mime";
 
-// --- Types --- //
-
-export type TabGroupSourceData = {
-  type: "tab-group";
-  tabGroupId: string;
-  primaryTabId: number;
-  profileId: string;
-  spaceId: string;
-  position: number;
-};
+export type { TabGroupSourceData };
 
 // --- SidebarTab (memoized) --- //
 
@@ -207,11 +211,14 @@ export const TabGroup = memo(
         setClosestEdge(edge);
       }
 
-      function onDrop(args: ElementDropTargetEventBasePayload) {
-        const closestEdgeOfTarget: Edge | null = extractClosestEdge(args.self.data);
+      function onExternalChange({ self }: ExternalDropTargetEventBasePayload) {
+        const edge = extractClosestEdge(self.data);
+        setClosestEdge(edge);
+      }
+
+      function handleDrop(sourceData: TabGroupSourceData, closestEdgeOfTarget: Edge | null, isExternal: boolean) {
         setClosestEdge(null);
 
-        const sourceData = args.source.data as TabGroupSourceData;
         const sourceTabId = sourceData.primaryTabId;
 
         let newPos: number | undefined = undefined;
@@ -222,67 +229,100 @@ export const TabGroup = memo(
           newPos = position + 0.5;
         }
 
-        if (sourceData.spaceId !== tabGroup.spaceId) {
+        if (sourceData.spaceId !== tabGroup.spaceId || isExternal) {
           if (sourceData.profileId !== tabGroup.profileId) {
             // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
           } else {
-            flow.tabs.moveTabToWindowSpace(sourceTabId, tabGroup.spaceId, newPos);
+            flow.tabs.moveTabToWindowSpace(
+              sourceTabId,
+              tabGroup.spaceId,
+              newPos,
+              isExternal ? sourceData.dragToken : undefined
+            );
           }
         } else if (newPos !== undefined) {
           moveTab(sourceTabId, newPos);
         }
       }
 
-      const draggableCleanup = draggable({
-        element: el,
-        getInitialData: () => {
-          const data: TabGroupSourceData = {
-            type: "tab-group",
-            tabGroupId: tabGroup.id,
-            primaryTabId: primaryTabId,
-            profileId: tabGroup.profileId,
-            spaceId: tabGroup.spaceId,
-            position: position
-          };
-          return data;
-        }
-      });
+      function onDrop(args: ElementDropTargetEventBasePayload) {
+        const closestEdgeOfTarget: Edge | null = extractClosestEdge(args.self.data);
+        const sourceData = args.source.data as TabGroupSourceData;
+        handleDrop(sourceData, closestEdgeOfTarget, false);
+      }
 
-      const cleanupDropTarget = dropTargetForElements({
-        element: el,
-        getData: ({ input, element }) => {
-          return attachClosestEdge(
-            {},
-            {
-              input,
-              element,
-              allowedEdges: ["top", "bottom"]
-            }
-          );
-        },
-        canDrop: (args) => {
-          const sourceData = args.source.data as TabGroupSourceData;
-          if (sourceData.type !== "tab-group") {
-            return false;
-          }
-          if (sourceData.tabGroupId === tabGroup.id) {
-            return false;
-          }
-          if (sourceData.profileId !== tabGroup.profileId) {
-            return false;
-          }
-          return true;
-        },
-        onDrop: onDrop,
-        onDragEnter: onChange,
-        onDrag: onChange,
-        onDragLeave: () => setClosestEdge(null)
-      });
+      function onExternalDrop(args: ExternalDropTargetEventBasePayload) {
+        const closestEdgeOfTarget: Edge | null = extractClosestEdge(args.self.data);
+        setClosestEdge(null);
 
-      return () => {
-        draggableCleanup();
-        cleanupDropTarget();
-      };
+        const sourceData = parseExternalTabGroupDrop(args.source);
+        if (!sourceData) return;
+        handleDrop(sourceData, closestEdgeOfTarget, true);
+      }
+
+      const edgeData = ({ input, element }: { input: Input; element: Element }) =>
+        attachClosestEdge(
+          {},
+          {
+            input,
+            element,
+            allowedEdges: ["top", "bottom"]
+          }
+        );
+
+      function generateBasicTabGroupSourceData(): TabGroupSourceData {
+        return {
+          type: "tab-group",
+          tabGroupId: tabGroup.id,
+          primaryTabId,
+          profileId: tabGroup.profileId,
+          spaceId: tabGroup.spaceId,
+          position
+        };
+      }
+
+      return combine(
+        draggable({
+          element: el,
+          getInitialData: () => {
+            return generateBasicTabGroupSourceData();
+          },
+          getInitialDataForExternal: () => {
+            const dragToken = crypto.randomUUID();
+            flow.tabs.registerDragToken(dragToken, primaryTabId);
+            const data: TabGroupSourceData = {
+              ...generateBasicTabGroupSourceData(),
+              dragToken
+            };
+            return makeTabGroupExternalPayload(data);
+          }
+        }),
+
+        dropTargetForElements({
+          element: el,
+          getData: ({ input, element }) => edgeData({ input, element }),
+          canDrop: (args) => {
+            return canDropElementTabGroup(args.source.data, {
+              profileId: tabGroup.profileId,
+              excludeTabGroupId: tabGroup.id
+            });
+          },
+          onDrop: onDrop,
+          onDragEnter: onChange,
+          onDrag: onChange,
+          onDragLeave: () => setClosestEdge(null)
+        }),
+
+        dropTargetForExternal({
+          element: el,
+          getData: ({ input, element }) => edgeData({ input, element }),
+          canDrop: (args) => canDropExternalTabGroup(args.source.types, tabGroup.profileId),
+          onDrop: onExternalDrop,
+          onDragEnter: onExternalChange,
+          onDrag: onExternalChange,
+          onDragLeave: () => setClosestEdge(null)
+        })
+      );
     }, [moveTab, tabGroup.id, position, primaryTabId, tabGroup.spaceId, tabGroup.profileId]);
 
     return (
