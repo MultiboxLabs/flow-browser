@@ -255,6 +255,12 @@ function tryPatchPasskeys() {
           // ── Helper: set up conditional UI focus/blur observers ──
           function setupConditionalUI() {
             const trackedInputs = new Set<HTMLInputElement>();
+            // Track whether the overlay is believed to be visible so that
+            // redundant dismiss handlers (scroll, focusin, pointerdown,
+            // visibilitychange) only send IPC when there is actually an
+            // overlay to dismiss.  This avoids unnecessary IPC traffic on
+            // every click / focus change / scroll.
+            let overlayShown = false;
 
             function isWebauthnInput(el: Element): el is HTMLInputElement {
               if (!(el instanceof HTMLInputElement)) return false;
@@ -271,12 +277,14 @@ function tryPatchPasskeys() {
                 width: rect.width,
                 height: rect.height
               });
+              overlayShown = true;
             }
 
             function handleBlur() {
               // Small delay to allow click events on the overlay to register
               setTimeout(() => {
                 patchedCredentials.reportInputBlur();
+                overlayShown = false;
               }, 150);
             }
 
@@ -342,16 +350,61 @@ function tryPatchPasskeys() {
               attributeFilter: ["autocomplete"]
             });
 
-            // Close overlay on scroll
+            // Close overlay on scroll (only if overlay is visible)
             const handleScroll = () => {
+              if (!overlayShown) return;
               patchedCredentials.reportInputBlur();
+              overlayShown = false;
             };
             window.addEventListener("scroll", handleScroll, { passive: true, capture: true });
+
+            // Close overlay when focus moves to a non-webauthn element.
+            // `focusin` bubbles (unlike `focus`/`blur`), so this reliably
+            // detects all focus changes on the page.
+            const handleFocusIn = (e: Event) => {
+              if (!overlayShown) return;
+              const target = e.target;
+              if (target instanceof HTMLInputElement && trackedInputs.has(target)) return;
+              patchedCredentials.reportInputBlur();
+              overlayShown = false;
+            };
+            document.addEventListener("focusin", handleFocusIn, true);
+
+            // Close overlay when the user clicks anywhere outside a tracked
+            // input. This provides a redundant hide path in case the `blur`
+            // event on the individual input doesn't fire (e.g. when focus
+            // moves to a different WebContentsView).
+            const handlePointerDown = (e: Event) => {
+              if (!overlayShown) return;
+              const target = e.target;
+              if (target instanceof HTMLInputElement && trackedInputs.has(target)) return;
+              // Small delay so that clicks on the overlay portal can still
+              // register before the hide message is processed.
+              setTimeout(() => {
+                patchedCredentials.reportInputBlur();
+                overlayShown = false;
+              }, 150);
+            };
+            document.addEventListener("pointerdown", handlePointerDown, true);
+
+            // Close overlay when the page/tab becomes hidden (e.g. user
+            // switches to a different app or minimises the window).
+            const handleVisibilityChange = () => {
+              if (!overlayShown) return;
+              if (document.hidden) {
+                patchedCredentials.reportInputBlur();
+                overlayShown = false;
+              }
+            };
+            document.addEventListener("visibilitychange", handleVisibilityChange);
 
             // Return cleanup function
             return () => {
               observer.disconnect();
               window.removeEventListener("scroll", handleScroll, true);
+              document.removeEventListener("focusin", handleFocusIn, true);
+              document.removeEventListener("pointerdown", handlePointerDown, true);
+              document.removeEventListener("visibilitychange", handleVisibilityChange);
               for (const input of trackedInputs) {
                 input.removeEventListener("focus", handleFocus);
                 input.removeEventListener("blur", handleBlur);
