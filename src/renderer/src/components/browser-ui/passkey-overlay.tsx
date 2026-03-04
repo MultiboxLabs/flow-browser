@@ -133,7 +133,16 @@ export function PasskeyOverlay() {
     });
   }, []);
 
-  // Compute effective visibility: hide immediately when tab changes
+  // When the user switches away from the tab the overlay was shown for,
+  // reset `visible` to false so that switching back doesn't re-show the
+  // overlay without the main process knowing (which would break keyboard
+  // handling and dismiss mechanisms).
+  useEffect(() => {
+    if (shownForTabId !== null && shownForTabId !== focusedTabId) {
+      setVisible(false);
+    }
+  }, [focusedTabId, shownForTabId]);
+
   const isEffectivelyVisible = visible && shownForTabId !== null && shownForTabId === focusedTabId;
 
   const { isCurrentSpaceLight } = useSpaces();
