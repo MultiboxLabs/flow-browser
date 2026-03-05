@@ -49,7 +49,15 @@ ipcMain.handle("spaces:reorder", async (_event, orderMap: SpaceOrderMap) => {
   return await spacesController.reorder(orderMap);
 });
 
-export function setWindowSpace(window: BrowserWindow, spaceId: string) {
+export async function setWindowSpace(window: BrowserWindow, spaceId: string) {
+  // If the window's current space is locked, block the switch.
+  // currentSpaceId is null on fresh windows, so initial assignment always works.
+  const currentSpaceId = window.currentSpaceId;
+  if (currentSpaceId) {
+    const currentSpace = await spacesController.get(currentSpaceId);
+    if (currentSpace?.locked) return;
+  }
+
   window.setCurrentSpace(spaceId);
   window.sendMessage("spaces:on-set-window-space", spaceId);
 }

@@ -23,7 +23,9 @@ export async function createIncognitoWindow() {
   const spaceCreated = await spacesController.create(profileId, profileName, {
     hidden: true,
     ephemeral: true,
-    locked: true
+    locked: true,
+    bgStartColor: "#000000",
+    bgEndColor: "#000000"
   });
   if (!spaceCreated) {
     await profilesController.delete(profileId);
@@ -73,16 +75,22 @@ export async function cleanupLiveIncognitoProfiles() {
 }
 
 /**
- * Removes stale incognito profiles from disk (e.g. app crash, force quit).
+ * Removes stale ephemeral profiles from disk (e.g. app crash, force quit).
+ * A profile is considered ephemeral if any of its spaces has ephemeral: true.
  * Should run once during startup before windows are created.
  */
-export async function cleanupStaleIncognitoProfiles() {
+export async function cleanupStaleEphemeralProfiles() {
   const profiles = await profilesController.getAll();
-  const staleIncognitoProfileIds = profiles
-    .filter((profile) => isIncognitoProfileId(profile.id))
-    .map((profile) => profile.id);
+  const staleProfileIds: string[] = [];
 
-  const cleanupPromises = staleIncognitoProfileIds.map((profileId) => cleanupIncognitoProfile(profileId));
+  for (const profile of profiles) {
+    const spaces = await spacesController.getAllFromProfile(profile.id);
+    if (spaces.some((s) => s.ephemeral)) {
+      staleProfileIds.push(profile.id);
+    }
+  }
+
+  const cleanupPromises = staleProfileIds.map((profileId) => cleanupIncognitoProfile(profileId));
   await Promise.all(cleanupPromises);
 }
 

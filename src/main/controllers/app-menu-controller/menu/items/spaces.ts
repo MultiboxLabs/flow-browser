@@ -144,7 +144,7 @@ async function createSpaceMenuItem(
 export async function createSpacesMenu(): Promise<MenuItemConstructorOptions> {
   try {
     const spaces = await spacesController.getAll();
-    const visibleSpaces = spaces.filter((space) => !space.hidden);
+    const visibleSpaces = spaces.filter((space) => !space.hidden && !space.locked);
 
     const focusedWindow = windowsController.getFocused();
     if (!focusedWindow || !browserWindowsManager.isInstanceOf(focusedWindow)) {

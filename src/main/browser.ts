@@ -14,11 +14,11 @@ import { runOnboardingOrInitialWindow } from "@/app/onboarding";
 import { setupAppLifecycle } from "@/app/lifecycle";
 import { tabPersistenceManager } from "@/saving/tabs";
 import { initCursorEdgeMonitor } from "@/controllers/windows-controller/utils/cursor-edge-monitor";
-import { cleanupStaleIncognitoProfiles } from "@/modules/incognito-window";
+import { cleanupStaleEphemeralProfiles } from "@/modules/incognito-window";
 
 async function bootstrapBrowser() {
-  await cleanupStaleIncognitoProfiles().catch((error) => {
-    console.error("Failed to cleanup stale incognito profiles:", error);
+  await cleanupStaleEphemeralProfiles().catch((error) => {
+    console.error("Failed to cleanup stale ephemeral profiles:", error);
   });
 
   // Start tab persistence flush interval (writes dirty tabs to disk every ~2s)

@@ -105,12 +105,16 @@ export class RawSpacesController {
         })
         .catch(() => 999);
 
-      // Set space data
+      // Set space data (only pick flag fields from initialData to prevent
+      // accidental overrides of name/profileId/order)
+      const { hidden, ephemeral, locked } = initialData ?? {};
       const spaceData = {
         name: spaceName,
         profileId: profileId,
         order: order,
-        ...initialData
+        hidden,
+        ephemeral,
+        locked
       };
       const spaceStore = getSpaceDataStore(profileId, spaceId);
       await spaceStore.setMany(spaceData);

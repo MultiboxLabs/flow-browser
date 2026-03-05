@@ -120,17 +120,21 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
   }, [currentSpace]);
 
   useEffect(() => {
-    const unsub = flow.spaces.onSetWindowSpace((spaceId) => {
+    const unsub = flow.spaces.onSetWindowSpace(async (spaceId) => {
       // For programmatic space sets (e.g. initial incognito space assignment),
-      // directly set the space if it's in the full list, bypassing switch guards
-      const space = allSpaces.find((s) => s.id === spaceId);
+      // fetch fresh spaces to ensure we have the latest data (the space may
+      // have been created after allSpaces was last populated).
+      const freshSpaces = await flow.spaces.getSpaces();
+      setAllSpaces(freshSpaces);
+
+      const space = freshSpaces.find((s) => s.id === spaceId);
       if (space) {
         setCurrentSpace(space);
         flow.spaces.setUsingSpace(space.profileId, spaceId);
       }
     });
     return () => unsub();
-  }, [allSpaces]);
+  }, []);
 
   const bgStart = hexToOKLCHString(currentSpace?.bgStartColor || "#000000");
   const bgEnd = hexToOKLCHString(currentSpace?.bgEndColor || "#000000");
