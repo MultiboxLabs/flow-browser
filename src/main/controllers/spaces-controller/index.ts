@@ -100,9 +100,9 @@ class SpacesController extends TypedEventEmitter<SpacesControllerEvents> {
   }
 
   // Basic CRUD Functions //
-  public async create(profileId: string, spaceName: string): Promise<boolean> {
+  public async create(profileId: string, spaceName: string, initialData?: Partial<SpaceData>): Promise<boolean> {
     const spaceId = generateID();
-    const result = await this.raw.create(profileId, spaceId, spaceName);
+    const result = await this.raw.create(profileId, spaceId, spaceName, initialData);
     if (result.success) {
       this._setCachedSpaceData(spaceId, result.spaceData);
       this.emit("space-created", profileId, spaceId, result.spaceData);

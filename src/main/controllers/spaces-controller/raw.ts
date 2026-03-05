@@ -34,7 +34,8 @@ export const SpaceDataSchema = type({
   lastUsed: "number",
   order: "number",
   hidden: "boolean",
-  ephemeral: "boolean"
+  ephemeral: "boolean",
+  locked: "boolean"
 });
 export type SpaceData = typeof SpaceDataSchema.infer;
 
@@ -58,14 +59,20 @@ function reconcileSpaceData(spaceId: string, profileId: string, data: DataStoreD
     lastUsed: data.lastUsed ?? 0,
     order: data.order ?? 999,
     hidden: data.hidden ?? false,
-    ephemeral: data.ephemeral ?? false
+    ephemeral: data.ephemeral ?? false,
+    locked: data.locked ?? false
   };
 }
 
 // Controller
 export class RawSpacesController {
   // CRUD Functions //
-  public async create(profileId: string, spaceId: string, spaceName: string): Promise<RawCreateSpaceResult> {
+  public async create(
+    profileId: string,
+    spaceId: string,
+    spaceName: string,
+    initialData?: Partial<SpaceData>
+  ): Promise<RawCreateSpaceResult> {
     // Validate spaceId to prevent invalid characters
     if (!/^[a-zA-Z0-9_-]+$/.test(spaceId)) {
       debugError("SPACES", `Invalid space ID: ${spaceId}`);
@@ -102,7 +109,8 @@ export class RawSpacesController {
       const spaceData = {
         name: spaceName,
         profileId: profileId,
-        order: order
+        order: order,
+        ...initialData
       };
       const spaceStore = getSpaceDataStore(profileId, spaceId);
       await spaceStore.setMany(spaceData);
@@ -162,6 +170,9 @@ export class RawSpacesController {
       }
       if (spaceData.ephemeral !== undefined) {
         updatedFields.ephemeral = spaceData.ephemeral;
+      }
+      if (spaceData.locked !== undefined) {
+        updatedFields.locked = spaceData.locked;
       }
 
       // Space order must be updated with updateSpaceOrder() / reorderSpaces()

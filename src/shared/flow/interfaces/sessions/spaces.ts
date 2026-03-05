@@ -9,6 +9,7 @@ export type Space = {
   icon: string;
   hidden: boolean;
   ephemeral: boolean;
+  locked: boolean;
 };
 
 // API //

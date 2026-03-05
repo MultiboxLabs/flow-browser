@@ -1,7 +1,6 @@
 import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
 import { profilesController } from "@/controllers/profiles-controller";
 import { spacesController } from "@/controllers/spaces-controller";
-import { tabsController } from "@/controllers/tabs-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { setWindowSpace } from "@/ipc/session/spaces";
 import { createIncognitoProfileId, isIncognitoProfileId } from "@/modules/incognito";
@@ -12,9 +11,23 @@ export async function createIncognitoWindow() {
   const profileId = createIncognitoProfileId();
   const profileName = "Incognito";
 
-  const createdProfile = await profilesController.createWithId(profileId, profileName, true);
+  // Create profile without auto-creating a space so we can create the space
+  // with hidden/ephemeral/locked flags already set (avoids a brief flicker
+  // where the space would be visible in the switcher before being updated).
+  const createdProfile = await profilesController.createWithId(profileId, profileName, false);
   if (!createdProfile) {
     throw new Error("Failed to create incognito profile");
+  }
+
+  // Create the incognito space with all flags from the start
+  const spaceCreated = await spacesController.create(profileId, profileName, {
+    hidden: true,
+    ephemeral: true,
+    locked: true
+  });
+  if (!spaceCreated) {
+    await profilesController.delete(profileId);
+    throw new Error("Failed to create incognito space");
   }
 
   const loaded = await loadedProfilesController.load(profileId);
@@ -35,17 +48,10 @@ export async function createIncognitoWindow() {
   try {
     const space = await spacesController.getLastUsedFromProfile(profileId);
     if (!space) {
-      throw new Error("Failed to create incognito space");
+      throw new Error("Failed to get incognito space");
     }
 
-    // Mark the incognito space as hidden and ephemeral so it doesn't appear
-    // in the space switcher and its data is not persisted across sessions
-    await spacesController.update(profileId, space.id, { hidden: true, ephemeral: true });
-
     setWindowSpace(window, space.id);
-
-    const tab = await tabsController.createTab(window.id, profileId, space.id);
-    tabsController.setActiveTab(tab);
 
     return window;
   } catch (error) {

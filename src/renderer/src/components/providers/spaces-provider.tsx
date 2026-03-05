@@ -87,16 +87,16 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
       // Do not allow switching spaces in popup windows
       if (windowType === "popup" && currentSpace) return;
 
-      // Do not allow switching away from a hidden space (e.g. incognito)
-      if (currentSpace?.hidden) return;
+      // Do not allow switching away from a locked space (e.g. incognito)
+      if (currentSpace?.locked) return;
 
       if (!flow) return;
       // Look up in allSpaces (includes hidden) so programmatic sets work
       const space = allSpaces.find((s) => s.id === spaceId);
       if (!space) return;
 
-      // Do not allow manually switching to a hidden space
-      if (space.hidden) return;
+      // Do not allow manually switching to a hidden or locked space
+      if (space.hidden || space.locked) return;
 
       if (space.id === currentSpace?.id) return;
 
