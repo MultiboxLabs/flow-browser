@@ -96,6 +96,14 @@ class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
     return await this._create(profileId, profileName, shouldCreateSpace);
   }
 
+  public async createWithId(
+    profileId: string,
+    profileName: string,
+    shouldCreateSpace: boolean = true
+  ): Promise<boolean> {
+    return await this._create(profileId, profileName, shouldCreateSpace);
+  }
+
   public async get(profileId: string) {
     const cachedData = this._getCachedProfileData(profileId);
     if (cachedData) {

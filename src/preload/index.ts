@@ -417,6 +417,9 @@ const browserAPI: FlowBrowserAPI = {
   },
   createWindow: () => {
     return ipcRenderer.send("browser:create-window");
+  },
+  createIncognitoWindow: () => {
+    return ipcRenderer.send("browser:create-incognito-window");
   }
 };
 

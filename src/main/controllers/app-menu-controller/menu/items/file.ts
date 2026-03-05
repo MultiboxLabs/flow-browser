@@ -3,6 +3,7 @@ import { getFocusedBrowserWindow } from "../helpers";
 import { openNewTab } from "@/ipc/app/new-tab";
 import { getCurrentShortcut } from "@/modules/shortcuts";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { createIncognitoWindow } from "@/modules/incognito-window";
 
 export const createFileMenu = (): MenuItemConstructorOptions => ({
   label: "File",
@@ -21,6 +22,13 @@ export const createFileMenu = (): MenuItemConstructorOptions => ({
       accelerator: getCurrentShortcut("browser.newWindow"),
       click: () => {
         browserWindowsController.create();
+      }
+    },
+    {
+      label: "New Incognito Window",
+      accelerator: getCurrentShortcut("browser.newIncognitoWindow"),
+      click: () => {
+        createIncognitoWindow();
       }
     },
     {
