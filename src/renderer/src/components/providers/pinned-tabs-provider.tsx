@@ -84,6 +84,24 @@ export const PinnedTabsProvider = ({ children }: PinnedTabsProviderProps) => {
   }, []);
 
   const reorder = useCallback(async (pinnedTabId: string, newPosition: number) => {
+    // Optimistically update local state to mask IPC latency.
+    // Mirror the backend logic: set the fractional position, sort, normalize.
+    setPinnedTabsByProfile((prev) => {
+      const next = { ...prev };
+      for (const profileId of Object.keys(next)) {
+        const tabs = next[profileId];
+        const tabIndex = tabs.findIndex((t) => t.uniqueId === pinnedTabId);
+        if (tabIndex === -1) continue;
+
+        const updated = tabs.map((t) => (t.uniqueId === pinnedTabId ? { ...t, position: newPosition } : { ...t }));
+        updated.sort((a, b) => a.position - b.position);
+        updated.forEach((t, i) => (t.position = i));
+        next[profileId] = updated;
+        break;
+      }
+      return next;
+    });
+
     return flow.pinnedTabs.reorder(pinnedTabId, newPosition);
   }, []);
 

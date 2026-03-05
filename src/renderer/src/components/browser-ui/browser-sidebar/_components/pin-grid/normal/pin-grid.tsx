@@ -3,7 +3,10 @@ import "../pin.css";
 import { cn } from "@/lib/utils";
 import { useMeasure } from "react-use";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
+import {
+  PinnedTabButton,
+  type PinnedTabSourceData
+} from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
 import { SidebarScrollArea } from "@/components/browser-ui/browser-sidebar/_components/sidebar-scroll-area";
 import { usePinnedTabs } from "@/components/providers/pinned-tabs-provider";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
@@ -12,6 +15,10 @@ import { useFocusedTabId } from "@/components/providers/tabs-provider";
 
 function isTabGroupSource(data: Record<string, unknown>): data is TabGroupSourceData {
   return data.type === "tab-group" && typeof data.primaryTabId === "number";
+}
+
+function isPinnedTabSource(data: Record<string, unknown>): data is PinnedTabSourceData {
+  return data.type === "pinned-tab" && typeof data.pinnedTabId === "string";
 }
 
 type GridIndicator = { index: number; edge: "left" | "right" };
@@ -121,13 +128,22 @@ export function PinGrid({ profileId }: PinGridProps) {
       element: el,
       canDrop: ({ source }) => {
         const data = source.data;
-        if (!isTabGroupSource(data)) return false;
-        // Only accept tabs from the same profile
-        if (profileId && data.profileId !== profileId) return false;
-        return true;
+        // Accept pinned tab drags (for reordering across gaps)
+        if (isPinnedTabSource(data)) return true;
+        // Accept tab group drags (for creating new pins)
+        if (isTabGroupSource(data)) {
+          // Only accept tabs from the same profile
+          if (profileId && data.profileId !== profileId) return false;
+          return true;
+        }
+        return false;
       },
-      onDragEnter: ({ location }) => {
-        setIsDragOver(true);
+      onDragEnter: ({ location, source }) => {
+        // Only show the white overlay for tab-group drags (new pin creation),
+        // not for pinned-tab reorders.
+        if (isTabGroupSource(source.data)) {
+          setIsDragOver(true);
+        }
         // When the grid is the only drop target (cursor is not over a specific
         // PinnedTabButton), compute the closest pin edge for the indicator.
         const { input, dropTargets } = location.current;
@@ -172,22 +188,28 @@ export function PinGrid({ profileId }: PinGridProps) {
         setChildIndicator(null);
 
         const data = source.data;
-        if (!isTabGroupSource(data)) return;
 
         // If the drop landed on a child PinnedTabButton (nested drop target),
         // it already handled the insertion with a specific position — skip here.
         const targets = location.current.dropTargets;
         if (targets.length > 1 && targets[0].element !== el) return;
 
-        if (indicator) {
-          const position = indicator.edge === "left" ? indicator.index - 0.5 : indicator.index + 0.5;
-          createFromTab(data.primaryTabId, position);
-        } else {
-          createFromTab(data.primaryTabId);
+        if (isTabGroupSource(data)) {
+          if (indicator) {
+            const position = indicator.edge === "left" ? indicator.index - 0.5 : indicator.index + 0.5;
+            createFromTab(data.primaryTabId, position);
+          } else {
+            createFromTab(data.primaryTabId);
+          }
+        } else if (isPinnedTabSource(data)) {
+          if (indicator) {
+            const position = indicator.edge === "left" ? indicator.index - 0.5 : indicator.index + 0.5;
+            reorder(data.pinnedTabId, position);
+          }
         }
       }
     });
-  }, [profileId, createFromTab]);
+  }, [profileId, createFromTab, reorder]);
 
   // Reorder handler
   const handleReorder = useCallback(
