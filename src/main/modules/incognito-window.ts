@@ -5,9 +5,28 @@ import { browserWindowsController } from "@/controllers/windows-controller/inter
 import { setWindowSpace } from "@/ipc/session/spaces";
 import { createIncognitoProfileId, isIncognitoProfileId } from "@/modules/incognito";
 
-const incognitoWindowToProfileId = new Map<number, string>();
+// ---------------------------------------------------------------------------
+// Shared incognito session
+// ---------------------------------------------------------------------------
+// All incognito windows share a single profile & space. The session is created
+// when the first incognito window opens and torn down when the last one closes.
+// The next window after that gets a brand-new session.
 
-export async function createIncognitoWindow() {
+interface IncognitoSession {
+  profileId: string;
+  spaceId: string;
+  /** Window IDs currently using this session. */
+  windowIds: Set<number>;
+}
+
+let activeSession: IncognitoSession | null = null;
+
+/**
+ * Returns the existing shared session, or creates a new one if none exists.
+ */
+async function getOrCreateSession(): Promise<IncognitoSession> {
+  if (activeSession) return activeSession;
+
   const profileId = createIncognitoProfileId();
   const profileName = "Incognito";
 
@@ -38,27 +57,39 @@ export async function createIncognitoWindow() {
     throw new Error("Failed to load incognito profile");
   }
 
+  const space = await spacesController.getLastUsedFromProfile(profileId);
+  if (!space) {
+    loadedProfilesController.unload(profileId);
+    await profilesController.delete(profileId);
+    throw new Error("Failed to get incognito space");
+  }
+
+  activeSession = { profileId, spaceId: space.id, windowIds: new Set() };
+  return activeSession;
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+export async function createIncognitoWindow() {
+  const session = await getOrCreateSession();
+
   const window = await browserWindowsController.create();
   window.browserWindow.maximize();
-  incognitoWindowToProfileId.set(window.id, profileId);
+  session.windowIds.add(window.id);
 
   window.on("destroyed", () => {
-    cleanupIncognitoWindow(window.id).catch((error) => {
+    removeWindowFromSession(window.id).catch((error) => {
       console.error("Failed to cleanup incognito window:", error);
     });
   });
 
   try {
-    const space = await spacesController.getLastUsedFromProfile(profileId);
-    if (!space) {
-      throw new Error("Failed to get incognito space");
-    }
-
-    setWindowSpace(window, space.id);
-
+    setWindowSpace(window, session.spaceId);
     return window;
   } catch (error) {
-    await cleanupIncognitoWindow(window.id);
+    await removeWindowFromSession(window.id);
     throw error;
   }
 }
@@ -67,12 +98,15 @@ export function isIncognitoTabProfile(profileId: string): boolean {
   return isIncognitoProfileId(profileId);
 }
 
+/**
+ * Tears down the active session (all live incognito windows).
+ * Called during app quit.
+ */
 export async function cleanupLiveIncognitoProfiles() {
-  const profileIds = new Set(incognitoWindowToProfileId.values());
-  const cleanupPromises = Array.from(profileIds).map((profileId) => cleanupIncognitoProfile(profileId));
-
-  await Promise.all(cleanupPromises);
-  incognitoWindowToProfileId.clear();
+  if (!activeSession) return;
+  const { profileId } = activeSession;
+  activeSession = null;
+  await destroyIncognitoProfile(profileId);
 }
 
 /**
@@ -91,19 +125,31 @@ export async function cleanupStaleEphemeralProfiles() {
     }
   }
 
-  const cleanupPromises = staleProfileIds.map((profileId) => cleanupIncognitoProfile(profileId));
+  const cleanupPromises = staleProfileIds.map((profileId) => destroyIncognitoProfile(profileId));
   await Promise.all(cleanupPromises);
 }
 
-async function cleanupIncognitoWindow(windowId: number) {
-  const profileId = incognitoWindowToProfileId.get(windowId);
-  if (!profileId) return;
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
 
-  incognitoWindowToProfileId.delete(windowId);
-  await cleanupIncognitoProfile(profileId);
+/**
+ * Removes a window from the active session. If it was the last window,
+ * tears down the entire session (profile + space deleted).
+ */
+async function removeWindowFromSession(windowId: number) {
+  if (!activeSession) return;
+
+  activeSession.windowIds.delete(windowId);
+
+  if (activeSession.windowIds.size === 0) {
+    const { profileId } = activeSession;
+    activeSession = null;
+    await destroyIncognitoProfile(profileId);
+  }
 }
 
-async function cleanupIncognitoProfile(profileId: string) {
+async function destroyIncognitoProfile(profileId: string) {
   loadedProfilesController.unload(profileId);
   await profilesController.delete(profileId);
 }
