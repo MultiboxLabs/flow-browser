@@ -32,6 +32,12 @@ interface PinnedTabButtonProps {
   onEdgeChange: (index: number, edge: "left" | "right" | null) => void;
   /** Normalized edge indicator controlled by the parent grid. */
   activeEdge?: "left" | "right";
+  /** True when this pin is the first item in its grid row. */
+  isFirstInRow?: boolean;
+  /** True when this pin is the last item in its grid row. */
+  isLastInRow?: boolean;
+  /** When false, layout animations are suppressed (e.g. during sidebar resize). */
+  layoutAnimationsEnabled?: boolean;
 }
 
 export function PinnedTabButton({
@@ -46,7 +52,10 @@ export function PinnedTabButton({
   pinnedTabs,
   index,
   onEdgeChange,
-  activeEdge
+  activeEdge,
+  isFirstInRow = false,
+  isLastInRow = false,
+  layoutAnimationsEnabled = true
 }: PinnedTabButtonProps) {
   const ref = useRef<HTMLDivElement>(null);
   const faviconUrl = pinnedTab.faviconUrl;
@@ -145,15 +154,11 @@ export function PinnedTabButton({
     };
   }, [pinnedTab.uniqueId, pinnedTab.position, pinnedTabs, profileId, onReorder, onCreateFromTab, index, onEdgeChange]);
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      // Only handle left-click; right-click is for context menu
-      if (e.button === 0) {
-        onClick();
-      }
-    },
-    [onClick]
-  );
+  // Use onClick (not onMouseDown) so the browser's native click suppression
+  // after a drag prevents the handler from firing on drag-to-reorder.
+  const handleClick = useCallback(() => {
+    onClick();
+  }, [onClick]);
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
@@ -166,7 +171,7 @@ export function PinnedTabButton({
   return (
     <motion.div
       className="relative"
-      layout="position"
+      layout={layoutAnimationsEnabled ? "position" : false}
       layoutId={`pinned-tab-${pinnedTab.uniqueId}`}
       transition={{
         layout: { type: "spring", stiffness: 500, damping: 35 }
@@ -174,11 +179,24 @@ export function PinnedTabButton({
     >
       {/* Drop indicator - left */}
       {activeEdge === "left" && (
-        <div className="absolute left-0 top-1 bottom-1 w-0.5 -translate-x-1 rounded-full bg-white/60" />
+        <div
+          className={cn(
+            "absolute left-0 top-1 bottom-1 w-0.5 rounded-full bg-white/60",
+            // On the first item in a row there is no gap to the left, so
+            // render the indicator flush with the cell edge instead of
+            // translating it outside (where it would be clipped).
+            !isFirstInRow && "-translate-x-1"
+          )}
+        />
       )}
       {/* Drop indicator - right */}
       {activeEdge === "right" && (
-        <div className="absolute right-0 top-1 bottom-1 w-0.5 translate-x-1 rounded-full bg-white/60" />
+        <div
+          className={cn(
+            "absolute right-0 top-1 bottom-1 w-0.5 rounded-full bg-white/60",
+            !isLastInRow && "translate-x-1"
+          )}
+        />
       )}
 
       <div
@@ -194,7 +212,7 @@ export function PinnedTabButton({
           isDragging && "opacity-40"
         )}
         style={activeBorderStyle}
-        onMouseDown={handleMouseDown}
+        onClick={handleClick}
         onDoubleClick={onDoubleClick}
         onContextMenu={handleContextMenu}
       >

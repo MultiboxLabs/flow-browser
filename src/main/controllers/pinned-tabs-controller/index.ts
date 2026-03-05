@@ -75,17 +75,17 @@ class PinnedTabsController extends TypedEventEmitter<PinnedTabsControllerEvents>
       position: finalPosition
     };
 
-    // Persist + normalize in a single transaction
+    // Persist + normalize in a single transaction.
+    // Add to memory before normalizing so normalizePositionsInTx sees the new
+    // tab (mirrors how `remove` deletes from memory before normalizing).
     const db = getDb();
     db.transaction((tx) => {
       tx.insert(schema.pinnedTabs)
         .values({ ...data })
         .run();
+      this.pinnedTabs.set(uniqueId, data);
       this.normalizePositionsInTx(tx, profileId);
     });
-
-    // Update in-memory cache
-    this.pinnedTabs.set(uniqueId, data);
 
     this.emit("changed");
 

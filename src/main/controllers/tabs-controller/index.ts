@@ -791,6 +791,19 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   public makeTabEphemeral(tabId: number): void {
     const tab = this.tabs.get(tabId);
     if (!tab || tab.ephemeral) return;
+
+    // Remove from any tab group before marking ephemeral — the pinned tab
+    // appears in the pin grid, so keeping it in the sidebar group as well
+    // would show a confusing duplicate.
+    const group = this.getTabGroupByTabId(tabId);
+    if (group) {
+      group.removeTab(tabId);
+      // Dissolve degenerate groups (e.g. a 2-tab glance loses a member)
+      if (group.tabs.length < 2) {
+        this.destroyTabGroup(group.groupId);
+      }
+    }
+
     tab.ephemeral = true;
     tabPersistenceManager.markRemoved(tab.uniqueId);
     // Trigger a structural change so the renderer drops this tab from the list

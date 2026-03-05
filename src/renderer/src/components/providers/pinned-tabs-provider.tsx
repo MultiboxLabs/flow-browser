@@ -41,12 +41,18 @@ export const PinnedTabsProvider = ({ children }: PinnedTabsProviderProps) => {
 
   // Subscribe first, then fetch — closes the race window where a change
   // arrives between the initial fetch resolving and the listener registering.
+  // The `settled` flag guards against the reverse race: if onChanged fires
+  // before getData resolves, the stale getData result is discarded.
   useEffect(() => {
+    let settled = false;
     const unsub = flow.pinnedTabs.onChanged((data) => {
+      settled = true;
       setPinnedTabsByProfile(data);
     });
     flow.pinnedTabs.getData().then((data) => {
-      setPinnedTabsByProfile(data);
+      if (!settled) {
+        setPinnedTabsByProfile(data);
+      }
     });
     return unsub;
   }, []);
@@ -84,7 +90,7 @@ export const PinnedTabsProvider = ({ children }: PinnedTabsProviderProps) => {
         const tabIndex = tabs.findIndex((t) => t.uniqueId === pinnedTabId);
         if (tabIndex === -1) continue;
 
-        const updated = tabs.map((t) => (t.uniqueId === pinnedTabId ? { ...t, position: newPosition } : t));
+        const updated = tabs.map((t) => (t.uniqueId === pinnedTabId ? { ...t, position: newPosition } : { ...t }));
         updated.sort((a, b) => a.position - b.position);
         updated.forEach((t, i) => (t.position = i));
         next[profileId] = updated;
