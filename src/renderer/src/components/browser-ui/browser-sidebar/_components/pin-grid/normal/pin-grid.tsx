@@ -14,6 +14,47 @@ function isTabGroupSource(data: Record<string, unknown>): data is TabGroupSource
   return data.type === "tab-group" && typeof data.primaryTabId === "number";
 }
 
+type GridIndicator = { index: number; edge: "left" | "right" };
+
+/**
+ * Find the closest pin edge (left or right) to the cursor position.
+ * Uses Euclidean distance from cursor to each pin's edge midpoints,
+ * which naturally handles multi-row grid layouts.
+ */
+function findClosestPinEdge(gridEl: HTMLElement, clientX: number, clientY: number): GridIndicator | null {
+  const children = gridEl.children;
+  if (children.length === 0) return null;
+
+  let closestDist = Infinity;
+  let result: GridIndicator | null = null;
+
+  for (let i = 0; i < children.length; i++) {
+    const rect = children[i].getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+
+    const dLeft = Math.hypot(clientX - rect.left, clientY - midY);
+    if (dLeft < closestDist) {
+      closestDist = dLeft;
+      result = { index: i, edge: "left" };
+    }
+
+    const dRight = Math.hypot(clientX - rect.right, clientY - midY);
+    if (dRight < closestDist) {
+      closestDist = dRight;
+      result = { index: i, edge: "right" };
+    }
+  }
+
+  // Normalize: "left of pin i" and "right of pin i-1" are the same gap.
+  // Always express it as "right of the earlier pin" so the indicator doesn't
+  // jump between two physical positions when the cursor wiggles.
+  if (result && result.edge === "left" && result.index > 0) {
+    result = { index: result.index - 1, edge: "right" };
+  }
+
+  return result;
+}
+
 interface PinGridProps {
   profileId: string;
 }
@@ -35,6 +76,33 @@ export function PinGrid({ profileId }: PinGridProps) {
   // wrapping SidebarScrollArea, so that SidebarScrollArea remains a direct
   // flex/block child with proper height resolution for its Viewport.
   const [isDragOver, setIsDragOver] = useState(false);
+  // Tracks the closest pin edge when cursor is over the grid but not over a
+  // specific PinnedTabButton.  The ref mirrors the state so the onDrop handler
+  // (which captures a stale closure) always reads the latest value.
+  const [gridIndicator, setGridIndicator] = useState<GridIndicator | null>(null);
+  const gridIndicatorRef = useRef<GridIndicator | null>(null);
+
+  // Tracks the closest pin edge reported by a child PinnedTabButton (when the
+  // cursor IS directly over a pin).  Normalized so that equivalent gaps always
+  // resolve to the same indicator position.
+  const [childIndicator, setChildIndicator] = useState<GridIndicator | null>(null);
+
+  // Callback for child PinnedTabButtons to report their closest edge.
+  const handleChildEdgeChange = useCallback((index: number, edge: "left" | "right" | null) => {
+    if (edge === null) {
+      setChildIndicator(null);
+      return;
+    }
+    let indicator: GridIndicator = { index, edge };
+    // Normalize: "left of pin[i]" → "right of pin[i-1]" (same gap).
+    if (indicator.edge === "left" && indicator.index > 0) {
+      indicator = { index: indicator.index - 1, edge: "right" };
+    }
+    setChildIndicator(indicator);
+  }, []);
+
+  // Unified indicator: child (direct hover) takes priority over grid (gap hover).
+  const activeIndicator = childIndicator ?? gridIndicator;
 
   // Combine the measure ref and the drop ref onto the same element
   const setGridRefs = useCallback(
@@ -58,10 +126,51 @@ export function PinGrid({ profileId }: PinGridProps) {
         if (profileId && data.profileId !== profileId) return false;
         return true;
       },
-      onDragEnter: () => setIsDragOver(true),
-      onDragLeave: () => setIsDragOver(false),
+      onDragEnter: ({ location }) => {
+        setIsDragOver(true);
+        // When the grid is the only drop target (cursor is not over a specific
+        // PinnedTabButton), compute the closest pin edge for the indicator.
+        const { input, dropTargets } = location.current;
+        if (dropTargets.length === 1) {
+          const indicator = findClosestPinEdge(el, input.clientX, input.clientY);
+          gridIndicatorRef.current = indicator;
+          setGridIndicator(indicator);
+        } else {
+          gridIndicatorRef.current = null;
+          setGridIndicator(null);
+        }
+      },
+      onDrag: ({ location }) => {
+        const { input, dropTargets } = location.current;
+        if (dropTargets.length === 1) {
+          const indicator = findClosestPinEdge(el, input.clientX, input.clientY);
+          // Only update state when the indicator actually changes to avoid
+          // unnecessary re-renders (onDrag fires every frame).
+          gridIndicatorRef.current = indicator;
+          setGridIndicator((prev) => {
+            if (prev?.index === indicator?.index && prev?.edge === indicator?.edge) return prev;
+            return indicator;
+          });
+        } else {
+          if (gridIndicatorRef.current !== null) {
+            gridIndicatorRef.current = null;
+            setGridIndicator(null);
+          }
+        }
+      },
+      onDragLeave: () => {
+        setIsDragOver(false);
+        gridIndicatorRef.current = null;
+        setGridIndicator(null);
+        setChildIndicator(null);
+      },
       onDrop: ({ source, location }) => {
         setIsDragOver(false);
+        const indicator = gridIndicatorRef.current;
+        gridIndicatorRef.current = null;
+        setGridIndicator(null);
+        setChildIndicator(null);
+
         const data = source.data;
         if (!isTabGroupSource(data)) return;
 
@@ -70,7 +179,12 @@ export function PinGrid({ profileId }: PinGridProps) {
         const targets = location.current.dropTargets;
         if (targets.length > 1 && targets[0].element !== el) return;
 
-        createFromTab(data.primaryTabId);
+        if (indicator) {
+          const position = indicator.edge === "left" ? indicator.index - 0.5 : indicator.index + 0.5;
+          createFromTab(data.primaryTabId, position);
+        } else {
+          createFromTab(data.primaryTabId);
+        }
       }
     });
   }, [profileId, createFromTab]);
@@ -127,7 +241,7 @@ export function PinGrid({ profileId }: PinGridProps) {
         {amountOfPinnedTabs === 0 ? (
           <PinGridEmptyState isDragOver={isDragOver} />
         ) : (
-          pinnedTabs.map((pinnedTab) => (
+          pinnedTabs.map((pinnedTab, index) => (
             <PinnedTabButton
               key={pinnedTab.uniqueId}
               pinnedTab={pinnedTab}
@@ -139,6 +253,9 @@ export function PinGrid({ profileId }: PinGridProps) {
               onReorder={handleReorder}
               onCreateFromTab={handleCreateFromTab}
               pinnedTabs={pinnedTabs}
+              index={index}
+              onEdgeChange={handleChildEdgeChange}
+              activeEdge={activeIndicator?.index === index ? activeIndicator.edge : undefined}
             />
           ))
         )}
