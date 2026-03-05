@@ -1,7 +1,7 @@
 import { useFloatingSidebarTrigger } from "@/components/browser-ui/browser-sidebar/floating-sidebar-trigger";
 import { useSettings } from "@/components/providers/settings-provider";
 import { generateUUID } from "@/lib/utils";
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useMount } from "react-use";
 
 // Configuration //
@@ -116,7 +116,7 @@ const BrowserSidebarContext = createContext<BrowserSidebarContextValue | null>(n
 export const useBrowserSidebar = () => {
   const context = useContext(BrowserSidebarContext);
   if (!context) {
-    throw new Error("useBrowserSidebar must be used within an AdaptiveTopbarProvider");
+    throw new Error("useBrowserSidebar must be used within a BrowserSidebarProvider");
   }
   return context;
 };
@@ -140,10 +140,7 @@ export function BrowserSidebarProvider({ children, hasSidebar = true }: BrowserS
   attachedDirectionRef.current = attachedDirection;
 
   // Load sidebar size from localStorage, fallback to default
-  const recordedSidebarSizeRef = useRef(DEFAULT_SIDEBAR_SIZE);
-  useMemo(() => {
-    recordedSidebarSizeRef.current = getInitialSidebarSize();
-  }, []);
+  const recordedSidebarSizeRef = useRef(getInitialSidebarSize());
 
   // Callback-based sidebar resize notification.
   // Allows BrowserContent to subscribe without causing context re-renders

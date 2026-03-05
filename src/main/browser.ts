@@ -26,9 +26,7 @@ async function bootstrapBrowser() {
   // Start tab persistence flush interval (writes dirty tabs to disk every ~2s)
   tabPersistenceManager.start();
 
-  // Load pinned tabs from database into memory
-  // Note: loadAll() uses synchronous better-sqlite3 internally, so the work
-  // completes immediately despite the async signature. No await needed.
+  // Load pinned tabs from database into memory (synchronous — better-sqlite3)
   pinnedTabsController.loadAll();
 
   // Start cursor edge monitor (detects pointer near window edges for floating sidebar)

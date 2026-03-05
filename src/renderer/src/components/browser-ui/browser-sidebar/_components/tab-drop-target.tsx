@@ -6,12 +6,8 @@ import {
   dropTargetForElements,
   ElementDropTargetEventBasePayload
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
-import type { PinnedTabSourceData } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
 import { usePinnedTabs } from "@/components/providers/pinned-tabs-provider";
-
-function isPinnedTabSource(data: Record<string, unknown>): data is PinnedTabSourceData {
-  return data.type === "pinned-tab" && typeof data.pinnedTabId === "string";
-}
+import { isPinnedTabSource } from "@/components/browser-ui/browser-sidebar/_components/drag-utils";
 
 type TabDropTargetProps = {
   spaceData: Space;
