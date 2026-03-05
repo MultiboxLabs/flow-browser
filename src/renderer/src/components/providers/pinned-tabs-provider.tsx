@@ -12,8 +12,6 @@ interface PinnedTabsContextValue {
   click: (pinnedTabId: string) => Promise<boolean>;
   /** Double-click a pinned tab (navigate back to default URL) */
   doubleClick: (pinnedTabId: string) => Promise<boolean>;
-  /** Remove a pinned tab */
-  remove: (pinnedTabId: string) => Promise<boolean>;
   /** Unpin a tab back to the tab list (removes pin + makes associated tab persistent) */
   unpinToTabList: (pinnedTabId: string, position?: number) => Promise<boolean>;
   /** Reorder a pinned tab to a new position */
@@ -41,16 +39,13 @@ interface PinnedTabsProviderProps {
 export const PinnedTabsProvider = ({ children }: PinnedTabsProviderProps) => {
   const [pinnedTabsByProfile, setPinnedTabsByProfile] = useState<Record<string, PinnedTabData[]>>({});
 
-  // Initial fetch
-  useEffect(() => {
-    flow.pinnedTabs.getData().then((data) => {
-      setPinnedTabsByProfile(data);
-    });
-  }, []);
-
-  // Listen for changes
+  // Subscribe first, then fetch — closes the race window where a change
+  // arrives between the initial fetch resolving and the listener registering.
   useEffect(() => {
     const unsub = flow.pinnedTabs.onChanged((data) => {
+      setPinnedTabsByProfile(data);
+    });
+    flow.pinnedTabs.getData().then((data) => {
       setPinnedTabsByProfile(data);
     });
     return unsub;
@@ -75,10 +70,6 @@ export const PinnedTabsProvider = ({ children }: PinnedTabsProviderProps) => {
     return flow.pinnedTabs.doubleClick(pinnedTabId);
   }, []);
 
-  const remove = useCallback(async (pinnedTabId: string) => {
-    return flow.pinnedTabs.remove(pinnedTabId);
-  }, []);
-
   const unpinToTabList = useCallback(async (pinnedTabId: string, position?: number) => {
     return flow.pinnedTabs.unpinToTabList(pinnedTabId, position);
   }, []);
@@ -93,7 +84,7 @@ export const PinnedTabsProvider = ({ children }: PinnedTabsProviderProps) => {
         const tabIndex = tabs.findIndex((t) => t.uniqueId === pinnedTabId);
         if (tabIndex === -1) continue;
 
-        const updated = tabs.map((t) => (t.uniqueId === pinnedTabId ? { ...t, position: newPosition } : { ...t }));
+        const updated = tabs.map((t) => (t.uniqueId === pinnedTabId ? { ...t, position: newPosition } : t));
         updated.sort((a, b) => a.position - b.position);
         updated.forEach((t, i) => (t.position = i));
         next[profileId] = updated;
@@ -116,22 +107,11 @@ export const PinnedTabsProvider = ({ children }: PinnedTabsProviderProps) => {
       createFromTab,
       click,
       doubleClick,
-      remove,
       unpinToTabList,
       reorder,
       showContextMenu
     }),
-    [
-      pinnedTabsByProfile,
-      getPinnedTabs,
-      createFromTab,
-      click,
-      doubleClick,
-      remove,
-      unpinToTabList,
-      reorder,
-      showContextMenu
-    ]
+    [pinnedTabsByProfile, getPinnedTabs, createFromTab, click, doubleClick, unpinToTabList, reorder, showContextMenu]
   );
 
   return <PinnedTabsContext.Provider value={contextValue}>{children}</PinnedTabsContext.Provider>;

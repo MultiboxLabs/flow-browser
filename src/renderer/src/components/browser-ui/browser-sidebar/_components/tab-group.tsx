@@ -11,11 +11,7 @@ import {
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { attachClosestEdge, extractClosestEdge, Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import { DropIndicator } from "@/components/browser-ui/browser-sidebar/_components/drop-indicator";
-import type { PinnedTabSourceData } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
-
-function isPinnedTabSource(data: Record<string, unknown>): data is PinnedTabSourceData {
-  return data.type === "pinned-tab" && typeof data.pinnedTabId === "string";
-}
+import { isPinnedTabSource } from "@/components/browser-ui/browser-sidebar/_components/drag-utils";
 
 // --- Types --- //
 
