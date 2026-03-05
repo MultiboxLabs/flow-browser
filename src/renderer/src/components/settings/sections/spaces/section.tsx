@@ -45,7 +45,9 @@ export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }:
         flow.profiles.getProfiles(),
         flow.spaces.getSpaces()
       ]);
-      setProfiles(fetchedProfiles);
+      // Exclude profiles that contain hidden spaces (e.g. incognito)
+      const hiddenProfileIds = new Set(fetchedSpaces.filter((s) => s.hidden).map((s) => s.profileId));
+      setProfiles(fetchedProfiles.filter((p) => !hiddenProfileIds.has(p.id)));
       setSpaces(fetchedSpaces.filter((space) => !space.hidden));
 
       // Set active space if initialSelectedSpace is provided

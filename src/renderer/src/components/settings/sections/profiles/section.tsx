@@ -570,12 +570,15 @@ export function ProfilesSettings({ navigateToSpaces, navigateToSpace }: Profiles
   const [newProfileName, setNewProfileName] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  // Fetch profiles from the API
+  // Fetch profiles from the API, excluding profiles that contain hidden spaces
+  // (e.g. incognito profiles) since they are ephemeral and shouldn't be managed.
   const fetchProfiles = async () => {
     setIsLoading(true);
     try {
-      const fetchedProfiles = await flow.profiles.getProfiles();
-      setProfiles(fetchedProfiles);
+      const [fetchedProfiles, allSpaces] = await Promise.all([flow.profiles.getProfiles(), flow.spaces.getSpaces()]);
+      // A profile is considered hidden if any of its spaces has hidden: true
+      const hiddenProfileIds = new Set(allSpaces.filter((s) => s.hidden).map((s) => s.profileId));
+      setProfiles(fetchedProfiles.filter((p) => !hiddenProfileIds.has(p.id)));
     } catch (error) {
       console.error("Failed to fetch profiles:", error);
     } finally {

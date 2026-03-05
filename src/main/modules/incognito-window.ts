@@ -39,6 +39,7 @@ export async function createIncognitoWindow() {
   }
 
   const window = await browserWindowsController.create();
+  window.browserWindow.maximize();
   incognitoWindowToProfileId.set(window.id, profileId);
 
   window.on("destroyed", () => {
