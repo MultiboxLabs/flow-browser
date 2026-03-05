@@ -46,7 +46,7 @@ export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }:
         flow.spaces.getSpaces()
       ]);
       setProfiles(fetchedProfiles);
-      setSpaces(fetchedSpaces);
+      setSpaces(fetchedSpaces.filter((space) => !space.hidden));
 
       // Set active space if initialSelectedSpace is provided
       if (initialSelectedSpace) {

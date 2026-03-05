@@ -7,6 +7,8 @@ export type Space = {
   bgStartColor: string;
   bgEndColor: string;
   icon: string;
+  hidden: boolean;
+  ephemeral: boolean;
 };
 
 // API //

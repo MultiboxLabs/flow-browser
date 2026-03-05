@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Space } from "~/flow/interfaces/sessions/spaces";
 import { hexToOKLCHString } from "@/lib/colors";
 import { hex_is_light } from "@/lib/utils";
@@ -30,10 +30,13 @@ interface SpacesProviderProps {
 }
 
 export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) => {
-  const [spaces, setSpaces] = useState<Space[]>([]);
+  const [allSpaces, setAllSpaces] = useState<Space[]>([]);
   const [currentSpace, setCurrentSpace] = useState<Space | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const currentSpaceRef = useRef<Space | null>(null);
+
+  // Expose only non-hidden spaces to the UI (space switcher, carousel, etc.)
+  const visibleSpaces = useMemo(() => allSpaces.filter((s) => !s.hidden), [allSpaces]);
 
   useEffect(() => {
     currentSpaceRef.current = currentSpace;
@@ -43,7 +46,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
     if (!flow) return;
     try {
       const spaces = await flow.spaces.getSpaces();
-      setSpaces(spaces);
+      setAllSpaces(spaces);
 
       if (!currentSpaceRef.current) {
         // Get and set window space if available
@@ -61,9 +64,10 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
         if (lastUsedSpace) {
           setCurrentSpace(lastUsedSpace);
         } else if (spaces.length > 0) {
-          // If no last used space, default to first space
-          setCurrentSpace(spaces[0]);
-          await flow.spaces.setUsingSpace(spaces[0].profileId, spaces[0].id);
+          // If no last used space, default to first non-hidden space
+          const firstVisible = spaces.find((s) => !s.hidden) ?? spaces[0];
+          setCurrentSpace(firstVisible);
+          await flow.spaces.setUsingSpace(firstVisible.profileId, firstVisible.id);
         }
       }
     } catch (error) {
@@ -83,9 +87,16 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
       // Do not allow switching spaces in popup windows
       if (windowType === "popup" && currentSpace) return;
 
+      // Do not allow switching away from a hidden space (e.g. incognito)
+      if (currentSpace?.hidden) return;
+
       if (!flow) return;
-      const space = spaces.find((s) => s.id === spaceId);
+      // Look up in allSpaces (includes hidden) so programmatic sets work
+      const space = allSpaces.find((s) => s.id === spaceId);
       if (!space) return;
+
+      // Do not allow manually switching to a hidden space
+      if (space.hidden) return;
 
       if (space.id === currentSpace?.id) return;
 
@@ -96,7 +107,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
         console.error("Failed to set current space:", error);
       }
     },
-    [spaces, currentSpace, windowType]
+    [allSpaces, currentSpace, windowType]
   );
 
   useEffect(() => {
@@ -110,10 +121,16 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
 
   useEffect(() => {
     const unsub = flow.spaces.onSetWindowSpace((spaceId) => {
-      handleSetCurrentSpace(spaceId);
+      // For programmatic space sets (e.g. initial incognito space assignment),
+      // directly set the space if it's in the full list, bypassing switch guards
+      const space = allSpaces.find((s) => s.id === spaceId);
+      if (space) {
+        setCurrentSpace(space);
+        flow.spaces.setUsingSpace(space.profileId, spaceId);
+      }
     });
     return () => unsub();
-  }, [handleSetCurrentSpace]);
+  }, [allSpaces]);
 
   const bgStart = hexToOKLCHString(currentSpace?.bgStartColor || "#000000");
   const bgEnd = hexToOKLCHString(currentSpace?.bgEndColor || "#000000");
@@ -153,7 +170,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
   return (
     <SpacesContext.Provider
       value={{
-        spaces,
+        spaces: visibleSpaces,
         currentSpace,
         isLoading,
         isCurrentSpaceLight: isSpaceLight,

@@ -144,6 +144,7 @@ async function createSpaceMenuItem(
 export async function createSpacesMenu(): Promise<MenuItemConstructorOptions> {
   try {
     const spaces = await spacesController.getAll();
+    const visibleSpaces = spaces.filter((space) => !space.hidden);
 
     const focusedWindow = windowsController.getFocused();
     if (!focusedWindow || !browserWindowsManager.isInstanceOf(focusedWindow)) {
@@ -163,7 +164,7 @@ export async function createSpacesMenu(): Promise<MenuItemConstructorOptions> {
     // Use Promise.allSettled to ensure all space menu items are attempted
     // even if some fail to be created
     const spaceMenuItemResults = await Promise.allSettled(
-      spaces.map((space, index) => createSpaceMenuItem(space, index, currentSpaceId))
+      visibleSpaces.map((space, index) => createSpaceMenuItem(space, index, currentSpaceId))
     );
 
     // Filter out any rejected promises and only keep the fulfilled ones

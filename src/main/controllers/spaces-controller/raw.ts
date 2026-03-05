@@ -32,7 +32,9 @@ export const SpaceDataSchema = type({
   bgEndColor: "string | undefined",
   icon: "string | undefined",
   lastUsed: "number",
-  order: "number"
+  order: "number",
+  hidden: "boolean",
+  ephemeral: "boolean"
 });
 export type SpaceData = typeof SpaceDataSchema.infer;
 
@@ -54,7 +56,9 @@ function reconcileSpaceData(spaceId: string, profileId: string, data: DataStoreD
     bgEndColor: data.bgEndColor,
     icon: data.icon,
     lastUsed: data.lastUsed ?? 0,
-    order: data.order ?? 999
+    order: data.order ?? 999,
+    hidden: data.hidden ?? false,
+    ephemeral: data.ephemeral ?? false
   };
 }
 
@@ -152,6 +156,12 @@ export class RawSpacesController {
       }
       if (spaceData.order !== undefined) {
         updatedFields.order = spaceData.order;
+      }
+      if (spaceData.hidden !== undefined) {
+        updatedFields.hidden = spaceData.hidden;
+      }
+      if (spaceData.ephemeral !== undefined) {
+        updatedFields.ephemeral = spaceData.ephemeral;
       }
 
       // Space order must be updated with updateSpaceOrder() / reorderSpaces()

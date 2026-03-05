@@ -76,6 +76,8 @@ export function SpacePagesCarousel() {
     flow.tabs.moveTab(tabId, newPosition);
   }, []);
 
+  const isHidden = currentSpace?.hidden ?? false;
+
   const currentIndex = useMemo(() => {
     if (!currentSpace) return 0;
     const idx = spaces.findIndex((s) => s.id === currentSpace.id);
@@ -186,6 +188,16 @@ export function SpacePagesCarousel() {
     observer.observe(container);
     return () => observer.disconnect();
   }, []);
+
+  // If the current space is hidden (e.g. incognito), render only that space
+  // directly instead of the carousel of visible spaces.
+  if (isHidden && currentSpace) {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col">
+        <SpaceContentPage space={currentSpace} moveTab={moveTab} />
+      </div>
+    );
+  }
 
   return (
     <div

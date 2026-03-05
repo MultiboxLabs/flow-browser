@@ -224,6 +224,11 @@ export function SpaceSwitcher() {
 
   const { visibleSpaces, compact } = useVisibleSpaces(spaces, activeIndex, containerWidth);
 
+  // Don't show the space switcher when the current space is hidden (e.g. incognito)
+  if (currentSpace?.hidden) {
+    return <div className="flex-1 min-w-0" />;
+  }
+
   return (
     <div ref={containerRef} className="flex-1 min-w-0 flex justify-center">
       <div className={cn("flex flex-row items-center", compact ? "gap-0.5" : "gap-1")}>

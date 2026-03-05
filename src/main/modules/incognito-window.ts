@@ -38,6 +38,10 @@ export async function createIncognitoWindow() {
       throw new Error("Failed to create incognito space");
     }
 
+    // Mark the incognito space as hidden and ephemeral so it doesn't appear
+    // in the space switcher and its data is not persisted across sessions
+    await spacesController.update(profileId, space.id, { hidden: true, ephemeral: true });
+
     setWindowSpace(window, space.id);
 
     const tab = await tabsController.createTab(window.id, profileId, space.id);
