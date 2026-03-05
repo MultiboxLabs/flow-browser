@@ -2,7 +2,7 @@ import "../pin.css";
 
 import { cn } from "@/lib/utils";
 import { useMeasure } from "react-use";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
 import { SidebarScrollArea } from "@/components/browser-ui/browser-sidebar/_components/sidebar-scroll-area";
 import { usePinnedTabs } from "@/components/providers/pinned-tabs-provider";
@@ -16,8 +16,10 @@ type GridIndicator = { index: number; edge: "left" | "right" };
  * Find the closest pin edge (left or right) to the cursor position.
  * Uses Euclidean distance from cursor to each pin's edge midpoints,
  * which naturally handles multi-row grid layouts.
+ *
+ * @param cols Number of grid columns, used to avoid normalizing across rows.
  */
-function findClosestPinEdge(gridEl: HTMLElement, clientX: number, clientY: number): GridIndicator | null {
+function findClosestPinEdge(gridEl: HTMLElement, clientX: number, clientY: number, cols: number): GridIndicator | null {
   const children = gridEl.children;
   if (children.length === 0) return null;
 
@@ -41,10 +43,10 @@ function findClosestPinEdge(gridEl: HTMLElement, clientX: number, clientY: numbe
     }
   }
 
-  // Normalize: "left of pin i" and "right of pin i-1" are the same gap.
-  // Always express it as "right of the earlier pin" so the indicator doesn't
-  // jump between two physical positions when the cursor wiggles.
-  if (result && result.edge === "left" && result.index > 0) {
+  // Normalize: "left of pin i" and "right of pin i-1" are the same gap,
+  // BUT only within the same row.  Across rows the two positions are
+  // visually distinct, so we must not collapse them.
+  if (result && result.edge === "left" && result.index > 0 && result.index % cols !== 0) {
     result = { index: result.index - 1, edge: "right" };
   }
 
@@ -78,6 +80,11 @@ export function PinGrid({ profileId }: PinGridProps) {
   const [gridIndicator, setGridIndicator] = useState<GridIndicator | null>(null);
   const gridIndicatorRef = useRef<GridIndicator | null>(null);
 
+  // Ref that always holds the current column count so that long-lived closures
+  // (drop-target callbacks, handleChildEdgeChange) can read it without needing
+  // to re-register whenever `cols` changes.  Updated in the cols useMemo below.
+  const colsRef = useRef(3);
+
   // Tracks the closest pin edge reported by a child PinnedTabButton (when the
   // cursor IS directly over a pin).  Normalized so that equivalent gaps always
   // resolve to the same indicator position.
@@ -90,8 +97,9 @@ export function PinGrid({ profileId }: PinGridProps) {
       return;
     }
     let indicator: GridIndicator = { index, edge };
-    // Normalize: "left of pin[i]" → "right of pin[i-1]" (same gap).
-    if (indicator.edge === "left" && indicator.index > 0) {
+    // Normalize: "left of pin[i]" → "right of pin[i-1]" (same gap),
+    // but only within the same row — across rows these are distinct positions.
+    if (indicator.edge === "left" && indicator.index > 0 && indicator.index % colsRef.current !== 0) {
       indicator = { index: indicator.index - 1, edge: "right" };
     }
     setChildIndicator(indicator);
@@ -137,7 +145,7 @@ export function PinGrid({ profileId }: PinGridProps) {
         // PinnedTabButton), compute the closest pin edge for the indicator.
         const { input, dropTargets } = location.current;
         if (dropTargets.length === 1) {
-          const indicator = findClosestPinEdge(el, input.clientX, input.clientY);
+          const indicator = findClosestPinEdge(el, input.clientX, input.clientY, colsRef.current);
           gridIndicatorRef.current = indicator;
           setGridIndicator(indicator);
         } else {
@@ -148,7 +156,7 @@ export function PinGrid({ profileId }: PinGridProps) {
       onDrag: ({ location }) => {
         const { input, dropTargets } = location.current;
         if (dropTargets.length === 1) {
-          const indicator = findClosestPinEdge(el, input.clientX, input.clientY);
+          const indicator = findClosestPinEdge(el, input.clientX, input.clientY, colsRef.current);
           // Only update state when the indicator actually changes to avoid
           // unnecessary re-renders (onDrag fires every frame).
           gridIndicatorRef.current = indicator;
@@ -207,19 +215,33 @@ export function PinGrid({ profileId }: PinGridProps) {
       const minTabWidth = 60;
       const gap = 8; // gap-2 = 8px
       const calculatedCols = Math.max(1, Math.floor((width + gap) / (minTabWidth + gap)));
+      colsRef.current = calculatedCols;
       return calculatedCols;
     }
     // Default placeholder value
     return 3;
   }, [width]);
 
-  const gridColumnClass = {
-    "grid-cols-1": cols >= 1 && amountOfPinnedTabs >= 1,
-    "grid-cols-2": cols >= 2 && amountOfPinnedTabs >= 2,
-    "grid-cols-3": cols >= 3 && amountOfPinnedTabs >= 3,
-    "grid-cols-4": cols >= 4 && amountOfPinnedTabs >= 4,
-    "grid-cols-5": cols >= 5 && amountOfPinnedTabs >= 5
-  };
+  // Static lookup so Tailwind can detect each class at build time.
+  const GRID_COL_CLASSES = ["grid-cols-1", "grid-cols-2", "grid-cols-3", "grid-cols-4", "grid-cols-5"] as const;
+  const gridColumnClass = GRID_COL_CLASSES[Math.min(cols, amountOfPinnedTabs, 5) - 1] ?? "grid-cols-1";
+
+  // Suppress layout animations when the column count changes (sidebar resize).
+  // Without this, motion's `layout="position"` on each PinnedTabButton would
+  // animate the grid reflow, making icons appear to shuffle on resize.
+  const [layoutAnimationsEnabled, setLayoutAnimationsEnabled] = useState(true);
+  const prevColsRef = useRef(cols);
+  useLayoutEffect(() => {
+    if (prevColsRef.current !== cols) {
+      prevColsRef.current = cols;
+      setLayoutAnimationsEnabled(false);
+      // Re-enable after the browser paints the new layout so that subsequent
+      // reorders (drag-and-drop) still animate.
+      requestAnimationFrame(() => {
+        setLayoutAnimationsEnabled(true);
+      });
+    }
+  }, [cols]);
 
   return (
     <SidebarScrollArea className="max-h-40">
@@ -251,6 +273,9 @@ export function PinGrid({ profileId }: PinGridProps) {
               index={index}
               onEdgeChange={handleChildEdgeChange}
               activeEdge={activeIndicator?.index === index ? activeIndicator.edge : undefined}
+              isFirstInRow={index % cols === 0}
+              isLastInRow={index % cols === cols - 1 || index === amountOfPinnedTabs - 1}
+              layoutAnimationsEnabled={layoutAnimationsEnabled}
             />
           ))
         )}
