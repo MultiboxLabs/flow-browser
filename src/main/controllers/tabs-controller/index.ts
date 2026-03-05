@@ -99,6 +99,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     // Archive/sleep check interval
     const interval = setInterval(() => {
       for (const tab of this.tabs.values()) {
+        if (tab.ephemeral) continue;
         if (!tab.visible && shouldArchiveTab(tab.lastActiveAt)) {
           tab.destroy();
           continue;
@@ -113,6 +114,21 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     this.on("destroyed", () => {
       clearInterval(interval);
     });
+  }
+
+  // --- Persistence helper ---
+
+  /**
+   * Serialize a tab and mark it dirty for persistence.
+   * Centralises the `serializeTab` + `markDirty` pattern that was previously
+   * repeated across multiple event handlers.
+   */
+  private persistTab(tab: Tab): void {
+    if (tab.ephemeral) return;
+    const lifecycleManager = this.tabManagers.get(tab.id)?.lifecycle;
+    const windowGroupId = `w-${tab.getWindow().id}`;
+    const serialized = serializeTab(tab, windowGroupId, lifecycleManager?.preSleepState);
+    tabPersistenceManager.markDirty(tab.uniqueId, serialized);
   }
 
   // --- Manager access ---
@@ -294,9 +310,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       windowTabContentChanged(tab.getWindow().id, tab.id);
 
       // Mark tab dirty for persistence
-      const windowGroupId = `w-${tab.getWindow().id}`;
-      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-      tabPersistenceManager.markDirty(tab.uniqueId, serialized);
+      this.persistTab(tab);
     });
     tab.on("space-changed", () => {
       if (quitController.isQuitting) return;
@@ -305,9 +319,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       windowTabsChanged(tab.getWindow().id);
 
       // Mark tab dirty for persistence
-      const windowGroupId = `w-${tab.getWindow().id}`;
-      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-      tabPersistenceManager.markDirty(tab.uniqueId, serialized);
+      this.persistTab(tab);
     });
     tab.on("window-changed", (oldWindowId) => {
       if (quitController.isQuitting) return;
@@ -319,9 +331,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       }
 
       // Mark tab dirty for persistence
-      const windowGroupId = `w-${tab.getWindow().id}`;
-      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-      tabPersistenceManager.markDirty(tab.uniqueId, serialized);
+      this.persistTab(tab);
     });
     tab.on("focused", () => {
       if (this.isTabActive(tab)) {
@@ -352,17 +362,19 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
         return;
       }
 
-      // Add to recently closed (user-initiated close only)
-      const windowGroupId = `w-${tab.getWindow().id}`;
-      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-      const group = this.getTabGroupByTabId(tab.id);
-      const groupData = group ? serializeTabGroup(group) : undefined;
-      recentlyClosedManager
-        .add(serialized, groupData)
-        .catch((err) => console.error("[TabsController] Failed to save recently closed tab:", err));
+      // Add to recently closed and remove from persistence (skip for ephemeral tabs)
+      if (!tab.ephemeral) {
+        const windowGroupId = `w-${tab.getWindow().id}`;
+        const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
+        const group = this.getTabGroupByTabId(tab.id);
+        const groupData = group ? serializeTabGroup(group) : undefined;
+        recentlyClosedManager
+          .add(serialized, groupData)
+          .catch((err) => console.error("[TabsController] Failed to save recently closed tab:", err));
 
-      // Remove from persistence
-      tabPersistenceManager.markRemoved(tab.uniqueId);
+        // Remove from persistence
+        tabPersistenceManager.markRemoved(tab.uniqueId);
+      }
 
       // Remove managers
       this.tabManagers.delete(tab.id);
@@ -372,9 +384,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     });
 
     // --- Initial persistence ---
-    const windowGroupId = `w-${windowId}`;
-    const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-    tabPersistenceManager.markDirty(tab.uniqueId, serialized);
+    this.persistTab(tab);
 
     // Return tab
     this.emit("tab-created", tab);
@@ -716,6 +726,36 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
    */
   public getTabById(tabId: number): Tab | undefined {
     return this.tabs.get(tabId);
+  }
+
+  /**
+   * Mark a tab as ephemeral so it will no longer be persisted to the database.
+   * Also removes any existing persisted data for this tab and notifies the
+   * renderer to refresh the tab list (so the tab disappears from the sidebar).
+   */
+  public makeTabEphemeral(tabId: number): void {
+    const tab = this.tabs.get(tabId);
+    if (!tab || tab.ephemeral) return;
+    tab.ephemeral = true;
+    tabPersistenceManager.markRemoved(tab.uniqueId);
+    // Trigger a structural change so the renderer drops this tab from the list
+    windowTabsChanged(tab.getWindow().id);
+  }
+
+  /**
+   * Reverse of makeTabEphemeral: mark a tab as persistent so it will be
+   * persisted to the database again and reappear in the sidebar tab list.
+   */
+  public makeTabPersistent(tabId: number): void {
+    const tab = this.tabs.get(tabId);
+    if (!tab || !tab.ephemeral) return;
+    tab.ephemeral = false;
+
+    // Immediately serialize and mark dirty so it gets persisted on the next flush
+    this.persistTab(tab);
+
+    // Trigger a structural change so the renderer adds this tab back to the list
+    windowTabsChanged(tab.getWindow().id);
   }
 
   /**

@@ -2,9 +2,9 @@ import "../pin.css";
 
 import { cn } from "@/lib/utils";
 import { useState, useCallback, useRef } from "react";
-import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
 import { Button } from "@/components/ui/button";
 import { useUnmount } from "react-use";
+import { PinVisual } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pin-visual";
 
 const POPULAR_WEBSITES: string[] = [
   "youtube.com",
@@ -77,7 +77,8 @@ export function SlotMachinePinGrid() {
 
   const [isRolling, setIsRolling] = useState(false);
   const [showWinners, setShowWinners] = useState(false);
-  const intervalRef = useRef<number | null>(null);
+  const slotsRef = useRef(slots);
+  slotsRef.current = slots;
   const timeoutRef = useRef<number | null>(null);
 
   const randomizeSlotsOnce = useCallback(() => {
@@ -116,15 +117,14 @@ export function SlotMachinePinGrid() {
         setTimeout(() => {
           setShowWinners(true);
           setIsRolling(false);
-          setSlots((currentSlots) => {
-            const winners: [string, string, string] = [
-              currentSlots[3].domain,
-              currentSlots[4].domain,
-              currentSlots[5].domain
-            ];
-            openWinnerTabs(winners);
-            return currentSlots;
-          });
+          // Read current slots from the ref (avoids side effect in state updater)
+          const currentSlots = slotsRef.current;
+          const winners: [string, string, string] = [
+            currentSlots[3].domain,
+            currentSlots[4].domain,
+            currentSlots[5].domain
+          ];
+          openWinnerTabs(winners);
         }, 300);
       }
     };
@@ -133,7 +133,6 @@ export function SlotMachinePinGrid() {
   }, [isRolling, randomizeSlotsOnce]);
 
   useUnmount(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   });
 
@@ -145,7 +144,7 @@ export function SlotMachinePinGrid() {
           const isWinner = showWinners && index >= 3 && index <= 5;
 
           return (
-            <PinnedTabButton
+            <PinVisual
               key={index}
               faviconUrl={`https://www.google.com/s2/favicons?domain=${slot.domain}&sz=128`}
               isActive={isWinner}

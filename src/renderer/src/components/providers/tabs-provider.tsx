@@ -222,6 +222,9 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
 
       for (const tab of tabsData.tabs) {
         if (tabsWithGroups.has(tab.id)) continue;
+        // Ephemeral tabs (e.g. pinned-tab-associated) are included in tabById
+        // for focusedTab resolution but should not appear in the sidebar tab list.
+        if (tab.ephemeral) continue;
         allTabGroupDatas.push({
           // Synthetic group ID — uses string format to avoid collision with real group IDs
           id: `s-${tab.uniqueId}`,
@@ -358,11 +361,9 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
   const addressUrl = useMemo(() => {
     if (!focusedTab) return "";
 
-    const currentURL = focusedTab.url;
-
-    const transformedUrl = transformUrl(currentURL);
+    const transformedUrl = transformUrl(focusedTab.url);
     if (transformedUrl === null) {
-      return currentURL;
+      return focusedTab.url;
     } else {
       if (transformedUrl) {
         return transformedUrl;
@@ -390,7 +391,12 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
     }),
     [focusedTab, addressUrl]
   );
-  const focusedTabId = focusedTab?.id ?? null;
+  // Use the raw numeric ID from the main process rather than deriving it
+  // from the resolved TabData object. The focused tab may be ephemeral
+  // (e.g. a pinned tab's associated tab) and therefore absent from
+  // tabsData.tabs / tabById — but its numeric ID is still valid and
+  // needed by the pin grid to detect active state.
+  const focusedTabId = (currentSpace && tabsData?.focusedTabIds[currentSpace.id]) ?? null;
   const isFocusedTabLoading = focusedTab?.isLoading ?? false;
   const isFocusedTabFullscreen = focusedTab?.fullScreen ?? false;
 
