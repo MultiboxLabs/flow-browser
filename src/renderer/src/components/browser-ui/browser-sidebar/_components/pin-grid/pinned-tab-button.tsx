@@ -2,11 +2,7 @@ import { cn } from "@/lib/utils";
 import { useFaviconColors, FaviconColors, RGB } from "@/hooks/use-favicon-color";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
-import {
-  attachClosestEdge,
-  extractClosestEdge,
-  type Edge
-} from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import { attachClosestEdge, extractClosestEdge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import type { PinnedTabData } from "~/types/pinned-tabs";
 import type { TabGroupSourceData } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
 import "./pin.css";
@@ -58,6 +54,12 @@ interface PinnedTabButtonProps {
   onReorder: (pinnedTabId: string, newPosition: number) => void;
   onCreateFromTab: (tabId: number, position: number) => void;
   pinnedTabs: PinnedTabData[];
+  /** Index of this pin in the list, used for edge-change reporting. */
+  index: number;
+  /** Called when the closest-edge changes during a drag over this pin. */
+  onEdgeChange: (index: number, edge: "left" | "right" | null) => void;
+  /** Normalized edge indicator controlled by the parent grid. */
+  activeEdge?: "left" | "right";
 }
 
 export function PinnedTabButton({
@@ -69,13 +71,15 @@ export function PinnedTabButton({
   onContextMenu,
   onReorder,
   onCreateFromTab,
-  pinnedTabs
+  pinnedTabs,
+  index,
+  onEdgeChange,
+  activeEdge
 }: PinnedTabButtonProps) {
   const ref = useRef<HTMLDivElement>(null);
   const faviconUrl = pinnedTab.faviconUrl;
   const faviconColors = useFaviconColors(faviconUrl);
   const hasColors = faviconColors !== null;
-  const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   // Generate dynamic styles for active state based on the extracted colors
@@ -130,11 +134,17 @@ export function PinnedTabButton({
       getData: ({ input, element }) => {
         return attachClosestEdge({}, { input, element, allowedEdges: ["left", "right"] });
       },
-      onDragEnter: ({ self }) => setClosestEdge(extractClosestEdge(self.data)),
-      onDrag: ({ self }) => setClosestEdge(extractClosestEdge(self.data)),
-      onDragLeave: () => setClosestEdge(null),
+      onDragEnter: ({ self }) => {
+        onEdgeChange(index, extractClosestEdge(self.data) as "left" | "right" | null);
+      },
+      onDrag: ({ self }) => {
+        onEdgeChange(index, extractClosestEdge(self.data) as "left" | "right" | null);
+      },
+      onDragLeave: () => {
+        onEdgeChange(index, null);
+      },
       onDrop: ({ source, self }) => {
-        setClosestEdge(null);
+        onEdgeChange(index, null);
         const sourceData = source.data;
 
         const edge = extractClosestEdge(self.data);
@@ -161,7 +171,7 @@ export function PinnedTabButton({
       dragCleanup();
       dropCleanup();
     };
-  }, [pinnedTab.uniqueId, pinnedTab.position, pinnedTabs, profileId, onReorder, onCreateFromTab]);
+  }, [pinnedTab.uniqueId, pinnedTab.position, pinnedTabs, profileId, onReorder, onCreateFromTab, index, onEdgeChange]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -184,11 +194,11 @@ export function PinnedTabButton({
   return (
     <div className="relative">
       {/* Drop indicator - left */}
-      {closestEdge === "left" && (
+      {activeEdge === "left" && (
         <div className="absolute left-0 top-1 bottom-1 w-0.5 -translate-x-1 rounded-full bg-white/60" />
       )}
       {/* Drop indicator - right */}
-      {closestEdge === "right" && (
+      {activeEdge === "right" && (
         <div className="absolute right-0 top-1 bottom-1 w-0.5 translate-x-1 rounded-full bg-white/60" />
       )}
 
