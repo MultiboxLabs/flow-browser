@@ -3,6 +3,7 @@ import { useFaviconColors, FaviconColors, RGB } from "@/hooks/use-favicon-color"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { attachClosestEdge, extractClosestEdge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import { motion } from "motion/react";
 import type { PinnedTabData } from "~/types/pinned-tabs";
 import type { TabGroupSourceData } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
 import "./pin.css";
@@ -192,7 +193,14 @@ export function PinnedTabButton({
   );
 
   return (
-    <div className="relative">
+    <motion.div
+      className="relative"
+      layout="position"
+      layoutId={`pinned-tab-${pinnedTab.uniqueId}`}
+      transition={{
+        layout: { type: "spring", stiffness: 500, damping: 35 }
+      }}
+    >
       {/* Drop indicator - left */}
       {activeEdge === "left" && (
         <div className="absolute left-0 top-1 bottom-1 w-0.5 -translate-x-1 rounded-full bg-white/60" />
@@ -233,6 +241,6 @@ export function PinnedTabButton({
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
