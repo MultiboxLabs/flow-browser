@@ -8,31 +8,21 @@ import { PinnedTabData } from "~/types/pinned-tabs";
 
 // --- Change notification ---
 
-const DEBOUNCE_MS = 80;
 let changeTimeout: NodeJS.Timeout | null = null;
-let pendingChange = false;
 
 function schedulePinnedTabsChange() {
-  pendingChange = true;
-  if (changeTimeout) return;
+  if (changeTimeout) clearTimeout(changeTimeout);
   changeTimeout = setTimeout(() => {
-    processPinnedTabsChange();
     changeTimeout = null;
-  }, DEBOUNCE_MS);
-}
-
-function processPinnedTabsChange() {
-  if (!pendingChange) return;
-  pendingChange = false;
-
-  const allByProfile = pinnedTabsController.getAllByProfile();
-  for (const window of browserWindowsController.getWindows()) {
-    window.sendMessageToCoreWebContents("pinned-tabs:on-changed", allByProfile);
-  }
+    const allByProfile = pinnedTabsController.getAllByProfile();
+    for (const window of browserWindowsController.getWindows()) {
+      window.sendMessageToCoreWebContents("pinned-tabs:on-changed", allByProfile);
+    }
+  }, 80);
 }
 
 // Listen for changes from the controller
-pinnedTabsController.onChanged(() => {
+pinnedTabsController.on("changed", () => {
   schedulePinnedTabsChange();
 });
 
@@ -72,6 +62,43 @@ function movePinnedAssociatedTabs(windowId: number, newSpaceId: string, profileI
   }
 }
 
+// --- Shared helpers ---
+
+/**
+ * Move an ephemeral associated tab to the current space if it's in a different one.
+ * Pinned tabs are per-profile, so the associated tab should follow the user across spaces.
+ */
+function moveEphemeralTabToCurrentSpace(
+  tab: ReturnType<typeof tabsController.getTabById>,
+  currentSpaceId: string | null
+) {
+  if (tab && currentSpaceId && tab.ephemeral && tab.spaceId !== currentSpaceId) {
+    tab.setSpace(currentSpaceId);
+  }
+}
+
+/**
+ * Create a new ephemeral tab for a pinned tab, associate it, and activate it.
+ */
+async function createAndAssociatePinnedTab(
+  pinnedTabId: string,
+  pinnedTab: PinnedTabData,
+  window: BrowserWindow,
+  url?: string
+) {
+  const spaceId = await getSpaceForPinnedTab(pinnedTab, window);
+  if (!spaceId) return null;
+
+  const newTab = await tabsController.createTab(window.id, pinnedTab.profileId, spaceId, undefined, {
+    url: url ?? pinnedTab.defaultUrl,
+    ephemeral: true
+  });
+
+  pinnedTabsController.associateTab(pinnedTabId, newTab.id);
+  tabsController.setActiveTab(newTab);
+  return newTab;
+}
+
 // --- IPC Handlers ---
 
 /**
@@ -108,27 +135,27 @@ ipcMain.handle("pinned-tabs:create-from-tab", async (_event, tabId: number, posi
  * Click handler: activate or create the associated browser tab.
  * If the pinned tab already has an associated live tab, switch to it.
  * Otherwise, create a new tab with the pinned tab's defaultUrl.
+ *
+ * When navigateToDefault is true (double-click), also navigates the
+ * associated tab back to the pinned tab's defaultUrl first.
  */
-ipcMain.handle("pinned-tabs:click", async (event, pinnedTabId: string) => {
-  const webContents = event.sender;
-  const window = browserWindowsController.getWindowFromWebContents(webContents);
-  if (!window) return false;
-
+async function handlePinnedTabClick(
+  window: BrowserWindow,
+  pinnedTabId: string,
+  navigateToDefault: boolean
+): Promise<boolean> {
   const pinnedTab = pinnedTabsController.getById(pinnedTabId);
   if (!pinnedTab) return false;
 
   const associatedTabId = pinnedTabsController.getAssociatedTabId(pinnedTabId);
 
   if (associatedTabId !== null) {
-    // Tab is already associated — switch to it
     const tab = tabsController.getTabById(associatedTabId);
     if (tab && !tab.isDestroyed) {
-      // Move ephemeral tab to the current space if it's in a different one
-      // (pinned tabs are per-profile, so the associated tab should follow the user across spaces)
-      const currentSpaceId = window.currentSpaceId;
-      if (currentSpaceId && tab.ephemeral && tab.spaceId !== currentSpaceId) {
-        tab.setSpace(currentSpaceId);
+      if (navigateToDefault) {
+        tab.loadURL(pinnedTab.defaultUrl);
       }
+      moveEphemeralTabToCurrentSpace(tab, window.currentSpaceId);
       tabsController.setActiveTab(tab);
       return true;
     }
@@ -137,66 +164,42 @@ ipcMain.handle("pinned-tabs:click", async (event, pinnedTabId: string) => {
   }
 
   // No associated tab — create a new one
-  const spaceId = await getSpaceForPinnedTab(pinnedTab, window);
-  if (!spaceId) return false;
+  const newTab = await createAndAssociatePinnedTab(pinnedTabId, pinnedTab, window);
+  return newTab !== null;
+}
 
-  const newTab = await tabsController.createTab(window.id, pinnedTab.profileId, spaceId, undefined, {
-    url: pinnedTab.defaultUrl,
-    ephemeral: true
-  });
+ipcMain.handle("pinned-tabs:click", async (event, pinnedTabId: string) => {
+  const window = browserWindowsController.getWindowFromWebContents(event.sender);
+  if (!window) return false;
+  return handlePinnedTabClick(window, pinnedTabId, false);
+});
 
-  pinnedTabsController.associateTab(pinnedTabId, newTab.id);
-  tabsController.setActiveTab(newTab);
-
-  return true;
+ipcMain.handle("pinned-tabs:double-click", async (event, pinnedTabId: string) => {
+  const window = browserWindowsController.getWindowFromWebContents(event.sender);
+  if (!window) return false;
+  return handlePinnedTabClick(window, pinnedTabId, true);
 });
 
 /**
- * Double-click handler: navigate associated tab back to defaultUrl.
- * If the tab is on a different URL, navigates it back. If no associated tab, behaves like click.
+ * Destroy the ephemeral tab associated with a pinned tab (if any).
+ * Used when removing/unpinning to prevent invisible background tabs from leaking.
  */
-ipcMain.handle("pinned-tabs:double-click", async (event, pinnedTabId: string) => {
-  const pinnedTab = pinnedTabsController.getById(pinnedTabId);
-  if (!pinnedTab) return false;
-
-  const webContents = event.sender;
-  const window = browserWindowsController.getWindowFromWebContents(webContents);
-  if (!window) return false;
-
-  const associatedTabId = pinnedTabsController.getAssociatedTabId(pinnedTabId);
-  if (associatedTabId !== null) {
-    const tab = tabsController.getTabById(associatedTabId);
+function destroyAssociatedTab(pinnedTabId: string): void {
+  const tabId = pinnedTabsController.getAssociatedTabId(pinnedTabId);
+  if (tabId !== null) {
+    const tab = tabsController.getTabById(tabId);
     if (tab && !tab.isDestroyed) {
-      // Navigate back to defaultUrl
-      tab.loadURL(pinnedTab.defaultUrl);
-      // Move ephemeral tab to the current space if needed
-      const currentSpaceId = window.currentSpaceId;
-      if (currentSpaceId && tab.ephemeral && tab.spaceId !== currentSpaceId) {
-        tab.setSpace(currentSpaceId);
-      }
-      tabsController.setActiveTab(tab);
-      return true;
+      tab.destroy();
     }
   }
-
-  // No valid associated tab — fall through to click behavior
-  const spaceId = await getSpaceForPinnedTab(pinnedTab, window);
-  if (!spaceId) return false;
-
-  const newTab = await tabsController.createTab(window.id, pinnedTab.profileId, spaceId, undefined, {
-    url: pinnedTab.defaultUrl,
-    ephemeral: true
-  });
-
-  pinnedTabsController.associateTab(pinnedTabId, newTab.id);
-  tabsController.setActiveTab(newTab);
-  return true;
-});
+}
 
 /**
  * Remove a pinned tab.
+ * Also destroys the associated ephemeral tab (if any) so it doesn't leak.
  */
 ipcMain.handle("pinned-tabs:remove", async (_event, pinnedTabId: string) => {
+  destroyAssociatedTab(pinnedTabId);
   pinnedTabsController.remove(pinnedTabId);
   return true;
 });
@@ -273,15 +276,7 @@ ipcMain.on("pinned-tabs:show-context-menu", (event, pinnedTabId: string) => {
     new MenuItem({
       label: "Unpin",
       click: () => {
-        // Destroy the associated ephemeral tab before removing the pin,
-        // so it doesn't remain alive but invisible in the background.
-        const tabId = pinnedTabsController.getAssociatedTabId(pinnedTabId);
-        if (tabId !== null) {
-          const tab = tabsController.getTabById(tabId);
-          if (tab && !tab.isDestroyed) {
-            tab.destroy();
-          }
-        }
+        destroyAssociatedTab(pinnedTabId);
         pinnedTabsController.remove(pinnedTabId);
       }
     })

@@ -2,29 +2,11 @@ import { getDb, schema } from "@/saving/db";
 import { generateID } from "@/modules/utils";
 import { eq } from "drizzle-orm";
 import { PersistedPinnedTabData, PinnedTabData } from "~/types/pinned-tabs";
-import { PinnedTabRow, PinnedTabInsert } from "@/saving/db/schema";
+import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 
-// --- Row <-> Domain Object Converters ---
-
-function pinnedTabRowToPersistedData(row: PinnedTabRow): PersistedPinnedTabData {
-  return {
-    uniqueId: row.uniqueId,
-    profileId: row.profileId,
-    defaultUrl: row.defaultUrl,
-    faviconUrl: row.faviconUrl,
-    position: row.position
-  };
-}
-
-function persistedDataToPinnedTabInsert(data: PersistedPinnedTabData): PinnedTabInsert {
-  return {
-    uniqueId: data.uniqueId,
-    profileId: data.profileId,
-    defaultUrl: data.defaultUrl,
-    faviconUrl: data.faviconUrl,
-    position: data.position
-  };
-}
+type PinnedTabsControllerEvents = {
+  changed: [];
+};
 
 /**
  * Manages persistence and runtime state of pinned tabs.
@@ -35,7 +17,7 @@ function persistedDataToPinnedTabInsert(data: PersistedPinnedTabData): PinnedTab
  *
  * All database writes are immediate (pinned tabs change infrequently).
  */
-class PinnedTabsController {
+class PinnedTabsController extends TypedEventEmitter<PinnedTabsControllerEvents> {
   /** In-memory cache of all pinned tabs, keyed by uniqueId */
   private pinnedTabs = new Map<string, PersistedPinnedTabData>();
 
@@ -44,9 +26,6 @@ class PinnedTabsController {
 
   /** Reverse lookup: browser tab ID → pinnedTabId */
   private reverseAssociations = new Map<number, string>();
-
-  /** Change listeners that will be notified when pinned tabs data changes */
-  private changeListeners = new Set<() => void>();
 
   // --- Initialization ---
 
@@ -59,26 +38,8 @@ class PinnedTabsController {
     const rows = db.select().from(schema.pinnedTabs).all();
     this.pinnedTabs.clear();
     for (const row of rows) {
-      const data = pinnedTabRowToPersistedData(row);
+      const data: PersistedPinnedTabData = { ...row };
       this.pinnedTabs.set(data.uniqueId, data);
-    }
-  }
-
-  // --- Change notification ---
-
-  /**
-   * Register a listener that will be called whenever pinned tabs data changes.
-   */
-  onChanged(listener: () => void): () => void {
-    this.changeListeners.add(listener);
-    return () => {
-      this.changeListeners.delete(listener);
-    };
-  }
-
-  private notifyChanged(): void {
-    for (const listener of this.changeListeners) {
-      listener();
     }
   }
 
@@ -114,17 +75,19 @@ class PinnedTabsController {
       position: finalPosition
     };
 
-    // Persist immediately
+    // Persist + normalize in a single transaction
     const db = getDb();
-    const insert = persistedDataToPinnedTabInsert(data);
-    db.insert(schema.pinnedTabs).values(insert).run();
+    db.transaction((tx) => {
+      tx.insert(schema.pinnedTabs)
+        .values({ ...data })
+        .run();
+      this.normalizePositionsInTx(tx, profileId);
+    });
 
     // Update in-memory cache
     this.pinnedTabs.set(uniqueId, data);
 
-    // Normalize positions so fractional inserts become contiguous integers
-    this.normalizePositions(profileId);
-    this.notifyChanged();
+    this.emit("changed");
 
     return data;
   }
@@ -139,16 +102,16 @@ class PinnedTabsController {
     // Clear association
     this.dissociateTab(uniqueId);
 
-    // Remove from database
+    // Remove from database + normalize in a single transaction
     const db = getDb();
-    db.delete(schema.pinnedTabs).where(eq(schema.pinnedTabs.uniqueId, uniqueId)).run();
+    db.transaction((tx) => {
+      tx.delete(schema.pinnedTabs).where(eq(schema.pinnedTabs.uniqueId, uniqueId)).run();
+      // Remove from memory before normalizing so it's excluded
+      this.pinnedTabs.delete(uniqueId);
+      this.normalizePositionsInTx(tx, data.profileId);
+    });
 
-    // Remove from memory
-    this.pinnedTabs.delete(uniqueId);
-
-    // Normalize positions for remaining tabs in this profile
-    this.normalizePositions(data.profileId);
-    this.notifyChanged();
+    this.emit("changed");
   }
 
   /**
@@ -160,12 +123,14 @@ class PinnedTabsController {
 
     data.position = newPosition;
 
-    // Persist immediately
+    // Persist + normalize in a single transaction
     const db = getDb();
-    db.update(schema.pinnedTabs).set({ position: newPosition }).where(eq(schema.pinnedTabs.uniqueId, uniqueId)).run();
+    db.transaction((tx) => {
+      tx.update(schema.pinnedTabs).set({ position: newPosition }).where(eq(schema.pinnedTabs.uniqueId, uniqueId)).run();
+      this.normalizePositionsInTx(tx, data.profileId);
+    });
 
-    this.normalizePositions(data.profileId);
-    this.notifyChanged();
+    this.emit("changed");
   }
 
   /**
@@ -181,7 +146,7 @@ class PinnedTabsController {
     const db = getDb();
     db.update(schema.pinnedTabs).set({ faviconUrl }).where(eq(schema.pinnedTabs.uniqueId, uniqueId)).run();
 
-    this.notifyChanged();
+    this.emit("changed");
   }
 
   // --- Association Management ---
@@ -204,7 +169,7 @@ class PinnedTabsController {
 
     this.associations.set(pinnedId, tabId);
     this.reverseAssociations.set(tabId, pinnedId);
-    this.notifyChanged();
+    this.emit("changed");
   }
 
   /**
@@ -215,7 +180,7 @@ class PinnedTabsController {
     if (tabId !== undefined) {
       this.reverseAssociations.delete(tabId);
       this.associations.delete(pinnedId);
-      this.notifyChanged();
+      this.emit("changed");
     }
   }
 
@@ -228,7 +193,7 @@ class PinnedTabsController {
     if (pinnedId !== undefined) {
       this.associations.delete(pinnedId);
       this.reverseAssociations.delete(tabId);
-      this.notifyChanged();
+      this.emit("changed");
     }
   }
 
@@ -316,8 +281,11 @@ class PinnedTabsController {
 
   /**
    * Normalize positions for a profile's pinned tabs to be contiguous 0, 1, 2, ...
+   * Accepts a transaction handle so callers can include normalization in an
+   * atomic operation with the preceding write.
    */
-  private normalizePositions(profileId: string): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private normalizePositionsInTx(tx: any, profileId: string): void {
     const tabs: PersistedPinnedTabData[] = [];
     for (const data of this.pinnedTabs.values()) {
       if (data.profileId === profileId) {
@@ -326,18 +294,12 @@ class PinnedTabsController {
     }
     tabs.sort((a, b) => a.position - b.position);
 
-    const db = getDb();
-    db.transaction((tx) => {
-      for (let i = 0; i < tabs.length; i++) {
-        if (tabs[i].position !== i) {
-          tabs[i].position = i;
-          tx.update(schema.pinnedTabs)
-            .set({ position: i })
-            .where(eq(schema.pinnedTabs.uniqueId, tabs[i].uniqueId))
-            .run();
-        }
+    for (let i = 0; i < tabs.length; i++) {
+      if (tabs[i].position !== i) {
+        tabs[i].position = i;
+        tx.update(schema.pinnedTabs).set({ position: i }).where(eq(schema.pinnedTabs.uniqueId, tabs[i].uniqueId)).run();
       }
-    });
+    }
   }
 }
 

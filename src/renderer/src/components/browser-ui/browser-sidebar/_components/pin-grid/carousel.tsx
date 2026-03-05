@@ -55,7 +55,7 @@ export function PinGridCarousel() {
     if (pages.length === 0) return;
     const id = requestAnimationFrame(() => setAnimate(true));
     return () => cancelAnimationFrame(id);
-  }, [pages.length > 0]);
+  }, [pages.length]);
 
   return (
     <div className="shrink-0 overflow-clip">

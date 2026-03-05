@@ -3,23 +3,12 @@ import "../pin.css";
 import { cn } from "@/lib/utils";
 import { useMeasure } from "react-use";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  PinnedTabButton,
-  type PinnedTabSourceData
-} from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
+import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
 import { SidebarScrollArea } from "@/components/browser-ui/browser-sidebar/_components/sidebar-scroll-area";
 import { usePinnedTabs } from "@/components/providers/pinned-tabs-provider";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
-import type { TabGroupSourceData } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
 import { useFocusedTabId } from "@/components/providers/tabs-provider";
-
-function isTabGroupSource(data: Record<string, unknown>): data is TabGroupSourceData {
-  return data.type === "tab-group" && typeof data.primaryTabId === "number";
-}
-
-function isPinnedTabSource(data: Record<string, unknown>): data is PinnedTabSourceData {
-  return data.type === "pinned-tab" && typeof data.pinnedTabId === "string";
-}
+import { isPinnedTabSource, isTabGroupSource } from "@/components/browser-ui/browser-sidebar/_components/drag-utils";
 
 type GridIndicator = { index: number; edge: "left" | "right" };
 
@@ -211,22 +200,6 @@ export function PinGrid({ profileId }: PinGridProps) {
     });
   }, [profileId, createFromTab, reorder]);
 
-  // Reorder handler
-  const handleReorder = useCallback(
-    (pinnedTabId: string, newPosition: number) => {
-      reorder(pinnedTabId, newPosition);
-    },
-    [reorder]
-  );
-
-  // Create-from-tab handler (when a browser tab is dropped between pinned tabs)
-  const handleCreateFromTab = useCallback(
-    (tabId: number, position: number) => {
-      createFromTab(tabId, position);
-    },
-    [createFromTab]
-  );
-
   // Calculate columns based on container width
   // Minimum tab width: ~60px + gap (8px) = ~68px per column
   const cols = useMemo(() => {
@@ -272,8 +245,8 @@ export function PinGrid({ profileId }: PinGridProps) {
               onClick={() => click(pinnedTab.uniqueId)}
               onDoubleClick={() => doubleClick(pinnedTab.uniqueId)}
               onContextMenu={() => showContextMenu(pinnedTab.uniqueId)}
-              onReorder={handleReorder}
-              onCreateFromTab={handleCreateFromTab}
+              onReorder={reorder}
+              onCreateFromTab={createFromTab}
               pinnedTabs={pinnedTabs}
               index={index}
               onEdgeChange={handleChildEdgeChange}

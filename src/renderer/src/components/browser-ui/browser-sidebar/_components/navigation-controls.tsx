@@ -13,7 +13,40 @@ import { NavigationEntry } from "~/flow/interfaces/browser/navigation";
 
 type NavigationEntryWithIndex = NavigationEntry & { index: number };
 
-const NAVIGATION_ANIMATION_ENABLED = true;
+/** Shared animation handle shape for icon refs (ArrowLeft, ArrowRight, RefreshCW). */
+interface AnimatableIconHandle {
+  startAnimation: () => void;
+  stopAnimation: () => void;
+}
+
+/**
+ * Hook that manages mouse-press animation on an icon ref.
+ * Starts animation on mouse down, stops on mouse up (including global mouseup
+ * to handle the case where the user releases outside the button).
+ */
+function usePressAnimation(iconRef: React.RefObject<AnimatableIconHandle | null>) {
+  const isPressed = useRef(false);
+
+  const handleMouseDown = useCallback(() => {
+    iconRef.current?.startAnimation();
+    isPressed.current = true;
+  }, [iconRef]);
+
+  const handleMouseUp = useCallback(() => {
+    iconRef.current?.stopAnimation();
+    isPressed.current = false;
+  }, [iconRef]);
+
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      if (isPressed.current) handleMouseUp();
+    };
+    window.addEventListener("mouseup", handleGlobalMouseUp);
+    return () => window.removeEventListener("mouseup", handleGlobalMouseUp);
+  }, [handleMouseUp]);
+
+  return { handleMouseDown, handleMouseUp };
+}
 
 // Small icon-only button that matches the new sidebar styling
 export function NavButton({
@@ -51,161 +84,72 @@ export function NavButton({
   );
 }
 
-// Back button with right-click history popover
-function GoBackButton({
+// Unified back/forward button with right-click history popover
+function NavigationButton({
+  direction,
   focusedTabId,
-  canGoBack,
-  backwardEntries
+  canNavigate,
+  entries
 }: {
+  direction: "back" | "forward";
   focusedTabId: number | undefined;
-  canGoBack: boolean;
-  backwardEntries: NavigationEntryWithIndex[];
+  canNavigate: boolean;
+  entries: NavigationEntryWithIndex[];
 }) {
   const { isCurrentSpaceLight } = useSpaces();
-  const iconRef = useRef<ArrowLeftIconHandle>(null);
-  const isPressed = useRef(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const iconRef = useRef<ArrowLeftIconHandle | ArrowRightIconHandle>(null);
   const [open, setOpen] = useState(false);
+  const { handleMouseDown, handleMouseUp } = usePressAnimation(iconRef);
 
-  const goBack = useCallback(() => {
-    if (!focusedTabId || backwardEntries.length === 0) return;
-    flow.navigation.goToNavigationEntry(focusedTabId, backwardEntries[0].index);
-  }, [focusedTabId, backwardEntries]);
-
-  const handleMouseDown = useCallback(() => {
-    if (NAVIGATION_ANIMATION_ENABLED) iconRef.current?.startAnimation();
-    isPressed.current = true;
-  }, []);
-
-  const handleMouseUp = useCallback(() => {
-    if (NAVIGATION_ANIMATION_ENABLED) iconRef.current?.stopAnimation();
-    isPressed.current = false;
-  }, []);
-
-  useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      if (isPressed.current) handleMouseUp();
-    };
-    window.addEventListener("mouseup", handleGlobalMouseUp);
-    return () => window.removeEventListener("mouseup", handleGlobalMouseUp);
-  }, [handleMouseUp]);
+  const navigate = useCallback(() => {
+    if (!focusedTabId || entries.length === 0) return;
+    flow.navigation.goToNavigationEntry(focusedTabId, entries[0].index);
+  }, [focusedTabId, entries]);
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      if (backwardEntries.length > 0) {
+      if (entries.length > 0) {
         handleMouseUp();
         setOpen(true);
       }
     },
-    [backwardEntries, handleMouseUp]
+    [entries, handleMouseUp]
   );
 
   const spaceInjectedClasses = cn(isCurrentSpaceLight ? "" : "dark");
 
+  const icon =
+    direction === "back" ? (
+      <ArrowLeftIcon
+        ref={iconRef as React.RefObject<ArrowLeftIconHandle>}
+        className="size-4 bg-transparent! cursor-default!"
+        asChild
+      />
+    ) : (
+      <ArrowRightIcon
+        ref={iconRef as React.RefObject<ArrowRightIconHandle>}
+        className="size-4 bg-transparent! cursor-default!"
+        asChild
+      />
+    );
+
   return (
     <div className="relative">
       <NavButton
-        icon={<ArrowLeftIcon ref={iconRef} className="size-4 bg-transparent! cursor-default!" asChild />}
-        disabled={!canGoBack}
-        onClick={goBack}
+        icon={icon}
+        disabled={!canNavigate}
+        onClick={navigate}
         onContextMenu={handleContextMenu}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
       />
 
-      {backwardEntries.length > 0 && (
+      {entries.length > 0 && (
         <PortalPopover.Root open={open} onOpenChange={setOpen}>
-          <PopoverTrigger ref={triggerRef} className="absolute inset-0 opacity-0 pointer-events-none" />
+          <PopoverTrigger className="absolute inset-0 opacity-0 pointer-events-none" />
           <PortalPopover.Content className={cn("w-56 p-2", spaceInjectedClasses)}>
-            {backwardEntries.map((entry, index) => (
-              <div
-                key={index}
-                onClick={() => {
-                  if (!focusedTabId) return;
-                  flow.navigation.goToNavigationEntry(focusedTabId, entry.index);
-                  setOpen(false);
-                }}
-                className="flex items-center px-2 py-1.5 text-sm rounded-sm hover:bg-accent max-w-full text-ellipsis truncate"
-              >
-                {entry.title || entry.url}
-              </div>
-            ))}
-          </PortalPopover.Content>
-        </PortalPopover.Root>
-      )}
-    </div>
-  );
-}
-
-// Forward button with right-click history popover
-function GoForwardButton({
-  focusedTabId,
-  canGoForward,
-  forwardEntries
-}: {
-  focusedTabId: number | undefined;
-  canGoForward: boolean;
-  forwardEntries: NavigationEntryWithIndex[];
-}) {
-  const { isCurrentSpaceLight } = useSpaces();
-  const iconRef = useRef<ArrowRightIconHandle>(null);
-  const isPressed = useRef(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
-
-  const goForward = useCallback(() => {
-    if (!focusedTabId || forwardEntries.length === 0) return;
-    flow.navigation.goToNavigationEntry(focusedTabId, forwardEntries[0].index);
-  }, [focusedTabId, forwardEntries]);
-
-  const handleMouseDown = useCallback(() => {
-    if (NAVIGATION_ANIMATION_ENABLED) iconRef.current?.startAnimation();
-    isPressed.current = true;
-  }, []);
-
-  const handleMouseUp = useCallback(() => {
-    if (NAVIGATION_ANIMATION_ENABLED) iconRef.current?.stopAnimation();
-    isPressed.current = false;
-  }, []);
-
-  useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      if (isPressed.current) handleMouseUp();
-    };
-    window.addEventListener("mouseup", handleGlobalMouseUp);
-    return () => window.removeEventListener("mouseup", handleGlobalMouseUp);
-  }, [handleMouseUp]);
-
-  const handleContextMenu = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      if (forwardEntries.length > 0) {
-        handleMouseUp();
-        setOpen(true);
-      }
-    },
-    [forwardEntries, handleMouseUp]
-  );
-
-  const spaceInjectedClasses = cn(isCurrentSpaceLight ? "" : "dark");
-
-  return (
-    <div className="relative">
-      <NavButton
-        icon={<ArrowRightIcon ref={iconRef} className="size-4 bg-transparent! cursor-default!" asChild />}
-        disabled={!canGoForward}
-        onClick={goForward}
-        onContextMenu={handleContextMenu}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-      />
-
-      {forwardEntries.length > 0 && (
-        <PortalPopover.Root open={open} onOpenChange={setOpen}>
-          <PopoverTrigger ref={triggerRef} className="absolute inset-0 opacity-0 pointer-events-none" />
-          <PortalPopover.Content className={cn("w-56 p-2", spaceInjectedClasses)}>
-            {forwardEntries.map((entry, index) => (
+            {entries.map((entry, index) => (
               <div
                 key={index}
                 onClick={() => {
@@ -228,25 +172,7 @@ function GoForwardButton({
 // Reload button with animated icon
 function ReloadButton({ disabled, onReload }: { disabled: boolean; onReload: () => void }) {
   const iconRef = useRef<RefreshCWIconHandle>(null);
-  const isPressed = useRef(false);
-
-  const handleMouseDown = useCallback(() => {
-    iconRef.current?.startAnimation();
-    isPressed.current = true;
-  }, []);
-
-  const handleMouseUp = useCallback(() => {
-    iconRef.current?.stopAnimation();
-    isPressed.current = false;
-  }, []);
-
-  useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      if (isPressed.current) handleMouseUp();
-    };
-    window.addEventListener("mouseup", handleGlobalMouseUp);
-    return () => window.removeEventListener("mouseup", handleGlobalMouseUp);
-  }, [handleMouseUp]);
+  const { handleMouseDown, handleMouseUp } = usePressAnimation(iconRef);
 
   return (
     <NavButton
@@ -328,8 +254,18 @@ export function NavigationControls() {
 
   return (
     <div className="flex items-center gap-0.5 min-h-4">
-      <GoBackButton focusedTabId={focusedTabId} canGoBack={canGoBack} backwardEntries={backwardEntries} />
-      <GoForwardButton focusedTabId={focusedTabId} canGoForward={canGoForward} forwardEntries={forwardEntries} />
+      <NavigationButton
+        direction="back"
+        focusedTabId={focusedTabId}
+        canNavigate={canGoBack}
+        entries={backwardEntries}
+      />
+      <NavigationButton
+        direction="forward"
+        focusedTabId={focusedTabId}
+        canNavigate={canGoForward}
+        entries={forwardEntries}
+      />
       <AnimatePresence mode="wait" initial={true}>
         {!isLoading && <ReloadButton key="reload-button" disabled={!focusedTabId} onReload={handleReload} />}
         {isLoading && <StopLoadingButton key="stop-loading-button" onStop={handleStopLoading} />}

@@ -209,15 +209,6 @@ function PopupToolbar() {
 function FullscreenGuard({ children }: { children: React.ReactNode }) {
   const isFullscreen = useFocusedTabFullscreen();
   const { setForceFloating } = useBrowserSidebar();
-  // if (isFullscreen) {
-  //   // Wrap in a full-screen flex container so BrowserContent's flex-1 works
-  //   // and the measured pageBounds correctly fill the entire window.
-  //   return (
-  //     <div className="w-screen h-screen overflow-hidden flex flex-col">
-  //       <BrowserContent />
-  //     </div>
-  //   );
-  // }
   useEffect(() => {
     setForceFloating(isFullscreen);
   }, [isFullscreen, setForceFloating]);

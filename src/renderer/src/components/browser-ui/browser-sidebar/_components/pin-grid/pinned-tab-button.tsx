@@ -1,34 +1,13 @@
 import { cn } from "@/lib/utils";
-import { useFaviconColors, FaviconColors, RGB } from "@/hooks/use-favicon-color";
+import { useFaviconColors } from "@/hooks/use-favicon-color";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { attachClosestEdge, extractClosestEdge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import { motion } from "motion/react";
 import type { PinnedTabData } from "~/types/pinned-tabs";
-import type { TabGroupSourceData } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
+import { isPinnedTabSource, isTabGroupSource } from "@/components/browser-ui/browser-sidebar/_components/drag-utils";
+import { generateBorderGradient } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pin-visual";
 import "./pin.css";
-
-/**
- * Convert RGB to rgba string
- */
-function rgba(color: RGB | null, opacity: number): string {
-  if (!color) return `rgba(255, 255, 255, ${opacity})`;
-  return `rgba(${color.r}, ${color.g}, ${color.b}, ${opacity})`;
-}
-
-/**
- * Generate a border gradient using corner colors
- */
-function generateBorderGradient(colors: FaviconColors, opacity: number): string {
-  // Create a conic gradient using the corner colors
-  const tl = rgba(colors.topLeft, opacity);
-  const tr = rgba(colors.topRight, opacity);
-  const br = rgba(colors.bottomRight, opacity);
-  const bl = rgba(colors.bottomLeft, opacity);
-
-  // Conic gradient starting from top-left, going clockwise
-  return `conic-gradient(from 45deg, ${tr} 0deg, ${br} 90deg, ${bl} 180deg, ${tl} 270deg, ${tr} 360deg)`;
-}
 
 // Drag source type for pinned tab reordering
 export type PinnedTabSourceData = {
@@ -36,14 +15,6 @@ export type PinnedTabSourceData = {
   pinnedTabId: string;
   position: number;
 };
-
-function isPinnedTabSource(data: Record<string, unknown>): data is PinnedTabSourceData {
-  return data.type === "pinned-tab" && typeof data.pinnedTabId === "string";
-}
-
-function isTabGroupSource(data: Record<string, unknown>): data is TabGroupSourceData {
-  return data.type === "tab-group" && typeof data.primaryTabId === "number";
-}
 
 interface PinnedTabButtonProps {
   pinnedTab: PinnedTabData;
@@ -227,8 +198,8 @@ export function PinnedTabButton({
         onDoubleClick={onDoubleClick}
         onContextMenu={handleContextMenu}
       >
-        <div id="overlay-overlay" className={cn("size-full", isActive && "bg-white/80 dark:bg-white/30")}>
-          <div id="overlay" className={cn("size-full", "flex items-center justify-center")} style={activeOverlayStyle}>
+        <div className={cn("size-full", isActive && "bg-white/80 dark:bg-white/30")}>
+          <div className={cn("size-full", "flex items-center justify-center")} style={activeOverlayStyle}>
             <div className="relative size-5">
               <img
                 src={faviconUrl || undefined}
