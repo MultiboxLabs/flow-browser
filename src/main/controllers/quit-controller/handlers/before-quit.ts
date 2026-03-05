@@ -3,6 +3,7 @@ import { tabPersistenceManager } from "@/saving/tabs";
 import { closeDatabase } from "@/saving/db";
 import { closeFaviconsDatabase } from "@/modules/favicons";
 import { sleep } from "@/modules/utils";
+import { cleanupLiveIncognitoProfiles } from "@/modules/incognito-window";
 
 async function flushSessionsData() {
   const promises: Promise<void>[] = [];
@@ -31,6 +32,13 @@ async function flushSessionsData() {
 // If the handler returns false, the quit will be cancelled
 export function beforeQuit(): boolean | Promise<boolean> {
   // Flush all pending tab saves before quitting
+  const cleanupIncognitoPromise = cleanupLiveIncognitoProfiles()
+    .then(() => true)
+    .catch((err) => {
+      console.error("[beforeQuit] Failed to cleanup incognito profiles:", err);
+      return true;
+    });
+
   const flushTabsPromise = tabPersistenceManager
     .stop()
     .then(() => {
@@ -59,7 +67,9 @@ export function beforeQuit(): boolean | Promise<boolean> {
       return true;
     });
 
-  return Promise.all([flushTabsPromise, flushSessionsDataPromise, closeFaviconsPromise]).then((results) => {
-    return results.every((result) => result);
-  });
+  return Promise.all([cleanupIncognitoPromise, flushTabsPromise, flushSessionsDataPromise, closeFaviconsPromise]).then(
+    (results) => {
+      return results.every((result) => result);
+    }
+  );
 }

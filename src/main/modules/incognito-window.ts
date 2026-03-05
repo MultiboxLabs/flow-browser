@@ -32,21 +32,48 @@ export async function createIncognitoWindow() {
     });
   });
 
-  const space = await spacesController.getLastUsedFromProfile(profileId);
-  if (!space) {
-    throw new Error("Failed to create incognito space");
+  try {
+    const space = await spacesController.getLastUsedFromProfile(profileId);
+    if (!space) {
+      throw new Error("Failed to create incognito space");
+    }
+
+    setWindowSpace(window, space.id);
+
+    const tab = await tabsController.createTab(window.id, profileId, space.id);
+    tabsController.setActiveTab(tab);
+
+    return window;
+  } catch (error) {
+    await cleanupIncognitoWindow(window.id);
+    throw error;
   }
-
-  setWindowSpace(window, space.id);
-
-  const tab = await tabsController.createTab(window.id, profileId, space.id);
-  tabsController.setActiveTab(tab);
-
-  return window;
 }
 
 export function isIncognitoTabProfile(profileId: string): boolean {
   return isIncognitoProfileId(profileId);
+}
+
+export async function cleanupLiveIncognitoProfiles() {
+  const profileIds = new Set(incognitoWindowToProfileId.values());
+  const cleanupPromises = Array.from(profileIds).map((profileId) => cleanupIncognitoProfile(profileId));
+
+  await Promise.all(cleanupPromises);
+  incognitoWindowToProfileId.clear();
+}
+
+/**
+ * Removes stale incognito profiles from disk (e.g. app crash, force quit).
+ * Should run once during startup before windows are created.
+ */
+export async function cleanupStaleIncognitoProfiles() {
+  const profiles = await profilesController.getAll();
+  const staleIncognitoProfileIds = profiles
+    .filter((profile) => isIncognitoProfileId(profile.id))
+    .map((profile) => profile.id);
+
+  const cleanupPromises = staleIncognitoProfileIds.map((profileId) => cleanupIncognitoProfile(profileId));
+  await Promise.all(cleanupPromises);
 }
 
 async function cleanupIncognitoWindow(windowId: number) {
@@ -54,6 +81,10 @@ async function cleanupIncognitoWindow(windowId: number) {
   if (!profileId) return;
 
   incognitoWindowToProfileId.delete(windowId);
+  await cleanupIncognitoProfile(profileId);
+}
+
+async function cleanupIncognitoProfile(profileId: string) {
   loadedProfilesController.unload(profileId);
   await profilesController.delete(profileId);
 }
