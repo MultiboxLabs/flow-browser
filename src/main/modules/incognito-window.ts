@@ -97,30 +97,6 @@ export function isIncognitoTabProfile(profileId: string): boolean {
   return isIncognitoProfileId(profileId);
 }
 
-/**
- * Tears down the active session (all live incognito windows).
- * Called during app quit.
- */
-export async function cleanupLiveIncognitoProfiles() {
-  if (!activeSession) return;
-  const { profileId } = activeSession;
-  activeSession = null;
-  await destroyIncognitoProfile(profileId);
-}
-
-/**
- * Removes stale ephemeral profiles from disk (e.g. app crash, force quit).
- * A profile is considered ephemeral if it has ephemeral: true.
- * Should run once during startup before windows are created.
- */
-export async function cleanupStaleEphemeralProfiles() {
-  const profiles = await profilesController.getAll();
-  const staleProfileIds = profiles.filter((profile) => profile.ephemeral).map((profile) => profile.id);
-
-  const cleanupPromises = staleProfileIds.map((profileId) => destroyIncognitoProfile(profileId));
-  await Promise.all(cleanupPromises);
-}
-
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------

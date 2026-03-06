@@ -14,7 +14,7 @@ import { runOnboardingOrInitialWindow } from "@/app/onboarding";
 import { setupAppLifecycle } from "@/app/lifecycle";
 import { tabPersistenceManager } from "@/saving/tabs";
 import { initCursorEdgeMonitor } from "@/controllers/windows-controller/utils/cursor-edge-monitor";
-import { cleanupStaleEphemeralProfiles } from "@/modules/incognito-window";
+import { cleanupStaleEphemeralProfiles } from "@/controllers/profiles-controller/ephemeral";
 
 async function bootstrapBrowser() {
   await cleanupStaleEphemeralProfiles().catch((error) => {
