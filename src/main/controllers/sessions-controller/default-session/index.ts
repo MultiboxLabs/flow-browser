@@ -7,7 +7,7 @@ import { registerPreloadScripts } from "@/controllers/sessions-controller/preloa
 function initializeDefaultSession() {
   const defaultSession = session.defaultSession;
 
-  registerProtocolsWithSession(defaultSession, ["flow", "flow-internal", "flow-external"]);
+  registerProtocolsWithSession(defaultSession, ["flow", "flow-internal", "flow-external", "flow-dialog"]);
 
   setupInterceptRules(defaultSession);
   registerPreloadScripts(defaultSession);

@@ -1,6 +1,7 @@
 import { registerFlowProtocol } from "./_protocols/flow";
 import { registerFlowInternalProtocol } from "./_protocols/flow-internal";
 import { registerFlowExternalProtocol } from "./_protocols/flow-external";
+import { registerFlowDialogProtocol } from "./_protocols/flow-dialog";
 import { protocol, Session } from "electron";
 import type { CustomProtocol } from "./types";
 
@@ -43,6 +44,19 @@ protocol.registerSchemesAsPrivileged([
       stream: true,
       codeCache: true
     }
+  },
+  {
+    scheme: "flow-dialog",
+    privileges: {
+      standard: true,
+      secure: true,
+      bypassCSP: false,
+      allowServiceWorkers: false,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: false,
+      codeCache: false
+    }
   }
 ]);
 
@@ -58,5 +72,8 @@ export function registerProtocolsWithSession(session: Session, protocols: Custom
   }
   if (protocols.includes("flow-external")) {
     registerFlowExternalProtocol(protocol);
+  }
+  if (protocols.includes("flow-dialog")) {
+    registerFlowDialogProtocol(protocol);
   }
 }

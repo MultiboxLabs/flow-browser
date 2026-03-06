@@ -11,7 +11,8 @@ import type { SpaceData } from "@/controllers/spaces-controller";
 
 // SHARED TYPES //
 import type { SharedExtensionData } from "~/types/extensions";
-import type { TabData, WindowTabsData } from "~/types/tabs";
+import type { TabData, TabGeometryUpdate, WindowTabsData } from "~/types/tabs";
+import type { TabDialogResponse, TabDialogState } from "~/types/tab-dialogs";
 import type { UpdateStatus } from "~/types/updates";
 import type { WindowState } from "~/flow/types";
 
@@ -36,6 +37,7 @@ import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
 import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/find-in-page";
+import { FlowTabDialogsAPI } from "~/flow/interfaces/browser/tab-dialogs";
 import type {
   AssertCredentialErrorCodes,
   AssertCredentialResult,
@@ -344,6 +346,98 @@ contextBridge.executeInMainWorld({
   func: polyfillPopup
 });
 
+const TAB_DIALOG_ENDPOINT = "flow-dialog://dialog/request";
+
+function installTabDialogsOverride() {
+  if (hasPermission("browser")) return;
+
+  const clientId = ipcRenderer.sendSync("tab-dialogs:register-client") as string;
+
+  const tabDialogsBridge = {
+    alert: (message: string) => {
+      sendTabDialogRequest(clientId, "alert", String(message), "");
+    },
+    confirm: (message: string) => {
+      return sendTabDialogRequest(clientId, "confirm", String(message), "").accept;
+    },
+    prompt: (message: string, defaultPromptText: string) => {
+      const result = sendTabDialogRequest(clientId, "prompt", String(message), String(defaultPromptText ?? ""));
+      return result.accept ? result.promptText : null;
+    }
+  };
+
+  contextBridge.exposeInMainWorld("electronTabDialogs", tabDialogsBridge);
+
+  const patchDialogs = () => {
+    if (!("electronTabDialogs" in globalThis)) return;
+
+    const bridge = globalThis.electronTabDialogs as typeof tabDialogsBridge;
+    const originalAlert = globalThis.alert.bind(globalThis);
+    const originalConfirm = globalThis.confirm.bind(globalThis);
+    const originalPrompt = globalThis.prompt.bind(globalThis);
+
+    globalThis.alert = (message?: unknown) => {
+      try {
+        bridge.alert(String(message));
+      } catch {
+        originalAlert(message as string | undefined);
+      }
+    };
+
+    globalThis.confirm = (message?: unknown) => {
+      try {
+        return bridge.confirm(String(message));
+      } catch {
+        return originalConfirm(message as string | undefined);
+      }
+    };
+
+    globalThis.prompt = (message?: unknown, defaultValue?: string) => {
+      try {
+        return bridge.prompt(String(message), defaultValue ?? "");
+      } catch {
+        return originalPrompt(message as string | undefined, defaultValue);
+      }
+    };
+
+    delete globalThis.electronTabDialogs;
+  };
+
+  contextBridge.executeInMainWorld({
+    func: patchDialogs
+  });
+}
+
+function sendTabDialogRequest(
+  clientId: string,
+  dialogType: "alert" | "confirm" | "prompt",
+  messageText: string,
+  defaultPromptText: string
+) {
+  const request = new XMLHttpRequest();
+  request.open("POST", TAB_DIALOG_ENDPOINT, false);
+  request.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
+  request.send(
+    JSON.stringify({
+      clientId,
+      dialogType,
+      messageText,
+      defaultPromptText
+    })
+  );
+
+  if (request.status < 200 || request.status >= 300 || !request.responseText) {
+    throw new Error(`tab dialog request failed: ${request.status}`);
+  }
+
+  return JSON.parse(request.responseText) as {
+    accept: boolean;
+    promptText: string;
+  };
+}
+
+installTabDialogsOverride();
+
 /**
  * Generates a UUIDv4 string.
  * @returns A UUIDv4 string.
@@ -431,6 +525,9 @@ const tabsAPI: FlowTabsAPI = {
   onTabsContentUpdated: (callback: (tabs: TabData[]) => void) => {
     return listenOnIPCChannel("tabs:on-tabs-content-updated", callback);
   },
+  onTabGeometryUpdated: (callback: (updates: TabGeometryUpdate[]) => void) => {
+    return listenOnIPCChannel("tabs:on-tab-geometry-updated", callback);
+  },
   switchToTab: async (tabId: number) => {
     return ipcRenderer.invoke("tabs:switch-to-tab", tabId);
   },
@@ -489,6 +586,18 @@ const pageAPI: FlowPageAPI = {
   },
   setLayoutParams: (params) => {
     return ipcRenderer.send("page:set-layout-params", params, Date.now());
+  }
+};
+
+const tabDialogsAPI: FlowTabDialogsAPI = {
+  getState: async () => {
+    return ipcRenderer.invoke("tab-dialogs:get-state") as Promise<TabDialogState[]>;
+  },
+  onStateChanged: (callback: (dialogs: TabDialogState[]) => void) => {
+    return listenOnIPCChannel("tab-dialogs:on-state-changed", callback);
+  },
+  respond: async (dialogId: string, response: TabDialogResponse) => {
+    return ipcRenderer.invoke("tab-dialogs:respond", dialogId, response);
   }
 };
 
@@ -880,6 +989,7 @@ const flowAPI: typeof flow = {
   omnibox: wrapAPI(omniboxAPI, "browser"),
   newTab: wrapAPI(newTabAPI, "browser"),
   findInPage: wrapAPI(findInPageAPI, "browser"),
+  tabDialogs: wrapAPI(tabDialogsAPI, "browser"),
 
   // Session APIs
   profiles: wrapAPI(profilesAPI, "session", {

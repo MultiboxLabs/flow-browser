@@ -58,7 +58,10 @@ export class TabBoundsController {
   private lastUpdateTime: number | null = null;
   private animationFrameId: NodeJS.Timeout | null = null;
 
-  constructor(tab: Tab) {
+  constructor(
+    tab: Tab,
+    private readonly onBoundsChanged?: () => void
+  ) {
     this.tab = tab;
   }
 
@@ -162,6 +165,7 @@ export class TabBoundsController {
         if (!isRectangleEqual(integerBounds, this.lastAppliedBounds)) {
           // Even though not visible, update lastAppliedBounds to reflect the snapped state
           this.lastAppliedBounds = integerBounds;
+          this.onBoundsChanged?.();
         }
       }
       return;
@@ -176,9 +180,11 @@ export class TabBoundsController {
         // Ensure integerBounds is not null before setting
         this.tab.view?.setBounds(integerBounds);
         this.lastAppliedBounds = integerBounds; // Store the bounds that were actually applied
+        this.onBoundsChanged?.();
       } else {
         // If rounding resulted in null (shouldn't happen with valid this.bounds), clear last applied
         this.lastAppliedBounds = null;
+        this.onBoundsChanged?.();
       }
     }
   }
@@ -258,6 +264,10 @@ export class TabBoundsController {
    */
   public resetLastAppliedBounds(): void {
     this.lastAppliedBounds = null;
+  }
+
+  public getCurrentBounds(): Rectangle | null {
+    return this.lastAppliedBounds ? { ...this.lastAppliedBounds } : roundRectangle(this.bounds);
   }
 
   /**

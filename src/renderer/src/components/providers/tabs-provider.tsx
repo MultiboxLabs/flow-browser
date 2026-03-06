@@ -107,6 +107,15 @@ interface TabsProviderProps {
 const EMPTY_TAB_GROUPS: TabGroup[] = [];
 const EMPTY_TAB_GROUP_CACHE = new Map<string, TabGroupCacheEntry>();
 
+function areSameBounds(
+  a: { x: number; y: number; width: number; height: number } | null,
+  b: { x: number; y: number; width: number; height: number } | null
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+}
+
 function areSameTabRefs(a: TabData[], b: TabData[]): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
@@ -168,9 +177,41 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
       });
     });
 
+    const unsubGeometry = flow.tabs.onTabGeometryUpdated((updates) => {
+      setTabsData((prev) => {
+        if (!prev) return prev;
+        if (updates.length === 0) return prev;
+
+        const updatesById = new Map(updates.map((update) => [update.tabId, update]));
+        let anyChanged = false;
+
+        const newTabs = prev.tabs.map((tab) => {
+          const update = updatesById.get(tab.id);
+          if (!update) {
+            return tab;
+          }
+
+          if (tab.visible === update.visible && areSameBounds(tab.bounds, update.bounds)) {
+            return tab;
+          }
+
+          anyChanged = true;
+          return {
+            ...tab,
+            visible: update.visible,
+            bounds: update.bounds
+          };
+        });
+
+        if (!anyChanged) return prev;
+        return { ...prev, tabs: newTabs };
+      });
+    });
+
     return () => {
       unsubFull();
       unsubContent();
+      unsubGeometry();
     };
   }, []);
 

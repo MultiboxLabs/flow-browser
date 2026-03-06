@@ -12,6 +12,7 @@ import "@/ipc/browser/page";
 import "@/ipc/browser/navigation";
 import "@/ipc/browser/interface";
 import "@/ipc/browser/find-in-page";
+import "@/ipc/browser/tab-dialogs";
 import "@/ipc/window/omnibox";
 import "@/ipc/app/new-tab";
 

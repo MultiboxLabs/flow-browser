@@ -4,7 +4,7 @@ import { BaseTabGroup, TabGroup } from "./tab-groups";
 import { TabBoundsController } from "./bounds";
 import { TabLayoutManager } from "./tab-layout";
 import { TabLifecycleManager } from "./tab-lifecycle";
-import { windowTabsChanged, windowTabContentChanged } from "@/ipc/browser/tabs";
+import { windowTabsChanged, windowTabContentChanged, windowTabGeometryChanged } from "@/ipc/browser/tabs";
 import { shouldArchiveTab, shouldSleepTab, tabPersistenceManager } from "@/saving/tabs";
 import { serializeTab, serializeTabGroup } from "@/saving/tabs/serialization";
 import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
@@ -237,7 +237,9 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
     // --- Wire up managers ---
     const lifecycleManager = new TabLifecycleManager(tab);
-    const boundsController = new TabBoundsController(tab);
+    const boundsController = new TabBoundsController(tab, () => {
+      windowTabGeometryChanged(tab.getWindow().id, tab.id);
+    });
     const layoutManager = new TabLayoutManager(tab, this, boundsController, lifecycleManager);
 
     this.tabManagers.set(tab.id, {
@@ -292,6 +294,10 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       // lightweight content-changed path which only serializes THIS tab
       // instead of all tabs in the window.
       windowTabContentChanged(tab.getWindow().id, tab.id);
+
+      if (properties.includes("visible") || properties.includes("asleep")) {
+        windowTabGeometryChanged(tab.getWindow().id, tab.id);
+      }
 
       // Mark tab dirty for persistence
       const windowGroupId = `w-${tab.getWindow().id}`;
@@ -375,6 +381,10 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     const windowGroupId = `w-${windowId}`;
     const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
     tabPersistenceManager.markDirty(tab.uniqueId, serialized);
+
+    if (!tabCreationOptions.asleep) {
+      windowTabGeometryChanged(tab.getWindow().id, tab.id);
+    }
 
     // Return tab
     this.emit("tab-created", tab);
