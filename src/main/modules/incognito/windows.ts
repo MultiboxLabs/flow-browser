@@ -2,7 +2,6 @@ import { loadedProfilesController } from "@/controllers/loaded-profiles-controll
 import { profilesController } from "@/controllers/profiles-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { setWindowSpace } from "@/ipc/session/spaces";
-import { isIncognitoProfileId } from "@/modules/incognito/utils";
 
 // ---------------------------------------------------------------------------
 // Shared incognito session
@@ -67,10 +66,6 @@ export async function createIncognitoWindow() {
     await removeWindowFromSession(window.id);
     throw error;
   }
-}
-
-export function isIncognitoTabProfile(profileId: string): boolean {
-  return isIncognitoProfileId(profileId);
 }
 
 // ---------------------------------------------------------------------------

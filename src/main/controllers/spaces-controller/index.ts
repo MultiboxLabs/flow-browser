@@ -165,6 +165,8 @@ class SpacesController extends TypedEventEmitter<SpacesControllerEvents> {
 
   // Last Used Space //
   public async setLastUsed(profileId: string, spaceId: string): Promise<boolean> {
+    const profile = await profilesController.get(profileId);
+    if (profile?.ephemeral || profile?.internal) return false;
     return await this.update(profileId, spaceId, { lastUsed: Date.now() });
   }
 
