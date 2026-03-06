@@ -6,3 +6,5 @@ This is taken from a directory in [PostHog/posthog-js-lite](https://github.com/P
 
 - Added a fallback distinct ID to use when no distinct ID is provided.
 - Use fallback distinct ID for autocapture.
+- PII sanitization: exception properties are scrubbed of URLs (path/query redacted), emails, and IP addresses before being sent to PostHog.
+- Session context: all exceptions include `$session_id` to link them to the current app session.
