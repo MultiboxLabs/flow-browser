@@ -31,6 +31,8 @@ import BrowserContent from "@/components/browser-ui/browser-content";
 import { FindInPage } from "@/components/browser-ui/find-in-page";
 import { NavigationControls } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
 import { AddressBar } from "@/components/browser-ui/browser-sidebar/_components/address-bar";
+import { TabOverlayProvider } from "@/components/tab-overlay/provider";
+import { TabOverlay } from "@/components/tab-overlay/tab-overlay";
 
 export type BrowserUIType = "main" | "popup";
 export type SidebarVariant = "attached" | "floating";
@@ -323,12 +325,15 @@ export function BrowserUI({ type }: { type: BrowserUIType }) {
           <AdaptiveTopbarProvider>
             <SpacesProvider windowType={type}>
               <TabsProvider>
-                <BrowserActionProvider>
-                  <ExtensionsProviderWithSpaces>
-                    <TabDisabler />
-                    <InternalBrowserUI isReady={isReady} type={type} />
-                  </ExtensionsProviderWithSpaces>
-                </BrowserActionProvider>
+                <TabOverlayProvider>
+                  <BrowserActionProvider>
+                    <ExtensionsProviderWithSpaces>
+                      <TabDisabler />
+                      <InternalBrowserUI isReady={isReady} type={type} />
+                      <TabOverlay />
+                    </ExtensionsProviderWithSpaces>
+                  </BrowserActionProvider>
+                </TabOverlayProvider>
               </TabsProvider>
             </SpacesProvider>
           </AdaptiveTopbarProvider>
