@@ -1,5 +1,6 @@
 import { transformUserAgentHeader } from "@/modules/user-agent";
 import { ProfileData, profilesController } from "@/controllers/profiles-controller";
+import { posthogController } from "@/controllers/posthog-controller";
 import { sessionsController } from "@/controllers/sessions-controller";
 import { NEW_TAB_URL, tabsController } from "@/controllers/tabs-controller";
 import { windowsController } from "@/controllers/windows-controller";
@@ -256,9 +257,11 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
       },
       afterInstall: async (details) => {
         await extensionsManager.addInstalledExtension("crx", details.id);
+        posthogController.captureEvent("extension-installed");
       },
       afterUninstall: async (details) => {
         await extensionsManager.removeInstalledExtension(details.id);
+        posthogController.captureEvent("extension-uninstalled");
       },
       customSetExtensionEnabled: async (_state, extensionId, enabled) => {
         await extensionsManager.setExtensionDisabled(extensionId, !enabled);
