@@ -34,3 +34,12 @@ ipcMain.on("page:set-layout-params", async (event, params: PageLayoutParams, sen
 
   window.setLayoutParams(params, sentAt);
 });
+
+// Returns the current page bounds for the requesting window.
+ipcMain.handle("page:get-bounds", async (event) => {
+  const webContents = event.sender;
+  const window = browserWindowsController.getWindowFromWebContents(webContents);
+  if (!window) return { x: 0, y: 0, width: 0, height: 0 };
+
+  return window.pageBounds;
+});

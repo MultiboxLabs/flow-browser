@@ -297,6 +297,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
   public setPageBounds(bounds: PageBounds) {
     this.pageBounds = bounds;
     this.emit("page-bounds-changed", bounds);
+    this.sendMessageToCoreWebContents("page:on-bounds-changed", bounds);
     tabsController.handlePageBoundsChanged(this.id);
   }
 
@@ -343,6 +344,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     const newBounds: PageBounds = { x, y, width, height };
     this.pageBounds = newBounds;
     this.emit("page-bounds-changed", newBounds);
+    this.sendMessageToCoreWebContents("page:on-bounds-changed", newBounds);
     tabsController.handlePageBoundsChanged(this.id);
   }
 
