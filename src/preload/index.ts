@@ -36,6 +36,9 @@ import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
 import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/find-in-page";
+import { FlowTabDialogsAPI } from "~/flow/interfaces/browser/tab-dialogs";
+import type { TabDialogRequest, TabDialogResult } from "~/types/tab-dialogs";
+import type { PageBounds } from "~/flow/types";
 import type {
   AssertCredentialErrorCodes,
   AssertCredentialResult,
@@ -344,6 +347,70 @@ contextBridge.executeInMainWorld({
   func: polyfillPopup
 });
 
+// DIALOG OVERRIDES //
+// Override alert/prompt/confirm in tab web pages to use custom UI.
+// Uses synchronous IPC to block page JS execution (matching native behavior).
+
+// Expose the synchronous dialog IPC as a bridge for the page context
+const tabDialogsBridge = {
+  __showSync: (type: string, message: string, defaultValue?: string) => {
+    return ipcRenderer.sendSync("tab-dialogs:show", { type, message, defaultValue });
+  }
+};
+contextBridge.exposeInMainWorld("__flowTabDialogsBridge", tabDialogsBridge);
+
+// Patch dialogs in the page world
+function patchDialogsInMainWorld() {
+  if ("__flowTabDialogsBridge" in globalThis) {
+    type DialogResult =
+      | { type: "alert" }
+      | { type: "confirm"; confirmed: boolean }
+      | { type: "prompt"; value: string | null };
+    const bridge = globalThis.__flowTabDialogsBridge as {
+      __showSync: (type: string, message: string, defaultValue?: string) => DialogResult | null;
+    };
+
+    const originalAlert = window.alert.bind(window);
+    const originalConfirm = window.confirm.bind(window);
+    const originalPrompt = window.prompt.bind(window);
+
+    window.alert = (message?: string): void => {
+      try {
+        const result = bridge.__showSync("alert", String(message ?? ""));
+        if (!result) originalAlert(message);
+      } catch {
+        originalAlert(message);
+      }
+    };
+
+    window.confirm = (message?: string): boolean => {
+      try {
+        const result = bridge.__showSync("confirm", String(message ?? ""));
+        if (result && result.type === "confirm") return result.confirmed;
+        return originalConfirm(message);
+      } catch {
+        return originalConfirm(message);
+      }
+    };
+
+    window.prompt = (message?: string, defaultValue?: string): string | null => {
+      try {
+        const result = bridge.__showSync("prompt", String(message ?? ""), defaultValue);
+        if (result && result.type === "prompt") return result.value;
+        return originalPrompt(message, defaultValue);
+      } catch {
+        return originalPrompt(message, defaultValue);
+      }
+    };
+
+    delete (globalThis as Record<string, unknown>).__flowTabDialogsBridge;
+  }
+}
+
+contextBridge.executeInMainWorld({
+  func: patchDialogsInMainWorld
+});
+
 /**
  * Generates a UUIDv4 string.
  * @returns A UUIDv4 string.
@@ -489,6 +556,12 @@ const pageAPI: FlowPageAPI = {
   },
   setLayoutParams: (params) => {
     return ipcRenderer.send("page:set-layout-params", params, Date.now());
+  },
+  getPageBounds: async (): Promise<PageBounds> => {
+    return ipcRenderer.invoke("page:get-bounds");
+  },
+  onPageBoundsChanged: (callback: (bounds: PageBounds) => void) => {
+    return listenOnIPCChannel("page:on-bounds-changed", callback);
   }
 };
 
@@ -853,6 +926,16 @@ const shortcutsAPI: FlowShortcutsAPI = {
   }
 };
 
+// TAB DIALOGS API //
+const tabDialogsAPI: FlowTabDialogsAPI = {
+  onShow: (callback: (request: TabDialogRequest) => void) => {
+    return listenOnIPCChannel("tab-dialogs:on-show", callback);
+  },
+  respond: (dialogId: string, result: TabDialogResult) => {
+    return ipcRenderer.send(`tab-dialogs:respond:${dialogId}`, result);
+  }
+};
+
 // EXPOSE FLOW API //
 const flowAPI: typeof flow = {
   // App APIs
@@ -880,6 +963,7 @@ const flowAPI: typeof flow = {
   omnibox: wrapAPI(omniboxAPI, "browser"),
   newTab: wrapAPI(newTabAPI, "browser"),
   findInPage: wrapAPI(findInPageAPI, "browser"),
+  tabDialogs: wrapAPI(tabDialogsAPI, "browser"),
 
   // Session APIs
   profiles: wrapAPI(profilesAPI, "session", {
