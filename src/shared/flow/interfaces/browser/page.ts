@@ -1,4 +1,4 @@
-import { PageBounds, PageLayoutParams } from "~/flow/types";
+import { IPCListener, PageBounds, PageLayoutParams } from "~/flow/types";
 
 // API //
 export interface FlowPageAPI {
@@ -19,4 +19,14 @@ export interface FlowPageAPI {
    * @param params The layout parameters describing the UI structure
    */
   setLayoutParams: (params: PageLayoutParams) => void;
+
+  /**
+   * Returns the current page bounds (tab content area).
+   */
+  getPageBounds: () => Promise<PageBounds>;
+
+  /**
+   * Subscribe to page bounds changes.
+   */
+  onPageBoundsChanged: IPCListener<[PageBounds]>;
 }
