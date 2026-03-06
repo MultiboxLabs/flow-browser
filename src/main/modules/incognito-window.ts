@@ -58,7 +58,6 @@ async function getOrCreateSession(): Promise<IncognitoSession> {
 
   const space = await spacesController.getLastUsedFromProfile(profileId);
   if (!space) {
-    loadedProfilesController.unload(profileId);
     await profilesController.delete(profileId);
     throw new Error("Failed to get incognito space");
   }
@@ -113,11 +112,6 @@ async function removeWindowFromSession(windowId: number) {
   if (activeSession.windowIds.size === 0) {
     const { profileId } = activeSession;
     activeSession = null;
-    await destroyIncognitoProfile(profileId);
+    await profilesController.delete(profileId);
   }
-}
-
-async function destroyIncognitoProfile(profileId: string) {
-  loadedProfilesController.unload(profileId);
-  await profilesController.delete(profileId);
 }

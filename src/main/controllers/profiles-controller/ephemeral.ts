@@ -1,4 +1,3 @@
-import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
 import { profilesController } from "@/controllers/profiles-controller";
 
 /**
@@ -11,7 +10,6 @@ export async function cleanupStaleEphemeralProfiles() {
   const staleProfileIds = profiles.filter((profile) => profile.ephemeral).map((profile) => profile.id);
 
   const cleanupPromises = staleProfileIds.map(async (profileId) => {
-    loadedProfilesController.unload(profileId);
     await profilesController.delete(profileId);
   });
   await Promise.all(cleanupPromises);

@@ -7,6 +7,7 @@ import { DataStoreData, getDatastore } from "@/saving/datastore";
 import { type } from "arktype";
 import { profilesController } from "@/controllers/profiles-controller";
 import { spacesController } from "@/controllers/spaces-controller";
+import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
 
 const PROFILES_DIR = path.join(FLOW_DATA_DIR, "Profiles");
 
@@ -153,6 +154,9 @@ export class RawProfilesController {
 
   public async delete(profileId: string) {
     try {
+      // Unload the profile
+      loadedProfilesController.unload(profileId);
+
       // Delete all spaces associated with this profile
       const spaces = await spacesController.getAllFromProfile(profileId);
       await Promise.all(spaces.map((space) => spacesController.delete(profileId, space.id)));
