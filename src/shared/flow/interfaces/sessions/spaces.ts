@@ -7,8 +7,17 @@ export type Space = {
   bgStartColor: string;
   bgEndColor: string;
   icon: string;
+  /**
+   * Causes the space to not be shown in most UI elements
+   */
   hidden: boolean;
+  /**
+   * Causes the space to be deleted when the session ends
+   */
   ephemeral: boolean;
+  /**
+   * Causes the space to not be switchable to or from by the user
+   */
   locked: boolean;
 };
 

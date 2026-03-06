@@ -96,6 +96,11 @@ class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
     return await this._create(profileId, profileName, shouldCreateSpace);
   }
 
+  /**
+   * Should be used carefully. Most profiles should be created with a randomly generated ID using the create function.
+   * This method is currently used for:
+   * - Incognito profiles
+   */
   public async createWithId(
     profileId: string,
     profileName: string,

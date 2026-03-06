@@ -39,6 +39,12 @@ export const SpaceDataSchema = type({
 });
 export type SpaceData = typeof SpaceDataSchema.infer;
 
+type ExtraSpaceCreationInfo = {
+  hidden?: boolean;
+  ephemeral?: boolean;
+  locked?: boolean;
+};
+
 // Private functions
 function getSpaceDataStore(profileId: string, spaceId: string) {
   return getDatastore("main", ["profiles", profileId, "spaces", spaceId]);
@@ -71,7 +77,7 @@ export class RawSpacesController {
     profileId: string,
     spaceId: string,
     spaceName: string,
-    initialData?: Partial<SpaceData>
+    extraInfo: ExtraSpaceCreationInfo = {}
   ): Promise<RawCreateSpaceResult> {
     // Validate spaceId to prevent invalid characters
     if (!/^[a-zA-Z0-9_-]+$/.test(spaceId)) {
@@ -107,7 +113,7 @@ export class RawSpacesController {
 
       // Set space data (only pick flag fields from initialData to prevent
       // accidental overrides of name/profileId/order)
-      const { hidden, ephemeral, locked } = initialData ?? {};
+      const { hidden = false, ephemeral = false, locked = false } = extraInfo;
       const spaceData = {
         name: spaceName,
         profileId: profileId,
