@@ -570,15 +570,13 @@ export function ProfilesSettings({ navigateToSpaces, navigateToSpace }: Profiles
   const [newProfileName, setNewProfileName] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  // Fetch profiles from the API, excluding profiles that contain hidden spaces
+  // Fetch profiles from the API, excluding internal profiles
   // (e.g. incognito profiles) since they are ephemeral and shouldn't be managed.
   const fetchProfiles = async () => {
     setIsLoading(true);
     try {
-      const [fetchedProfiles, allSpaces] = await Promise.all([flow.profiles.getProfiles(), flow.spaces.getSpaces()]);
-      // A profile is considered internal if any of its spaces has internal: true
-      const hiddenProfileIds = new Set(allSpaces.filter((s) => s.internal).map((s) => s.profileId));
-      setProfiles(fetchedProfiles.filter((p) => !hiddenProfileIds.has(p.id)));
+      const fetchedProfiles = await flow.profiles.getProfiles();
+      setProfiles(fetchedProfiles.filter((p) => !p.internal));
     } catch (error) {
       console.error("Failed to fetch profiles:", error);
     } finally {

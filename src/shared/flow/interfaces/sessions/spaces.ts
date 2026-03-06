@@ -7,15 +7,6 @@ export type Space = {
   bgStartColor: string;
   bgEndColor: string;
   icon: string;
-  /**
-   * Causes the space to not be shown in most UI elements and to not be
-   * switchable to or from by the user (e.g. incognito spaces)
-   */
-  internal: boolean;
-  /**
-   * Causes the space to be deleted when the session ends
-   */
-  ephemeral: boolean;
 };
 
 // API //

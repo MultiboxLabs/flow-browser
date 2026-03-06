@@ -1,6 +1,15 @@
 export type Profile = {
   id: string;
   name: string;
+  /**
+   * Causes all spaces in this profile to not be shown in most UI elements and
+   * to not be switchable to or from by the user (e.g. incognito profiles)
+   */
+  internal: boolean;
+  /**
+   * Causes this profile and all its spaces to be deleted when the session ends
+   */
+  ephemeral: boolean;
 };
 
 // API //

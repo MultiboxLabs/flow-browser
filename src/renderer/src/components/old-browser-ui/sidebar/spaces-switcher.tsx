@@ -112,10 +112,10 @@ function SpaceButton({ space, isActive }: SpaceButtonProps) {
 }
 
 export function SidebarSpacesSwitcher() {
-  const { spaces, currentSpace } = useSpaces();
+  const { spaces, currentSpace, isCurrentSpaceInternal } = useSpaces();
 
   // Don't show the space switcher when the current space is internal (e.g. incognito)
-  if (currentSpace?.internal) return null;
+  if (isCurrentSpaceInternal) return null;
 
   return (
     <SidebarMenuItem className={cn("flex flex-row gap-0.5")}>

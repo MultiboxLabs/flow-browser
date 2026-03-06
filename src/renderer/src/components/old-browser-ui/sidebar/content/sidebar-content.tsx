@@ -12,7 +12,7 @@ import { SpaceSidebar } from "@/components/old-browser-ui/sidebar/content/space-
 const ONLY_SHOW_NEARBY_SPACES: boolean = false;
 
 export function ScrollableSidebarContent() {
-  const { spaces, currentSpace, setCurrentSpace } = useSpaces();
+  const { spaces, currentSpace, setCurrentSpace, isCurrentSpaceInternal } = useSpaces();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const currentIndex = useMemo(() => {
@@ -58,7 +58,7 @@ export function ScrollableSidebarContent() {
   };
 
   // If the current space is internal (e.g. incognito), render only that space directly
-  if (currentSpace?.internal) {
+  if (isCurrentSpaceInternal && currentSpace) {
     return (
       <SidebarContent ref={containerRef} className="flex-1">
         <SpaceSidebar space={currentSpace} />

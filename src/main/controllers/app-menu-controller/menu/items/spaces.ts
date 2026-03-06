@@ -7,6 +7,7 @@ import path from "path";
 import { readFile } from "fs/promises";
 import { IconEntry, icons } from "@phosphor-icons/core";
 import { spacesController } from "@/controllers/spaces-controller";
+import { profilesController } from "@/controllers/profiles-controller";
 import { browserWindowsManager, windowsController } from "@/controllers/windows-controller";
 
 // Types
@@ -143,8 +144,9 @@ async function createSpaceMenuItem(
  */
 export async function createSpacesMenu(): Promise<MenuItemConstructorOptions> {
   try {
-    const spaces = await spacesController.getAll();
-    const visibleSpaces = spaces.filter((space) => !space.internal);
+    const [spaces, profiles] = await Promise.all([spacesController.getAll(), profilesController.getAll()]);
+    const internalProfileIds = new Set(profiles.filter((p) => p.internal).map((p) => p.id));
+    const visibleSpaces = spaces.filter((space) => !internalProfileIds.has(space.profileId));
 
     const focusedWindow = windowsController.getFocused();
     if (!focusedWindow || !browserWindowsManager.isInstanceOf(focusedWindow)) {

@@ -1,7 +1,12 @@
 // This controller handles all profile related operations
 // The raw controller is used to handle the raw data operations, and operations are cached here
 
-import { RawProfilesController, ProfileData, ProfileDataSchema } from "@/controllers/profiles-controller/raw";
+import {
+  RawProfilesController,
+  ProfileData,
+  ProfileDataSchema,
+  ExtraProfileCreationInfo
+} from "@/controllers/profiles-controller/raw";
 import { debugError } from "@/modules/output";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { generateID } from "@/modules/utils";
@@ -18,7 +23,7 @@ type ProfilesControllerEvents = {
 };
 
 // Re-exporting Schema
-export { type ProfileData, ProfileDataSchema };
+export { type ProfileData, ProfileDataSchema, type ExtraProfileCreationInfo };
 
 class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
   private raw: RawProfilesController;
@@ -82,8 +87,13 @@ class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
   }
 
   // CRUD Functions //
-  private async _create(profileId: string, profileName: string, shouldCreateSpace: boolean = true): Promise<boolean> {
-    const result = await this.raw.create(profileId, profileName, shouldCreateSpace);
+  private async _create(
+    profileId: string,
+    profileName: string,
+    shouldCreateSpace: boolean = true,
+    extraInfo: ExtraProfileCreationInfo = {}
+  ): Promise<boolean> {
+    const result = await this.raw.create(profileId, profileName, shouldCreateSpace, extraInfo);
     if (result.success) {
       this._setCachedProfileData(profileId, result.profileData);
       this.emit("profile-created", profileId, result.profileData);
@@ -91,9 +101,13 @@ class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
     }
     return false;
   }
-  public async create(profileName: string, shouldCreateSpace: boolean = true): Promise<boolean> {
+  public async create(
+    profileName: string,
+    shouldCreateSpace: boolean = true,
+    extraInfo: ExtraProfileCreationInfo = {}
+  ): Promise<boolean> {
     const profileId = generateID();
-    return await this._create(profileId, profileName, shouldCreateSpace);
+    return await this._create(profileId, profileName, shouldCreateSpace, extraInfo);
   }
 
   /**
@@ -104,9 +118,10 @@ class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
   public async createWithId(
     profileId: string,
     profileName: string,
-    shouldCreateSpace: boolean = true
+    shouldCreateSpace: boolean = true,
+    extraInfo: ExtraProfileCreationInfo = {}
   ): Promise<boolean> {
-    return await this._create(profileId, profileName, shouldCreateSpace);
+    return await this._create(profileId, profileName, shouldCreateSpace, extraInfo);
   }
 
   public async get(profileId: string) {

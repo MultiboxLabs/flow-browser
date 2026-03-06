@@ -30,18 +30,18 @@ async function getOrCreateSession(): Promise<IncognitoSession> {
   const profileId = createIncognitoProfileId();
   const profileName = "Incognito";
 
-  // Create profile without auto-creating a space so we can create the space
-  // with hidden/ephemeral/locked flags already set (avoids a brief flicker
-  // where the space would be visible in the switcher before being updated).
-  const createdProfile = await profilesController.createWithId(profileId, profileName, false);
+  // Create profile with internal + ephemeral flags, without auto-creating a
+  // space so we can set custom background colors on the space directly.
+  const createdProfile = await profilesController.createWithId(profileId, profileName, false, {
+    internal: true,
+    ephemeral: true
+  });
   if (!createdProfile) {
     throw new Error("Failed to create incognito profile");
   }
 
-  // Create the incognito space with all flags from the start
+  // Create the incognito space with custom background colors
   const spaceCreated = await spacesController.create(profileId, profileName, {
-    internal: true,
-    ephemeral: true,
     bgStartColor: "#000000",
     bgEndColor: "#000000"
   });
@@ -110,19 +110,12 @@ export async function cleanupLiveIncognitoProfiles() {
 
 /**
  * Removes stale ephemeral profiles from disk (e.g. app crash, force quit).
- * A profile is considered ephemeral if any of its spaces has ephemeral: true.
+ * A profile is considered ephemeral if it has ephemeral: true.
  * Should run once during startup before windows are created.
  */
 export async function cleanupStaleEphemeralProfiles() {
   const profiles = await profilesController.getAll();
-  const staleProfileIds: string[] = [];
-
-  for (const profile of profiles) {
-    const spaces = await spacesController.getAllFromProfile(profile.id);
-    if (spaces.some((s) => s.ephemeral)) {
-      staleProfileIds.push(profile.id);
-    }
-  }
+  const staleProfileIds = profiles.filter((profile) => profile.ephemeral).map((profile) => profile.id);
 
   const cleanupPromises = staleProfileIds.map((profileId) => destroyIncognitoProfile(profileId));
   await Promise.all(cleanupPromises);

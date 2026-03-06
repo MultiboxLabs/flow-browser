@@ -1,6 +1,7 @@
 import { ipcMain } from "electron";
 import { sendMessageToListeners } from "@/ipc/listeners-manager";
 import { SpaceData, SpaceOrderMap, spacesController } from "@/controllers/spaces-controller";
+import { profilesController } from "@/controllers/profiles-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 
@@ -50,12 +51,15 @@ ipcMain.handle("spaces:reorder", async (_event, orderMap: SpaceOrderMap) => {
 });
 
 export async function setWindowSpace(window: BrowserWindow, spaceId: string) {
-  // If the window's current space is locked, block the switch.
+  // If the window's current space belongs to an internal profile, block the switch.
   // currentSpaceId is null on fresh windows, so initial assignment always works.
   const currentSpaceId = window.currentSpaceId;
   if (currentSpaceId) {
     const currentSpace = await spacesController.get(currentSpaceId);
-    if (currentSpace?.internal) return;
+    if (currentSpace) {
+      const profile = await profilesController.get(currentSpace.profileId);
+      if (profile?.internal) return;
+    }
   }
 
   window.setCurrentSpace(spaceId);

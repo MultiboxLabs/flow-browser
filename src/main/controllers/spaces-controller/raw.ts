@@ -32,15 +32,13 @@ export const SpaceDataSchema = type({
   bgEndColor: "string | undefined",
   icon: "string | undefined",
   lastUsed: "number",
-  order: "number",
-  internal: "boolean",
-  ephemeral: "boolean"
+  order: "number"
 });
 export type SpaceData = typeof SpaceDataSchema.infer;
 
 type ExtraSpaceCreationInfo = {
-  internal?: boolean;
-  ephemeral?: boolean;
+  bgStartColor?: string;
+  bgEndColor?: string;
 };
 
 // Private functions
@@ -61,9 +59,7 @@ function reconcileSpaceData(spaceId: string, profileId: string, data: DataStoreD
     bgEndColor: data.bgEndColor,
     icon: data.icon,
     lastUsed: data.lastUsed ?? 0,
-    order: data.order ?? 999,
-    internal: data.internal ?? false,
-    ephemeral: data.ephemeral ?? false
+    order: data.order ?? 999
   };
 }
 
@@ -110,13 +106,13 @@ export class RawSpacesController {
 
       // Set space data (only pick flag fields from initialData to prevent
       // accidental overrides of name/profileId/order)
-      const { internal = false, ephemeral = false } = extraInfo;
+      const { bgStartColor, bgEndColor } = extraInfo;
       const spaceData = {
         name: spaceName,
         profileId: profileId,
         order: order,
-        internal,
-        ephemeral
+        bgStartColor,
+        bgEndColor
       };
       const spaceStore = getSpaceDataStore(profileId, spaceId);
       await spaceStore.setMany(spaceData);
@@ -170,12 +166,6 @@ export class RawSpacesController {
       }
       if (spaceData.order !== undefined) {
         updatedFields.order = spaceData.order;
-      }
-      if (spaceData.internal !== undefined) {
-        updatedFields.internal = spaceData.internal;
-      }
-      if (spaceData.ephemeral !== undefined) {
-        updatedFields.ephemeral = spaceData.ephemeral;
       }
 
       // Space order must be updated with updateSpaceOrder() / reorderSpaces()

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Space } from "~/flow/interfaces/sessions/spaces";
+import type { Profile } from "~/flow/interfaces/sessions/profiles";
 import { hexToOKLCHString } from "@/lib/colors";
 import { hex_is_light } from "@/lib/utils";
 import { WindowType } from "@/components/old-browser-ui/main";
@@ -9,6 +10,7 @@ interface SpacesContextValue {
   spaces: Space[];
   currentSpace: Space | null;
   isCurrentSpaceLight: boolean;
+  isCurrentSpaceInternal: boolean;
   isLoading: boolean;
   revalidate: () => Promise<void>;
   setCurrentSpace: (spaceId: string) => Promise<void>;
@@ -31,12 +33,28 @@ interface SpacesProviderProps {
 
 export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) => {
   const [allSpaces, setAllSpaces] = useState<Space[]>([]);
+  const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
   const [currentSpace, setCurrentSpace] = useState<Space | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const currentSpaceRef = useRef<Space | null>(null);
 
-  // Expose only non-hidden spaces to the UI (space switcher, carousel, etc.)
-  const visibleSpaces = useMemo(() => allSpaces.filter((s) => !s.internal), [allSpaces]);
+  // Derived set of internal profile IDs
+  const internalProfileIds = useMemo(
+    () => new Set(allProfiles.filter((p) => p.internal).map((p) => p.id)),
+    [allProfiles]
+  );
+
+  // Expose only spaces whose profile is not internal to the UI
+  const visibleSpaces = useMemo(
+    () => allSpaces.filter((s) => !internalProfileIds.has(s.profileId)),
+    [allSpaces, internalProfileIds]
+  );
+
+  // Whether the current space belongs to an internal profile (e.g. incognito)
+  const isCurrentSpaceInternal = useMemo(
+    () => (currentSpace ? internalProfileIds.has(currentSpace.profileId) : false),
+    [currentSpace, internalProfileIds]
+  );
 
   useEffect(() => {
     currentSpaceRef.current = currentSpace;
@@ -45,8 +63,11 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
   const fetchSpaces = useCallback(async () => {
     if (!flow) return;
     try {
-      const spaces = await flow.spaces.getSpaces();
+      const [spaces, profiles] = await Promise.all([flow.spaces.getSpaces(), flow.profiles.getProfiles()]);
       setAllSpaces(spaces);
+      setAllProfiles(profiles);
+
+      const localInternalIds = new Set(profiles.filter((p) => p.internal).map((p) => p.id));
 
       if (!currentSpaceRef.current) {
         // Get and set window space if available
@@ -64,8 +85,8 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
         if (lastUsedSpace) {
           setCurrentSpace(lastUsedSpace);
         } else if (spaces.length > 0) {
-          // If no last used space, default to first non-hidden space
-          const firstVisible = spaces.find((s) => !s.internal) ?? spaces[0];
+          // If no last used space, default to first non-internal space
+          const firstVisible = spaces.find((s) => !localInternalIds.has(s.profileId)) ?? spaces[0];
           setCurrentSpace(firstVisible);
           await flow.spaces.setUsingSpace(firstVisible.profileId, firstVisible.id);
         }
@@ -87,16 +108,16 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
       // Do not allow switching spaces in popup windows
       if (windowType === "popup" && currentSpace) return;
 
-      // Do not allow switching away from a locked space (e.g. incognito)
-      if (currentSpace?.internal) return;
+      // Do not allow switching away from an internal space (e.g. incognito)
+      if (currentSpace && internalProfileIds.has(currentSpace.profileId)) return;
 
       if (!flow) return;
-      // Look up in allSpaces (includes hidden) so programmatic sets work
+      // Look up in allSpaces (includes internal) so programmatic sets work
       const space = allSpaces.find((s) => s.id === spaceId);
       if (!space) return;
 
-      // Do not allow manually switching to a hidden or locked space
-      if (space.internal) return;
+      // Do not allow manually switching to an internal space
+      if (internalProfileIds.has(space.profileId)) return;
 
       if (space.id === currentSpace?.id) return;
 
@@ -107,7 +128,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
         console.error("Failed to set current space:", error);
       }
     },
-    [allSpaces, currentSpace, windowType]
+    [allSpaces, currentSpace, internalProfileIds, windowType]
   );
 
   useEffect(() => {
@@ -122,10 +143,10 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
   useEffect(() => {
     const unsub = flow.spaces.onSetWindowSpace(async (spaceId) => {
       // For programmatic space sets (e.g. initial incognito space assignment),
-      // fetch fresh spaces to ensure we have the latest data (the space may
-      // have been created after allSpaces was last populated).
-      const freshSpaces = await flow.spaces.getSpaces();
+      // fetch fresh spaces and profiles to ensure we have the latest data.
+      const [freshSpaces, freshProfiles] = await Promise.all([flow.spaces.getSpaces(), flow.profiles.getProfiles()]);
       setAllSpaces(freshSpaces);
+      setAllProfiles(freshProfiles);
 
       const space = freshSpaces.find((s) => s.id === spaceId);
       if (space) {
@@ -178,6 +199,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
         currentSpace,
         isLoading,
         isCurrentSpaceLight: isSpaceLight,
+        isCurrentSpaceInternal,
         revalidate,
         setCurrentSpace: handleSetCurrentSpace
       }}
