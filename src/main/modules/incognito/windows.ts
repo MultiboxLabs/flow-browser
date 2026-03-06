@@ -15,6 +15,8 @@ interface IncognitoSession {
   spaceId: string;
   /** Window IDs currently using this session. */
   windowIds: Set<number>;
+  /** Window creations currently using this session. */
+  pendingWindowCreations: number;
 }
 
 let activeSession: IncognitoSession | null = null;
@@ -43,7 +45,12 @@ async function getOrCreateSession(): Promise<IncognitoSession> {
       throw new Error("Failed to load incognito profile");
     }
 
-    activeSession = { profileId, spaceId, windowIds: new Set() };
+    activeSession = {
+      profileId,
+      spaceId,
+      windowIds: new Set(),
+      pendingWindowCreations: 0
+    };
     return activeSession;
   })().finally(() => {
     sessionCreationPromise = null;
@@ -58,21 +65,19 @@ async function getOrCreateSession(): Promise<IncognitoSession> {
 
 export async function createIncognitoWindow() {
   const session = await getOrCreateSession();
+  session.pendingWindowCreations += 1;
 
   let window;
   try {
     window = await browserWindowsController.create();
   } catch (error) {
-    // If no other window is using the session, tear it down so the
-    // incognito profile doesn't leak for the lifetime of the process.
-    if (session.windowIds.size === 0) {
-      activeSession = null;
-      await profilesController.delete(session.profileId);
-    }
+    session.pendingWindowCreations -= 1;
+    await maybeDisposeSession(session);
     throw error;
   }
 
   window.browserWindow.maximize();
+  session.pendingWindowCreations -= 1;
   session.windowIds.add(window.id);
 
   window.on("destroyed", () => {
@@ -101,10 +106,15 @@ export async function createIncognitoWindow() {
 async function removeWindowFromSession(windowId: number) {
   if (!activeSession) return;
 
-  activeSession.windowIds.delete(windowId);
+  const session = activeSession;
+  session.windowIds.delete(windowId);
 
-  if (activeSession.windowIds.size === 0) {
-    const { profileId } = activeSession;
+  await maybeDisposeSession(session);
+}
+
+async function maybeDisposeSession(session: IncognitoSession) {
+  if (activeSession === session && session.windowIds.size === 0 && session.pendingWindowCreations === 0) {
+    const { profileId } = session;
     activeSession = null;
     await profilesController.delete(profileId);
   }
