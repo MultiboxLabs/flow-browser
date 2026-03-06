@@ -91,6 +91,7 @@ export async function createIncognitoWindow() {
     return window;
   } catch (error) {
     await removeWindowFromSession(window.id);
+    window.destroy(true);
     throw error;
   }
 }
