@@ -28,7 +28,9 @@ export const createFileMenu = (): MenuItemConstructorOptions => ({
       label: "New Incognito Window",
       accelerator: getCurrentShortcut("browser.newIncognitoWindow"),
       click: () => {
-        createIncognitoWindow();
+        createIncognitoWindow().catch((error) => {
+          console.error("Failed to create incognito window:", error);
+        });
       }
     },
     {

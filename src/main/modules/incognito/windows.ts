@@ -18,28 +18,38 @@ interface IncognitoSession {
 }
 
 let activeSession: IncognitoSession | null = null;
+let sessionCreationPromise: Promise<IncognitoSession> | null = null;
 
 /**
  * Returns the existing shared session, or creates a new one if none exists.
+ * Guarded against concurrent calls — if a creation is already in-flight,
+ * subsequent callers will wait for the same promise.
  */
 async function getOrCreateSession(): Promise<IncognitoSession> {
   if (activeSession) return activeSession;
+  if (sessionCreationPromise) return sessionCreationPromise;
 
-  const incognito = await profilesController.createIncognito();
-  if (!incognito) {
-    throw new Error("Failed to create incognito profile");
-  }
+  sessionCreationPromise = (async () => {
+    const incognito = await profilesController.createIncognito();
+    if (!incognito) {
+      throw new Error("Failed to create incognito profile");
+    }
 
-  const { profileId, spaceId } = incognito;
+    const { profileId, spaceId } = incognito;
 
-  const loaded = await loadedProfilesController.load(profileId);
-  if (!loaded) {
-    await profilesController.delete(profileId);
-    throw new Error("Failed to load incognito profile");
-  }
+    const loaded = await loadedProfilesController.load(profileId);
+    if (!loaded) {
+      await profilesController.delete(profileId);
+      throw new Error("Failed to load incognito profile");
+    }
 
-  activeSession = { profileId, spaceId, windowIds: new Set() };
-  return activeSession;
+    activeSession = { profileId, spaceId, windowIds: new Set() };
+    return activeSession;
+  })().finally(() => {
+    sessionCreationPromise = null;
+  });
+
+  return sessionCreationPromise;
 }
 
 // ---------------------------------------------------------------------------
@@ -49,7 +59,19 @@ async function getOrCreateSession(): Promise<IncognitoSession> {
 export async function createIncognitoWindow() {
   const session = await getOrCreateSession();
 
-  const window = await browserWindowsController.create();
+  let window;
+  try {
+    window = await browserWindowsController.create();
+  } catch (error) {
+    // If no other window is using the session, tear it down so the
+    // incognito profile doesn't leak for the lifetime of the process.
+    if (session.windowIds.size === 0) {
+      activeSession = null;
+      await profilesController.delete(session.profileId);
+    }
+    throw error;
+  }
+
   window.browserWindow.maximize();
   session.windowIds.add(window.id);
 
@@ -60,7 +82,7 @@ export async function createIncognitoWindow() {
   });
 
   try {
-    setWindowSpace(window, session.spaceId);
+    await setWindowSpace(window, session.spaceId);
     return window;
   } catch (error) {
     await removeWindowFromSession(window.id);

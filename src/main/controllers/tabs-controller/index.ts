@@ -432,7 +432,9 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       windowId = popupWindow.id;
 
       // Keep popup in the same space as the source tab
-      setWindowSpace(popupWindow, sourceTab.spaceId);
+      void setWindowSpace(popupWindow, sourceTab.spaceId).catch((error) => {
+        console.error("Failed to set popup window space:", error);
+      });
     }
 
     const newTab = this.internalCreateTab(windowId, sourceTab.profileId, sourceTab.spaceId, constructorOptions, {
@@ -464,7 +466,9 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
     // Keep source window in the same space for non-popup tab opens
     if (disposition !== "new-window") {
-      setWindowSpace(sourceTab.getWindow(), sourceTab.spaceId);
+      void setWindowSpace(sourceTab.getWindow(), sourceTab.spaceId).catch((error) => {
+        console.error("Failed to set source window space:", error);
+      });
     }
   }
 
@@ -479,7 +483,9 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       if (goBackToTab) {
         // Set the space for the window
         const win = tab.getWindow();
-        setWindowSpace(win, tab.spaceId);
+        void setWindowSpace(win, tab.spaceId).catch((error) => {
+          console.error("Failed to set window space for PiP restore:", error);
+        });
 
         // Focus window
         win.browserWindow.focus();

@@ -287,7 +287,8 @@ function ProfileEditor({
     const checkProfileCount = async () => {
       try {
         const allProfiles = await flow.profiles.getProfiles();
-        setIsLastProfile(allProfiles.length <= 1);
+        const userProfiles = allProfiles.filter((p) => !p.internal);
+        setIsLastProfile(userProfiles.length <= 1);
       } catch (error) {
         console.error("Failed to check profile count:", error);
       }

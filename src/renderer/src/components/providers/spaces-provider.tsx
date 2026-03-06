@@ -151,7 +151,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
       const space = freshSpaces.find((s) => s.id === spaceId);
       if (space) {
         setCurrentSpace(space);
-        flow.spaces.setUsingSpace(space.profileId, spaceId);
+        await flow.spaces.setUsingSpace(space.profileId, spaceId);
       }
     });
     return () => unsub();

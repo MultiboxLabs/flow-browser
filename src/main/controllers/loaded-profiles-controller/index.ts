@@ -157,7 +157,9 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
 
         // Set the space for the window
         const window = tab.getWindow();
-        setWindowSpace(window, tab.spaceId);
+        void setWindowSpace(window, tab.spaceId).catch((error) => {
+          console.error("Failed to set window space for tab select:", error);
+        });
 
         // Set the active tab
         tabsController.setActiveTab(tab);

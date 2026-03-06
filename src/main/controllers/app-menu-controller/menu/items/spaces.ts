@@ -133,7 +133,9 @@ async function createSpaceMenuItem(
     click: () => {
       const window = getFocusedBrowserWindow();
       if (!window) return;
-      setWindowSpace(window, space.id);
+      void setWindowSpace(window, space.id).catch((error) => {
+        console.error("Failed to set window space:", error);
+      });
     },
     ...(iconImage ? { icon: iconImage } : {})
   };

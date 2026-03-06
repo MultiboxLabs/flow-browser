@@ -16,5 +16,9 @@ ipcMain.on("browser:create-window", async () => {
 });
 
 ipcMain.on("browser:create-incognito-window", async () => {
-  await createIncognitoWindow();
+  try {
+    await createIncognitoWindow();
+  } catch (error) {
+    console.error("[IPC] Failed to create incognito window:", error);
+  }
 });
