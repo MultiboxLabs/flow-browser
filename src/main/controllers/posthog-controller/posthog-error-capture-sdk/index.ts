@@ -3,6 +3,8 @@
 import { EventHint, StackFrameModifierFn, StackParser } from "./types";
 import { addUncaughtExceptionListener, addUnhandledRejectionListener } from "./autocapture";
 import { propertiesFromUnknownInput } from "./error-conversion";
+import { sanitizeProperties } from "../sanitize-pii";
+import { getSessionId } from "../session";
 import { EventMessage, PostHog, PostHogOptions } from "posthog-node";
 import { randomUUID } from "crypto";
 import { createStackParser } from "./stack-parser";
@@ -27,21 +29,22 @@ export default class ErrorTracking {
   ): Promise<void> {
     const properties: EventMessage["properties"] = { ...additionalProperties };
 
-    // Given stateless nature of Node SDK we capture exceptions using personless processing when no
-    // user can be determined because a distinct_id is not provided e.g. exception autocapture
     if (!distinctId) {
       properties.$process_person_profile = false;
     }
 
     const exceptionProperties = await propertiesFromUnknownInput(this.stackParser, this.frameModifiers, error, hint);
 
+    const mergedProperties = {
+      ...exceptionProperties,
+      ...properties,
+      $session_id: getSessionId()
+    };
+
     client.capture({
       event: "$exception",
       distinctId: distinctId || randomUUID(),
-      properties: {
-        ...exceptionProperties,
-        ...properties
-      }
+      properties: sanitizeProperties(mergedProperties)
     });
   }
 
