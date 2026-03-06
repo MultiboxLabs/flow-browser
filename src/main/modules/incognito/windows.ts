@@ -67,15 +67,7 @@ export async function createIncognitoWindow() {
   const session = await getOrCreateSession();
   session.pendingWindowCreations += 1;
 
-  let window;
-  try {
-    window = await browserWindowsController.create();
-  } catch (error) {
-    session.pendingWindowCreations -= 1;
-    await maybeDisposeSession(session);
-    throw error;
-  }
-
+  const window = await browserWindowsController.create();
   window.browserWindow.maximize();
   session.pendingWindowCreations -= 1;
   session.windowIds.add(window.id);
