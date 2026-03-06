@@ -57,8 +57,8 @@ export function ScrollableSidebarContent() {
     setCurrentSpace(space.id);
   };
 
-  // If the current space is hidden or locked (e.g. incognito), render only that space directly
-  if (currentSpace?.hidden || currentSpace?.locked) {
+  // If the current space is internal (e.g. incognito), render only that space directly
+  if (currentSpace?.internal) {
     return (
       <SidebarContent ref={containerRef} className="flex-1">
         <SpaceSidebar space={currentSpace} />

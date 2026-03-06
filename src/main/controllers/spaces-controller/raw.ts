@@ -33,16 +33,14 @@ export const SpaceDataSchema = type({
   icon: "string | undefined",
   lastUsed: "number",
   order: "number",
-  hidden: "boolean",
-  ephemeral: "boolean",
-  locked: "boolean"
+  internal: "boolean",
+  ephemeral: "boolean"
 });
 export type SpaceData = typeof SpaceDataSchema.infer;
 
 type ExtraSpaceCreationInfo = {
-  hidden?: boolean;
+  internal?: boolean;
   ephemeral?: boolean;
-  locked?: boolean;
 };
 
 // Private functions
@@ -64,9 +62,8 @@ function reconcileSpaceData(spaceId: string, profileId: string, data: DataStoreD
     icon: data.icon,
     lastUsed: data.lastUsed ?? 0,
     order: data.order ?? 999,
-    hidden: data.hidden ?? false,
-    ephemeral: data.ephemeral ?? false,
-    locked: data.locked ?? false
+    internal: data.internal ?? false,
+    ephemeral: data.ephemeral ?? false
   };
 }
 
@@ -113,14 +110,13 @@ export class RawSpacesController {
 
       // Set space data (only pick flag fields from initialData to prevent
       // accidental overrides of name/profileId/order)
-      const { hidden = false, ephemeral = false, locked = false } = extraInfo;
+      const { internal = false, ephemeral = false } = extraInfo;
       const spaceData = {
         name: spaceName,
         profileId: profileId,
         order: order,
-        hidden,
-        ephemeral,
-        locked
+        internal,
+        ephemeral
       };
       const spaceStore = getSpaceDataStore(profileId, spaceId);
       await spaceStore.setMany(spaceData);
@@ -175,14 +171,11 @@ export class RawSpacesController {
       if (spaceData.order !== undefined) {
         updatedFields.order = spaceData.order;
       }
-      if (spaceData.hidden !== undefined) {
-        updatedFields.hidden = spaceData.hidden;
+      if (spaceData.internal !== undefined) {
+        updatedFields.internal = spaceData.internal;
       }
       if (spaceData.ephemeral !== undefined) {
         updatedFields.ephemeral = spaceData.ephemeral;
-      }
-      if (spaceData.locked !== undefined) {
-        updatedFields.locked = spaceData.locked;
       }
 
       // Space order must be updated with updateSpaceOrder() / reorderSpaces()

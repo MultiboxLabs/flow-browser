@@ -55,7 +55,7 @@ export async function setWindowSpace(window: BrowserWindow, spaceId: string) {
   const currentSpaceId = window.currentSpaceId;
   if (currentSpaceId) {
     const currentSpace = await spacesController.get(currentSpaceId);
-    if (currentSpace?.locked) return;
+    if (currentSpace?.internal) return;
   }
 
   window.setCurrentSpace(spaceId);

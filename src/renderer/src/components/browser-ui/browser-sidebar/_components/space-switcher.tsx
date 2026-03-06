@@ -224,8 +224,8 @@ export function SpaceSwitcher() {
 
   const { visibleSpaces, compact } = useVisibleSpaces(spaces, activeIndex, containerWidth);
 
-  // Don't show the space switcher when the current space is hidden or locked (e.g. incognito)
-  if (currentSpace?.hidden || currentSpace?.locked) {
+  // Don't show the space switcher when the current space is internal (e.g. incognito)
+  if (currentSpace?.internal) {
     return <div className="flex-1 min-w-0" />;
   }
 

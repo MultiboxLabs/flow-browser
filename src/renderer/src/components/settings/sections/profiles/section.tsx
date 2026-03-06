@@ -576,8 +576,8 @@ export function ProfilesSettings({ navigateToSpaces, navigateToSpace }: Profiles
     setIsLoading(true);
     try {
       const [fetchedProfiles, allSpaces] = await Promise.all([flow.profiles.getProfiles(), flow.spaces.getSpaces()]);
-      // A profile is considered hidden if any of its spaces has hidden: true
-      const hiddenProfileIds = new Set(allSpaces.filter((s) => s.hidden).map((s) => s.profileId));
+      // A profile is considered internal if any of its spaces has internal: true
+      const hiddenProfileIds = new Set(allSpaces.filter((s) => s.internal).map((s) => s.profileId));
       setProfiles(fetchedProfiles.filter((p) => !hiddenProfileIds.has(p.id)));
     } catch (error) {
       console.error("Failed to fetch profiles:", error);

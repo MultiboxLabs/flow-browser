@@ -40,9 +40,8 @@ async function getOrCreateSession(): Promise<IncognitoSession> {
 
   // Create the incognito space with all flags from the start
   const spaceCreated = await spacesController.create(profileId, profileName, {
-    hidden: true,
+    internal: true,
     ephemeral: true,
-    locked: true,
     bgStartColor: "#000000",
     bgEndColor: "#000000"
   });

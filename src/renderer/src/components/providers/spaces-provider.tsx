@@ -36,7 +36,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
   const currentSpaceRef = useRef<Space | null>(null);
 
   // Expose only non-hidden spaces to the UI (space switcher, carousel, etc.)
-  const visibleSpaces = useMemo(() => allSpaces.filter((s) => !s.hidden), [allSpaces]);
+  const visibleSpaces = useMemo(() => allSpaces.filter((s) => !s.internal), [allSpaces]);
 
   useEffect(() => {
     currentSpaceRef.current = currentSpace;
@@ -65,7 +65,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
           setCurrentSpace(lastUsedSpace);
         } else if (spaces.length > 0) {
           // If no last used space, default to first non-hidden space
-          const firstVisible = spaces.find((s) => !s.hidden) ?? spaces[0];
+          const firstVisible = spaces.find((s) => !s.internal) ?? spaces[0];
           setCurrentSpace(firstVisible);
           await flow.spaces.setUsingSpace(firstVisible.profileId, firstVisible.id);
         }
@@ -88,7 +88,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
       if (windowType === "popup" && currentSpace) return;
 
       // Do not allow switching away from a locked space (e.g. incognito)
-      if (currentSpace?.locked) return;
+      if (currentSpace?.internal) return;
 
       if (!flow) return;
       // Look up in allSpaces (includes hidden) so programmatic sets work
@@ -96,7 +96,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
       if (!space) return;
 
       // Do not allow manually switching to a hidden or locked space
-      if (space.hidden || space.locked) return;
+      if (space.internal) return;
 
       if (space.id === currentSpace?.id) return;
 

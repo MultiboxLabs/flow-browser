@@ -76,7 +76,7 @@ export function SpacePagesCarousel() {
     flow.tabs.moveTab(tabId, newPosition);
   }, []);
 
-  const isSpaceLocked = currentSpace?.locked;
+  const isSpaceLocked = currentSpace?.internal;
 
   const currentIndex = useMemo(() => {
     if (!currentSpace) return 0;
@@ -189,7 +189,7 @@ export function SpacePagesCarousel() {
     return () => observer.disconnect();
   }, []);
 
-  // If the current space is hidden or locked (e.g. incognito), render only that space
+  // If the current space is internal (e.g. incognito), render only that space
   // directly instead of the carousel of visible spaces.
   if (isSpaceLocked && currentSpace) {
     return (
