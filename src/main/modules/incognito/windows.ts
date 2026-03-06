@@ -1,9 +1,8 @@
 import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
 import { profilesController } from "@/controllers/profiles-controller";
-import { spacesController } from "@/controllers/spaces-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { setWindowSpace } from "@/ipc/session/spaces";
-import { createIncognitoProfileId, isIncognitoProfileId } from "@/modules/incognito";
+import { isIncognitoProfileId } from "@/modules/incognito/utils";
 
 // ---------------------------------------------------------------------------
 // Shared incognito session
@@ -27,28 +26,12 @@ let activeSession: IncognitoSession | null = null;
 async function getOrCreateSession(): Promise<IncognitoSession> {
   if (activeSession) return activeSession;
 
-  const profileId = createIncognitoProfileId();
-  const profileName = "Incognito";
-
-  // Create profile with internal + ephemeral flags, without auto-creating a
-  // space so we can set custom background colors on the space directly.
-  const createdProfile = await profilesController.createWithId(profileId, profileName, false, {
-    internal: true,
-    ephemeral: true
-  });
-  if (!createdProfile) {
+  const incognito = await profilesController.createIncognito();
+  if (!incognito) {
     throw new Error("Failed to create incognito profile");
   }
 
-  // Create the incognito space with custom background colors
-  const spaceCreated = await spacesController.create(profileId, profileName, {
-    bgStartColor: "#000000",
-    bgEndColor: "#000000"
-  });
-  if (!spaceCreated) {
-    await profilesController.delete(profileId);
-    throw new Error("Failed to create incognito space");
-  }
+  const { profileId, spaceId } = incognito;
 
   const loaded = await loadedProfilesController.load(profileId);
   if (!loaded) {
@@ -56,13 +39,7 @@ async function getOrCreateSession(): Promise<IncognitoSession> {
     throw new Error("Failed to load incognito profile");
   }
 
-  const space = await spacesController.getLastUsedFromProfile(profileId);
-  if (!space) {
-    await profilesController.delete(profileId);
-    throw new Error("Failed to get incognito space");
-  }
-
-  activeSession = { profileId, spaceId: space.id, windowIds: new Set() };
+  activeSession = { profileId, spaceId, windowIds: new Set() };
   return activeSession;
 }
 

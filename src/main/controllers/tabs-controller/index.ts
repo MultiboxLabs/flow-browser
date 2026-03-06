@@ -18,7 +18,7 @@ import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
 import { FLAGS } from "@/modules/flags";
 import { quitController } from "@/controllers/quit-controller";
-import { isIncognitoTabProfile } from "@/modules/incognito-window";
+import { isIncognitoTabProfile } from "@/modules/incognito/windows";
 
 export const NEW_TAB_URL = "flow://new-tab";
 const ARCHIVE_CHECK_INTERVAL_MS = 10 * 1000;

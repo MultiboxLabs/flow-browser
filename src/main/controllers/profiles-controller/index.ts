@@ -7,7 +7,9 @@ import {
   ProfileDataSchema,
   ExtraProfileCreationInfo
 } from "@/controllers/profiles-controller/raw";
+import { spacesController } from "@/controllers/spaces-controller";
 import { debugError } from "@/modules/output";
+import { createIncognitoProfileId } from "@/modules/incognito/utils";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { generateID } from "@/modules/utils";
 
@@ -111,17 +113,35 @@ class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
   }
 
   /**
-   * Should be used carefully. Most profiles should be created with a randomly generated ID using the create function.
-   * This method is currently used for:
-   * - Incognito profiles
+   * Creates a new incognito profile and its associated space, returning the
+   * profile and space IDs on success, or null on failure.
    */
-  public async createWithId(
-    profileId: string,
-    profileName: string,
-    shouldCreateSpace: boolean = true,
-    extraInfo: ExtraProfileCreationInfo = {}
-  ): Promise<boolean> {
-    return await this._create(profileId, profileName, shouldCreateSpace, extraInfo);
+  public async createIncognito(): Promise<{ profileId: string; spaceId: string } | null> {
+    const profileId = createIncognitoProfileId();
+    const profileName = "Incognito";
+
+    const created = await this._create(profileId, profileName, false, {
+      internal: true,
+      ephemeral: true
+    });
+    if (!created) return null;
+
+    const spaceCreated = await spacesController.create(profileId, profileName, {
+      bgStartColor: "#000000",
+      bgEndColor: "#000000"
+    });
+    if (!spaceCreated) {
+      await this.delete(profileId);
+      return null;
+    }
+
+    const space = await spacesController.getLastUsedFromProfile(profileId);
+    if (!space) {
+      await this.delete(profileId);
+      return null;
+    }
+
+    return { profileId, spaceId: space.id };
   }
 
   public async get(profileId: string) {

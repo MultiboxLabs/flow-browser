@@ -1,7 +1,7 @@
 import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { ipcMain } from "electron";
-import { createIncognitoWindow } from "@/modules/incognito-window";
+import { createIncognitoWindow } from "@/modules/incognito/windows";
 
 ipcMain.on("browser:load-profile", async (_event, profileId: string) => {
   await loadedProfilesController.load(profileId);
