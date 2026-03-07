@@ -2,6 +2,7 @@ import { memo, useLayoutEffect, useRef } from "react";
 import { PageLayoutParams } from "~/flow/types";
 import { cn } from "@/lib/utils";
 import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
+import { useRippleSidebar } from "@/components/browser-ui/ripple-sidebar/provider";
 import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 
 /**
@@ -20,6 +21,12 @@ import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
  */
 function BrowserContent() {
   const { mode, recordedSidebarSizeRef, isAnimating, attachedDirection, onSidebarResize } = useBrowserSidebar();
+  const {
+    isVisible: rippleVisible,
+    isAnimating: rippleAnimating,
+    recordedSidebarSizeRef: rippleSizeRef,
+    onSidebarResize: onRippleResize
+  } = useRippleSidebar();
   const { topbarHeight, topbarVisible, contentTopOffset } = useAdaptiveTopbar();
 
   // Derive sidebar visibility from the mode.
@@ -32,7 +39,7 @@ function BrowserContent() {
   const sidebarSide = attachedDirection;
 
   // Helper: build and send layout params to the main process.
-  const sendLayoutParams = (sidebarWidth: number) => {
+  const sendLayoutParams = (sidebarWidth: number, rippleWidth?: number) => {
     const params: PageLayoutParams = {
       topbarHeight,
       topbarVisible,
@@ -40,7 +47,10 @@ function BrowserContent() {
       sidebarSide,
       sidebarVisible,
       sidebarAnimating: isAnimating,
-      contentTopOffset
+      contentTopOffset,
+      rippleSidebarWidth: rippleWidth ?? rippleSizeRef.current,
+      rippleSidebarVisible: rippleVisible,
+      rippleSidebarAnimating: rippleAnimating
     };
     flow.page.setLayoutParams(params);
   };
@@ -48,9 +58,18 @@ function BrowserContent() {
   // Send layout params whenever reactive state changes (visibility, animation,
   // topbar, direction). Uses the ref for sidebarWidth since it's always current.
   useLayoutEffect(() => {
-    sendLayoutParams(recordedSidebarSizeRef.current);
+    sendLayoutParams(recordedSidebarSizeRef.current, rippleSizeRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topbarHeight, topbarVisible, sidebarVisible, sidebarSide, isAnimating, contentTopOffset]);
+  }, [
+    topbarHeight,
+    topbarVisible,
+    sidebarVisible,
+    sidebarSide,
+    isAnimating,
+    contentTopOffset,
+    rippleVisible,
+    rippleAnimating
+  ]);
 
   // Subscribe to sidebar resize (drag) events. The callback fires outside
   // the React render cycle, so it doesn't cause re-renders of any consumer.
@@ -59,11 +78,19 @@ function BrowserContent() {
   const sendLayoutParamsRef = useRef(sendLayoutParams);
   sendLayoutParamsRef.current = sendLayoutParams;
 
+  // Subscribe to main sidebar resize
   useLayoutEffect(() => {
     return onSidebarResize((width) => {
       sendLayoutParamsRef.current(width);
     });
   }, [onSidebarResize]);
+
+  // Subscribe to Ripple sidebar resize
+  useLayoutEffect(() => {
+    return onRippleResize((width) => {
+      sendLayoutParamsRef.current(recordedSidebarSizeRef.current, width);
+    });
+  }, [onRippleResize, recordedSidebarSizeRef]);
 
   return (
     <div className={cn("rounded-lg", "flex-1 relative remove-app-drag", "bg-white/20", "shadow-xl shadow-black/20")} />

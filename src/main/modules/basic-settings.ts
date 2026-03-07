@@ -205,6 +205,15 @@ export const BasicSettings: BasicSetting[] = [
     showName: true,
     type: "boolean",
     defaultValue: false
+  },
+
+  // [RIPPLE] Enable Ripple AI Agent
+  {
+    id: "rippleEnabled",
+    name: "Enable Ripple",
+    showName: true,
+    type: "boolean",
+    defaultValue: false
   }
 ];
 

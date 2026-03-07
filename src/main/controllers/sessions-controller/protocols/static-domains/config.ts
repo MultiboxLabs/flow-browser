@@ -100,6 +100,14 @@ export const STATIC_DOMAINS: StaticDomainInfo[] = [
       route: "pdf-viewer"
     }
   },
+  {
+    protocol: "flow",
+    hostname: "ripple",
+    actual: {
+      type: "route",
+      route: "ripple"
+    }
+  },
 
   // flow-external
   {
