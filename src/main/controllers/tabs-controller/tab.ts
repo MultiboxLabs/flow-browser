@@ -96,7 +96,6 @@ function createWebContentsView(
     webSecurity: true,
     session: session,
     scrollBounce: true,
-    safeDialogs: true,
     navigateOnDragDrop: true,
     transparent: true,
 

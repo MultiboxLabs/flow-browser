@@ -1,5 +1,5 @@
 import { IPCListener } from "~/flow/types";
-import { RecentlyClosedTabData, TabData, WindowTabsData } from "~/types/tabs";
+import { RecentlyClosedTabData, TabData, TabGeometryUpdate, WindowTabsData } from "~/types/tabs";
 
 // API //
 export interface FlowTabsAPI {
@@ -22,6 +22,12 @@ export interface FlowTabsAPI {
    * @param callback Receives an array of updated TabData objects
    */
   onTabsContentUpdated: IPCListener<[TabData[]]>;
+
+  /**
+   * Add a callback for lightweight tab geometry updates.
+   * Receives only the tabs whose main-owned bounds or visibility changed.
+   */
+  onTabGeometryUpdated: IPCListener<[TabGeometryUpdate[]]>;
 
   /**
    * Switch to a tab

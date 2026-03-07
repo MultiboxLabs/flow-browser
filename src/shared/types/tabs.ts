@@ -1,3 +1,5 @@
+import { PageBounds } from "~/flow/types";
+
 export const TAB_SCHEMA_VERSION = 1;
 
 export type TabGroupMode = "normal" | "glance" | "split";
@@ -71,6 +73,14 @@ export type TabData = Omit<PersistedTabData, "navHistory" | "navHistoryIndex"> &
   fullScreen: boolean;
   isPictureInPicture: boolean;
   asleep: boolean;
+  visible: boolean;
+  bounds: PageBounds | null;
+};
+
+export type TabGeometryUpdate = {
+  tabId: number;
+  visible: boolean;
+  bounds: PageBounds | null;
 };
 
 /**
