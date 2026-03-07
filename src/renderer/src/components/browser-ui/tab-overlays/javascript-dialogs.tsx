@@ -1,8 +1,25 @@
 import { TabOverlayPortal } from "@/components/browser-ui/tab-overlays/tab-overlay-portal";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { AlertTriangleIcon, CheckIcon, LucideIcon, PencilIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TabDialogResponse, TabDialogState } from "~/types/tab-dialogs";
+
+const MotionCard = motion.create(Card);
+
+function getDialogIcon(type: TabDialogState["type"]): LucideIcon | null {
+  switch (type) {
+    case "alert":
+      return AlertTriangleIcon;
+    case "confirm":
+      return CheckIcon;
+    case "prompt":
+      return PencilIcon;
+    default:
+      return null;
+  }
+}
 
 function getDialogTitle(type: TabDialogState["type"]): "Alert" | "Confirm" | "Prompt" {
   switch (type) {
@@ -25,6 +42,7 @@ function JavaScriptDialogCard({
   const [promptValue, setPromptValue] = useState(dialog.defaultPromptText);
   const primaryButtonRef = useRef<HTMLButtonElement>(null);
   const promptInputRef = useRef<HTMLInputElement>(null);
+  const DialogIcon = getDialogIcon(dialog.type);
   const dialogTitle = getDialogTitle(dialog.type);
   const isPrompt = dialog.type === "prompt";
 
@@ -89,24 +107,22 @@ function JavaScriptDialogCard({
       )}
       style={{ borderRadius: "inherit" }}
     >
-      <motion.div
+      <MotionCard
         initial={{ opacity: 0, y: 12, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 6, scale: 0.98 }}
         transition={{ duration: 0.16, ease: "easeOut" }}
-        className={cn(
-          "w-full max-w-md",
-          "rounded-lg border border-white/12 bg-neutral-950/96 text-white",
-          "shadow-2xl shadow-black/40",
-          isPrompt ? "px-6 py-6" : "px-5 py-4"
-        )}
+        className="w-full max-w-md gap-2 border-white/12 bg-neutral-950/96 text-white shadow-2xl shadow-black/40"
       >
-        <div className={cn("flex flex-col", isPrompt ? "gap-5" : "gap-4")}>
-          <div className="space-y-1">
-            <p className="text-base font-semibold text-white">{dialogTitle}</p>
-          </div>
+        <CardHeader className="pb-0">
+          <CardTitle className="text-xl text-white flex items-center gap-2">
+            {DialogIcon ? <DialogIcon className="size-6" /> : null}
+            {dialogTitle}
+          </CardTitle>
+        </CardHeader>
 
-          <p className="text-sm leading-6 text-white/88 whitespace-pre-wrap break-words">{dialog.messageText}</p>
+        <CardContent className={cn(isPrompt && "flex flex-col gap-4")}>
+          <p className="text-sm leading-6 text-white/88 whitespace-pre-wrap wrap-break-word">{dialog.messageText}</p>
 
           {isPrompt ? (
             <input
@@ -120,37 +136,37 @@ function JavaScriptDialogCard({
               )}
             />
           ) : null}
+        </CardContent>
 
-          <div className="flex items-center justify-end gap-2">
-            {dialog.type !== "alert" ? (
-              <button
-                type="button"
-                onClick={handleCancel}
-                className={cn(
-                  "h-9 rounded-lg px-3 text-sm font-medium text-white/75",
-                  "border border-white/12 bg-white/5 hover:bg-white/10 hover:text-white",
-                  "transition-colors duration-150"
-                )}
-              >
-                Cancel
-              </button>
-            ) : null}
-
+        <CardFooter className="justify-end gap-2">
+          {dialog.type !== "alert" ? (
             <button
-              ref={primaryButtonRef}
               type="button"
-              onClick={handleAccept}
+              onClick={handleCancel}
               className={cn(
-                "h-9 rounded-lg px-3 text-sm font-medium",
-                "bg-white text-black hover:bg-white/90",
+                "h-9 rounded-lg px-3 text-sm font-medium text-white/75",
+                "border border-white/12 bg-white/5 hover:bg-white/10 hover:text-white",
                 "transition-colors duration-150"
               )}
             >
-              {confirmLabel}
+              Cancel
             </button>
-          </div>
-        </div>
-      </motion.div>
+          ) : null}
+
+          <button
+            ref={primaryButtonRef}
+            type="button"
+            onClick={handleAccept}
+            className={cn(
+              "h-9 rounded-lg px-3 text-sm font-medium",
+              "bg-white text-black hover:bg-white/90",
+              "transition-colors duration-150"
+            )}
+          >
+            {confirmLabel}
+          </button>
+        </CardFooter>
+      </MotionCard>
     </div>
   );
 }
