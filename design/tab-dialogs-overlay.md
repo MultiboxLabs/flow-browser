@@ -50,9 +50,9 @@ arbitrary websites. The final design uses a synchronous preload bridge:
 
 - preload patches the page's main world before page scripts run
 - the patched methods delegate into the isolated preload world
-- preload performs a **synchronous XHR** to a dedicated secure custom protocol
-  (`flow-dialog://`)
-- main keeps that protocol request open until the browser UI responds
+- preload sends the dialog request to main over normal IPC
+- the page thread enters a throttled `sendSync()` poll loop until main marks the
+  dialog resolved
 
 This keeps page semantics synchronous while avoiding Chromium/Electron's native
 JavaScript dialog UI.
@@ -98,15 +98,15 @@ their own bounds logic.
 
 ### 3. Preload + main: synchronous dialog bridge
 
-Each page/frame preload creates a dialog client ID and uses it to make
-synchronous requests to `flow-dialog://`.
+Each page/frame preload opens dialogs through normal IPC and synchronously polls
+for the resolved result.
 
 Main process responsibilities:
 
-- map incoming dialog client IDs back to the owning tab/webContents
+- map incoming dialog requests back to the owning tab/webContents
 - create `TabDialogState`
 - broadcast dialog state to the owning browser window
-- resolve the held protocol request once browser UI answers
+- store the final response so the next sync poll can return it
 
 This path supports `alert`, `confirm`, and `prompt` without depending on
 Electron's native page dialog implementation.
@@ -162,8 +162,8 @@ New browser API for Flow's browser UI:
 ### Opening a dialog
 
 1. Page script calls `alert`, `confirm`, or `prompt`.
-2. The preload override issues a synchronous request to `flow-dialog://`.
-3. Main maps the request to the owning tab via the dialog client ID.
+2. The preload override sends `tab-dialogs:open` to main.
+3. The preload override synchronously polls `tab-dialogs:wait-for-response`.
 4. Main maps the request to the owning `Tab`.
 5. Main stores `TabDialogState` and notifies the owning browser UI renderer.
 6. Renderer renders `JavaScriptDialogsOverlay` in a `TabOverlayPortal`.
@@ -173,8 +173,8 @@ New browser API for Flow's browser UI:
 
 1. User presses OK / Cancel or submits prompt text.
 2. Renderer calls `flow.tabDialogs.respond(...)`.
-3. Main resolves the waiting `flow-dialog://` request.
-4. The synchronous XHR returns to preload with the final result.
+3. Main stores the resolved result for the pending request.
+4. The next synchronous poll in preload returns that result.
 5. Main clears the pending dialog and broadcasts the new state.
 6. The override returns the correct synchronous result to page code.
 
@@ -185,6 +185,14 @@ New browser API for Flow's browser UI:
 - If the tab becomes visible again, the same pending dialog is rendered again.
 
 This matches the requirement that the overlay should "go with" the tab.
+
+### Focus behavior
+
+- When a dialog opens, the overlay window takes focus so keyboard input goes to
+  the dialog immediately.
+- When a dialog closes, focus is returned to the originating tab.
+- If the tab is destroyed while a dialog is open, the pending dialog is removed
+  immediately and the overlay is torn down with it.
 
 ## Implementation plan
 
@@ -199,22 +207,21 @@ This matches the requirement that the overlay should "go with" the tab.
 - Add a lightweight tab geometry update channel to the tabs IPC module.
 - Expose current bounds from `TabBoundsController`.
 - Emit geometry updates whenever applied bounds or visibility changes.
-- Add a dedicated `flow-dialog` protocol and register it in each session.
 - Add a `tab-dialogs-controller` that:
-  - registers dialog client IDs from preload
+  - tracks pending requests by `requestId`
   - maps them to live tabs/webContents
   - tracks pending dialogs
-  - resolves pending protocol requests
+  - exposes resolved responses to sync polling
   - cleans up on webContents destruction
-- Add IPC handlers for `tab-dialogs:get-state`, `tab-dialogs:respond`, and
-  synchronous client registration.
+- Add IPC handlers for `tab-dialogs:open`, `tab-dialogs:wait-for-response`,
+  `tab-dialogs:get-state`, and `tab-dialogs:respond`.
 
 ### Renderer
 
 - Add `flow.tabDialogs` to the preload-exposed Flow API.
 - Patch page-world `alert` / `confirm` / `prompt` from preload before page
   scripts run.
-- Use synchronous XHR to `flow-dialog://` from the isolated preload world.
+- Use throttled sync-IPC polling to preserve synchronous page behavior.
 - Teach `TabsProvider` to merge tab geometry updates into `tabsData`.
 - Add `PortalBoundsComponent`.
 - Add `TabOverlayPortal`.
@@ -256,8 +263,7 @@ Rejected because the tab view is not a renderer DOM node. Measuring a nearby DOM
 placeholder can drift from the actual `WebContentsView`, especially as layout
 logic evolves.
 
-### Delayed CDP interception of JavaScript dialogs
+### Custom protocol endpoint for dialog requests
 
-Rejected because it can observe native dialogs, but it cannot replace the
-user-facing native UI with a Flow overlay while still waiting for a human
-response.
+Rejected in favor of direct IPC bridge transport because IPC is narrower,
+easier to reason about, and avoids exposing an extra request surface.

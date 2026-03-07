@@ -79,21 +79,30 @@ function JavaScriptDialogCard({
   }, [dialog.id, dialog.type, onRespond]);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && dialog.type !== "alert") {
+    const isEscapeKey = (event: KeyboardEvent) =>
+      event.key === "Escape" || event.key === "Esc" || event.code === "Escape";
+    const isEnterKey = (event: KeyboardEvent) =>
+      event.key === "Enter" || event.code === "Enter" || event.code === "NumpadEnter";
+
+    const handleKeyEvent = (event: KeyboardEvent) => {
+      if (isEscapeKey(event) && dialog.type !== "alert") {
         event.preventDefault();
+        event.stopPropagation();
         handleCancel();
       }
 
-      if (event.key === "Enter") {
+      if (isEnterKey(event)) {
         event.preventDefault();
+        event.stopPropagation();
         handleAccept();
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", handleKeyEvent, { capture: true });
+    window.addEventListener("keyup", handleKeyEvent, { capture: true });
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keydown", handleKeyEvent, { capture: true });
+      window.removeEventListener("keyup", handleKeyEvent, { capture: true });
     };
   }, [dialog.type, handleAccept, handleCancel]);
 
@@ -129,6 +138,17 @@ function JavaScriptDialogCard({
               ref={promptInputRef}
               value={promptValue}
               onChange={(event) => setPromptValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.code === "Enter" || event.code === "NumpadEnter") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  handleAccept();
+                } else if (event.key === "Escape" || event.key === "Esc" || event.code === "Escape") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  handleCancel();
+                }
+              }}
               className={cn(
                 "h-11 w-full rounded-lg border border-white/12 bg-white/8 px-4",
                 "text-sm text-white outline-none",
@@ -173,6 +193,7 @@ function JavaScriptDialogCard({
 
 export function JavaScriptDialogsOverlay() {
   const [dialogs, setDialogs] = useState<TabDialogState[]>([]);
+  const previousDialogsRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     let isMounted = true;
@@ -196,6 +217,30 @@ export function JavaScriptDialogsOverlay() {
   const handleRespond = useCallback((dialogId: string, response: TabDialogResponse) => {
     void flow.tabDialogs.respond(dialogId, response);
   }, []);
+
+  useEffect(() => {
+    const currentDialogs = new Map(dialogs.map((dialog) => [dialog.id, dialog.tabId]));
+    const removedTabIds: number[] = [];
+
+    for (const [dialogId, tabId] of previousDialogsRef.current) {
+      if (!currentDialogs.has(dialogId)) {
+        removedTabIds.push(tabId);
+      }
+    }
+
+    previousDialogsRef.current = currentDialogs;
+
+    const tabIdToFocus = removedTabIds[removedTabIds.length - 1];
+    if (tabIdToFocus === undefined) return;
+
+    const focusFrame = window.requestAnimationFrame(() => {
+      flow.interface.focusTab(tabIdToFocus);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+    };
+  }, [dialogs]);
 
   return (
     <>

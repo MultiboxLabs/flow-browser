@@ -1,1 +1,1 @@
-export type CustomProtocol = "flow" | "flow-internal" | "flow-external" | "flow-dialog";
+export type CustomProtocol = "flow" | "flow-internal" | "flow-external";

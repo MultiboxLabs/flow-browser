@@ -2,6 +2,7 @@ import { BrowserWindow as ElectronWindow } from "electron";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import { ipcMain } from "electron";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { tabsController } from "@/controllers/tabs-controller";
 
 ipcMain.on("window-button:set-position", (event, position: { x: number; y: number }) => {
   const win = ElectronWindow.fromWebContents(event.sender);
@@ -100,6 +101,16 @@ ipcMain.handle("interface:get-window-state", (event) => {
     return getWindowState(win);
   }
   return false;
+});
+
+ipcMain.on("interface:focus-tab", (event, tabId: number) => {
+  const senderWindow = browserWindowsController.getWindowFromWebContents(event.sender);
+  const tab = tabsController.getTabById(tabId);
+  if (!senderWindow || !tab) return;
+  if (tab.getWindow().id !== senderWindow.id) return;
+
+  senderWindow.browserWindow.focus();
+  tab.webContents?.focus();
 });
 
 export function fireWindowStateChanged(win: BrowserWindow) {

@@ -57,6 +57,11 @@ export interface FlowInterfaceAPI {
   focusComponentWindow: (componentId: string) => void;
 
   /**
+   * Focuses a specific tab's webContents so keyboard input returns to the page
+   */
+  focusTab: (tabId: number) => void;
+
+  /**
    * Moves popup window by a specific amount
    */
   moveWindowBy: (x: number, y: number) => void;

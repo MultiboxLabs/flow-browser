@@ -346,22 +346,20 @@ contextBridge.executeInMainWorld({
   func: polyfillPopup
 });
 
-const TAB_DIALOG_ENDPOINT = "flow-dialog://dialog/request";
+const TAB_DIALOG_POLL_INTERVAL_MS = 8;
 
 function installTabDialogsOverride() {
   if (hasPermission("browser")) return;
 
-  const clientId = ipcRenderer.sendSync("tab-dialogs:register-client") as string;
-
   const tabDialogsBridge = {
     alert: (message: string) => {
-      sendTabDialogRequest(clientId, "alert", String(message), "");
+      sendTabDialogRequest("alert", String(message), "");
     },
     confirm: (message: string) => {
-      return sendTabDialogRequest(clientId, "confirm", String(message), "").accept;
+      return sendTabDialogRequest("confirm", String(message), "").accept;
     },
     prompt: (message: string, defaultPromptText: string) => {
-      const result = sendTabDialogRequest(clientId, "prompt", String(message), String(defaultPromptText ?? ""));
+      const result = sendTabDialogRequest("prompt", String(message), String(defaultPromptText ?? ""));
       return result.accept ? result.promptText : null;
     }
   };
@@ -409,31 +407,36 @@ function installTabDialogsOverride() {
 }
 
 function sendTabDialogRequest(
-  clientId: string,
   dialogType: "alert" | "confirm" | "prompt",
   messageText: string,
   defaultPromptText: string
 ) {
-  const request = new XMLHttpRequest();
-  request.open("POST", TAB_DIALOG_ENDPOINT, false);
-  request.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
-  request.send(
-    JSON.stringify({
-      clientId,
-      dialogType,
-      messageText,
-      defaultPromptText
-    })
-  );
+  const requestId = generateUUID();
+  ipcRenderer.send("tab-dialogs:open", {
+    requestId,
+    dialogType,
+    messageText,
+    defaultPromptText
+  });
 
-  if (request.status < 200 || request.status >= 300 || !request.responseText) {
-    throw new Error(`tab dialog request failed: ${request.status}`);
+  let nextPollAt = performance.now();
+  for (;;) {
+    const now = performance.now();
+    if (now < nextPollAt) {
+      continue;
+    }
+
+    nextPollAt = now + TAB_DIALOG_POLL_INTERVAL_MS;
+    const response = ipcRenderer.sendSync("tab-dialogs:wait-for-response", requestId) as {
+      done: true;
+      accept: boolean;
+      promptText: string;
+    } | null;
+
+    if (response?.done) {
+      return response;
+    }
   }
-
-  return JSON.parse(request.responseText) as {
-    accept: boolean;
-    promptText: string;
-  };
 }
 
 installTabDialogsOverride();
@@ -645,6 +648,9 @@ const interfaceAPI: FlowInterfaceAPI = {
   },
   focusComponentWindow: (componentId: string) => {
     return ipcRenderer.send("interface:focus-component-window", componentId);
+  },
+  focusTab: (tabId: number) => {
+    return ipcRenderer.send("interface:focus-tab", tabId);
   },
 
   minimizeWindow: () => {
