@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Space } from "~/flow/interfaces/sessions/spaces";
 import { hexToOKLCHString } from "@/lib/colors";
 import { hex_is_light } from "@/lib/utils";
@@ -9,6 +9,7 @@ interface SpacesContextValue {
   spaces: Space[];
   currentSpace: Space | null;
   isCurrentSpaceLight: boolean;
+  isCurrentSpaceInternal: boolean;
   isLoading: boolean;
   revalidate: () => Promise<void>;
   setCurrentSpace: (spaceId: string) => Promise<void>;
@@ -30,41 +31,74 @@ interface SpacesProviderProps {
 }
 
 export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) => {
-  const [spaces, setSpaces] = useState<Space[]>([]);
+  const [allSpaces, setAllSpaces] = useState<Space[]>([]);
+  const [areProfilesInternal, setAreProfilesInternal] = useState<Record<string, boolean>>({});
   const [currentSpace, setCurrentSpace] = useState<Space | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const currentSpaceRef = useRef<Space | null>(null);
+
+  // Expose only spaces whose profile is not internal to the UI
+  const visibleSpaces = useMemo(
+    () => allSpaces.filter((space) => !areProfilesInternal[space.profileId]),
+    [allSpaces, areProfilesInternal]
+  );
+
+  // Whether the current space belongs to an internal profile (e.g. incognito)
+  const isCurrentSpaceInternal = useMemo(
+    () => (currentSpace ? Boolean(areProfilesInternal[currentSpace.profileId]) : false),
+    [currentSpace, areProfilesInternal]
+  );
 
   useEffect(() => {
     currentSpaceRef.current = currentSpace;
   }, [currentSpace]);
 
-  const fetchSpaces = useCallback(async () => {
+  const fetchSpaces = useCallback(async (preferredSpaceId?: string) => {
     if (!flow) return;
     try {
-      const spaces = await flow.spaces.getSpaces();
-      setSpaces(spaces);
+      const [spaces, nextAreProfilesInternal] = await Promise.all([
+        flow.spaces.getSpaces(),
+        flow.profiles.getAreProfilesInternal()
+      ]);
+      setAllSpaces(spaces);
+      setAreProfilesInternal(nextAreProfilesInternal);
 
-      if (!currentSpaceRef.current) {
-        // Get and set window space if available
-        const windowSpaceId = await flow.spaces.getUsingSpace();
-        if (windowSpaceId) {
-          const windowSpace = spaces.find((s) => s.id === windowSpaceId);
-          if (windowSpace) {
-            setCurrentSpace(windowSpace);
-            return;
-          }
+      if (preferredSpaceId) {
+        const preferredSpace = spaces.find((space) => space.id === preferredSpaceId);
+        if (preferredSpace) {
+          setCurrentSpace(preferredSpace);
+          return;
         }
+      }
 
-        // Get and set last used space if no window space
-        const lastUsedSpace = await flow.spaces.getLastUsedSpace();
-        if (lastUsedSpace) {
-          setCurrentSpace(lastUsedSpace);
-        } else if (spaces.length > 0) {
-          // If no last used space, default to first space
-          setCurrentSpace(spaces[0]);
-          await flow.spaces.setUsingSpace(spaces[0].profileId, spaces[0].id);
+      const existingCurrentSpaceId = currentSpaceRef.current?.id;
+      if (existingCurrentSpaceId) {
+        const updatedCurrentSpace = spaces.find((space) => space.id === existingCurrentSpaceId);
+        if (updatedCurrentSpace) {
+          setCurrentSpace(updatedCurrentSpace);
+          return;
         }
+      }
+
+      // Get and set window space if available
+      const windowSpaceId = await flow.spaces.getUsingSpace();
+      if (windowSpaceId) {
+        const windowSpace = spaces.find((space) => space.id === windowSpaceId);
+        if (windowSpace) {
+          setCurrentSpace(windowSpace);
+          return;
+        }
+      }
+
+      // Get and set last used space if no window space
+      const lastUsedSpace = await flow.spaces.getLastUsedSpace();
+      if (lastUsedSpace) {
+        setCurrentSpace(lastUsedSpace);
+      } else if (spaces.length > 0) {
+        // If no last used space, default to first non-internal space
+        const firstVisible = spaces.find((space) => !nextAreProfilesInternal[space.profileId]) ?? spaces[0];
+        setCurrentSpace(firstVisible);
+        await flow.spaces.setUsingSpace(firstVisible.profileId, firstVisible.id);
       }
     } catch (error) {
       console.error("Failed to fetch spaces:", error);
@@ -80,14 +114,11 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
 
   const handleSetCurrentSpace = useCallback(
     async (spaceId: string) => {
-      // Do not allow switching spaces in popup windows
-      if (windowType === "popup" && currentSpace) return;
-
+      if (windowType === "popup" && currentSpaceRef.current) return;
       if (!flow) return;
-      const space = spaces.find((s) => s.id === spaceId);
+      const space = allSpaces.find((s) => s.id === spaceId);
       if (!space) return;
-
-      if (space.id === currentSpace?.id) return;
+      if (space.id === currentSpaceRef.current?.id) return;
 
       try {
         await flow.spaces.setUsingSpace(space.profileId, spaceId);
@@ -96,7 +127,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
         console.error("Failed to set current space:", error);
       }
     },
-    [spaces, currentSpace, windowType]
+    [allSpaces, windowType]
   );
 
   useEffect(() => {
@@ -110,10 +141,16 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
 
   useEffect(() => {
     const unsub = flow.spaces.onSetWindowSpace((spaceId) => {
-      handleSetCurrentSpace(spaceId);
+      const space = allSpaces.find((entry) => entry.id === spaceId);
+      if (space) {
+        setCurrentSpace(space);
+        return;
+      }
+
+      void fetchSpaces(spaceId);
     });
     return () => unsub();
-  }, [handleSetCurrentSpace]);
+  }, [allSpaces, fetchSpaces]);
 
   const bgStart = hexToOKLCHString(currentSpace?.bgStartColor || "#000000");
   const bgEnd = hexToOKLCHString(currentSpace?.bgEndColor || "#000000");
@@ -153,10 +190,11 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
   return (
     <SpacesContext.Provider
       value={{
-        spaces,
+        spaces: visibleSpaces,
         currentSpace,
         isLoading,
         isCurrentSpaceLight: isSpaceLight,
+        isCurrentSpaceInternal,
         revalidate,
         setCurrentSpace: handleSetCurrentSpace
       }}

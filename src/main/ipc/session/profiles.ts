@@ -7,6 +7,10 @@ ipcMain.handle("profiles:get-all", async () => {
   return await profilesController.getAll();
 });
 
+ipcMain.handle("profiles:get-are-internal", async () => {
+  return await profilesController.getAreProfilesInternal();
+});
+
 ipcMain.handle("profiles:create", async (_event, profileName: string) => {
   return await profilesController.create(profileName);
 });

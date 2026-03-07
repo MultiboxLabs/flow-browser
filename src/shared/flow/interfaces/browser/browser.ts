@@ -16,4 +16,9 @@ export interface FlowBrowserAPI {
    * Creates a new window
    */
   createWindow: () => void;
+
+  /**
+   * Creates a new incognito window
+   */
+  createIncognitoWindow: () => void;
 }

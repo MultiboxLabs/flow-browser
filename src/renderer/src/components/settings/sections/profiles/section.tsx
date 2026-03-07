@@ -286,8 +286,12 @@ function ProfileEditor({
   useEffect(() => {
     const checkProfileCount = async () => {
       try {
-        const allProfiles = await flow.profiles.getProfiles();
-        setIsLastProfile(allProfiles.length <= 1);
+        const [allProfiles, areProfilesInternal] = await Promise.all([
+          flow.profiles.getProfiles(),
+          flow.profiles.getAreProfilesInternal()
+        ]);
+        const userProfiles = allProfiles.filter((profile) => !areProfilesInternal[profile.id]);
+        setIsLastProfile(userProfiles.length <= 1);
       } catch (error) {
         console.error("Failed to check profile count:", error);
       }
@@ -570,12 +574,16 @@ export function ProfilesSettings({ navigateToSpaces, navigateToSpace }: Profiles
   const [newProfileName, setNewProfileName] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  // Fetch profiles from the API
+  // Fetch profiles from the API, excluding internal profiles
+  // (e.g. incognito profiles) since they are ephemeral and shouldn't be managed.
   const fetchProfiles = async () => {
     setIsLoading(true);
     try {
-      const fetchedProfiles = await flow.profiles.getProfiles();
-      setProfiles(fetchedProfiles);
+      const [fetchedProfiles, areProfilesInternal] = await Promise.all([
+        flow.profiles.getProfiles(),
+        flow.profiles.getAreProfilesInternal()
+      ]);
+      setProfiles(fetchedProfiles.filter((profile) => !areProfilesInternal[profile.id]));
     } catch (error) {
       console.error("Failed to fetch profiles:", error);
     } finally {

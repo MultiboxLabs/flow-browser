@@ -63,7 +63,7 @@ const SpaceContentPage = memo(function SpaceContentPage({ space, moveTab }: Spac
 // Supports trackpad swipe gestures and programmatic smooth-scrolling when the active space changes.
 
 export function SpacePagesCarousel() {
-  const { spaces, currentSpace, setCurrentSpace } = useSpaces();
+  const { spaces, currentSpace, setCurrentSpace, isCurrentSpaceInternal } = useSpaces();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   // Tracks the space ID that a swipe just switched to, so we can skip
   // the programmatic smooth-scroll for that specific change.
@@ -186,6 +186,16 @@ export function SpacePagesCarousel() {
     observer.observe(container);
     return () => observer.disconnect();
   }, []);
+
+  // If the current space is internal (e.g. incognito), render only that space
+  // directly instead of the carousel of visible spaces.
+  if (isCurrentSpaceInternal && currentSpace) {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col">
+        <SpaceContentPage space={currentSpace} moveTab={moveTab} />
+      </div>
+    );
+  }
 
   return (
     <div

@@ -198,7 +198,7 @@ function useVisibleSpaces(spaces: Space[], activeIndex: number, containerWidth: 
 }
 
 export function SpaceSwitcher() {
-  const { spaces, currentSpace } = useSpaces();
+  const { spaces, currentSpace, isCurrentSpaceInternal } = useSpaces();
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
@@ -223,6 +223,11 @@ export function SpaceSwitcher() {
   }, [spaces, currentSpace]);
 
   const { visibleSpaces, compact } = useVisibleSpaces(spaces, activeIndex, containerWidth);
+
+  // Don't show the space switcher when the current space is internal (e.g. incognito)
+  if (isCurrentSpaceInternal) {
+    return <div className="flex-1 min-w-0" />;
+  }
 
   return (
     <div ref={containerRef} className="flex-1 min-w-0 flex justify-center">

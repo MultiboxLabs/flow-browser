@@ -76,6 +76,12 @@ const typedShortcuts = [
     category: "Browser"
   },
   {
+    id: "browser.newIncognitoWindow",
+    name: "New Incognito Window",
+    shortcut: "CommandOrControl+Shift+N",
+    category: "Browser"
+  },
+  {
     id: "browser.closeWindow",
     name: "Close Window",
     shortcut: "CommandOrControl+Shift+W",

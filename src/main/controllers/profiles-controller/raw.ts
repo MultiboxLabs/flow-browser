@@ -7,6 +7,7 @@ import { DataStoreData, getDatastore } from "@/saving/datastore";
 import { type } from "arktype";
 import { profilesController } from "@/controllers/profiles-controller";
 import { spacesController } from "@/controllers/spaces-controller";
+import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
 
 const PROFILES_DIR = path.join(FLOW_DATA_DIR, "Profiles");
 
@@ -32,9 +33,16 @@ type RawUpdateProfileResult =
 // Schema
 export const ProfileDataSchema = type({
   name: "string",
-  createdAt: "number"
+  createdAt: "number",
+  internal: "boolean",
+  ephemeral: "boolean"
 });
 export type ProfileData = typeof ProfileDataSchema.infer;
+
+export type ExtraProfileCreationInfo = {
+  internal?: boolean;
+  ephemeral?: boolean;
+};
 
 // Private functions
 function getProfileDataStore(profileId: string) {
@@ -49,7 +57,9 @@ function reconcileProfileData(profileId: string, data: DataStoreData): ProfileDa
 
   return {
     name: data.name ?? defaultName,
-    createdAt: data.createdAt ?? getCurrentTimestamp()
+    createdAt: data.createdAt ?? getCurrentTimestamp(),
+    internal: data.internal ?? false,
+    ephemeral: data.ephemeral ?? false
   };
 }
 
@@ -62,7 +72,8 @@ export class RawProfilesController {
   public async create(
     profileId: string,
     profileName: string,
-    shouldCreateSpace: boolean = true
+    shouldCreateSpace: boolean = true,
+    extraInfo: ExtraProfileCreationInfo = {}
   ): Promise<RawCreateProfileResult> {
     // Validate profileId to prevent directory traversal attacks or invalid characters
     if (!/^[a-zA-Z0-9_-]+$/.test(profileId)) {
@@ -83,9 +94,12 @@ export class RawProfilesController {
       await fs.mkdir(profilePath, { recursive: true });
 
       // Set profile data
+      const { internal = false, ephemeral = false } = extraInfo;
       const storingProfileData = {
         name: profileName,
-        createdAt: getCurrentTimestamp()
+        createdAt: getCurrentTimestamp(),
+        internal,
+        ephemeral
       };
       const profileStore = getProfileDataStore(profileId);
       await profileStore.setMany(storingProfileData);
@@ -140,6 +154,9 @@ export class RawProfilesController {
 
   public async delete(profileId: string) {
     try {
+      // Unload the profile
+      loadedProfilesController.unload(profileId);
+
       // Delete all spaces associated with this profile
       const spaces = await spacesController.getAllFromProfile(profileId);
       await Promise.all(spaces.map((space) => spacesController.delete(profileId, space.id)));
