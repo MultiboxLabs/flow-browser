@@ -579,6 +579,9 @@ const profilesAPI: FlowProfilesAPI = {
   getProfiles: async () => {
     return ipcRenderer.invoke("profiles:get-all");
   },
+  getAreProfilesInternal: async () => {
+    return ipcRenderer.invoke("profiles:get-are-internal");
+  },
   createProfile: async (profileName: string) => {
     return ipcRenderer.invoke("profiles:create", profileName);
   },

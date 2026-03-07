@@ -2,7 +2,7 @@ import { MenuItemConstructorOptions, nativeImage, NativeImage } from "electron";
 import { getFocusedBrowserWindow } from "../helpers";
 import { settings } from "@/controllers/windows-controller/interfaces/settings";
 import sharp from "sharp";
-import { setWindowSpace } from "@/ipc/session/spaces";
+import { canUserSwitchWindowSpace, setWindowSpace } from "@/ipc/session/spaces";
 import path from "path";
 import { readFile } from "fs/promises";
 import { IconEntry, icons } from "@phosphor-icons/core";
@@ -14,6 +14,7 @@ import { browserWindowsManager, windowsController } from "@/controllers/windows-
 interface Space {
   id: string;
   name: string;
+  profileId: string;
   icon?: string;
 }
 
@@ -133,8 +134,9 @@ async function createSpaceMenuItem(
     click: () => {
       const window = getFocusedBrowserWindow();
       if (!window) return;
-      void setWindowSpace(window, space.id).catch((error) => {
-        console.error("Failed to set window space:", error);
+      void canUserSwitchWindowSpace(window, space.profileId, space.id).then((canSwitch) => {
+        if (!canSwitch) return;
+        setWindowSpace(window, space.id);
       });
     },
     ...(iconImage ? { icon: iconImage } : {})
@@ -146,9 +148,11 @@ async function createSpaceMenuItem(
  */
 export async function createSpacesMenu(): Promise<MenuItemConstructorOptions> {
   try {
-    const [spaces, profiles] = await Promise.all([spacesController.getAll(), profilesController.getAll()]);
-    const internalProfileIds = new Set(profiles.filter((p) => p.internal).map((p) => p.id));
-    const visibleSpaces = spaces.filter((space) => !internalProfileIds.has(space.profileId));
+    const [spaces, areProfilesInternal] = await Promise.all([
+      spacesController.getAll(),
+      profilesController.getAreProfilesInternal()
+    ]);
+    const visibleSpaces = spaces.filter((space) => !areProfilesInternal[space.profileId]);
 
     const focusedWindow = windowsController.getFocused();
     if (!focusedWindow || !browserWindowsManager.isInstanceOf(focusedWindow)) {
@@ -164,6 +168,20 @@ export async function createSpacesMenu(): Promise<MenuItemConstructorOptions> {
     }
 
     const currentSpaceId = focusedWindow.currentSpaceId;
+    if (currentSpaceId) {
+      const currentSpace = spaces.find((space) => space.id === currentSpaceId);
+      if (currentSpace && areProfilesInternal[currentSpace.profileId]) {
+        return {
+          label: "Spaces",
+          submenu: [
+            {
+              label: "Manage Spaces",
+              click: () => settings.show()
+            }
+          ]
+        };
+      }
+    }
 
     // Use Promise.allSettled to ensure all space menu items are attempted
     // even if some fail to be created

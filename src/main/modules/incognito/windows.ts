@@ -79,7 +79,7 @@ export async function createIncognitoWindow() {
   });
 
   try {
-    await setWindowSpace(window, session.spaceId);
+    setWindowSpace(window, session.spaceId);
     return window;
   } catch (error) {
     await removeWindowFromSession(window.id);

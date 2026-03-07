@@ -20,6 +20,11 @@ export interface FlowProfilesAPI {
   getProfiles: () => Promise<Profile[]>;
 
   /**
+   * Gets a map of which profiles are internal
+   */
+  getAreProfilesInternal: () => Promise<Record<string, boolean>>;
+
+  /**
    * Creates a profile
    */
   createProfile: (profileName: string) => Promise<boolean>;

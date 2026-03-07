@@ -27,8 +27,13 @@ ipcMain.handle("spaces:update", async (_event, profileId: string, spaceId: strin
 
 ipcMain.handle("spaces:set-using", async (event, profileId: string, spaceId: string) => {
   const window = browserWindowsController.getWindowFromWebContents(event.sender);
+
   if (window) {
-    window.setCurrentSpace(spaceId);
+    const canSwitch = await canUserSwitchWindowSpace(window, profileId, spaceId);
+    if (!canSwitch) {
+      return false;
+    }
+    setWindowSpace(window, spaceId);
   }
 
   return await spacesController.setLastUsed(profileId, spaceId);
@@ -50,20 +55,33 @@ ipcMain.handle("spaces:reorder", async (_event, orderMap: SpaceOrderMap) => {
   return await spacesController.reorder(orderMap);
 });
 
-export async function setWindowSpace(window: BrowserWindow, spaceId: string) {
-  // If the window's current space belongs to an internal profile, block the switch.
-  // currentSpaceId is null on fresh windows, so initial assignment always works.
-  const currentSpaceId = window.currentSpaceId;
-  if (currentSpaceId) {
-    const currentSpace = await spacesController.get(currentSpaceId);
-    if (currentSpace) {
-      const profile = await profilesController.get(currentSpace.profileId);
-      if (profile?.internal) return;
-    }
-  }
-
+export function setWindowSpace(window: BrowserWindow, spaceId: string) {
   window.setCurrentSpace(spaceId);
   window.sendMessage("spaces:on-set-window-space", spaceId);
+}
+
+export async function canUserSwitchWindowSpace(
+  window: BrowserWindow,
+  profileId: string,
+  spaceId: string
+): Promise<boolean> {
+  const targetProfile = await profilesController.get(profileId);
+  if (targetProfile?.internal) {
+    return false;
+  }
+
+  const currentSpaceId = window.currentSpaceId;
+  if (!currentSpaceId || currentSpaceId === spaceId) {
+    return true;
+  }
+
+  const currentSpace = await spacesController.get(currentSpaceId);
+  if (!currentSpace) {
+    return true;
+  }
+
+  const currentProfile = await profilesController.get(currentSpace.profileId);
+  return !currentProfile?.internal;
 }
 
 function fireOnSpacesChanged() {

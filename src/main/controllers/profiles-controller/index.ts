@@ -207,6 +207,17 @@ class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
     return await this.getAll();
   }
 
+  public async getAreProfilesInternal(): Promise<Record<string, boolean>> {
+    const profiles = await this.getAll();
+    const areProfilesInternal: Record<string, boolean> = {};
+
+    for (const profile of profiles) {
+      areProfilesInternal[profile.id] = profile.internal;
+    }
+
+    return areProfilesInternal;
+  }
+
   /** Warning: This should not be used outside of this controller */
   public async _setupInitialProfile(): Promise<"success" | "failed" | "already-exists"> {
     const profileId = "main";
