@@ -1,6 +1,17 @@
 import { IPCListener } from "~/flow/types";
 import { RecentlyClosedTabData, TabData, WindowTabsData } from "~/types/tabs";
 
+export type TabSwitcherSnapshot = {
+  tabId: number;
+  dataUrl: string | null;
+};
+
+export type TabSwitcherState = {
+  visible: boolean;
+  tabIds: number[];
+  selectedTabId: number | null;
+};
+
 // API //
 export interface FlowTabsAPI {
   /**
@@ -22,6 +33,19 @@ export interface FlowTabsAPI {
    * @param callback Receives an array of updated TabData objects
    */
   onTabsContentUpdated: IPCListener<[TabData[]]>;
+
+  /**
+   * Add a callback for Ctrl+Tab switcher state changes.
+   * Fired when the overlay should show, update selection, or hide.
+   */
+  onTabSwitcherStateChanged: IPCListener<[TabSwitcherState]>;
+
+  /**
+   * Capture preview snapshots for a set of tabs for the Ctrl+Tab switcher.
+   * Sleeping tabs or tabs that fail to capture return null data URLs.
+   * @param tabIds The tab IDs to capture previews for
+   */
+  getTabSwitcherSnapshots: (tabIds: number[]) => Promise<TabSwitcherSnapshot[]>;
 
   /**
    * Switch to a tab

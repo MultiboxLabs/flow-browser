@@ -3,11 +3,21 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { appendFileSync } from "node:fs";
 import { ipcMain, WebContents } from "electron";
 
 type ListenerMap = Map<string, [WebContents, () => void]>;
 
 const listeners = new Map<string, ListenerMap>();
+
+function writeDebugLog(payload: {
+  hypothesisId: string;
+  location: string;
+  message: string;
+  data: Record<string, unknown>;
+}) {
+  appendFileSync("/opt/cursor/logs/debug.log", JSON.stringify({ ...payload, timestamp: Date.now() }) + "\n");
+}
 
 // Utility Functions //
 function getConnectedWebContents(channel: string) {
@@ -49,6 +59,20 @@ export function sendMessageToListenersWithWebContents(
   ...args: any[]
 ) {
   const webContentsSet = getConnectedWebContents(channel);
+
+  if (channel === "tabs:on-switcher-state-changed") {
+    // #region agent log
+    writeDebugLog({
+      hypothesisId: "B",
+      location: "src/main/ipc/listeners-manager.ts:sendMessageToListenersWithWebContents",
+      message: "Sending switcher state to scoped listeners",
+      data: {
+        selectedWebContentsIds: selectedWebContents.map((webContents) => webContents.id),
+        connectedWebContentsIds: Array.from(webContentsSet).map((webContents) => webContents.id)
+      }
+    });
+    // #endregion
+  }
 
   for (const webContents of selectedWebContents) {
     if (webContents.isDestroyed()) {
@@ -94,6 +118,19 @@ function removeListener(channel: string, listenerId: string) {
 
 ipcMain.on("listeners:add", (event, channel: string, listenerId: string) => {
   const webContents = event.sender;
+  if (channel === "tabs:on-switcher-state-changed") {
+    // #region agent log
+    writeDebugLog({
+      hypothesisId: "B",
+      location: "src/main/ipc/listeners-manager.ts:listeners:add",
+      message: "Registered switcher listener",
+      data: {
+        listenerId,
+        webContentsId: webContents.id
+      }
+    });
+    // #endregion
+  }
   addListener(channel, listenerId, webContents);
 });
 

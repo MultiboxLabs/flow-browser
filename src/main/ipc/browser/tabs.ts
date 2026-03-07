@@ -1,5 +1,6 @@
 import { BaseTabGroup } from "@/controllers/tabs-controller/tab-groups";
 import { spacesController } from "@/controllers/spaces-controller";
+import { appendFileSync } from "node:fs";
 import { clipboard, ipcMain, Menu, MenuItem } from "electron";
 import { PersistedTabGroupData, TabData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
@@ -9,6 +10,17 @@ import { tabsController } from "@/controllers/tabs-controller";
 import { serializeTabForRenderer, serializeTabGroupForRenderer } from "@/saving/tabs/serialization";
 import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
 import { GlanceTabGroup } from "@/controllers/tabs-controller/tab-groups/glance";
+
+const TAB_SWITCHER_SNAPSHOT_WIDTH = 560;
+
+function writeDebugLog(payload: {
+  hypothesisId: string;
+  location: string;
+  message: string;
+  data: Record<string, unknown>;
+}) {
+  appendFileSync("/opt/cursor/logs/debug.log", JSON.stringify({ ...payload, timestamp: Date.now() }) + "\n");
+}
 
 /**
  * Attempts to restore a tab's group membership after it has been recreated.
@@ -130,12 +142,68 @@ function getWindowTabsData(window: BrowserWindow) {
   };
 }
 
+async function captureTabSwitcherSnapshot(tab: Tab): Promise<string | null> {
+  const webContents = tab.webContents;
+  if (!webContents || webContents.isDestroyed() || tab.asleep) {
+    return null;
+  }
+
+  try {
+    const image = await webContents.capturePage();
+    if (image.isEmpty()) {
+      return null;
+    }
+
+    const size = image.getSize();
+    const preview =
+      size.width > TAB_SWITCHER_SNAPSHOT_WIDTH ? image.resize({ width: TAB_SWITCHER_SNAPSHOT_WIDTH }) : image;
+    return preview.toDataURL();
+  } catch (error) {
+    console.error(`Failed to capture Ctrl+Tab snapshot for tab ${tab.id}:`, error);
+    return null;
+  }
+}
+
+ipcMain.on("debug:tab-switcher-trace", (_event, payload) => {
+  // #region agent log
+  writeDebugLog({
+    hypothesisId: payload?.hypothesisId ?? "B",
+    location: payload?.location ?? "src/main/ipc/browser/tabs.ts:debug:tab-switcher-trace",
+    message: payload?.message ?? "Debug tab switcher trace",
+    data: payload?.data ?? {}
+  });
+  // #endregion
+});
+
 ipcMain.handle("tabs:get-data", async (event) => {
   const webContents = event.sender;
   const window = browserWindowsController.getWindowFromWebContents(webContents);
   if (!window) return null;
 
   return getWindowTabsData(window);
+});
+
+ipcMain.handle("tabs:get-switcher-snapshots", async (event, tabIds: number[]) => {
+  const webContents = event.sender;
+  const window = browserWindowsController.getWindowFromWebContents(webContents);
+  if (!window || !Array.isArray(tabIds)) return [];
+
+  return Promise.all(
+    tabIds.map(async (tabId) => {
+      const tab = tabsController.getTabById(tabId);
+      if (!tab || tab.getWindow().id !== window.id) {
+        return {
+          tabId,
+          dataUrl: null
+        };
+      }
+
+      return {
+        tabId,
+        dataUrl: await captureTabSwitcherSnapshot(tab)
+      };
+    })
+  );
 });
 
 // --- Tab change queues ---

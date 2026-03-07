@@ -2,6 +2,7 @@
 // make sure to keep it clean and organized.
 
 // IMPORTS //
+import { appendFileSync } from "node:fs";
 import { contextBridge, ipcRenderer } from "electron";
 import { injectBrowserAction } from "electron-chrome-extensions/browser-action";
 
@@ -31,7 +32,7 @@ import { FlowOmniboxAPI } from "~/flow/interfaces/browser/omnibox";
 import { FlowSettingsAPI } from "~/flow/interfaces/settings/settings";
 import { FlowWindowsAPI } from "~/flow/interfaces/app/windows";
 import { FlowExtensionsAPI } from "~/flow/interfaces/app/extensions";
-import { FlowTabsAPI } from "~/flow/interfaces/browser/tabs";
+import { FlowTabsAPI, TabSwitcherState } from "~/flow/interfaces/browser/tabs";
 import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
@@ -47,6 +48,39 @@ import { WebauthnUtils } from "./webauthn/webauthn-utils";
 // const isIFrame = !process.isMainFrame;
 
 // API CHECKS //
+function writeDebugLog(payload: {
+  hypothesisId: string;
+  location: string;
+  message: string;
+  data: Record<string, unknown>;
+}) {
+  try {
+    appendFileSync("/opt/cursor/logs/debug.log", JSON.stringify({ ...payload, timestamp: Date.now() }) + "\n");
+  } catch {
+    // Ignore preload logging failures so instrumentation never changes behavior.
+  }
+}
+
+const tabSwitcherListeners = new Set<(state: TabSwitcherState) => void>();
+
+ipcRenderer.on("tabs:on-switcher-state-changed", (_event, state: TabSwitcherState) => {
+  ipcRenderer.send("debug:tab-switcher-trace", {
+    hypothesisId: "B",
+    location: "src/preload/index.ts:ipcRenderer.on(tabs:on-switcher-state-changed)",
+    message: "Preload received direct tab switcher state",
+    data: {
+      visible: !!state?.visible,
+      selectedTabId: state?.selectedTabId ?? null,
+      tabIds: Array.isArray(state?.tabIds) ? state.tabIds : [],
+      listenerCount: tabSwitcherListeners.size
+    }
+  });
+
+  for (const listener of tabSwitcherListeners) {
+    listener(state);
+  }
+});
+
 function isProtocol(protocol: string) {
   return location.protocol === protocol;
 }
@@ -431,6 +465,38 @@ const tabsAPI: FlowTabsAPI = {
   onTabsContentUpdated: (callback: (tabs: TabData[]) => void) => {
     return listenOnIPCChannel("tabs:on-tabs-content-updated", callback);
   },
+  onTabSwitcherStateChanged: (callback) => {
+    ipcRenderer.send("debug:tab-switcher-trace", {
+      hypothesisId: "B",
+      location: "src/preload/index.ts:onTabSwitcherStateChanged",
+      message: "Registered preload tab switcher listener",
+      data: {
+        nextListenerCount: tabSwitcherListeners.size + 1
+      }
+    });
+    tabSwitcherListeners.add(callback);
+    return () => {
+      tabSwitcherListeners.delete(callback);
+    };
+  },
+  getTabSwitcherSnapshots: async (tabIds: number[]) => {
+    const results = await ipcRenderer.invoke("tabs:get-switcher-snapshots", tabIds);
+    // #region agent log
+    writeDebugLog({
+      hypothesisId: "D",
+      location: "src/preload/index.ts:getTabSwitcherSnapshots",
+      message: "Fetched tab switcher snapshots",
+      data: {
+        requestedTabIds: tabIds,
+        resultCount: Array.isArray(results) ? results.length : -1,
+        populatedSnapshots: Array.isArray(results)
+          ? results.filter((result) => result?.dataUrl).map((result) => result.tabId)
+          : []
+      }
+    });
+    // #endregion
+    return results;
+  },
   switchToTab: async (tabId: number) => {
     return ipcRenderer.invoke("tabs:switch-to-tab", tabId);
   },
@@ -526,12 +592,34 @@ const interfaceAPI: FlowInterfaceAPI = {
     return listenOnIPCChannel("interface:cursor-at-edge", callback);
   },
   setComponentWindowBounds: (componentId: string, bounds: Electron.Rectangle) => {
+    // #region agent log
+    writeDebugLog({
+      hypothesisId: "C",
+      location: "src/preload/index.ts:setComponentWindowBounds",
+      message: "Portal bounds updated",
+      data: {
+        componentId,
+        bounds
+      }
+    });
+    // #endregion
     return ipcRenderer.send("interface:set-component-window-bounds", componentId, bounds);
   },
   setComponentWindowZIndex: (componentId: string, zIndex: number) => {
     return ipcRenderer.send("interface:set-component-window-z-index", componentId, zIndex);
   },
   setComponentWindowVisible: (componentId: string, visible: boolean) => {
+    // #region agent log
+    writeDebugLog({
+      hypothesisId: "C",
+      location: "src/preload/index.ts:setComponentWindowVisible",
+      message: "Portal visibility updated",
+      data: {
+        componentId,
+        visible
+      }
+    });
+    // #endregion
     return ipcRenderer.send("interface:set-component-window-visible", componentId, visible);
   },
   focusComponentWindow: (componentId: string) => {

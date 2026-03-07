@@ -31,6 +31,8 @@ import BrowserContent from "@/components/browser-ui/browser-content";
 import { FindInPage } from "@/components/browser-ui/find-in-page";
 import { NavigationControls } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
 import { AddressBar } from "@/components/browser-ui/browser-sidebar/_components/address-bar";
+import { TabSwitcher } from "@/components/browser-ui/tab-switcher";
+import type { TabSwitcherState } from "~/flow/interfaces/browser/tabs";
 
 export type BrowserUIType = "main" | "popup";
 export type SidebarVariant = "attached" | "floating";
@@ -230,8 +232,15 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
   // components above to prevent the entire layout from rerendering.
   const { mode: sidebarMode, attachedDirection } = useBrowserSidebar();
   const { topbarVisible, topbarHeight } = useAdaptiveTopbar();
+  const [tabSwitcherState, setTabSwitcherState] = useState<TabSwitcherState | null>(null);
 
   const hasSidebar = type === "main";
+
+  useEffect(() => {
+    return flow.tabs.onTabSwitcherStateChanged((state) => {
+      setTabSwitcherState(state.visible ? state : null);
+    });
+  }, []);
 
   return (
     <FullscreenGuard>
@@ -276,6 +285,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
 
                     <div className="relative w-full h-full flex flex-col">
                       <LoadingIndicator />
+                      <TabSwitcher switcherState={tabSwitcherState} />
                       <FindInPage />
                       {!hasSidebar && <PopupToolbar />}
                       <BrowserContent />

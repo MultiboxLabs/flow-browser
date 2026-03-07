@@ -1,9 +1,19 @@
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import { debugPrint } from "@/modules/output";
 import { ViewLayer } from "~/layers";
+import { appendFileSync } from "node:fs";
 import { ipcMain, IpcMainEvent, WebContentsView } from "electron";
 
 const DEBUG_ENABLE_DEVTOOLS = false;
+
+function writeDebugLog(payload: {
+  hypothesisId: string;
+  location: string;
+  message: string;
+  data: Record<string, unknown>;
+}) {
+  appendFileSync("/opt/cursor/logs/debug.log", JSON.stringify({ ...payload, timestamp: Date.now() }) + "\n");
+}
 
 export function initializePortalComponentWindows(browserWindow: BrowserWindow) {
   const componentViews: { [key: string]: WebContentsView } = {};
@@ -64,6 +74,18 @@ export function initializePortalComponentWindows(browserWindow: BrowserWindow) {
   const setComponentWindowBounds = (_event: IpcMainEvent, componentId: string, bounds: Electron.Rectangle) => {
     const componentView = componentViews[componentId];
     if (componentView) {
+      // #region agent log
+      writeDebugLog({
+        hypothesisId: "C",
+        location:
+          "src/main/controllers/windows-controller/utils/browser/portal-component-windows.ts:setComponentWindowBounds",
+        message: "Main received portal bounds update",
+        data: {
+          componentId,
+          bounds
+        }
+      });
+      // #endregion
       debugPrint("PORTAL_COMPONENTS", "Set Bounds of Portal Window:", componentId, bounds);
       componentView.setBounds(bounds);
     }
@@ -82,6 +104,18 @@ export function initializePortalComponentWindows(browserWindow: BrowserWindow) {
   const setComponentWindowVisible = (_event: IpcMainEvent, componentId: string, visible: boolean) => {
     const componentView = componentViews[componentId];
     if (componentView) {
+      // #region agent log
+      writeDebugLog({
+        hypothesisId: "C",
+        location:
+          "src/main/controllers/windows-controller/utils/browser/portal-component-windows.ts:setComponentWindowVisible",
+        message: "Main received portal visibility update",
+        data: {
+          componentId,
+          visible
+        }
+      });
+      // #endregion
       debugPrint("PORTAL_COMPONENTS", "Set Visibility of Portal Window:", componentId, visible);
       if (visible) {
         componentView.setVisible(true);
