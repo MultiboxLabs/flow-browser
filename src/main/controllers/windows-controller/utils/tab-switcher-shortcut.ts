@@ -1,13 +1,13 @@
-import { appendFileSync } from "node:fs";
 import { app, type WebContents, webContents } from "electron";
 import { tabsController } from "@/controllers/tabs-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { BrowserWindow } from "@/controllers/windows-controller/types/browser";
+import type { TabSwitcherState, TabSwitcherTab } from "~/flow/interfaces/browser/tabs";
 
 const OVERLAY_DELAY_MS = 180;
 
 type TabSwitcherSession = {
-  tabIds: number[];
+  tabs: TabSwitcherTab[];
   selectedTabId: number | null;
   visible: boolean;
   showTimer: ReturnType<typeof setTimeout> | null;
@@ -16,90 +16,20 @@ type TabSwitcherSession = {
 const sessions = new Map<number, TabSwitcherSession>();
 const registeredWebContentsIds = new Set<number>();
 
-function writeDebugLog(payload: {
-  hypothesisId: string;
-  location: string;
-  message: string;
-  data: Record<string, unknown>;
-}) {
-  appendFileSync("/opt/cursor/logs/debug.log", JSON.stringify({ ...payload, timestamp: Date.now() }) + "\n");
-}
-
 function clearShowTimer(session: TabSwitcherSession): void {
   if (!session.showTimer) return;
   clearTimeout(session.showTimer);
   session.showTimer = null;
 }
 
-function emitTabSwitcherState(window: BrowserWindow, session: TabSwitcherSession): void {
-  const targetContents = window.getAllWebContents().filter((contents) => {
-    const url = contents.getURL();
-    return url.startsWith("flow-internal://main-ui/") || url.startsWith("flow-internal://popup-ui/");
-  });
-
-  // #region agent log
-  writeDebugLog({
-    hypothesisId: "B",
-    location: "src/main/controllers/windows-controller/utils/tab-switcher-shortcut.ts:emitTabSwitcherState",
-    message: "Sending tab switcher state to browser UI webcontents",
-    data: {
-      windowId: window.id,
-      targetWebContents: targetContents.map((contents) => ({
-        id: contents.id,
-        url: contents.getURL()
-      })),
-      allWebContents: window.getAllWebContents().map((contents) => ({
-        id: contents.id,
-        url: contents.getURL()
-      }))
-    }
-  });
-  // #endregion
-
-  for (const contents of targetContents) {
-    contents.send("tabs:on-switcher-state-changed", {
-      visible: session.visible,
-      tabIds: session.tabIds,
-      selectedTabId: session.selectedTabId
-    });
-  }
-}
-
-function hideTabSwitcher(windowId: number): void {
-  const session = sessions.get(windowId);
-  if (session) {
-    // #region agent log
-    writeDebugLog({
-      hypothesisId: "A",
-      location: "src/main/controllers/windows-controller/utils/tab-switcher-shortcut.ts:hideTabSwitcher",
-      message: "Hiding tab switcher",
-      data: {
-        windowId,
-        visible: session.visible,
-        selectedTabId: session.selectedTabId,
-        tabIds: session.tabIds
-      }
-    });
-    // #endregion
-    clearShowTimer(session);
-    sessions.delete(windowId);
+function resolveWindowFromWebContents(source: WebContents): BrowserWindow | null {
+  const mappedWindow = browserWindowsController.getWindowFromWebContents(source);
+  if (mappedWindow instanceof BrowserWindow) {
+    return mappedWindow;
   }
 
-  const window = browserWindowsController.getWindowById(windowId);
-  if (!window) return;
-
-  const targetContents = window.getAllWebContents().filter((contents) => {
-    const url = contents.getURL();
-    return url.startsWith("flow-internal://main-ui/") || url.startsWith("flow-internal://popup-ui/");
-  });
-
-  for (const contents of targetContents) {
-    contents.send("tabs:on-switcher-state-changed", {
-      visible: false,
-      tabIds: [],
-      selectedTabId: null
-    });
-  }
+  const focusedWindow = browserWindowsController.getFocusedWindow();
+  return focusedWindow instanceof BrowserWindow ? focusedWindow : null;
 }
 
 function getOrderedTabs(window: BrowserWindow) {
@@ -112,93 +42,134 @@ function getOrderedTabs(window: BrowserWindow) {
     .sort((a, b) => a.position - b.position);
 }
 
-function advanceTabSwitcher(webContents: WebContents, reverse: boolean): boolean {
-  const window = browserWindowsController.getWindowFromWebContents(webContents);
-  if (!window) return false;
+function serializeSwitcherTabs(window: BrowserWindow): TabSwitcherTab[] {
+  return getOrderedTabs(window).map((tab) => ({
+    id: tab.id,
+    title: tab.title,
+    url: tab.url,
+    faviconURL: tab.faviconURL,
+    asleep: tab.asleep
+  }));
+}
+
+function buildHiddenState(): TabSwitcherState {
+  return {
+    visible: false,
+    tabs: [],
+    selectedTabId: null
+  };
+}
+
+function buildVisibleState(session: TabSwitcherSession): TabSwitcherState {
+  return {
+    visible: session.visible,
+    tabs: session.tabs,
+    selectedTabId: session.selectedTabId
+  };
+}
+
+function emitTabSwitcherState(window: BrowserWindow, state: TabSwitcherState): void {
+  const targets = [window.browserWindow.webContents, window.omnibox.webContents].filter(
+    (target) => !target.isDestroyed()
+  );
+
+  for (const target of targets) {
+    target.send("tabs:on-switcher-state-changed", state);
+  }
+}
+
+function focusSelectedTab(window: BrowserWindow, session: TabSwitcherSession | undefined): void {
+  const selectedTabId = session?.selectedTabId;
+  if (!selectedTabId) return;
+
+  const selectedTab = tabsController.getTabById(selectedTabId);
+  if (!selectedTab || selectedTab.getWindow().id !== window.id) return;
+
+  selectedTab.webContents?.focus();
+}
+
+function scheduleOverlayReveal(window: BrowserWindow, session: TabSwitcherSession): void {
+  session.showTimer = setTimeout(() => {
+    const currentSession = sessions.get(window.id);
+    if (!currentSession) return;
+
+    currentSession.visible = true;
+    currentSession.showTimer = null;
+    emitTabSwitcherState(window, buildVisibleState(currentSession));
+  }, OVERLAY_DELAY_MS);
+}
+
+export function advanceTabSwitcherForWindow(window: BrowserWindow, reverse: boolean): boolean {
+  const orderedTabs = getOrderedTabs(window);
+  if (orderedTabs.length < 2) return false;
 
   const spaceId = window.currentSpaceId;
   if (!spaceId) return false;
 
-  const orderedTabs = getOrderedTabs(window);
-  if (orderedTabs.length < 2) return false;
-
-  const session = sessions.get(window.id);
+  const existingSession = sessions.get(window.id);
   const baseTabId =
-    session?.selectedTabId ?? tabsController.getFocusedTab(window.id, spaceId)?.id ?? orderedTabs[0]?.id ?? null;
+    existingSession?.selectedTabId ?? tabsController.getFocusedTab(window.id, spaceId)?.id ?? orderedTabs[0]?.id ?? null;
   if (baseTabId === null) return false;
 
-  const baseIndex = orderedTabs.findIndex((tab) => tab.id === baseTabId);
-  const normalizedBaseIndex = baseIndex >= 0 ? baseIndex : 0;
+  const currentIndex = orderedTabs.findIndex((tab) => tab.id === baseTabId);
+  const normalizedIndex = currentIndex >= 0 ? currentIndex : 0;
   const direction = reverse ? -1 : 1;
-  const nextIndex = (normalizedBaseIndex + direction + orderedTabs.length) % orderedTabs.length;
+  const nextIndex = (normalizedIndex + direction + orderedTabs.length) % orderedTabs.length;
   const nextTab = orderedTabs[nextIndex];
   if (!nextTab) return false;
 
-  const nextSession: TabSwitcherSession = session ?? {
-    tabIds: [],
+  const session: TabSwitcherSession = existingSession ?? {
+    tabs: [],
     selectedTabId: null,
     visible: false,
     showTimer: null
   };
 
-  nextSession.tabIds = orderedTabs.map((tab) => tab.id);
-  nextSession.selectedTabId = nextTab.id;
+  session.tabs = serializeSwitcherTabs(window);
+  session.selectedTabId = nextTab.id;
+  sessions.set(window.id, session);
 
-  // #region agent log
-  writeDebugLog({
-    hypothesisId: "A",
-    location: "src/main/controllers/windows-controller/utils/tab-switcher-shortcut.ts:advanceTabSwitcher",
-    message: "Advancing tab switcher",
-    data: {
-      windowId: window.id,
-      reverse,
-      hadSession: !!session,
-      sessionVisible: nextSession.visible,
-      baseTabId,
-      nextTabId: nextTab.id,
-      orderedTabIds: nextSession.tabIds
-    }
-  });
-  // #endregion
-
-  if (!session) {
-    nextSession.showTimer = setTimeout(() => {
-      const currentSession = sessions.get(window.id);
-      if (!currentSession) return;
-
-      currentSession.visible = true;
-      currentSession.showTimer = null;
-      // #region agent log
-      writeDebugLog({
-        hypothesisId: "A",
-        location: "src/main/controllers/windows-controller/utils/tab-switcher-shortcut.ts:showTimer",
-        message: "Tab switcher timer made session visible",
-        data: {
-          windowId: window.id,
-          selectedTabId: currentSession.selectedTabId,
-          tabIds: currentSession.tabIds
-        }
-      });
-      // #endregion
-      emitTabSwitcherState(window, currentSession);
-    }, OVERLAY_DELAY_MS);
-  }
-
-  sessions.set(window.id, nextSession);
   tabsController.setActiveTab(nextTab);
 
-  if (nextSession.visible) {
-    emitTabSwitcherState(window, nextSession);
+  if (!existingSession) {
+    scheduleOverlayReveal(window, session);
+  } else if (session.visible) {
+    emitTabSwitcherState(window, buildVisibleState(session));
   }
 
   return true;
 }
 
-function registerWebContents(webContents: WebContents): void {
-  if (registeredWebContentsIds.has(webContents.id)) return;
-  registeredWebContentsIds.add(webContents.id);
+export function advanceTabSwitcherFromWebContents(source: WebContents, reverse: boolean): boolean {
+  const window = resolveWindowFromWebContents(source);
+  if (!window) return false;
 
-  webContents.on("before-input-event", (event, input) => {
+  return advanceTabSwitcherForWindow(window, reverse);
+}
+
+export function hideTabSwitcherForWindow(window: BrowserWindow): boolean {
+  const session = sessions.get(window.id);
+  if (!session) return false;
+
+  clearShowTimer(session);
+  sessions.delete(window.id);
+  emitTabSwitcherState(window, buildHiddenState());
+  focusSelectedTab(window, session);
+  return true;
+}
+
+export function hideTabSwitcherFromWebContents(source: WebContents): boolean {
+  const window = resolveWindowFromWebContents(source);
+  if (!window) return false;
+
+  return hideTabSwitcherForWindow(window);
+}
+
+function registerWebContents(source: WebContents): void {
+  if (registeredWebContentsIds.has(source.id)) return;
+  registeredWebContentsIds.add(source.id);
+
+  source.on("before-input-event", (event, input) => {
     const isCtrlTab =
       input.type === "keyDown" &&
       input.key === "Tab" &&
@@ -208,7 +179,7 @@ function registerWebContents(webContents: WebContents): void {
       !input.isAutoRepeat;
 
     if (isCtrlTab) {
-      if (advanceTabSwitcher(webContents, !!input.shift)) {
+      if (advanceTabSwitcherFromWebContents(source, !!input.shift)) {
         event.preventDefault();
       }
       return;
@@ -217,34 +188,26 @@ function registerWebContents(webContents: WebContents): void {
     const isControlReleased = input.type === "keyUp" && input.key === "Control";
     if (!isControlReleased) return;
 
-    const window = browserWindowsController.getWindowFromWebContents(webContents);
-    if (!window) return;
-
-    hideTabSwitcher(window.id);
+    hideTabSwitcherFromWebContents(source);
   });
 
-  webContents.on("destroyed", () => {
-    registeredWebContentsIds.delete(webContents.id);
+  source.on("destroyed", () => {
+    registeredWebContentsIds.delete(source.id);
   });
 }
 
-function scanExistingWebContents(): void {
-  webContents.getAllWebContents().forEach((contents) => {
-    registerWebContents(contents);
-  });
-}
+webContents.getAllWebContents().forEach(registerWebContents);
 
-scanExistingWebContents();
-
-app.on("web-contents-created", (_event, webContents) => {
-  registerWebContents(webContents);
+app.on("web-contents-created", (_event, createdWebContents) => {
+  registerWebContents(createdWebContents);
 });
 
 app.on("browser-window-blur", (_event, browserWindow) => {
   const window = browserWindowsController
     .getWindows()
     .find((candidate) => candidate.browserWindow.id === browserWindow.id);
-  if (!window) return;
 
-  hideTabSwitcher(window.id);
+  if (window instanceof BrowserWindow) {
+    hideTabSwitcherForWindow(window);
+  }
 });

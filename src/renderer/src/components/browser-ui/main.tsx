@@ -237,10 +237,26 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
   const hasSidebar = type === "main";
 
   useEffect(() => {
+    // #region agent log
+    (window as typeof window & { __tabSwitcherDebug?: { trace: (message: string, data?: Record<string, unknown>) => void } }).__tabSwitcherDebug?.trace(
+      "InternalBrowserUI switcher effect mount",
+      { type }
+    );
+    // #endregion
     return flow.tabs.onTabSwitcherStateChanged((state) => {
+      // #region agent log
+      (window as typeof window & { __tabSwitcherDebug?: { trace: (message: string, data?: Record<string, unknown>) => void } }).__tabSwitcherDebug?.trace(
+        "InternalBrowserUI received switcher state",
+        {
+          visible: !!state?.visible,
+          tabsLength: Array.isArray(state?.tabs) ? state.tabs.length : -1,
+          selectedTabId: state?.selectedTabId ?? null
+        }
+      );
+      // #endregion
       setTabSwitcherState(state.visible ? state : null);
     });
-  }, []);
+  }, [type]);
 
   return (
     <FullscreenGuard>

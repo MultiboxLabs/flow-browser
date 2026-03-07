@@ -10,6 +10,10 @@ import { tabsController } from "@/controllers/tabs-controller";
 import { serializeTabForRenderer, serializeTabGroupForRenderer } from "@/saving/tabs/serialization";
 import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
 import { GlanceTabGroup } from "@/controllers/tabs-controller/tab-groups/glance";
+import {
+  advanceTabSwitcherFromWebContents,
+  hideTabSwitcherFromWebContents
+} from "@/controllers/windows-controller/utils/tab-switcher-shortcut";
 
 const TAB_SWITCHER_SNAPSHOT_WIDTH = 560;
 
@@ -21,6 +25,17 @@ function writeDebugLog(payload: {
 }) {
   appendFileSync("/opt/cursor/logs/debug.log", JSON.stringify({ ...payload, timestamp: Date.now() }) + "\n");
 }
+
+ipcMain.on("debug:tab-switcher-trace", (_event, payload) => {
+  // #region agent log
+  writeDebugLog({
+    hypothesisId: payload?.hypothesisId ?? "B",
+    location: payload?.location ?? "src/main/ipc/browser/tabs.ts:debug:tab-switcher-trace",
+    message: payload?.message ?? "Tab switcher debug trace",
+    data: payload?.data ?? {}
+  });
+  // #endregion
+});
 
 /**
  * Attempts to restore a tab's group membership after it has been recreated.
@@ -164,17 +179,6 @@ async function captureTabSwitcherSnapshot(tab: Tab): Promise<string | null> {
   }
 }
 
-ipcMain.on("debug:tab-switcher-trace", (_event, payload) => {
-  // #region agent log
-  writeDebugLog({
-    hypothesisId: payload?.hypothesisId ?? "B",
-    location: payload?.location ?? "src/main/ipc/browser/tabs.ts:debug:tab-switcher-trace",
-    message: payload?.message ?? "Debug tab switcher trace",
-    data: payload?.data ?? {}
-  });
-  // #endregion
-});
-
 ipcMain.handle("tabs:get-data", async (event) => {
   const webContents = event.sender;
   const window = browserWindowsController.getWindowFromWebContents(webContents);
@@ -185,7 +189,8 @@ ipcMain.handle("tabs:get-data", async (event) => {
 
 ipcMain.handle("tabs:get-switcher-snapshots", async (event, tabIds: number[]) => {
   const webContents = event.sender;
-  const window = browserWindowsController.getWindowFromWebContents(webContents);
+  const window =
+    browserWindowsController.getWindowFromWebContents(webContents) ?? browserWindowsController.getFocusedWindow();
   if (!window || !Array.isArray(tabIds)) return [];
 
   return Promise.all(
@@ -316,6 +321,14 @@ ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {
 
   tabsController.setActiveTab(tab);
   return true;
+});
+
+ipcMain.handle("tabs:advance-switcher", async (event, reverse: boolean) => {
+  return advanceTabSwitcherFromWebContents(event.sender, !!reverse);
+});
+
+ipcMain.handle("tabs:hide-switcher", async (event) => {
+  return hideTabSwitcherFromWebContents(event.sender);
 });
 
 ipcMain.handle("tabs:new-tab", async (event, url?: string, isForeground?: boolean, spaceId?: string) => {

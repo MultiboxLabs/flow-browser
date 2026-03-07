@@ -77,9 +77,8 @@ export function initializePortalComponentWindows(browserWindow: BrowserWindow) {
       // #region agent log
       writeDebugLog({
         hypothesisId: "C",
-        location:
-          "src/main/controllers/windows-controller/utils/browser/portal-component-windows.ts:setComponentWindowBounds",
-        message: "Main received portal bounds update",
+        location: "src/main/controllers/windows-controller/utils/browser/portal-component-windows.ts:setComponentWindowBounds",
+        message: "Portal bounds updated",
         data: {
           componentId,
           bounds
@@ -107,9 +106,8 @@ export function initializePortalComponentWindows(browserWindow: BrowserWindow) {
       // #region agent log
       writeDebugLog({
         hypothesisId: "C",
-        location:
-          "src/main/controllers/windows-controller/utils/browser/portal-component-windows.ts:setComponentWindowVisible",
-        message: "Main received portal visibility update",
+        location: "src/main/controllers/windows-controller/utils/browser/portal-component-windows.ts:setComponentWindowVisible",
+        message: "Portal visibility updated",
         data: {
           componentId,
           visible

@@ -63,9 +63,9 @@ export function sendMessageToListenersWithWebContents(
   if (channel === "tabs:on-switcher-state-changed") {
     // #region agent log
     writeDebugLog({
-      hypothesisId: "B",
+      hypothesisId: "A",
       location: "src/main/ipc/listeners-manager.ts:sendMessageToListenersWithWebContents",
-      message: "Sending switcher state to scoped listeners",
+      message: "Sending switcher event to listeners",
       data: {
         selectedWebContentsIds: selectedWebContents.map((webContents) => webContents.id),
         connectedWebContentsIds: Array.from(webContentsSet).map((webContents) => webContents.id)
@@ -118,13 +118,18 @@ function removeListener(channel: string, listenerId: string) {
 
 ipcMain.on("listeners:add", (event, channel: string, listenerId: string) => {
   const webContents = event.sender;
-  if (channel === "tabs:on-switcher-state-changed") {
+  if (
+    channel === "tabs:on-data-changed" ||
+    channel === "tabs:on-tabs-content-updated" ||
+    channel === "tabs:on-switcher-state-changed"
+  ) {
     // #region agent log
     writeDebugLog({
-      hypothesisId: "B",
+      hypothesisId: channel === "tabs:on-switcher-state-changed" ? "A" : "D",
       location: "src/main/ipc/listeners-manager.ts:listeners:add",
-      message: "Registered switcher listener",
+      message: "Registered tab listener",
       data: {
+        channel,
         listenerId,
         webContentsId: webContents.id
       }
