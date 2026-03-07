@@ -12,6 +12,8 @@ export function TabOverlayPortal({
   tabId,
   visible = true,
   zIndex = ViewLayer.OVERLAY,
+  className,
+  style,
   ...props
 }: TabOverlayPortalProps) {
   const { tabsData } = useTabs();
@@ -23,9 +25,15 @@ export function TabOverlayPortal({
   return (
     <PortalBoundsComponent
       {...props}
+      className={className}
       zIndex={zIndex}
       bounds={tab?.bounds ?? null}
       visible={visible && Boolean(tab?.visible) && Boolean(tab?.bounds)}
+      style={{
+        borderRadius: tab?.fullScreen ? 0 : 8,
+        overflow: "hidden",
+        ...style
+      }}
     />
   );
 }

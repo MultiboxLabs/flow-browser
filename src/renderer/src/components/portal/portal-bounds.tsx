@@ -31,6 +31,7 @@ export function PortalBoundsComponent({
   const portal = usePortal();
   const isVisible = visible && bounds !== null;
   const hasAutoFocusedRef = useRef(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   useCopyStyles(portal?.window ?? null);
 
@@ -58,6 +59,10 @@ export function PortalBoundsComponent({
     hasAutoFocusedRef.current = true;
     try {
       flow.interface.focusComponentWindow(portal.id);
+      portal.window.focus();
+      portal.window.requestAnimationFrame(() => {
+        wrapperRef.current?.focus();
+      });
     } catch (error) {
       console.warn("Failed to focus portal:", error);
     }
@@ -89,7 +94,7 @@ export function PortalBoundsComponent({
     !portal.window.closed &&
     createPortal(
       <PlatformConsumer>
-        <div {...args} className={cn("w-screen h-screen", className)}>
+        <div {...args} ref={wrapperRef} tabIndex={-1} className={cn("w-screen h-screen outline-none", className)}>
           {children}
         </div>
       </PlatformConsumer>,

@@ -1,43 +1,39 @@
 import { TabOverlayPortal } from "@/components/browser-ui/tab-overlays/tab-overlay-portal";
-import { useTabs } from "@/components/providers/tabs-provider";
 import { cn } from "@/lib/utils";
 import { motion } from "motion/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { TabDialogResponse, TabDialogState } from "~/types/tab-dialogs";
 
-function getDialogOriginLabel(url: string): string | null {
-  if (!url) return null;
-
-  try {
-    const parsed = new URL(url);
-    if (parsed.hostname) {
-      return parsed.hostname;
-    }
-    return parsed.protocol.replace(":", "");
-  } catch {
-    return null;
+function getDialogTitle(type: TabDialogState["type"]): "Alert" | "Confirm" | "Prompt" {
+  switch (type) {
+    case "alert":
+      return "Alert";
+    case "confirm":
+      return "Confirm";
+    case "prompt":
+      return "Prompt";
   }
 }
 
 function JavaScriptDialogCard({
   dialog,
-  originLabel,
   onRespond
 }: {
   dialog: TabDialogState;
-  originLabel: string | null;
   onRespond: (dialogId: string, response: TabDialogResponse) => void;
 }) {
   const [promptValue, setPromptValue] = useState(dialog.defaultPromptText);
   const primaryButtonRef = useRef<HTMLButtonElement>(null);
   const promptInputRef = useRef<HTMLInputElement>(null);
+  const dialogTitle = getDialogTitle(dialog.type);
+  const isPrompt = dialog.type === "prompt";
 
   useEffect(() => {
     setPromptValue(dialog.defaultPromptText);
   }, [dialog.defaultPromptText, dialog.id]);
 
   useEffect(() => {
-    const target = dialog.type === "prompt" ? promptInputRef.current : primaryButtonRef.current;
+    const target = isPrompt ? promptInputRef.current : primaryButtonRef.current;
     if (!target) return;
 
     const frameId = window.requestAnimationFrame(() => {
@@ -50,7 +46,7 @@ function JavaScriptDialogCard({
     return () => {
       window.cancelAnimationFrame(frameId);
     };
-  }, [dialog.id, dialog.type]);
+  }, [dialog.id, isPrompt]);
 
   const handleAccept = useCallback(() => {
     onRespond(dialog.id, {
@@ -86,7 +82,13 @@ function JavaScriptDialogCard({
   const confirmLabel = dialog.type === "alert" ? "OK" : "Continue";
 
   return (
-    <div className="w-full h-full bg-black/30 backdrop-blur-[2px] pointer-events-auto flex items-center justify-center p-6">
+    <div
+      className={cn(
+        "w-full h-full bg-black/30 backdrop-blur-[2px] pointer-events-auto flex items-center justify-center",
+        isPrompt ? "p-8" : "p-6"
+      )}
+      style={{ borderRadius: "inherit" }}
+    >
       <motion.div
         initial={{ opacity: 0, y: 12, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -94,26 +96,25 @@ function JavaScriptDialogCard({
         transition={{ duration: 0.16, ease: "easeOut" }}
         className={cn(
           "w-full max-w-md",
-          "rounded-2xl border border-white/12 bg-neutral-950/96 text-white",
+          "rounded-lg border border-white/12 bg-neutral-950/96 text-white",
           "shadow-2xl shadow-black/40",
-          "px-5 py-4"
+          isPrompt ? "px-6 py-6" : "px-5 py-4"
         )}
       >
-        <div className="flex flex-col gap-4">
+        <div className={cn("flex flex-col", isPrompt ? "gap-5" : "gap-4")}>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-white">This page says</p>
-            {originLabel ? <p className="text-xs text-white/45">{originLabel}</p> : null}
+            <p className="text-base font-semibold text-white">{dialogTitle}</p>
           </div>
 
           <p className="text-sm leading-6 text-white/88 whitespace-pre-wrap break-words">{dialog.messageText}</p>
 
-          {dialog.type === "prompt" ? (
+          {isPrompt ? (
             <input
               ref={promptInputRef}
               value={promptValue}
               onChange={(event) => setPromptValue(event.target.value)}
               className={cn(
-                "h-10 w-full rounded-xl border border-white/12 bg-white/8 px-3",
+                "h-11 w-full rounded-lg border border-white/12 bg-white/8 px-4",
                 "text-sm text-white outline-none",
                 "focus:border-white/25 focus:bg-white/10"
               )}
@@ -155,7 +156,6 @@ function JavaScriptDialogCard({
 }
 
 export function JavaScriptDialogsOverlay() {
-  const { tabsData } = useTabs();
   const [dialogs, setDialogs] = useState<TabDialogState[]>([]);
 
   useEffect(() => {
@@ -177,10 +177,6 @@ export function JavaScriptDialogsOverlay() {
     };
   }, []);
 
-  const tabsById = useMemo(() => {
-    return new Map((tabsData?.tabs ?? []).map((tab) => [tab.id, tab]));
-  }, [tabsData]);
-
   const handleRespond = useCallback((dialogId: string, response: TabDialogResponse) => {
     void flow.tabDialogs.respond(dialogId, response);
   }, []);
@@ -188,12 +184,9 @@ export function JavaScriptDialogsOverlay() {
   return (
     <>
       {dialogs.map((dialog) => {
-        const tab = tabsById.get(dialog.tabId);
-        const originLabel = getDialogOriginLabel(tab?.url ?? "");
-
         return (
           <TabOverlayPortal key={dialog.id} tabId={dialog.tabId} autoFocus className="pointer-events-auto">
-            <JavaScriptDialogCard dialog={dialog} originLabel={originLabel} onRespond={handleRespond} />
+            <JavaScriptDialogCard dialog={dialog} onRespond={handleRespond} />
           </TabOverlayPortal>
         );
       })}
