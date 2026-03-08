@@ -2,6 +2,7 @@ import "../pin.css";
 
 import { cn } from "@/lib/utils";
 import { useCallback, useMemo } from "react";
+import { flushSync } from "react-dom";
 import { useMeasure } from "react-use";
 import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
 import { SidebarScrollArea } from "@/components/browser-ui/browser-sidebar/_components/sidebar-scroll-area";
@@ -31,18 +32,27 @@ export function PinGrid({ profileId }: PinGridProps) {
   const { isDismissed, dismiss } = useEmptyStateDismiss(profileId);
 
   // Wrap reorder/createFromTab to enable animations before the optimistic update.
+  // flushSync forces React to commit the animation-enable render to the DOM
+  // synchronously, so that motion/react snapshots positions with the spring
+  // transition config. requestAnimationFrame then delays the position change
+  // to the next frame, ensuring motion has a full render cycle between the
+  // transition change and the position change.
   const handleReorder = useCallback(
     (pinnedTabId: string, newPosition: number) => {
-      enableAnimationsTemporarily();
-      reorder(pinnedTabId, newPosition);
+      flushSync(() => enableAnimationsTemporarily());
+      requestAnimationFrame(() => {
+        reorder(pinnedTabId, newPosition);
+      });
     },
     [reorder, enableAnimationsTemporarily]
   );
 
   const handleCreateFromTab = useCallback(
     (tabId: number, position?: number) => {
-      enableAnimationsTemporarily();
-      createFromTab(tabId, position);
+      flushSync(() => enableAnimationsTemporarily());
+      requestAnimationFrame(() => {
+        createFromTab(tabId, position);
+      });
     },
     [createFromTab, enableAnimationsTemporarily]
   );
