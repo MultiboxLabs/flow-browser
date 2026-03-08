@@ -35,11 +35,7 @@ function isPreviouslyCapturedError(error: unknown): boolean {
   );
 }
 
-async function buildExceptionEventMessage(
-  exception: unknown,
-  hint: CoreErrorTracking.EventHint,
-  distinctId: string
-) {
+async function buildExceptionEventMessage(exception: unknown, hint: CoreErrorTracking.EventHint, distinctId: string) {
   const exceptionProperties = errorPropertiesBuilder.buildFromUnknown(exception, hint);
   exceptionProperties.$exception_list = await errorPropertiesBuilder.modifyFrames(exceptionProperties.$exception_list);
 
@@ -88,8 +84,7 @@ function makeUncaughtExceptionHandler(
     (error: Error): void => {
       const userProvidedListenersCount = global.process.listeners("uncaughtException").filter((listener) => {
         return (
-          listener.name !== "domainUncaughtExceptionClear" &&
-          (listener as ErrorHandler)._posthogErrorHandler !== true
+          listener.name !== "domainUncaughtExceptionClear" && (listener as ErrorHandler)._posthogErrorHandler !== true
         );
       }).length;
 
@@ -138,7 +133,7 @@ export function enableExceptionAutocapture(client: PostHog, distinctId: string):
     },
     async (error) => {
       console.error(error);
-      await client.shutdown(SHUTDOWN_TIMEOUT_MS);
+      await client.shutdown(SHUTDOWN_TIMEOUT_MS).catch(() => {});
       process.exit(1);
     }
   );
