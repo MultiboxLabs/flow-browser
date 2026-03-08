@@ -94,13 +94,18 @@ class PinnedTabsController extends TypedEventEmitter<PinnedTabsControllerEvents>
 
   /**
    * Remove a pinned tab.
+   * Returns the associated browser tab ID (if any) that was cleared during removal.
    */
-  remove(uniqueId: string): void {
+  remove(uniqueId: string): number | null {
     const data = this.pinnedTabs.get(uniqueId);
-    if (!data) return;
+    if (!data) return null;
 
-    // Clear association
-    this.dissociateTab(uniqueId);
+    // Capture and clear association before removal
+    const associatedTabId = this.associations.get(uniqueId) ?? null;
+    if (associatedTabId !== null) {
+      this.reverseAssociations.delete(associatedTabId);
+      this.associations.delete(uniqueId);
+    }
 
     // Remove from database + normalize in a single transaction
     const db = getDb();
@@ -112,6 +117,7 @@ class PinnedTabsController extends TypedEventEmitter<PinnedTabsControllerEvents>
     });
 
     this.emit("changed");
+    return associatedTabId;
   }
 
   /**

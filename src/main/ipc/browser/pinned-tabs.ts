@@ -186,26 +186,17 @@ ipcMain.handle("pinned-tabs:double-click", async (event, pinnedTabId: string) =>
 });
 
 /**
- * Destroy the ephemeral tab associated with a pinned tab (if any).
- * Used when removing/unpinning to prevent invisible background tabs from leaking.
- */
-function destroyAssociatedTab(pinnedTabId: string): void {
-  const tabId = pinnedTabsController.getAssociatedTabId(pinnedTabId);
-  if (tabId !== null) {
-    const tab = tabsController.getTabById(tabId);
-    if (tab && !tab.isDestroyed) {
-      tab.destroy();
-    }
-  }
-}
-
-/**
  * Remove a pinned tab.
  * Also destroys the associated ephemeral tab (if any) so it doesn't leak.
  */
 ipcMain.handle("pinned-tabs:remove", async (_event, pinnedTabId: string) => {
-  destroyAssociatedTab(pinnedTabId);
-  pinnedTabsController.remove(pinnedTabId);
+  const removedTabId = pinnedTabsController.remove(pinnedTabId);
+  if (removedTabId !== null) {
+    const tab = tabsController.getTabById(removedTabId);
+    if (tab && !tab.isDestroyed) {
+      tab.destroy();
+    }
+  }
   return true;
 });
 
@@ -220,10 +211,10 @@ ipcMain.handle("pinned-tabs:unpin-to-tab-list", async (event, pinnedTabId: strin
   const pinnedTab = pinnedTabsController.getById(pinnedTabId);
   if (!pinnedTab) return false;
 
-  const associatedTabId = pinnedTabsController.getAssociatedTabId(pinnedTabId);
-
-  // Remove the pinned tab (also clears the association)
-  pinnedTabsController.remove(pinnedTabId);
+  // Remove the pinned tab. `remove()` returns the associated browser tab ID
+  // (if any) and clears the association atomically, so we don't need a
+  // separate lookup beforehand.
+  const associatedTabId = pinnedTabsController.remove(pinnedTabId);
 
   // Make the associated tab persistent so it reappears in the sidebar
   if (associatedTabId !== null) {
@@ -281,8 +272,13 @@ ipcMain.on("pinned-tabs:show-context-menu", (event, pinnedTabId: string) => {
     new MenuItem({
       label: "Unpin",
       click: () => {
-        destroyAssociatedTab(pinnedTabId);
-        pinnedTabsController.remove(pinnedTabId);
+        const removedTabId = pinnedTabsController.remove(pinnedTabId);
+        if (removedTabId !== null) {
+          const tab = tabsController.getTabById(removedTabId);
+          if (tab && !tab.isDestroyed) {
+            tab.destroy();
+          }
+        }
       }
     })
   );
