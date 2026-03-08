@@ -67,9 +67,21 @@ export async function createIncognitoWindow() {
   const session = await getOrCreateSession();
   session.pendingWindowCreations += 1;
 
-  const window = await browserWindowsController.create();
+  let window: Awaited<ReturnType<typeof browserWindowsController.create>> | null = null;
+
+  try {
+    window = await browserWindowsController.create();
+  } finally {
+    session.pendingWindowCreations -= 1;
+
+    // If window creation failed and there are no remaining windows, tear down
+    // the ephemeral session immediately instead of leaking it.
+    if (!window) {
+      await maybeDisposeSession(session);
+    }
+  }
+
   window.browserWindow.maximize();
-  session.pendingWindowCreations -= 1;
   session.windowIds.add(window.id);
 
   window.on("destroyed", () => {
