@@ -1,4 +1,4 @@
-import { memo, useLayoutEffect, useRef } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PageLayoutParams } from "~/flow/types";
 import { cn } from "@/lib/utils";
 import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
@@ -21,6 +21,17 @@ import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 function BrowserContent() {
   const { mode, recordedSidebarSizeRef, isAnimating, attachedDirection, onSidebarResize } = useBrowserSidebar();
   const { topbarHeight, topbarVisible, contentTopOffset } = useAdaptiveTopbar();
+
+  // Tab-sync placeholder: screenshot shown when the active tab's view
+  // has been moved to another window.
+  const [placeholderUrl, setPlaceholderUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsub = flow.tabs.onPlaceholderChanged((dataUrl) => {
+      setPlaceholderUrl(dataUrl);
+    });
+    return unsub;
+  }, []);
 
   // Derive sidebar visibility from the mode.
   // Floating sidebars are overlays (PortalComponent) and have zero layout impact.
@@ -66,7 +77,15 @@ function BrowserContent() {
   }, [onSidebarResize]);
 
   return (
-    <div className={cn("rounded-lg", "flex-1 relative remove-app-drag", "bg-white/20", "shadow-xl shadow-black/20")} />
+    <div className={cn("rounded-lg", "flex-1 relative remove-app-drag", "bg-white/20", "shadow-xl shadow-black/20")}>
+      {placeholderUrl && (
+        <img
+          src={placeholderUrl}
+          alt=""
+          className="absolute inset-0 w-full h-full rounded-lg object-fill opacity-50 pointer-events-none"
+        />
+      )}
+    </div>
   );
 }
 

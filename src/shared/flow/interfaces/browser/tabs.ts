@@ -24,6 +24,15 @@ export interface FlowTabsAPI {
   onTabsContentUpdated: IPCListener<[TabData[]]>;
 
   /**
+   * Add a callback for tab-sync screenshot placeholder updates.
+   * When tab sync is enabled and a tab's view moves to another window,
+   * the old window receives a data URL of the tab's last screenshot
+   * to display as a placeholder. `null` means clear the placeholder.
+   * @param callback Receives the data URL string or null
+   */
+  onPlaceholderChanged: IPCListener<[string | null]>;
+
+  /**
    * Switch to a tab
    * @param tabId The id of the tab to switch to
    */

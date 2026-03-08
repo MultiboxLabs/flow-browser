@@ -40,6 +40,21 @@ export class TabLayoutManager {
   }
 
   /**
+   * Resets cached layout state when a tab moves to a different window.
+   *
+   * The new window likely has different pageBounds. Without this reset the
+   * TabBoundsController's `lastAppliedBounds` still holds the old window's
+   * values, and if the two windows happen to share the same dimensions (or
+   * close enough after rounding) `updateViewBounds()` would skip applying
+   * the new bounds entirely — causing the tab to render with stale bounds
+   * or not appear at all.
+   */
+  onWindowChanged(): void {
+    this.boundsController.resetLastAppliedBounds();
+    this.lastBorderRadius = null;
+  }
+
+  /**
    * Shows the tab (sets visible = true and updates layout).
    */
   show(): void {

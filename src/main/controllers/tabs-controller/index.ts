@@ -18,6 +18,7 @@ import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
 import { FLAGS } from "@/modules/flags";
 import { quitController } from "@/controllers/quit-controller";
+import { ensureActiveTabForWindowSpace, isTabSyncEnabled, registerTabsController } from "./tab-sync";
 
 export const NEW_TAB_URL = "flow://new-tab";
 const ARCHIVE_CHECK_INTERVAL_MS = 10 * 1000;
@@ -988,6 +989,13 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
    */
   public setCurrentWindowSpace(windowId: number, spaceId: string) {
     this.windowActiveSpaceMap.set(windowId, spaceId);
+
+    // In sync mode, ensure the new window-space has an active tab
+    // (inherit from another window if needed).
+    if (isTabSyncEnabled()) {
+      ensureActiveTabForWindowSpace(windowId, spaceId);
+    }
+
     this.emit("current-space-changed", windowId, spaceId);
   }
 
@@ -1044,3 +1052,4 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
 export { type TabsController };
 export const tabsController = new TabsController();
+registerTabsController(tabsController);

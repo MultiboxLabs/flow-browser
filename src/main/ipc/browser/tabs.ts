@@ -9,6 +9,7 @@ import { tabsController } from "@/controllers/tabs-controller";
 import { serializeTabForRenderer, serializeTabGroupForRenderer } from "@/saving/tabs/serialization";
 import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
 import { GlanceTabGroup } from "@/controllers/tabs-controller/tab-groups/glance";
+import { isTabSyncEnabled, moveTabOrGroupToWindow } from "@/controllers/tabs-controller/tab-sync";
 
 /**
  * Attempts to restore a tab's group membership after it has been recreated.
@@ -81,9 +82,14 @@ function restoreTabGroupMembership(restoredTab: Tab, groupData?: PersistedTabGro
 // IPC Handlers //
 function getWindowTabsData(window: BrowserWindow) {
   const windowId = window.id;
+  const syncEnabled = isTabSyncEnabled();
 
-  const tabs = tabsController.getTabsInWindow(windowId);
-  const tabGroups = tabsController.getTabGroupsInWindow(windowId);
+  // When sync is enabled, return ALL tabs across all windows;
+  // otherwise only tabs belonging to this window.
+  const tabs = syncEnabled ? [...tabsController.tabs.values()] : tabsController.getTabsInWindow(windowId);
+  const tabGroups = syncEnabled
+    ? [...tabsController.tabGroups.values()]
+    : tabsController.getTabGroupsInWindow(windowId);
 
   const tabDatas = tabs.map((tab) => {
     const managers = tabsController.getTabManagers(tab.id);
@@ -212,9 +218,17 @@ function processQueues() {
 /**
  * Enqueue a structural change for a window.
  * The next queue processing will send a full WindowTabsData refresh.
+ * When tab sync is enabled, all browser windows are notified.
  */
 export function windowTabsChanged(windowId: number) {
-  structuralQueue.add(windowId);
+  if (isTabSyncEnabled()) {
+    // Broadcast to every browser window
+    for (const win of browserWindowsController.getWindows()) {
+      structuralQueue.add(win.id);
+    }
+  } else {
+    structuralQueue.add(windowId);
+  }
   scheduleQueueProcessing();
 }
 
@@ -222,18 +236,23 @@ export function windowTabsChanged(windowId: number) {
  * Enqueue a content-only change for a single tab.
  * If no structural change occurs before processing, only the changed tabs'
  * data will be serialized and sent — much cheaper than a full refresh.
+ * When tab sync is enabled, the change is enqueued for all browser windows.
  */
 export function windowTabContentChanged(windowId: number, tabId: number) {
-  // If a structural change is already pending for this window, skip —
-  // the full refresh will include this tab's changes.
-  if (structuralQueue.has(windowId)) return;
+  const targetWindowIds = isTabSyncEnabled() ? browserWindowsController.getWindows().map((w) => w.id) : [windowId];
 
-  let tabIds = contentQueue.get(windowId);
-  if (!tabIds) {
-    tabIds = new Set();
-    contentQueue.set(windowId, tabIds);
+  for (const targetId of targetWindowIds) {
+    // If a structural change is already pending for this window, skip —
+    // the full refresh will include this tab's changes.
+    if (structuralQueue.has(targetId)) continue;
+
+    let tabIds = contentQueue.get(targetId);
+    if (!tabIds) {
+      tabIds = new Set();
+      contentQueue.set(targetId, tabIds);
+    }
+    tabIds.add(tabId);
   }
-  tabIds.add(tabId);
 
   scheduleQueueProcessing();
 }
@@ -245,6 +264,13 @@ ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {
 
   const tab = tabsController.getTabById(tabId);
   if (!tab) return false;
+
+  // In sync mode, the tab may currently live in a different window.
+  // Move it (and its group) to the requesting window before activating.
+  // This also creates a screenshot placeholder in the old window.
+  if (isTabSyncEnabled() && tab.getWindow().id !== window.id) {
+    await moveTabOrGroupToWindow(tab, window);
+  }
 
   tabsController.setActiveTab(tab);
   return true;

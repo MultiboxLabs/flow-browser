@@ -15,6 +15,7 @@ import { setupAppLifecycle } from "@/app/lifecycle";
 import { tabPersistenceManager } from "@/saving/tabs";
 import { initCursorEdgeMonitor } from "@/controllers/windows-controller/utils/cursor-edge-monitor";
 import { cleanupStaleEphemeralProfiles } from "@/controllers/profiles-controller/ephemeral";
+import { initTabSync } from "@/controllers/tabs-controller/tab-sync";
 
 async function bootstrapBrowser() {
   await cleanupStaleEphemeralProfiles().catch((error) => {
@@ -26,6 +27,9 @@ async function bootstrapBrowser() {
 
   // Start cursor edge monitor (detects pointer near window edges for floating sidebar)
   initCursorEdgeMonitor();
+
+  // Initialize tab sync (handles moving active tabs between windows when sync enabled)
+  initTabSync();
 
   // Handle initial URL (runs asynchronously)
   processInitialUrl();
