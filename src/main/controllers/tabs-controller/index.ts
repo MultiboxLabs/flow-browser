@@ -19,6 +19,7 @@ import { TabGroupMode } from "~/types/tabs";
 import { FLAGS } from "@/modules/flags";
 import { quitController } from "@/controllers/quit-controller";
 import { clearPlaceholdersForTab, isSyncExcludedTab, isTabSyncEnabled, registerTabsController } from "./tab-sync";
+import type { BrowserWindow } from "@/controllers/windows-controller/types/browser";
 
 export const NEW_TAB_URL = "flow://new-tab";
 const ARCHIVE_CHECK_INTERVAL_MS = 10 * 1000;
@@ -333,9 +334,12 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     tab.on("window-changed", (oldWindowId) => {
       if (quitController.isQuitting) return;
 
+      const newWindowId = tab.getWindow().id;
+      this.cleanupOldWindowStateForMovedTab(tab, oldWindowId, newWindowId);
+
       // Structural change — refresh both old window (tab removed) and new window (tab added)
-      windowTabsChanged(tab.getWindow().id);
-      if (oldWindowId !== tab.getWindow().id) {
+      windowTabsChanged(newWindowId);
+      if (oldWindowId !== newWindowId) {
         windowTabsChanged(oldWindowId);
       }
 
@@ -670,6 +674,18 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   }
 
   /**
+   * Clear the active/focused item for a space without selecting a replacement.
+   * Used for state transitions where falling back to history would be misleading,
+   * such as moving the currently active tab into a different window.
+   */
+  private clearActiveTab(windowId: number, spaceId: string) {
+    const windowSpaceReference = `${windowId}-${spaceId}` as WindowSpaceReference;
+    this.spaceActiveTabMap.delete(windowSpaceReference);
+    this.removeFocusedTab(windowId, spaceId);
+    this.emit("active-tab-changed", windowId, spaceId);
+  }
+
+  /**
    * Set the focused tab for a space
    */
   private setFocusedTab(tab: Tab) {
@@ -728,6 +744,38 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       this.setFocusedTab(nextFocusedTab);
     } else {
       this.removeFocusedTab(windowId, spaceId);
+    }
+  }
+
+  /**
+   * Move a live tab into another browser window while preserving its runtime state.
+   * The tab's `window-changed` listeners handle the resulting activation/focus cleanup
+   * and renderer refreshes for both the source and destination windows.
+   */
+  public moveTabToWindow(tab: Tab, window: BrowserWindow): void {
+    if (tab.getWindow().id === window.id) return;
+    tab.setWindow(window);
+  }
+
+  /**
+   * When a tab changes windows, clear any stale focus/active references that still
+   * point at it in the source window-space. Without this, the old window can keep
+   * reporting the moved tab as active/focused until a later state transition.
+   */
+  private cleanupOldWindowStateForMovedTab(tab: Tab, oldWindowId: number, newWindowId: number): void {
+    if (oldWindowId === newWindowId) return;
+
+    const oldFocusedTab = this.getFocusedTab(oldWindowId, tab.spaceId);
+    if (oldFocusedTab?.id === tab.id) {
+      this.removeFocusedTab(oldWindowId, tab.spaceId);
+    }
+
+    const oldActive = this.getActiveTab(oldWindowId, tab.spaceId);
+    if (
+      (oldActive instanceof Tab && oldActive.id === tab.id) ||
+      (oldActive instanceof BaseTabGroup && oldActive.hasTab(tab.id))
+    ) {
+      this.clearActiveTab(oldWindowId, tab.spaceId);
     }
   }
 
