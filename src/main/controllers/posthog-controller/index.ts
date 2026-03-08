@@ -1,4 +1,4 @@
-import ErrorTracking from "./posthog-error-capture-sdk";
+import { enableExceptionAutocapture } from "./exception-autocapture";
 import { sanitizeProperties } from "./sanitize-pii";
 import { getSessionId } from "./session";
 import { app, crashReporter } from "electron";
@@ -18,7 +18,18 @@ class PosthogController {
     this.client = new PostHog("phc_P8uPRRW5eJj8vMmgMlsgoOmmeNZ9NxBHN6COZQndvfZ", {
       host: "https://eu.i.posthog.com",
       disableGeoip: false,
-      enableExceptionAutocapture: true
+      enableExceptionAutocapture: false,
+      before_send: (event) => {
+        if (!event) return null;
+
+        return {
+          ...event,
+          properties: sanitizeProperties({
+            ...(event.properties ?? {}),
+            $session_id: getSessionId()
+          })
+        };
+      }
     });
 
     const identifierPromise = this.getPosthogIdentifier();
@@ -32,10 +43,7 @@ class PosthogController {
         }
       });
 
-      new ErrorTracking(this.client!, {
-        fallbackDistinctId: identifier,
-        enableExceptionAutocapture: true
-      });
+      enableExceptionAutocapture(this.client!, identifier);
     });
 
     this.captureEvent("app-started");
@@ -61,10 +69,7 @@ class PosthogController {
     this.client.capture({
       distinctId: identifier,
       event,
-      properties: sanitizeProperties({
-        ...properties,
-        $session_id: getSessionId()
-      })
+      properties
     });
   }
 
@@ -72,17 +77,10 @@ class PosthogController {
    * Capture an exception. Properties are automatically sanitized to remove PII
    * and enriched with session context.
    */
-  public async captureException(error: string, properties?: Record<string, unknown>): Promise<void> {
+  public async captureException(error: unknown, properties?: Record<string, unknown>): Promise<void> {
     if (!this.client) return;
     const identifier = await this.getPosthogIdentifier();
-    this.client.captureException(
-      error,
-      identifier,
-      sanitizeProperties({
-        ...properties,
-        $session_id: getSessionId()
-      })
-    );
+    this.client.captureException(error, identifier, properties);
   }
 
   private setupCrashReporter(): void {

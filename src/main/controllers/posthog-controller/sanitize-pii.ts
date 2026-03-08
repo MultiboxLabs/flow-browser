@@ -1,4 +1,16 @@
-import { Exception, StackFrame } from "./posthog-error-capture-sdk/types";
+type StackFrame = {
+  context_line?: string;
+  pre_context?: string[];
+  post_context?: string[];
+  vars?: Record<string, unknown>;
+};
+
+type Exception = {
+  value?: string;
+  stacktrace?: {
+    frames?: StackFrame[];
+  };
+};
 
 const URL_PATTERN = /https?:\/\/[^\s"'`,;)}\]>]+/gi;
 
