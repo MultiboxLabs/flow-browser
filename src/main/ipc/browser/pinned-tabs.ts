@@ -45,9 +45,14 @@ tabsController.on("current-space-changed", (windowId, newSpaceId) => {
     return;
   }
 
-  // Cache miss — fetch asynchronously and then move tabs
+  // Cache miss — fetch asynchronously and then move tabs.
+  // Guard against stale closure: by the time the async lookup resolves
+  // the user may have switched spaces again, so verify newSpaceId is
+  // still the active space for this window before proceeding.
   spacesController.get(newSpaceId).then((fetched) => {
     if (!fetched) return;
+    const currentSpaceNow = tabsController.windowActiveSpaceMap.get(windowId);
+    if (currentSpaceNow !== newSpaceId) return;
     movePinnedAssociatedTabs(windowId, newSpaceId, fetched.profileId);
   });
 });

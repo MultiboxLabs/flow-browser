@@ -201,10 +201,11 @@ export function resetSlotMachine() {
     clearTimeout(rollTimeout);
     rollTimeout = null;
   }
-  snapshot = {
+  // Use setSnapshot to create a new object reference so that
+  // useSyncExternalStore correctly detects the change.
+  setSnapshot({
     slots: createInitialSlots(),
     isRolling: false,
     showWinners: false
-  };
-  emit();
+  });
 }
