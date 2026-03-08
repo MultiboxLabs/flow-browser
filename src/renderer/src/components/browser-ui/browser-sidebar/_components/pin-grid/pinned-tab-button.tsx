@@ -36,7 +36,7 @@ interface PinnedTabButtonProps {
   isFirstInRow?: boolean;
   /** True when this pin is the last item in its grid row. */
   isLastInRow?: boolean;
-  /** When false, layout animations are suppressed (e.g. during sidebar resize). */
+  /** When false, layout position changes are applied instantly (no spring animation). */
   layoutAnimationsEnabled?: boolean;
 }
 
@@ -171,10 +171,10 @@ export function PinnedTabButton({
   return (
     <motion.div
       className="relative"
-      layout={layoutAnimationsEnabled ? "position" : false}
+      layout="position"
       layoutId={`pinned-tab-${pinnedTab.uniqueId}`}
       transition={{
-        layout: { type: "spring", stiffness: 500, damping: 35 }
+        layout: layoutAnimationsEnabled ? { type: "spring", stiffness: 500, damping: 35 } : { duration: 0 }
       }}
     >
       {/* Drop indicator - left */}
