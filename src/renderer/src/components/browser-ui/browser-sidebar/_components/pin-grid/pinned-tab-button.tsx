@@ -172,7 +172,6 @@ export function PinnedTabButton({
     <motion.div
       className="relative"
       layout="position"
-      layoutId={`pinned-tab-${pinnedTab.uniqueId}`}
       transition={{
         layout: layoutAnimationsEnabled ? { type: "spring", stiffness: 500, damping: 35 } : { duration: 0 }
       }}
