@@ -13,6 +13,7 @@ import "./pin.css";
 export type PinnedTabSourceData = {
   type: "pinned-tab";
   pinnedTabId: string;
+  profileId: string;
   position: number;
 };
 
@@ -93,6 +94,7 @@ export function PinnedTabButton({
         const data: PinnedTabSourceData = {
           type: "pinned-tab",
           pinnedTabId: pinnedTab.uniqueId,
+          profileId: pinnedTab.profileId,
           position: pinnedTab.position
         };
         return data;
@@ -105,7 +107,9 @@ export function PinnedTabButton({
       element: el,
       canDrop: ({ source }) => {
         const data = source.data;
-        if (isPinnedTabSource(data)) return true;
+        if (isPinnedTabSource(data)) {
+          return !profileId || data.profileId === profileId;
+        }
         if (isTabGroupSource(data)) {
           // Only accept tabs from the same profile
           return !profileId || data.profileId === profileId;
@@ -152,7 +156,17 @@ export function PinnedTabButton({
       dragCleanup();
       dropCleanup();
     };
-  }, [pinnedTab.uniqueId, pinnedTab.position, pinnedTabs, profileId, onReorder, onCreateFromTab, index, onEdgeChange]);
+  }, [
+    pinnedTab.uniqueId,
+    pinnedTab.profileId,
+    pinnedTab.position,
+    pinnedTabs,
+    profileId,
+    onReorder,
+    onCreateFromTab,
+    index,
+    onEdgeChange
+  ]);
 
   // Use onClick (not onMouseDown) so the browser's native click suppression
   // after a drag prevents the handler from firing on drag-to-reorder.

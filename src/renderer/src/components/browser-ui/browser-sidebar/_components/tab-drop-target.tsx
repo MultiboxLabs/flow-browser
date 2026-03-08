@@ -67,7 +67,7 @@ export function TabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex }
 
         // Accept pinned tab drags (for unpinning)
         if (isPinnedTabSource(sourceData)) {
-          return true;
+          return sourceData.profileId === spaceData.profileId;
         }
 
         // Accept tab group drags (existing behavior)

@@ -80,7 +80,9 @@ export function usePinGridDropTarget({
       element: el,
       canDrop: ({ source }) => {
         const data = source.data;
-        if (isPinnedTabSource(data)) return true;
+        if (isPinnedTabSource(data)) {
+          return data.profileId === profileId;
+        }
         if (isTabGroupSource(data)) {
           if (profileId && data.profileId !== profileId) return false;
           return true;

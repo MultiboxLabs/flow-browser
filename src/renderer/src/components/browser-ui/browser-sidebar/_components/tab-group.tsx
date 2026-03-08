@@ -281,7 +281,7 @@ export const TabGroup = memo(
 
           // Accept pinned tab drags (for unpinning)
           if (isPinnedTabSource(sourceData)) {
-            return true;
+            return sourceData.profileId === tabGroup.profileId;
           }
 
           const tabGroupData = sourceData as TabGroupSourceData;

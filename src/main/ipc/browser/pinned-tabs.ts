@@ -157,6 +157,11 @@ async function handlePinnedTabClick(
   if (associatedTabId !== null) {
     const tab = tabsController.getTabById(associatedTabId);
     if (tab && !tab.isDestroyed) {
+      if (tab.getWindow().id !== window.id) {
+        // Associations are single-tab, so reuse the live tab by moving it into
+        // the requesting window before activating it there.
+        tabsController.moveTabToWindow(tab, window);
+      }
       if (navigateToDefault) {
         tab.loadURL(pinnedTab.defaultUrl);
       }
