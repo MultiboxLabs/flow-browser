@@ -7,8 +7,7 @@ import { autoUpdateController } from "@/controllers/auto-update-controller";
 import { settingsEmitter } from "@/saving/settings";
 import { app } from "electron";
 import { Tab } from "@/controllers/tabs-controller/tab";
-
-const appStartTimestamp = Date.now();
+import { appStartTimestamp } from "@/app/startup";
 
 function setupTabEvents(): void {
   const tabLoadStartTimes = new Map<number, number>();
@@ -36,8 +35,11 @@ function setupTabEvents(): void {
       });
 
       webContents.on("did-fail-load", (_event, errorCode, _errorDescription, _validatedURL, isMainFrame) => {
-        if (isMainFrame && errorCode !== -3) {
+        if (isMainFrame) {
           tabLoadStartTimes.delete(tab.id);
+
+          if (errorCode === -3) return;
+
           posthogController.captureEvent("tab-load-failed", {
             errorCode
           });
@@ -46,7 +48,8 @@ function setupTabEvents(): void {
     }
   });
 
-  tabsController.on("tab-removed", () => {
+  tabsController.on("tab-removed", (tab) => {
+    tabLoadStartTimes.delete(tab.id);
     posthogController.captureEvent("tab-closed", {
       tabCount: tabsController.tabs.size
     });

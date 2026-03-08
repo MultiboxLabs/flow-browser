@@ -42,19 +42,29 @@ export function sanitizeString(input: string): string {
     .replace(IPV4_PATTERN, "[REDACTED_IP]");
 }
 
+const SAFE_STRING_KEYS = new Set(["version"]);
+
+function shouldSkipStringSanitization(key?: string): boolean {
+  return key !== undefined && SAFE_STRING_KEYS.has(key.toLowerCase());
+}
+
 /**
  * Recursively sanitizes values in an object, redacting PII from string values.
  * Keys that are known to carry sensitive data are fully redacted.
  */
-function sanitizeValue(value: unknown, depth: number = 0): unknown {
+function sanitizeValue(value: unknown, depth: number = 0, key?: string): unknown {
   if (depth > 8) return "[TRUNCATED]";
 
   if (typeof value === "string") {
+    if (shouldSkipStringSanitization(key)) {
+      return value;
+    }
+
     return sanitizeString(value);
   }
 
   if (Array.isArray(value)) {
-    return value.map((item) => sanitizeValue(item, depth + 1));
+    return value.map((item) => sanitizeValue(item, depth + 1, key));
   }
 
   if (value !== null && typeof value === "object") {
@@ -63,7 +73,7 @@ function sanitizeValue(value: unknown, depth: number = 0): unknown {
       if (SENSITIVE_KEYS.has(key.toLowerCase())) {
         sanitized[key] = "[REDACTED]";
       } else {
-        sanitized[key] = sanitizeValue(val, depth + 1);
+        sanitized[key] = sanitizeValue(val, depth + 1, key);
       }
     }
     return sanitized;
@@ -151,9 +161,9 @@ export function sanitizeProperties(properties: Record<string, unknown>): Record<
     if (SENSITIVE_KEYS.has(key.toLowerCase())) {
       sanitized[key] = "[REDACTED]";
     } else if (typeof value === "string") {
-      sanitized[key] = sanitizeString(value);
+      sanitized[key] = shouldSkipStringSanitization(key) ? value : sanitizeString(value);
     } else if (typeof value === "object" && value !== null) {
-      sanitized[key] = sanitizeValue(value);
+      sanitized[key] = sanitizeValue(value, 0, key);
     }
   }
 

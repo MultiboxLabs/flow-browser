@@ -24,10 +24,7 @@ class PosthogController {
 
         return {
           ...event,
-          properties: sanitizeProperties({
-            ...(event.properties ?? {}),
-            $session_id: getSessionId()
-          })
+          properties: sanitizeProperties(event.properties ?? {})
         };
       }
     });
@@ -36,14 +33,16 @@ class PosthogController {
     identifierPromise.then((identifier) => {
       this.isIdentifierReady = true;
 
-      this.client!.identify({
-        distinctId: identifier,
-        properties: {
-          ...this.getAppInfoForPosthog()
-        }
-      });
+      this.client!.withContext({ distinctId: identifier, sessionId: getSessionId() }, () => {
+        this.client!.identify({
+          distinctId: identifier,
+          properties: {
+            ...this.getAppInfoForPosthog()
+          }
+        });
 
-      enableExceptionAutocapture(this.client!, identifier);
+        enableExceptionAutocapture(this.client!, identifier);
+      });
     });
 
     this.captureEvent("app-started");
@@ -66,10 +65,12 @@ class PosthogController {
   public async captureEvent(event: string, properties?: Record<string, unknown>): Promise<void> {
     if (!this.client) return;
     const identifier = await this.getPosthogIdentifier();
-    this.client.capture({
-      distinctId: identifier,
-      event,
-      properties
+    this.client.withContext({ distinctId: identifier, sessionId: getSessionId() }, () => {
+      this.client!.capture({
+        distinctId: identifier,
+        event,
+        properties
+      });
     });
   }
 
@@ -80,7 +81,9 @@ class PosthogController {
   public async captureException(error: unknown, properties?: Record<string, unknown>): Promise<void> {
     if (!this.client) return;
     const identifier = await this.getPosthogIdentifier();
-    this.client.captureException(error, identifier, properties);
+    this.client.withContext({ distinctId: identifier, sessionId: getSessionId() }, () => {
+      this.client!.captureException(error, identifier, properties);
+    });
   }
 
   private setupCrashReporter(): void {
