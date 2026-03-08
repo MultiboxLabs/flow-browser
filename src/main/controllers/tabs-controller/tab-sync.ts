@@ -199,6 +199,83 @@ export function ensureActiveTabForWindowSpace(windowId: number, spaceId: string)
   }
 }
 
+// Automatic tab relocation
+
+let _relocating = false;
+
+/**
+ * Finds tabs whose views are in the wrong window and moves them back.
+ *
+ * After a tab switch in Window A, the previously-active tab may still have
+ * its WebContentsView attached to A even though Window B has it as active.
+ * This function detects that situation and moves the view to B, clearing
+ * the placeholder there.
+ *
+ * Guard: if the tab is active in BOTH the current owner window and the
+ * target window (e.g. right after a focus-move), the tab stays put — the
+ * focus handler already placed it correctly.
+ */
+async function relocateDisplacedTabs(): Promise<void> {
+  if (_relocating) return;
+  _relocating = true;
+
+  try {
+    const tabsController = getTabsController();
+    const allWindows = browserWindowsController.getWindows();
+
+    // Build a map: windowId -> active Tab for its current space
+    // (only plain Tab entries — groups are expanded to their member tabs elsewhere)
+    const windowActiveTab = new Map<number, Tab>();
+    for (const win of allWindows) {
+      const spaceId = win.currentSpaceId;
+      if (!spaceId) continue;
+
+      const active = tabsController.getActiveTab(win.id, spaceId);
+      if (!active) continue;
+
+      if (active instanceof Tab) {
+        windowActiveTab.set(win.id, active);
+      } else if (active instanceof BaseTabGroup) {
+        // For groups, consider the front/first tab as the representative
+        const frontTab = active.tabs[0];
+        if (frontTab) {
+          windowActiveTab.set(win.id, frontTab);
+        }
+      }
+    }
+
+    // For each window that wants a tab, check if the view is elsewhere
+    for (const [targetWindowId, tab] of windowActiveTab) {
+      const viewOwnerWindowId = tab.getWindow().id;
+      if (viewOwnerWindowId === targetWindowId) continue; // already here
+
+      // Is the tab also active in the window that currently owns the view?
+      const ownerActiveTab = windowActiveTab.get(viewOwnerWindowId);
+      if (ownerActiveTab && ownerActiveTab.id === tab.id) {
+        // Both windows want this tab and the owner still has it active —
+        // don't fight the focus handler.
+        continue;
+      }
+
+      // The owner window no longer needs this tab — relocate it
+      const targetWindow = browserWindowsController.getWindowById(targetWindowId);
+      if (!targetWindow) continue;
+
+      clearPlaceholderInRenderer(targetWindowId);
+
+      await moveTabToWindowIfNeeded(tab, targetWindow);
+
+      // Let processActiveTabChange re-show the tab in the target window
+      const spaceId = targetWindow.currentSpaceId;
+      if (spaceId) {
+        tabsController.emit("active-tab-changed", targetWindowId, spaceId);
+      }
+    }
+  } finally {
+    _relocating = false;
+  }
+}
+
 /** Initializes tab sync listeners. Call once at app startup. */
 export function initTabSync(): void {
   // Move the active tab's view to the focused window
@@ -220,6 +297,23 @@ export function initTabSync(): void {
       .catch((err) => {
         console.error("[tab-sync] Failed to move active tab on focus:", err);
       });
+  });
+
+  // Relocate displaced tabs when the active tab or space changes
+  const tabsController = getTabsController();
+
+  tabsController.on("active-tab-changed", () => {
+    if (!isTabSyncEnabled()) return;
+    relocateDisplacedTabs().catch((err) => {
+      console.error("[tab-sync] Failed to relocate displaced tabs:", err);
+    });
+  });
+
+  tabsController.on("current-space-changed", () => {
+    if (!isTabSyncEnabled()) return;
+    relocateDisplacedTabs().catch((err) => {
+      console.error("[tab-sync] Failed to relocate displaced tabs on space change:", err);
+    });
   });
 
   // Clean up placeholders when windows are destroyed
