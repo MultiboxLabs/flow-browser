@@ -9,6 +9,7 @@ import { usePinnedTabs } from "@/components/providers/pinned-tabs-provider";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { useFocusedTabId } from "@/components/providers/tabs-provider";
 import { isPinnedTabSource, isTabGroupSource } from "@/components/browser-ui/browser-sidebar/_components/drag-utils";
+import { PinInCircle } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/normal/pin-in-circle";
 
 type GridIndicator = { index: number; edge: "left" | "right" };
 
@@ -273,8 +274,10 @@ export function PinGrid({ profileId }: PinGridProps) {
     });
   }, [profileId, handleCreateFromTab, handleReorder]);
 
+  const showingEmptyState = amountOfPinnedTabs === 0;
+  const isEmptyStateHidden = false;
   return (
-    <SidebarScrollArea className="max-h-40">
+    <SidebarScrollArea className={cn("max-h-40", !(showingEmptyState && isEmptyStateHidden) && "mb-1")}>
       <div
         ref={setGridRefs}
         className={cn(
@@ -285,8 +288,8 @@ export function PinGrid({ profileId }: PinGridProps) {
           isDragOver && amountOfPinnedTabs > 0 && "rounded-xl bg-white/10 dark:bg-white/5"
         )}
       >
-        {amountOfPinnedTabs === 0 ? (
-          <PinGridEmptyState isDragOver={isDragOver} />
+        {showingEmptyState ? (
+          <PinGridEmptyState isDragOver={isDragOver} hidden={isEmptyStateHidden} />
         ) : (
           pinnedTabs.map((pinnedTab, index) => (
             <PinnedTabButton
@@ -314,12 +317,13 @@ export function PinGrid({ profileId }: PinGridProps) {
   );
 }
 
-function PinGridEmptyState({ isDragOver }: { isDragOver: boolean }) {
+function PinGridEmptyState({ isDragOver, hidden }: { isDragOver: boolean; hidden: boolean }) {
+  if (hidden) return <div className="h-1" />;
   return (
     <div
       className={cn(
-        "col-span-full flex items-center justify-center",
-        "h-12 rounded-xl",
+        "col-span-full flex flex-col items-center justify-center",
+        "p-4 rounded-xl",
         "border-2 border-dashed",
         "transition-colors duration-150",
         isDragOver
@@ -327,7 +331,11 @@ function PinGridEmptyState({ isDragOver }: { isDragOver: boolean }) {
           : "border-black/20 dark:border-white/20"
       )}
     >
-      <span className="text-xs text-black/50 dark:text-white/50 select-none">Drag tabs here to pin</span>
+      <PinInCircle className="size-4 text-black dark:text-white mb-0.5" />
+      <span className="text-xs text-black dark:text-white select-none font-bold">Drag to pin tabs</span>
+      <span className="text-xs text-black/50 dark:text-white/50 select-none font-medium text-center">
+        Pinned tabs keep your must used sites and apps close
+      </span>
     </div>
   );
 }
