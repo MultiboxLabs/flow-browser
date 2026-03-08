@@ -292,8 +292,11 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
 
   // Unloading Profiles //
   private _handleProfileUnload(profileId: string): void {
-    const success = this.loadedProfiles.delete(profileId);
-    if (!success) return;
+    const loadedProfile = this.loadedProfiles.get(profileId);
+    if (!loadedProfile) return;
+
+    this.loadedProfiles.delete(profileId);
+    this.loadedProfileSessions.delete(loadedProfile.session);
 
     this.emit("profile-unloaded", profileId);
 

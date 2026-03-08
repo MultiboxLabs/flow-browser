@@ -417,6 +417,9 @@ const browserAPI: FlowBrowserAPI = {
   },
   createWindow: () => {
     return ipcRenderer.send("browser:create-window");
+  },
+  createIncognitoWindow: () => {
+    return ipcRenderer.send("browser:create-incognito-window");
   }
 };
 
@@ -575,6 +578,9 @@ const interfaceAPI: FlowInterfaceAPI = {
 const profilesAPI: FlowProfilesAPI = {
   getProfiles: async () => {
     return ipcRenderer.invoke("profiles:get-all");
+  },
+  getAreProfilesInternal: async () => {
+    return ipcRenderer.invoke("profiles:get-are-internal");
   },
   createProfile: async (profileName: string) => {
     return ipcRenderer.invoke("profiles:create", profileName);

@@ -36,6 +36,11 @@ export const SpaceDataSchema = type({
 });
 export type SpaceData = typeof SpaceDataSchema.infer;
 
+type ExtraSpaceCreationInfo = {
+  bgStartColor?: string;
+  bgEndColor?: string;
+};
+
 // Private functions
 function getSpaceDataStore(profileId: string, spaceId: string) {
   return getDatastore("main", ["profiles", profileId, "spaces", spaceId]);
@@ -61,7 +66,12 @@ function reconcileSpaceData(spaceId: string, profileId: string, data: DataStoreD
 // Controller
 export class RawSpacesController {
   // CRUD Functions //
-  public async create(profileId: string, spaceId: string, spaceName: string): Promise<RawCreateSpaceResult> {
+  public async create(
+    profileId: string,
+    spaceId: string,
+    spaceName: string,
+    extraInfo: ExtraSpaceCreationInfo = {}
+  ): Promise<RawCreateSpaceResult> {
     // Validate spaceId to prevent invalid characters
     if (!/^[a-zA-Z0-9_-]+$/.test(spaceId)) {
       debugError("SPACES", `Invalid space ID: ${spaceId}`);
@@ -94,11 +104,15 @@ export class RawSpacesController {
         })
         .catch(() => 999);
 
-      // Set space data
+      // Set space data (only pick flag fields from initialData to prevent
+      // accidental overrides of name/profileId/order)
+      const { bgStartColor, bgEndColor } = extraInfo;
       const spaceData = {
         name: spaceName,
         profileId: profileId,
-        order: order
+        order: order,
+        bgStartColor,
+        bgEndColor
       };
       const spaceStore = getSpaceDataStore(profileId, spaceId);
       await spaceStore.setMany(spaceData);
