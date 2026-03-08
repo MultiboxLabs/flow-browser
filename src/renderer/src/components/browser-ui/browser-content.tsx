@@ -27,8 +27,8 @@ function BrowserContent() {
   const [placeholderUrl, setPlaceholderUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsub = flow.tabs.onPlaceholderChanged((dataUrl) => {
-      setPlaceholderUrl(dataUrl);
+    const unsub = flow.tabs.onPlaceholderChanged((url) => {
+      setPlaceholderUrl(url);
     });
     return unsub;
   }, []);
@@ -82,6 +82,7 @@ function BrowserContent() {
         <img
           src={placeholderUrl}
           alt=""
+          draggable={false}
           className="absolute inset-0 w-full h-full rounded-lg object-fill opacity-50 pointer-events-none"
         />
       )}

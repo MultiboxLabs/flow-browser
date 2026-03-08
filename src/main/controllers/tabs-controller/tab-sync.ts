@@ -1,14 +1,9 @@
 /**
  * Tab Sync — shared tab state across windows.
  *
- * When enabled via the "syncTabsAcrossWindows" setting, every browser
- * window sees the same set of tabs (like Arc). Each window independently
- * tracks which tab is active, but the tab list is global. When a window
- * gains focus, the active tab's WebContentsView is moved to that window
- * so Electron can render it there.
- *
- * When disabled (the default), each window has its own independent tabs
- * (like Chrome).
+ * When enabled, every window sees the same tabs. When a window gains focus,
+ * the active tab's WebContentsView is moved there. A screenshot placeholder
+ * is left in the old window. Disabled by default (each window has independent tabs).
  */
 
 import { getSettingValueById } from "@/saving/settings";
@@ -23,16 +18,11 @@ import { Tab } from "./tab";
 import { BaseTabGroup } from "./tab-groups";
 import { type TabsController } from "./index";
 
-// ---------------------------------------------------------------------------
 // TabsController registration (avoids circular dependency)
-// ---------------------------------------------------------------------------
 
 let _tabsController: TabsController | null = null;
 
-/**
- * Registers the TabsController singleton so tab-sync helpers can access it
- * without a circular `require("./index")` call.
- */
+/** Called from TabsController constructor to avoid circular imports. */
 export function registerTabsController(tc: TabsController): void {
   _tabsController = tc;
 }
@@ -44,29 +34,14 @@ function getTabsController(): TabsController {
   return _tabsController;
 }
 
-// ---------------------------------------------------------------------------
-// Screenshot placeholders (served via flow-internal://tab-snapshot protocol)
-// ---------------------------------------------------------------------------
+// Screenshot placeholders (served via flow-internal://tab-snapshot)
 
-/**
- * Generation counter per window. Incremented every time we start a new
- * placeholder capture for a window. When the async `capturePage()` resolves
- * we compare the generation — if it's stale (another capture was started,
- * or the placeholder was removed) we discard the result. This prevents
- * the race where a fast focus-switch causes a late-resolving capture to
- * create a stale placeholder on top of a real tab.
- */
-const placeholderGeneration: Map<number, number> = new Map();
-
-/** Tracks the current snapshot UUID per window so we can free it on clear. */
+/** Current snapshot UUID per window, for cleanup. */
 const windowSnapshotId: Map<number, string> = new Map();
 
 /**
- * Captures a screenshot of the tab's current content. Must be called while
- * the tab's view is still attached to a window — once the view is moved,
- * the compositor surface is invalidated and the capture returns empty.
- *
- * Returns `null` if capture fails or produces an empty image.
+ * Captures a screenshot of the tab. Must be called while the view is still
+ * attached — capturePage returns empty once the view is detached.
  */
 async function captureTabScreenshot(tab: Tab): Promise<Electron.NativeImage | null> {
   const wc = tab.webContents;
@@ -86,16 +61,11 @@ async function captureTabScreenshot(tab: Tab): Promise<Electron.NativeImage | nu
   }
 }
 
-/**
- * Sends a screenshot placeholder to the target window's renderer process.
- * Stores the image in the protocol handler and sends a lightweight URL
- * string (not the image data itself) via IPC.
- */
+/** Stores a snapshot and sends its URL to the target window's renderer. */
 function sendPlaceholderToRenderer(targetWindow: BrowserWindow, image: Electron.NativeImage): void {
   const win = browserWindowsController.getWindowById(targetWindow.id);
   if (!win) return;
 
-  // Clean up any previous snapshot for this window
   const prevId = windowSnapshotId.get(targetWindow.id);
   if (prevId) {
     removeSnapshot(prevId);
@@ -108,14 +78,8 @@ function sendPlaceholderToRenderer(targetWindow: BrowserWindow, image: Electron.
   win.sendMessageToCoreWebContents("tabs:on-placeholder-changed", url);
 }
 
-/**
- * Clears the screenshot placeholder in the target window's renderer process.
- * Also frees the stored snapshot buffer to release memory.
- */
+/** Clears the placeholder in a window and frees the stored snapshot. */
 function clearPlaceholderInRenderer(windowId: number): void {
-  placeholderGeneration.delete(windowId);
-
-  // Free the stored snapshot buffer
   const snapshotId = windowSnapshotId.get(windowId);
   if (snapshotId) {
     removeSnapshot(snapshotId);
@@ -128,32 +92,17 @@ function clearPlaceholderInRenderer(windowId: number): void {
   win.sendMessageToCoreWebContents("tabs:on-placeholder-changed", null);
 }
 
-// ---------------------------------------------------------------------------
 // Core helpers
-// ---------------------------------------------------------------------------
 
-/**
- * Returns whether tab syncing across windows is currently enabled.
- */
 export function isTabSyncEnabled(): boolean {
   return getSettingValueById("syncTabsAcrossWindows") === true;
 }
 
 /**
- * Moves the active tab (or tab group) for a window-space into the
- * given window, so Electron can render the WebContentsView there.
- *
- * Also removes any screenshot placeholder in the target window
- * (the real tab content is about to appear there).
- *
- * The capture is awaited BEFORE the view is moved so that the compositor
- * surface is still valid (the view must be attached to a window for
- * capturePage to return a non-empty image).
- *
- * This is called when a window gains focus or when a tab is switched
- * to in sync mode.
+ * Moves the active tab/group for a window-space into the given window.
+ * Captures a screenshot before moving so the old window gets a placeholder.
  */
-export async function moveActiveTabToWindow(window: BrowserWindow): Promise<void> {
+async function moveActiveTabToWindow(window: BrowserWindow): Promise<void> {
   const tabsController = getTabsController();
   const spaceId = window.currentSpaceId;
   if (!spaceId) return;
@@ -161,7 +110,6 @@ export async function moveActiveTabToWindow(window: BrowserWindow): Promise<void
   const activeTabOrGroup = tabsController.getActiveTab(window.id, spaceId);
   if (!activeTabOrGroup) return;
 
-  // Remove placeholder in the TARGET window — real content is arriving
   clearPlaceholderInRenderer(window.id);
 
   if (activeTabOrGroup instanceof Tab) {
@@ -175,42 +123,26 @@ export async function moveActiveTabToWindow(window: BrowserWindow): Promise<void
 
 /**
  * Moves a single tab's view to a window if it isn't already there.
- *
- * The placeholder is sent to the old window's renderer BEFORE moving
- * the tab. Because the native WebContentsView sits on top of the
- * renderer, the `<img>` loads invisibly behind it. When `setWindow()`
- * removes the view, the placeholder is already in place — eliminating
- * the flicker that would occur if the image had to load after the
- * view vanished.
- *
- * Resets `tab.visible` to `false` so that the subsequent
- * `processActiveTabChange` in the new window correctly sees the tab as
- * not-yet-visible and calls `layout.show()`. Without this reset, the
- * stale `visible = true` from the old window causes the show path to be
- * skipped (the "double-click to make tabs visible" bug).
+ * The placeholder is sent BEFORE moving so it loads behind the native view,
+ * eliminating flicker. Resets `tab.visible` so the new window re-shows it.
  */
 async function moveTabToWindowIfNeeded(tab: Tab, window: BrowserWindow): Promise<void> {
   if (tab.getWindow().id !== window.id) {
     const oldWindow = tab.getWindow();
 
-    // Capture BEFORE the move — the view must be attached for a valid surface
+    // Capture before the move — view must be attached for a valid surface
     const screenshot = await captureTabScreenshot(tab);
 
-    // Send the placeholder to the old window BEFORE moving the tab.
-    // The <img> loads behind the native WebContentsView (which is still
-    // on top), so by the time setWindow() removes the view the
-    // placeholder is already rendered — no flicker.
+    // Send placeholder to old window before moving (loads behind the native view)
     if (screenshot) {
       sendPlaceholderToRenderer(oldWindow, screenshot);
     }
 
-    // Now move the tab to the new window
+    // Move the tab to the new window
     tab.visible = false;
     tab.setWindow(window);
 
-    // Reset cached bounds/border-radius so the layout manager re-applies
-    // them for the new window's pageBounds instead of skipping due to
-    // stale equality with the old window's cached values.
+    // Reset cached bounds so the layout manager re-applies for the new window
     const tabsController = getTabsController();
     const layoutManager = tabsController.getLayoutManager(tab.id);
     layoutManager?.onWindowChanged();
@@ -218,15 +150,12 @@ async function moveTabToWindowIfNeeded(tab: Tab, window: BrowserWindow): Promise
 }
 
 /**
- * Moves a tab (and its group members) to a window, creating screenshot
- * placeholders in the old window. This is the public API used by IPC
- * handlers (e.g. `tabs:switch-to-tab`) so the placeholder logic is
- * consistent everywhere.
+ * Moves a tab (and its group members) to a window with placeholder handling.
+ * Used by IPC handlers (e.g. `tabs:switch-to-tab`).
  */
 export async function moveTabOrGroupToWindow(tab: Tab, window: BrowserWindow): Promise<void> {
   const tabsController = getTabsController();
 
-  // Remove any existing placeholder in the target window
   clearPlaceholderInRenderer(window.id);
 
   const tabGroup = tabsController.getTabGroupByTabId(tab.id);
@@ -241,33 +170,28 @@ export async function moveTabOrGroupToWindow(tab: Tab, window: BrowserWindow): P
 
 /**
  * Ensures the target window has an active tab for the given space.
- * If no active tab is set yet (e.g. a new window just opened),
- * inherits the active tab from another window viewing the same space.
- *
- * Directly sets `spaceActiveTabMap` to avoid `setActiveTab()` which
- * derives the window ID from the tab's current window (wrong for this case).
+ * If none is set, inherits from another window or picks the first tab.
+ * Sets `spaceActiveTabMap` directly (can't use `setActiveTab()` because
+ * it derives windowId from the tab's current window).
  */
 export function ensureActiveTabForWindowSpace(windowId: number, spaceId: string): void {
   const tabsController = getTabsController();
   const existing = tabsController.getActiveTab(windowId, spaceId);
   if (existing) return;
 
-  // Find an active tab/group from any other window in the same space
+  // Find an active tab/group from another window in the same space
   const allWindows = browserWindowsController.getWindows();
   for (const otherWindow of allWindows) {
     if (otherWindow.id === windowId) continue;
     const otherActive = tabsController.getActiveTab(otherWindow.id, spaceId);
     if (otherActive) {
-      // Directly set the active tab/group for the target window-space key.
-      // We can't use setActiveTab() because it reads windowId from the
-      // tab's/group's current window, which is the OTHER window.
       const key = `${windowId}-${spaceId}` as `${number}-${string}`;
       tabsController.spaceActiveTabMap.set(key, otherActive);
       return;
     }
   }
 
-  // No other window has an active tab — try to pick the first tab in the space
+  // Fallback: pick the first tab in the space
   const tabsInSpace = tabsController.getTabsInSpace(spaceId);
   if (tabsInSpace.length > 0) {
     const key = `${windowId}-${spaceId}` as `${number}-${string}`;
@@ -275,12 +199,9 @@ export function ensureActiveTabForWindowSpace(windowId: number, spaceId: string)
   }
 }
 
-/**
- * Initializes the tab sync system. Should be called once during
- * app startup (after controllers are ready).
- */
+/** Initializes tab sync listeners. Call once at app startup. */
 export function initTabSync(): void {
-  // When a browser window gains focus, move its active tab's view there
+  // Move the active tab's view to the focused window
   windowsController.on("window-focused", (id) => {
     if (!isTabSyncEnabled()) return;
 
@@ -290,12 +211,15 @@ export function initTabSync(): void {
     const spaceId = window.currentSpaceId;
     if (!spaceId) return;
 
-    // moveActiveTabToWindow is async (awaits capturePage before moving).
-    // We chain the emit so processActiveTabChange runs after the move.
-    moveActiveTabToWindow(window).then(() => {
-      const tabsController = getTabsController();
-      tabsController.emit("active-tab-changed", window.id, spaceId);
-    });
+    // Async: capture screenshot, move tab, then emit active-tab-changed
+    moveActiveTabToWindow(window)
+      .then(() => {
+        const tabsController = getTabsController();
+        tabsController.emit("active-tab-changed", window.id, spaceId);
+      })
+      .catch((err) => {
+        console.error("[tab-sync] Failed to move active tab on focus:", err);
+      });
   });
 
   // Clean up placeholders when windows are destroyed
