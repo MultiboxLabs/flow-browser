@@ -2,7 +2,7 @@ import "../pin.css";
 
 import { cn } from "@/lib/utils";
 import { useMeasure } from "react-use";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
 import { SidebarScrollArea } from "@/components/browser-ui/browser-sidebar/_components/sidebar-scroll-area";
 import { usePinnedTabs } from "@/components/providers/pinned-tabs-provider";
@@ -69,6 +69,76 @@ export function PinGrid({ profileId }: PinGridProps) {
 
   const amountOfPinnedTabs = pinnedTabs.length;
 
+  // Calculate columns based on container width
+  // Minimum tab width: ~60px + gap (8px) = ~68px per column
+  // Ref that always holds the current column count so that long-lived closures
+  // (drop-target callbacks, handleChildEdgeChange) can read it without needing
+  // to re-register whenever `cols` changes.
+  const colsRef = useRef(3);
+  const cols = useMemo(() => {
+    if (width > 0) {
+      const minTabWidth = 60;
+      const gap = 8; // gap-2 = 8px
+      const calculatedCols = Math.max(1, Math.floor((width + gap) / (minTabWidth + gap)));
+      colsRef.current = calculatedCols;
+      return calculatedCols;
+    }
+    // Default placeholder value
+    return 3;
+  }, [width]);
+
+  // Static lookup so Tailwind can detect each class at build time.
+  const GRID_COL_CLASSES = ["grid-cols-1", "grid-cols-2", "grid-cols-3", "grid-cols-4", "grid-cols-5"] as const;
+  const gridColumnClass = GRID_COL_CLASSES[Math.min(cols, amountOfPinnedTabs, 5) - 1] ?? "grid-cols-1";
+
+  // --- Layout Animation Control ---
+  // Layout animations are OFF by default (instant repositioning) and only
+  // enabled temporarily when an explicit reorder or pin-creation occurs.
+  // This prevents unwanted spring animations when the sidebar resizes,
+  // collapses, or transitions between hover and normal states — all of which
+  // change pin viewport positions without any actual reordering.
+  //
+  // We keep `layout="position"` always enabled on each PinnedTabButton so
+  // motion continuously tracks positions.  The `layoutAnimationsEnabled` flag
+  // controls the *transition*: `{ duration: 0 }` (instant) vs. the spring.
+  const [layoutAnimationsEnabled, setLayoutAnimationsEnabled] = useState(false);
+  const reenableTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Helper: enable the spring animation briefly, then revert to instant.
+  const enableAnimationsTemporarily = useCallback(() => {
+    setLayoutAnimationsEnabled(true);
+    if (reenableTimeoutRef.current) clearTimeout(reenableTimeoutRef.current);
+    reenableTimeoutRef.current = setTimeout(() => {
+      setLayoutAnimationsEnabled(false);
+    }, 300); // spring (stiffness 500, damping 35) settles in ~200ms
+  }, []);
+
+  // Cleanup the timeout on unmount.
+  useEffect(() => {
+    return () => {
+      if (reenableTimeoutRef.current) clearTimeout(reenableTimeoutRef.current);
+    };
+  }, []);
+
+  // Wrapped reorder handler that enables animation before the optimistic update.
+  const handleReorder = useCallback(
+    (pinnedTabId: string, newPosition: number) => {
+      enableAnimationsTemporarily();
+      reorder(pinnedTabId, newPosition);
+    },
+    [reorder, enableAnimationsTemporarily]
+  );
+
+  // Wrapped createFromTab handler that enables animation for existing pins shifting.
+  const handleCreateFromTab = useCallback(
+    (tabId: number, position?: number) => {
+      enableAnimationsTemporarily();
+      createFromTab(tabId, position);
+    },
+    [createFromTab, enableAnimationsTemporarily]
+  );
+
+  // --- Drag-and-Drop ---
   // Drop target: accept tab drags to create pinned tabs
   // The drop ref is on the grid div (inside SidebarScrollArea) rather than
   // wrapping SidebarScrollArea, so that SidebarScrollArea remains a direct
@@ -79,11 +149,6 @@ export function PinGrid({ profileId }: PinGridProps) {
   // (which captures a stale closure) always reads the latest value.
   const [gridIndicator, setGridIndicator] = useState<GridIndicator | null>(null);
   const gridIndicatorRef = useRef<GridIndicator | null>(null);
-
-  // Ref that always holds the current column count so that long-lived closures
-  // (drop-target callbacks, handleChildEdgeChange) can read it without needing
-  // to re-register whenever `cols` changes.  Updated in the cols useMemo below.
-  const colsRef = useRef(3);
 
   // Tracks the closest pin edge reported by a child PinnedTabButton (when the
   // cursor IS directly over a pin).  Normalized so that equivalent gaps always
@@ -194,54 +259,19 @@ export function PinGrid({ profileId }: PinGridProps) {
         if (isTabGroupSource(data)) {
           if (indicator) {
             const position = indicator.edge === "left" ? indicator.index - 0.5 : indicator.index + 0.5;
-            createFromTab(data.primaryTabId, position);
+            handleCreateFromTab(data.primaryTabId, position);
           } else {
-            createFromTab(data.primaryTabId);
+            handleCreateFromTab(data.primaryTabId);
           }
         } else if (isPinnedTabSource(data)) {
           if (indicator) {
             const position = indicator.edge === "left" ? indicator.index - 0.5 : indicator.index + 0.5;
-            reorder(data.pinnedTabId, position);
+            handleReorder(data.pinnedTabId, position);
           }
         }
       }
     });
-  }, [profileId, createFromTab, reorder]);
-
-  // Calculate columns based on container width
-  // Minimum tab width: ~60px + gap (8px) = ~68px per column
-  const cols = useMemo(() => {
-    if (width > 0) {
-      const minTabWidth = 60;
-      const gap = 8; // gap-2 = 8px
-      const calculatedCols = Math.max(1, Math.floor((width + gap) / (minTabWidth + gap)));
-      colsRef.current = calculatedCols;
-      return calculatedCols;
-    }
-    // Default placeholder value
-    return 3;
-  }, [width]);
-
-  // Static lookup so Tailwind can detect each class at build time.
-  const GRID_COL_CLASSES = ["grid-cols-1", "grid-cols-2", "grid-cols-3", "grid-cols-4", "grid-cols-5"] as const;
-  const gridColumnClass = GRID_COL_CLASSES[Math.min(cols, amountOfPinnedTabs, 5) - 1] ?? "grid-cols-1";
-
-  // Suppress layout animations when the column count changes (sidebar resize).
-  // Without this, motion's `layout="position"` on each PinnedTabButton would
-  // animate the grid reflow, making icons appear to shuffle on resize.
-  const [layoutAnimationsEnabled, setLayoutAnimationsEnabled] = useState(true);
-  const prevColsRef = useRef(cols);
-  useLayoutEffect(() => {
-    if (prevColsRef.current !== cols) {
-      prevColsRef.current = cols;
-      setLayoutAnimationsEnabled(false);
-      // Re-enable after the browser paints the new layout so that subsequent
-      // reorders (drag-and-drop) still animate.
-      requestAnimationFrame(() => {
-        setLayoutAnimationsEnabled(true);
-      });
-    }
-  }, [cols]);
+  }, [profileId, handleCreateFromTab, handleReorder]);
 
   return (
     <SidebarScrollArea className="max-h-40">
@@ -267,8 +297,8 @@ export function PinGrid({ profileId }: PinGridProps) {
               onClick={() => click(pinnedTab.uniqueId)}
               onDoubleClick={() => doubleClick(pinnedTab.uniqueId)}
               onContextMenu={() => showContextMenu(pinnedTab.uniqueId)}
-              onReorder={reorder}
-              onCreateFromTab={createFromTab}
+              onReorder={handleReorder}
+              onCreateFromTab={handleCreateFromTab}
               pinnedTabs={pinnedTabs}
               index={index}
               onEdgeChange={handleChildEdgeChange}
