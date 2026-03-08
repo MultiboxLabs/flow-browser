@@ -10,6 +10,7 @@ import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element
 import { useFocusedTabId } from "@/components/providers/tabs-provider";
 import { isPinnedTabSource, isTabGroupSource } from "@/components/browser-ui/browser-sidebar/_components/drag-utils";
 import { PinInCircle } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/normal/pin-in-circle";
+import { X } from "lucide-react";
 
 type GridIndicator = { index: number; edge: "left" | "right" };
 
@@ -275,7 +276,22 @@ export function PinGrid({ profileId }: PinGridProps) {
   }, [profileId, handleCreateFromTab, handleReorder]);
 
   const showingEmptyState = amountOfPinnedTabs === 0;
-  const isEmptyStateHidden = false;
+  const PIN_GRID_DISMISSED_KEY = `PIN_GRID_EMPTY_DISMISSED:${profileId}`;
+  const [isEmptyStateHidden, setIsEmptyStateHidden] = useState(() => {
+    try {
+      return localStorage.getItem(PIN_GRID_DISMISSED_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+  const handleDismissEmptyState = useCallback(() => {
+    setIsEmptyStateHidden(true);
+    try {
+      localStorage.setItem(PIN_GRID_DISMISSED_KEY, "true");
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [PIN_GRID_DISMISSED_KEY]);
   return (
     <SidebarScrollArea className={cn("max-h-40", !(showingEmptyState && isEmptyStateHidden) && "mb-1")}>
       <div
@@ -289,7 +305,7 @@ export function PinGrid({ profileId }: PinGridProps) {
         )}
       >
         {showingEmptyState ? (
-          <PinGridEmptyState isDragOver={isDragOver} hidden={isEmptyStateHidden} />
+          <PinGridEmptyState isDragOver={isDragOver} hidden={isEmptyStateHidden} onDismiss={handleDismissEmptyState} />
         ) : (
           pinnedTabs.map((pinnedTab, index) => (
             <PinnedTabButton
@@ -317,12 +333,31 @@ export function PinGrid({ profileId }: PinGridProps) {
   );
 }
 
-function PinGridEmptyState({ isDragOver, hidden }: { isDragOver: boolean; hidden: boolean }) {
-  if (hidden) return <div className="h-1" />;
+function PinGridEmptyStateCloseButton({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <button
+      onClick={onDismiss}
+      className="absolute top-1.5 right-1.5 p-0.5 rounded-md text-black/40 dark:text-white/40 hover:text-black/70 dark:hover:text-white/70 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+    >
+      <X className="size-3" />
+    </button>
+  );
+}
+
+function PinGridEmptyState({
+  isDragOver,
+  hidden,
+  onDismiss
+}: {
+  isDragOver: boolean;
+  hidden: boolean;
+  onDismiss: () => void;
+}) {
+  if (hidden && !isDragOver) return <div className="h-1" />;
   return (
     <div
       className={cn(
-        "col-span-full flex flex-col items-center justify-center",
+        "col-span-full flex flex-col items-center justify-center relative",
         "p-4 rounded-xl",
         "border-2 border-dashed",
         "transition-colors duration-150",
@@ -331,6 +366,7 @@ function PinGridEmptyState({ isDragOver, hidden }: { isDragOver: boolean; hidden
           : "border-black/20 dark:border-white/20"
       )}
     >
+      {!hidden && <PinGridEmptyStateCloseButton onDismiss={onDismiss} />}
       <PinInCircle className="size-4 text-black dark:text-white mb-0.5" />
       <span className="text-xs text-black dark:text-white select-none font-bold">Drag to pin tabs</span>
       <span className="text-xs text-black/50 dark:text-white/50 select-none font-medium text-center">
