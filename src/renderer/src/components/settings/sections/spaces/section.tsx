@@ -41,13 +41,12 @@ export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }:
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [fetchedProfiles, fetchedSpaces, areProfilesInternal] = await Promise.all([
-        flow.profiles.getProfiles(),
-        flow.spaces.getSpaces(),
-        flow.profiles.getAreProfilesInternal()
-      ]);
-      setProfiles(fetchedProfiles.filter((profile) => !areProfilesInternal[profile.id]));
-      setSpaces(fetchedSpaces.filter((space) => !areProfilesInternal[space.profileId]));
+      const [fetchedProfiles, fetchedSpaces] = await Promise.all([flow.profiles.getProfiles(), flow.spaces.getSpaces()]);
+      const internalProfileIds = new Set(
+        fetchedProfiles.filter((profile) => profile.internal).map((profile) => profile.id)
+      );
+      setProfiles(fetchedProfiles.filter((profile) => !profile.internal));
+      setSpaces(fetchedSpaces.filter((space) => !internalProfileIds.has(space.profileId)));
 
       // Set active space if initialSelectedSpace is provided
       if (initialSelectedSpace) {
