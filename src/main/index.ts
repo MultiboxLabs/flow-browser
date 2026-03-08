@@ -1,6 +1,5 @@
 import { debugPrint } from "@/modules/output";
 import { app } from "electron";
-import "@/app/startup";
 
 function printHeader() {
   if (!app.isPackaged) {
