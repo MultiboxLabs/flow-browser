@@ -42,6 +42,15 @@ export const BasicSettings: BasicSetting[] = [
     defaultValue: true
   },
 
+  // [GENERAL] Sync Tabs Across Windows
+  {
+    id: "syncTabsAcrossWindows",
+    name: "Sync Tabs Across Windows",
+    showName: true,
+    type: "boolean",
+    defaultValue: false
+  },
+
   // [GENERAL] Content Blocking
   {
     id: "contentBlocker",
@@ -213,7 +222,7 @@ export const BasicSettingCards: BasicSettingCard[] = [
   {
     title: "General Settings",
     subtitle: "General settings for the application",
-    settings: ["autoUpdate", "contentBlocker", "internal_setAsDefaultBrowser"]
+    settings: ["autoUpdate", "syncTabsAcrossWindows", "contentBlocker", "internal_setAsDefaultBrowser"]
   },
 
   // Update Card (Internal)
