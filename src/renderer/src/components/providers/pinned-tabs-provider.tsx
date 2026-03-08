@@ -90,7 +90,7 @@ export const PinnedTabsProvider = ({ children }: PinnedTabsProviderProps) => {
         const tabIndex = tabs.findIndex((t) => t.uniqueId === pinnedTabId);
         if (tabIndex === -1) continue;
 
-        const updated = tabs.map((t) => (t.uniqueId === pinnedTabId ? { ...t, position: newPosition } : t));
+        const updated = tabs.map((t) => ({ ...t, position: t.uniqueId === pinnedTabId ? newPosition : t.position }));
         updated.sort((a, b) => a.position - b.position);
         updated.forEach((t, i) => (t.position = i));
         next[profileId] = updated;
