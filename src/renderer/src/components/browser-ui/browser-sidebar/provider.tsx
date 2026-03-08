@@ -93,6 +93,11 @@ interface BrowserSidebarContextValue {
 
   setForceFloating: (forceFloating: boolean) => void;
 
+  /** Slot-machine easter egg: persisted in the sidebar context so the state
+   *  survives floating ↔ attached mode switches. */
+  slotMachineEnabled: boolean;
+  setSlotMachineEnabled: (enabled: boolean) => void;
+
   /**
    * Register/unregister an open popover by a stable ID.
    * While any popover is registered, the floating sidebar will not detach even
@@ -279,6 +284,7 @@ export function BrowserSidebarProvider({ children, hasSidebar = true }: BrowserS
   }, [isVisibleRef, handleSetVisible]);
 
   const [forceFloating, setForceFloating] = useState(false);
+  const [slotMachineEnabled, setSlotMachineEnabled] = useState(false);
 
   let mode: BrowserSidebarMode = "hidden";
   if (hasSidebar) {
@@ -313,7 +319,10 @@ export function BrowserSidebarProvider({ children, hasSidebar = true }: BrowserS
         onSidebarResize,
         notifySidebarResize,
 
-        setForceFloating
+        setForceFloating,
+
+        slotMachineEnabled,
+        setSlotMachineEnabled
       }}
     >
       {children}
