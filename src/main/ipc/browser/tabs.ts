@@ -267,14 +267,18 @@ ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {
 
   if (isTabSyncEnabled()) {
     await runTabSyncMutation(async () => {
+      if (window.destroyed) return;
+      const currentTab = tabsController.getTabById(tabId);
+      if (!currentTab || currentTab.isDestroyed) return;
+
       // In sync mode, the tab may currently live in a different window.
       // Move it (and its group) to the requesting window before activating.
       // This also creates a screenshot placeholder in the old window.
-      if (tab.getWindow().id !== window.id) {
-        await moveTabOrGroupToWindow(tab, window);
+      if (currentTab.getWindow().id !== window.id) {
+        await moveTabOrGroupToWindow(currentTab, window);
       }
 
-      tabsController.setActiveTab(tab);
+      tabsController.setActiveTab(currentTab);
     });
     return true;
   }

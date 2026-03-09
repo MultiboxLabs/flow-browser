@@ -14,6 +14,7 @@ import {
   storeSnapshot,
   removeSnapshot
 } from "@/controllers/sessions-controller/protocols/_protocols/flow-internal/tab-snapshot";
+import type { TabPlaceholderUpdate } from "~/types/tabs";
 import { Tab } from "./tab";
 import { BaseTabGroup } from "./tab-groups";
 import { type TabsController } from "./index";
@@ -40,10 +41,23 @@ const PLACEHOLDER_RELEASE_DELAY_MS = 180;
 type WindowPlaceholderState = {
   snapshotId: string;
   tabId: number;
+  generation: number;
 };
 
 /** Current placeholder state per window, for cleanup. */
 const windowPlaceholderState: Map<number, WindowPlaceholderState> = new Map();
+const windowPlaceholderGeneration: Map<number, number> = new Map();
+
+function nextPlaceholderGeneration(windowId: number): number {
+  const generation = (windowPlaceholderGeneration.get(windowId) ?? 0) + 1;
+  windowPlaceholderGeneration.set(windowId, generation);
+  return generation;
+}
+
+function sendPlaceholderUpdate(targetWindow: BrowserWindow, update: TabPlaceholderUpdate): void {
+  if (targetWindow.destroyed) return;
+  targetWindow.sendMessageToCoreWebContents("tabs:on-placeholder-changed", update);
+}
 
 /**
  * Captures a screenshot of the tab. Must be called while the view is still
@@ -76,13 +90,15 @@ function sendPlaceholderToRenderer(targetWindow: BrowserWindow, tabId: number, i
     removeSnapshot(previousPlaceholder.snapshotId);
   }
 
+  const generation = nextPlaceholderGeneration(targetWindow.id);
   const snapshotId = storeSnapshot(image);
-  windowPlaceholderState.set(targetWindow.id, { snapshotId, tabId });
-  targetWindow.sendMessageToCoreWebContents("tabs:on-placeholder-changed", snapshotId);
+  windowPlaceholderState.set(targetWindow.id, { snapshotId, tabId, generation });
+  sendPlaceholderUpdate(targetWindow, { snapshotId, generation });
 }
 
 /** Clears the placeholder in a window and frees the stored snapshot. */
 function clearPlaceholderInRenderer(windowId: number): void {
+  const generation = nextPlaceholderGeneration(windowId);
   const placeholderState = windowPlaceholderState.get(windowId);
   if (placeholderState) {
     windowPlaceholderState.delete(windowId);
@@ -94,7 +110,7 @@ function clearPlaceholderInRenderer(windowId: number): void {
   const win = browserWindowsController.getWindowById(windowId);
   if (!win) return;
 
-  win.sendMessageToCoreWebContents("tabs:on-placeholder-changed", null);
+  sendPlaceholderUpdate(win, { snapshotId: null, generation });
 }
 
 /** Clears any placeholders currently showing a screenshot for the destroyed tab. */
@@ -150,14 +166,17 @@ async function moveActiveTabToWindow(window: BrowserWindow, isStale?: () => bool
  *   superseded this one).
  */
 async function moveTabToWindowIfNeeded(tab: Tab, window: BrowserWindow, isStale?: () => boolean): Promise<void> {
+  if (tab.isDestroyed || window.destroyed) return;
   if (tab.getWindow().id !== window.id) {
     const oldWindow = tab.getWindow();
+    if (oldWindow.destroyed) return;
 
     // Capture before the move — view must be attached for a valid surface
     const screenshot = await captureTabScreenshot(tab);
 
     // A newer focus event arrived while we were capturing — abort
     if (isStale?.()) return;
+    if (tab.isDestroyed || window.destroyed || oldWindow.destroyed) return;
 
     // Send placeholder to old window before moving (loads behind the native view)
     if (screenshot) {
@@ -347,19 +366,21 @@ export function initTabSync(): void {
     const window = browserWindowsController.getWindowById(id);
     if (!window) return;
 
-    const spaceId = window.currentSpaceId;
-    if (!spaceId) return;
-
     const generation = ++_focusMoveGeneration;
     const isStale = () => generation !== _focusMoveGeneration;
 
     // Async: capture screenshot, move tab, then emit active-tab-changed
     runTabSyncMutation(async () => {
+      if (window.destroyed || isStale()) return;
+      const spaceId = window.currentSpaceId;
+      if (!spaceId) return;
       if (isStale()) return;
       await moveActiveTabToWindow(window, isStale);
       if (isStale()) return;
+      const currentSpaceId = window.currentSpaceId;
+      if (!currentSpaceId) return;
       const tabsController = getTabsController();
-      tabsController.emit("active-tab-changed", window.id, spaceId);
+      tabsController.emit("active-tab-changed", window.id, currentSpaceId);
     })
       .catch((err) => {
         console.error("[tab-sync] Failed to move active tab on focus:", err);
@@ -386,6 +407,7 @@ export function initTabSync(): void {
   // Clean up placeholders and stale map entries when windows are destroyed
   windowsController.on("window-removed", (id) => {
     clearPlaceholderInRenderer(id);
+    windowPlaceholderGeneration.delete(id);
     tabsController.cleanupWindowEntries(id);
   });
 }

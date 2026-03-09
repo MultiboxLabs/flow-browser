@@ -3,6 +3,7 @@ import { PageLayoutParams } from "~/flow/types";
 import { cn } from "@/lib/utils";
 import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
 import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
+import type { TabPlaceholderUpdate } from "~/types/tabs";
 
 const PLACEHOLDER_CLEAR_DELAY_MS = 180;
 
@@ -28,6 +29,7 @@ function BrowserContent() {
   // has been moved to another window.
   const [placeholderSnapshotId, setPlaceholderSnapshotId] = useState<string | null>(null);
   const clearPlaceholderTimeoutRef = useRef<number | null>(null);
+  const latestPlaceholderGenerationRef = useRef(0);
 
   useEffect(() => {
     const clearPendingPlaceholder = () => {
@@ -37,7 +39,11 @@ function BrowserContent() {
       }
     };
 
-    const unsub = flow.tabs.onPlaceholderChanged((snapshotId) => {
+    const unsub = flow.tabs.onPlaceholderChanged(({ snapshotId, generation }: TabPlaceholderUpdate) => {
+      if (generation < latestPlaceholderGenerationRef.current) {
+        return;
+      }
+      latestPlaceholderGenerationRef.current = generation;
       clearPendingPlaceholder();
 
       if (snapshotId) {
