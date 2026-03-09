@@ -14,6 +14,8 @@ import { spacesController } from "@/controllers/spaces-controller";
 import { tabPersistenceManager } from "@/saving/tabs";
 import { quitController } from "@/controllers/quit-controller";
 import { hex_is_light } from "@/modules/utils";
+import { getSettingValueById } from "@/saving/settings";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { ViewLayer } from "~/layers";
 import {
   SidebarInterpolation,
@@ -365,17 +367,42 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       this.sidebarInterpolation = null;
     }
 
+    const closingWindowId = this.id;
+    const tabsInClosingWindow = tabsController.getTabsInWindow(closingWindowId);
+
     const result = super.destroy(...args);
     if (result) {
-      // Destroy all tabs in the window after a delay.
       // Skip during quit — the process is dying and the database is already closed,
       // so calling tab.destroy() would crash when it tries to access SQLite.
       if (!quitController.isQuitting) {
-        setTimeout(() => {
-          for (const tab of tabsController.getTabsInWindow(this.id)) {
-            tab.destroy();
+        const syncEnabled = getSettingValueById("syncTabsAcrossWindows") === true;
+        const survivingWindows = browserWindowsController.getWindows();
+
+        if (syncEnabled && survivingWindows.length > 0) {
+          // In sync mode, relocate tabs to a surviving window instead of destroying them.
+          const targetWindow = survivingWindows[0];
+
+          for (const tab of tabsInClosingWindow) {
+            tab.visible = false;
+            tab.setWindow(targetWindow);
+
+            const layoutManager = tabsController.getLayoutManager(tab.id);
+            layoutManager?.onWindowChanged();
           }
-        }, 500);
+
+          // Ensure the surviving window has an active tab and re-runs layout
+          const targetSpaceId = targetWindow.currentSpaceId;
+          if (targetSpaceId) {
+            tabsController.emit("active-tab-changed", targetWindow.id, targetSpaceId);
+          }
+        } else {
+          // Normal mode (or last window closing): destroy tabs after a delay
+          setTimeout(() => {
+            for (const tab of tabsInClosingWindow) {
+              tab.destroy();
+            }
+          }, 500);
+        }
       }
 
       this.omnibox.destroy();
