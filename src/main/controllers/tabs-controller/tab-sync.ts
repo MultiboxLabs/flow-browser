@@ -382,10 +382,9 @@ export function initTabSync(): void {
       const tabsController = getTabsController();
       tabsController.focusActiveTab(window.id, currentSpaceId);
       tabsController.emit("active-tab-changed", window.id, currentSpaceId);
-    })
-      .catch((err) => {
-        console.error("[tab-sync] Failed to move active tab on focus:", err);
-      });
+    }).catch((err) => {
+      console.error("[tab-sync] Failed to move active tab on focus:", err);
+    });
   });
 
   // Relocate displaced tabs when the active tab or space changes

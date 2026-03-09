@@ -367,8 +367,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     }
 
     const closingWindowTabs = tabsController.getTabsInWindow(this.id);
-    const shouldRelocateTabs =
-      !quitController.isQuitting && relocateTabsFromClosingWindow(this.id, closingWindowTabs);
+    const shouldRelocateTabs = !quitController.isQuitting && relocateTabsFromClosingWindow(this.id, closingWindowTabs);
 
     const result = super.destroy(...args);
     if (result) {
