@@ -1068,6 +1068,26 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     }
   }
 
+  /**
+   * Purge all map entries associated with a given window.
+   * Called when a window is closed to prevent stale references from
+   * accumulating in the internal tracking maps.
+   */
+  public cleanupWindowEntries(windowId: number): void {
+    this.windowActiveSpaceMap.delete(windowId);
+
+    const prefix = `${windowId}-`;
+    for (const key of this.spaceActiveTabMap.keys()) {
+      if (key.startsWith(prefix)) this.spaceActiveTabMap.delete(key);
+    }
+    for (const key of this.spaceFocusedTabMap.keys()) {
+      if (key.startsWith(prefix)) this.spaceFocusedTabMap.delete(key);
+    }
+    for (const key of this.spaceActivationHistory.keys()) {
+      if (key.startsWith(prefix)) this.spaceActivationHistory.delete(key);
+    }
+  }
+
   // --- Position Normalization ---
 
   /**

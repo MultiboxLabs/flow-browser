@@ -63,8 +63,7 @@ async function captureTabScreenshot(tab: Tab): Promise<Electron.NativeImage | nu
 
 /** Stores a snapshot and sends its URL to the target window's renderer. */
 function sendPlaceholderToRenderer(targetWindow: BrowserWindow, image: Electron.NativeImage): void {
-  const win = browserWindowsController.getWindowById(targetWindow.id);
-  if (!win) return;
+  if (targetWindow.destroyed) return;
 
   const prevId = windowSnapshotId.get(targetWindow.id);
   if (prevId) {
@@ -75,7 +74,7 @@ function sendPlaceholderToRenderer(targetWindow: BrowserWindow, image: Electron.
   windowSnapshotId.set(targetWindow.id, snapshotId);
 
   const url = `flow-internal://tab-snapshot?id=${snapshotId}`;
-  win.sendMessageToCoreWebContents("tabs:on-placeholder-changed", url);
+  targetWindow.sendMessageToCoreWebContents("tabs:on-placeholder-changed", url);
 }
 
 /** Clears the placeholder in a window and frees the stored snapshot. */
@@ -118,9 +117,11 @@ async function moveActiveTabToWindow(window: BrowserWindow, isStale?: () => bool
   if (activeTabOrGroup instanceof Tab) {
     await moveTabToWindowIfNeeded(activeTabOrGroup, window, isStale);
   } else if (activeTabOrGroup instanceof BaseTabGroup) {
+    // Check staleness before starting the group move. Once begun, complete
+    // the full group to avoid leaving it split across windows.
+    if (isStale?.()) return;
     for (const tab of activeTabOrGroup.tabs) {
-      if (isStale?.()) return;
-      await moveTabToWindowIfNeeded(tab, window, isStale);
+      await moveTabToWindowIfNeeded(tab, window);
     }
   }
 }
@@ -190,7 +191,7 @@ export async function moveTabOrGroupToWindow(tab: Tab, window: BrowserWindow): P
  *              window was removed from the controller).
  * @returns `true` if tabs were relocated (caller should skip destruction).
  */
-export function relocateTabsFromClosingWindow(tabs: Tab[]): boolean {
+export function relocateTabsFromClosingWindow(closingWindowId: number, tabs: Tab[]): boolean {
   if (!isTabSyncEnabled()) return false;
 
   const survivingWindows = browserWindowsController.getWindows();
@@ -206,6 +207,9 @@ export function relocateTabsFromClosingWindow(tabs: Tab[]): boolean {
     const layoutManager = tabsController.getLayoutManager(tab.id);
     layoutManager?.onWindowChanged();
   }
+
+  // Purge stale map entries for the closing window
+  tabsController.cleanupWindowEntries(closingWindowId);
 
   // Re-run layout so the surviving window shows the correct active tab
   const targetSpaceId = targetWindow.currentSpaceId;
@@ -240,9 +244,12 @@ async function relocateDisplacedTabs(): Promise<void> {
     const tabsController = getTabsController();
     const allWindows = browserWindowsController.getWindows();
 
-    // Build a map: windowId -> active Tab for its current space
-    // (only plain Tab entries — groups are expanded to their member tabs elsewhere)
-    const windowActiveTab = new Map<number, Tab>();
+    // Build a map: windowId -> all active tabs for its current space.
+    // For tab groups, every member tab is included so that the full group
+    // is relocated together (not just the first/representative tab).
+    const windowActiveTabs = new Map<number, Tab[]>();
+    const windowWantedTabIds = new Map<number, Set<number>>();
+
     for (const win of allWindows) {
       const spaceId = win.currentSpaceId;
       if (!spaceId) continue;
@@ -250,42 +257,38 @@ async function relocateDisplacedTabs(): Promise<void> {
       const active = tabsController.getActiveTab(win.id, spaceId);
       if (!active) continue;
 
-      if (active instanceof Tab) {
-        windowActiveTab.set(win.id, active);
-      } else if (active instanceof BaseTabGroup) {
-        // For groups, consider the front/first tab as the representative
-        const frontTab = active.tabs[0];
-        if (frontTab) {
-          windowActiveTab.set(win.id, frontTab);
-        }
-      }
+      const tabs: Tab[] = active instanceof Tab ? [active] : [...active.tabs];
+      windowActiveTabs.set(win.id, tabs);
+      windowWantedTabIds.set(win.id, new Set(tabs.map((t) => t.id)));
     }
 
-    // For each window that wants a tab, check if the view is elsewhere
-    for (const [targetWindowId, tab] of windowActiveTab) {
-      const viewOwnerWindowId = tab.getWindow().id;
-      if (viewOwnerWindowId === targetWindowId) continue; // already here
+    // For each window, check if any of its wanted tabs are in the wrong window
+    for (const [targetWindowId, tabs] of windowActiveTabs) {
+      for (const tab of tabs) {
+        const viewOwnerWindowId = tab.getWindow().id;
+        if (viewOwnerWindowId === targetWindowId) continue; // already here
 
-      // Is the tab also active in the window that currently owns the view?
-      const ownerActiveTab = windowActiveTab.get(viewOwnerWindowId);
-      if (ownerActiveTab && ownerActiveTab.id === tab.id) {
-        // Both windows want this tab and the owner still has it active —
-        // don't fight the focus handler.
-        continue;
-      }
+        // Is the tab also wanted by the window that currently owns the view?
+        const ownerWanted = windowWantedTabIds.get(viewOwnerWindowId);
+        if (ownerWanted?.has(tab.id)) {
+          // Both windows want this tab and the owner still has it active —
+          // don't fight the focus handler.
+          continue;
+        }
 
-      // The owner window no longer needs this tab — relocate it
-      const targetWindow = browserWindowsController.getWindowById(targetWindowId);
-      if (!targetWindow) continue;
+        // The owner window no longer needs this tab — relocate it
+        const targetWindow = browserWindowsController.getWindowById(targetWindowId);
+        if (!targetWindow) continue;
 
-      clearPlaceholderInRenderer(targetWindowId);
+        clearPlaceholderInRenderer(targetWindowId);
 
-      await moveTabToWindowIfNeeded(tab, targetWindow);
+        await moveTabToWindowIfNeeded(tab, targetWindow);
 
-      // Let processActiveTabChange re-show the tab in the target window
-      const spaceId = targetWindow.currentSpaceId;
-      if (spaceId) {
-        tabsController.emit("active-tab-changed", targetWindowId, spaceId);
+        // Let processActiveTabChange re-show the tab in the target window
+        const spaceId = targetWindow.currentSpaceId;
+        if (spaceId) {
+          tabsController.emit("active-tab-changed", targetWindowId, spaceId);
+        }
       }
     }
   } finally {
@@ -346,8 +349,9 @@ export function initTabSync(): void {
     });
   });
 
-  // Clean up placeholders when windows are destroyed
+  // Clean up placeholders and stale map entries when windows are destroyed
   windowsController.on("window-removed", (id) => {
     clearPlaceholderInRenderer(id);
+    tabsController.cleanupWindowEntries(id);
   });
 }
