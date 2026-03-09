@@ -18,7 +18,7 @@ import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
 import { FLAGS } from "@/modules/flags";
 import { quitController } from "@/controllers/quit-controller";
-import { isTabSyncEnabled, registerTabsController } from "./tab-sync";
+import { clearPlaceholdersForTab, isTabSyncEnabled, registerTabsController } from "./tab-sync";
 
 export const NEW_TAB_URL = "flow://new-tab";
 const ARCHIVE_CHECK_INTERVAL_MS = 10 * 1000;
@@ -355,6 +355,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       // Cleanup lifecycle
       lifecycleManager.onDestroy();
       boundsController.destroy();
+      clearPlaceholdersForTab(tab.id);
 
       // During quit, skip all persistence and tab management — the database
       // is closed and windows are being torn down. Accessing them would crash.

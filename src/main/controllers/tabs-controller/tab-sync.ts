@@ -37,8 +37,13 @@ function getTabsController(): TabsController {
 // Screenshot placeholders (served via flow-internal://tab-snapshot)
 const PLACEHOLDER_RELEASE_DELAY_MS = 180;
 
-/** Current snapshot UUID per window, for cleanup. */
-const windowSnapshotId: Map<number, string> = new Map();
+type WindowPlaceholderState = {
+  snapshotId: string;
+  tabId: number;
+};
+
+/** Current placeholder state per window, for cleanup. */
+const windowPlaceholderState: Map<number, WindowPlaceholderState> = new Map();
 
 /**
  * Captures a screenshot of the tab. Must be called while the view is still
@@ -63,26 +68,26 @@ async function captureTabScreenshot(tab: Tab): Promise<Electron.NativeImage | nu
 }
 
 /** Stores a snapshot and sends its ID to the target window's renderer. */
-function sendPlaceholderToRenderer(targetWindow: BrowserWindow, image: Electron.NativeImage): void {
+function sendPlaceholderToRenderer(targetWindow: BrowserWindow, tabId: number, image: Electron.NativeImage): void {
   if (targetWindow.destroyed) return;
 
-  const prevId = windowSnapshotId.get(targetWindow.id);
-  if (prevId) {
-    removeSnapshot(prevId);
+  const previousPlaceholder = windowPlaceholderState.get(targetWindow.id);
+  if (previousPlaceholder) {
+    removeSnapshot(previousPlaceholder.snapshotId);
   }
 
   const snapshotId = storeSnapshot(image);
-  windowSnapshotId.set(targetWindow.id, snapshotId);
+  windowPlaceholderState.set(targetWindow.id, { snapshotId, tabId });
   targetWindow.sendMessageToCoreWebContents("tabs:on-placeholder-changed", snapshotId);
 }
 
 /** Clears the placeholder in a window and frees the stored snapshot. */
 function clearPlaceholderInRenderer(windowId: number): void {
-  const snapshotId = windowSnapshotId.get(windowId);
-  if (snapshotId) {
-    windowSnapshotId.delete(windowId);
+  const placeholderState = windowPlaceholderState.get(windowId);
+  if (placeholderState) {
+    windowPlaceholderState.delete(windowId);
     setTimeout(() => {
-      removeSnapshot(snapshotId);
+      removeSnapshot(placeholderState.snapshotId);
     }, PLACEHOLDER_RELEASE_DELAY_MS);
   }
 
@@ -90,6 +95,14 @@ function clearPlaceholderInRenderer(windowId: number): void {
   if (!win) return;
 
   win.sendMessageToCoreWebContents("tabs:on-placeholder-changed", null);
+}
+
+/** Clears any placeholders currently showing a screenshot for the destroyed tab. */
+export function clearPlaceholdersForTab(tabId: number): void {
+  for (const [windowId, placeholderState] of windowPlaceholderState.entries()) {
+    if (placeholderState.tabId !== tabId) continue;
+    clearPlaceholderInRenderer(windowId);
+  }
 }
 
 // Core helpers
@@ -148,7 +161,7 @@ async function moveTabToWindowIfNeeded(tab: Tab, window: BrowserWindow, isStale?
 
     // Send placeholder to old window before moving (loads behind the native view)
     if (screenshot) {
-      sendPlaceholderToRenderer(oldWindow, screenshot);
+      sendPlaceholderToRenderer(oldWindow, tab.id, screenshot);
     }
 
     // Move the tab to the new window
