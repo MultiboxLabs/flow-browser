@@ -35,6 +35,7 @@ function getTabsController(): TabsController {
 }
 
 // Screenshot placeholders (served via flow-internal://tab-snapshot)
+const PLACEHOLDER_RELEASE_DELAY_MS = 180;
 
 /** Current snapshot UUID per window, for cleanup. */
 const windowSnapshotId: Map<number, string> = new Map();
@@ -79,8 +80,10 @@ function sendPlaceholderToRenderer(targetWindow: BrowserWindow, image: Electron.
 function clearPlaceholderInRenderer(windowId: number): void {
   const snapshotId = windowSnapshotId.get(windowId);
   if (snapshotId) {
-    removeSnapshot(snapshotId);
     windowSnapshotId.delete(windowId);
+    setTimeout(() => {
+      removeSnapshot(snapshotId);
+    }, PLACEHOLDER_RELEASE_DELAY_MS);
   }
 
   const win = browserWindowsController.getWindowById(windowId);

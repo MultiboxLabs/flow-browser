@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
 import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 
+const PLACEHOLDER_CLEAR_DELAY_MS = 180;
+
 /**
  * BrowserContent is the placeholder div that represents the page content area.
  * Instead of measuring its bounds via getBoundingClientRect(), it sends
@@ -25,12 +27,40 @@ function BrowserContent() {
   // Tab-sync placeholder: screenshot shown when the active tab's view
   // has been moved to another window.
   const [placeholderSnapshotId, setPlaceholderSnapshotId] = useState<string | null>(null);
+  const clearPlaceholderTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
+    const clearPendingPlaceholder = () => {
+      if (clearPlaceholderTimeoutRef.current !== null) {
+        window.clearTimeout(clearPlaceholderTimeoutRef.current);
+        clearPlaceholderTimeoutRef.current = null;
+      }
+    };
+
     const unsub = flow.tabs.onPlaceholderChanged((snapshotId) => {
-      setPlaceholderSnapshotId(snapshotId);
+      clearPendingPlaceholder();
+
+      if (snapshotId) {
+        setPlaceholderSnapshotId(snapshotId);
+        return;
+      }
+
+      setPlaceholderSnapshotId((currentSnapshotId) => {
+        if (!currentSnapshotId) return currentSnapshotId;
+
+        clearPlaceholderTimeoutRef.current = window.setTimeout(() => {
+          clearPlaceholderTimeoutRef.current = null;
+          setPlaceholderSnapshotId(null);
+        }, PLACEHOLDER_CLEAR_DELAY_MS);
+
+        return currentSnapshotId;
+      });
     });
-    return unsub;
+
+    return () => {
+      clearPendingPlaceholder();
+      unsub();
+    };
   }, []);
 
   const placeholderUrl = placeholderSnapshotId ? `flow-internal://tab-snapshot?id=${placeholderSnapshotId}` : null;
