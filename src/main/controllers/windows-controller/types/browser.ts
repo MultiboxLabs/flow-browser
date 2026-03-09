@@ -367,6 +367,8 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     }
 
     const closingWindowTabs = tabsController.getTabsInWindow(this.id);
+    const shouldRelocateTabs =
+      !quitController.isQuitting && relocateTabsFromClosingWindow(this.id, closingWindowTabs);
 
     const result = super.destroy(...args);
     if (result) {
@@ -375,7 +377,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       if (!quitController.isQuitting) {
         // In sync mode, relocate tabs to a surviving window instead of destroying them.
         // Falls through to destruction when sync is off or no other windows exist.
-        if (!relocateTabsFromClosingWindow(this.id, closingWindowTabs)) {
+        if (!shouldRelocateTabs) {
           setTimeout(() => {
             for (const tab of closingWindowTabs) {
               tab.destroy();
