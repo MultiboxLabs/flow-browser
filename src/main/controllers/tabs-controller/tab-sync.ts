@@ -236,7 +236,19 @@ export function relocateTabsFromClosingWindow(closingWindowId: number, tabs: Tab
 
 // Automatic tab relocation
 
+let _syncMoveQueue: Promise<void> = Promise.resolve();
+
+async function runTabSyncMutation<T>(work: () => Promise<T>): Promise<T> {
+  const run = _syncMoveQueue.then(work, work);
+  _syncMoveQueue = run.then(
+    () => undefined,
+    () => undefined
+  );
+  return run;
+}
+
 let _relocating = false;
+let _relocateRequested = false;
 
 /**
  * Finds tabs whose views are in the wrong window and moves them back.
@@ -251,59 +263,66 @@ let _relocating = false;
  * focus handler already placed it correctly.
  */
 async function relocateDisplacedTabs(): Promise<void> {
+  _relocateRequested = true;
   if (_relocating) return;
   _relocating = true;
 
   try {
-    const tabsController = getTabsController();
-    const allWindows = browserWindowsController.getWindows();
+    while (_relocateRequested) {
+      _relocateRequested = false;
 
-    // Build a map: windowId -> all active tabs for its current space.
-    // For tab groups, every member tab is included so that the full group
-    // is relocated together (not just the first/representative tab).
-    const windowActiveTabs = new Map<number, Tab[]>();
-    const windowWantedTabIds = new Map<number, Set<number>>();
+      await runTabSyncMutation(async () => {
+        const tabsController = getTabsController();
+        const allWindows = browserWindowsController.getWindows();
 
-    for (const win of allWindows) {
-      const spaceId = win.currentSpaceId;
-      if (!spaceId) continue;
+        // Build a map: windowId -> all active tabs for its current space.
+        // For tab groups, every member tab is included so that the full group
+        // is relocated together (not just the first/representative tab).
+        const windowActiveTabs = new Map<number, Tab[]>();
+        const windowWantedTabIds = new Map<number, Set<number>>();
 
-      const active = tabsController.getActiveTab(win.id, spaceId);
-      if (!active) continue;
+        for (const win of allWindows) {
+          const spaceId = win.currentSpaceId;
+          if (!spaceId) continue;
 
-      const tabs: Tab[] = active instanceof Tab ? [active] : [...active.tabs];
-      windowActiveTabs.set(win.id, tabs);
-      windowWantedTabIds.set(win.id, new Set(tabs.map((t) => t.id)));
-    }
+          const active = tabsController.getActiveTab(win.id, spaceId);
+          if (!active) continue;
 
-    // For each window, check if any of its wanted tabs are in the wrong window
-    for (const [targetWindowId, tabs] of windowActiveTabs) {
-      for (const tab of tabs) {
-        const viewOwnerWindowId = tab.getWindow().id;
-        if (viewOwnerWindowId === targetWindowId) continue; // already here
-
-        // Is the tab also wanted by the window that currently owns the view?
-        const ownerWanted = windowWantedTabIds.get(viewOwnerWindowId);
-        if (ownerWanted?.has(tab.id)) {
-          // Both windows want this tab and the owner still has it active —
-          // don't fight the focus handler.
-          continue;
+          const tabs: Tab[] = active instanceof Tab ? [active] : [...active.tabs];
+          windowActiveTabs.set(win.id, tabs);
+          windowWantedTabIds.set(win.id, new Set(tabs.map((t) => t.id)));
         }
 
-        // The owner window no longer needs this tab — relocate it
-        const targetWindow = browserWindowsController.getWindowById(targetWindowId);
-        if (!targetWindow) continue;
+        // For each window, check if any of its wanted tabs are in the wrong window
+        for (const [targetWindowId, tabs] of windowActiveTabs) {
+          for (const tab of tabs) {
+            const viewOwnerWindowId = tab.getWindow().id;
+            if (viewOwnerWindowId === targetWindowId) continue; // already here
 
-        clearPlaceholderInRenderer(targetWindowId);
+            // Is the tab also wanted by the window that currently owns the view?
+            const ownerWanted = windowWantedTabIds.get(viewOwnerWindowId);
+            if (ownerWanted?.has(tab.id)) {
+              // Both windows want this tab and the owner still has it active —
+              // don't fight the focus handler.
+              continue;
+            }
 
-        await moveTabToWindowIfNeeded(tab, targetWindow);
+            // The owner window no longer needs this tab — relocate it
+            const targetWindow = browserWindowsController.getWindowById(targetWindowId);
+            if (!targetWindow) continue;
 
-        // Let processActiveTabChange re-show the tab in the target window
-        const spaceId = targetWindow.currentSpaceId;
-        if (spaceId) {
-          tabsController.emit("active-tab-changed", targetWindowId, spaceId);
+            clearPlaceholderInRenderer(targetWindowId);
+
+            await moveTabToWindowIfNeeded(tab, targetWindow);
+
+            // Let processActiveTabChange re-show the tab in the target window
+            const spaceId = targetWindow.currentSpaceId;
+            if (spaceId) {
+              tabsController.emit("active-tab-changed", targetWindowId, spaceId);
+            }
+          }
         }
-      }
+      });
     }
   } finally {
     _relocating = false;
@@ -335,12 +354,13 @@ export function initTabSync(): void {
     const isStale = () => generation !== _focusMoveGeneration;
 
     // Async: capture screenshot, move tab, then emit active-tab-changed
-    moveActiveTabToWindow(window, isStale)
-      .then(() => {
-        if (isStale()) return;
-        const tabsController = getTabsController();
-        tabsController.emit("active-tab-changed", window.id, spaceId);
-      })
+    runTabSyncMutation(async () => {
+      if (isStale()) return;
+      await moveActiveTabToWindow(window, isStale);
+      if (isStale()) return;
+      const tabsController = getTabsController();
+      tabsController.emit("active-tab-changed", window.id, spaceId);
+    })
       .catch((err) => {
         console.error("[tab-sync] Failed to move active tab on focus:", err);
       });
@@ -369,3 +389,5 @@ export function initTabSync(): void {
     tabsController.cleanupWindowEntries(id);
   });
 }
+
+export { runTabSyncMutation };

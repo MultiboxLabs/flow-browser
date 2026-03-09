@@ -9,7 +9,7 @@ import { tabsController } from "@/controllers/tabs-controller";
 import { serializeTabForRenderer, serializeTabGroupForRenderer } from "@/saving/tabs/serialization";
 import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
 import { GlanceTabGroup } from "@/controllers/tabs-controller/tab-groups/glance";
-import { isTabSyncEnabled, moveTabOrGroupToWindow } from "@/controllers/tabs-controller/tab-sync";
+import { isTabSyncEnabled, moveTabOrGroupToWindow, runTabSyncMutation } from "@/controllers/tabs-controller/tab-sync";
 
 /**
  * Attempts to restore a tab's group membership after it has been recreated.
@@ -265,11 +265,18 @@ ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {
   const tab = tabsController.getTabById(tabId);
   if (!tab) return false;
 
-  // In sync mode, the tab may currently live in a different window.
-  // Move it (and its group) to the requesting window before activating.
-  // This also creates a screenshot placeholder in the old window.
-  if (isTabSyncEnabled() && tab.getWindow().id !== window.id) {
-    await moveTabOrGroupToWindow(tab, window);
+  if (isTabSyncEnabled()) {
+    await runTabSyncMutation(async () => {
+      // In sync mode, the tab may currently live in a different window.
+      // Move it (and its group) to the requesting window before activating.
+      // This also creates a screenshot placeholder in the old window.
+      if (tab.getWindow().id !== window.id) {
+        await moveTabOrGroupToWindow(tab, window);
+      }
+
+      tabsController.setActiveTab(tab);
+    });
+    return true;
   }
 
   tabsController.setActiveTab(tab);
