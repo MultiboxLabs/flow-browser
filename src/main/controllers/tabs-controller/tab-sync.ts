@@ -101,8 +101,11 @@ export function isTabSyncEnabled(): boolean {
 /**
  * Moves the active tab/group for a window-space into the given window.
  * Captures a screenshot before moving so the old window gets a placeholder.
+ *
+ * @param isStale — optional callback that returns true when a newer focus
+ *   event has fired, so this (now-outdated) move should be abandoned.
  */
-async function moveActiveTabToWindow(window: BrowserWindow): Promise<void> {
+async function moveActiveTabToWindow(window: BrowserWindow, isStale?: () => boolean): Promise<void> {
   const tabsController = getTabsController();
   const spaceId = window.currentSpaceId;
   if (!spaceId) return;
@@ -113,10 +116,11 @@ async function moveActiveTabToWindow(window: BrowserWindow): Promise<void> {
   clearPlaceholderInRenderer(window.id);
 
   if (activeTabOrGroup instanceof Tab) {
-    await moveTabToWindowIfNeeded(activeTabOrGroup, window);
+    await moveTabToWindowIfNeeded(activeTabOrGroup, window, isStale);
   } else if (activeTabOrGroup instanceof BaseTabGroup) {
     for (const tab of activeTabOrGroup.tabs) {
-      await moveTabToWindowIfNeeded(tab, window);
+      if (isStale?.()) return;
+      await moveTabToWindowIfNeeded(tab, window, isStale);
     }
   }
 }
@@ -125,13 +129,20 @@ async function moveActiveTabToWindow(window: BrowserWindow): Promise<void> {
  * Moves a single tab's view to a window if it isn't already there.
  * The placeholder is sent BEFORE moving so it loads behind the native view,
  * eliminating flicker. Resets `tab.visible` so the new window re-shows it.
+ *
+ * @param isStale — optional callback checked after the async screenshot
+ *   capture. If it returns true the move is abandoned (a newer focus event
+ *   superseded this one).
  */
-async function moveTabToWindowIfNeeded(tab: Tab, window: BrowserWindow): Promise<void> {
+async function moveTabToWindowIfNeeded(tab: Tab, window: BrowserWindow, isStale?: () => boolean): Promise<void> {
   if (tab.getWindow().id !== window.id) {
     const oldWindow = tab.getWindow();
 
     // Capture before the move — view must be attached for a valid surface
     const screenshot = await captureTabScreenshot(tab);
+
+    // A newer focus event arrived while we were capturing — abort
+    if (isStale?.()) return;
 
     // Send placeholder to old window before moving (loads behind the native view)
     if (screenshot) {
@@ -276,6 +287,15 @@ async function relocateDisplacedTabs(): Promise<void> {
   }
 }
 
+// Focus-move staleness detection
+//
+// When the app regains focus, the OS/Electron can fire a transient `focus`
+// event on the wrong window before the real target receives focus. Both
+// events trigger async tab moves that race. The generation counter lets
+// the stale move bail out after its async screenshot capture completes.
+
+let _focusMoveGeneration = 0;
+
 /** Initializes tab sync listeners. Call once at app startup. */
 export function initTabSync(): void {
   // Move the active tab's view to the focused window
@@ -288,9 +308,13 @@ export function initTabSync(): void {
     const spaceId = window.currentSpaceId;
     if (!spaceId) return;
 
+    const generation = ++_focusMoveGeneration;
+    const isStale = () => generation !== _focusMoveGeneration;
+
     // Async: capture screenshot, move tab, then emit active-tab-changed
-    moveActiveTabToWindow(window)
+    moveActiveTabToWindow(window, isStale)
       .then(() => {
+        if (isStale()) return;
         const tabsController = getTabsController();
         tabsController.emit("active-tab-changed", window.id, spaceId);
       })
