@@ -61,7 +61,7 @@ async function captureTabScreenshot(tab: Tab): Promise<Electron.NativeImage | nu
   }
 }
 
-/** Stores a snapshot and sends its URL to the target window's renderer. */
+/** Stores a snapshot and sends its ID to the target window's renderer. */
 function sendPlaceholderToRenderer(targetWindow: BrowserWindow, image: Electron.NativeImage): void {
   if (targetWindow.destroyed) return;
 
@@ -72,9 +72,7 @@ function sendPlaceholderToRenderer(targetWindow: BrowserWindow, image: Electron.
 
   const snapshotId = storeSnapshot(image);
   windowSnapshotId.set(targetWindow.id, snapshotId);
-
-  const url = `flow-internal://tab-snapshot?id=${snapshotId}`;
-  targetWindow.sendMessageToCoreWebContents("tabs:on-placeholder-changed", url);
+  targetWindow.sendMessageToCoreWebContents("tabs:on-placeholder-changed", snapshotId);
 }
 
 /** Clears the placeholder in a window and frees the stored snapshot. */

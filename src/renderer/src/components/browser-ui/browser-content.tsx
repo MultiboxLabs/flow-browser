@@ -24,14 +24,16 @@ function BrowserContent() {
 
   // Tab-sync placeholder: screenshot shown when the active tab's view
   // has been moved to another window.
-  const [placeholderUrl, setPlaceholderUrl] = useState<string | null>(null);
+  const [placeholderSnapshotId, setPlaceholderSnapshotId] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsub = flow.tabs.onPlaceholderChanged((url) => {
-      setPlaceholderUrl(url);
+    const unsub = flow.tabs.onPlaceholderChanged((snapshotId) => {
+      setPlaceholderSnapshotId(snapshotId);
     });
     return unsub;
   }, []);
+
+  const placeholderUrl = placeholderSnapshotId ? `flow-internal://tab-snapshot?id=${placeholderSnapshotId}` : null;
 
   // Derive sidebar visibility from the mode.
   // Floating sidebars are overlays (PortalComponent) and have zero layout impact.
@@ -83,7 +85,7 @@ function BrowserContent() {
           src={placeholderUrl}
           alt=""
           draggable={false}
-          onError={() => setPlaceholderUrl(null)}
+          onError={() => setPlaceholderSnapshotId(null)}
           className="absolute inset-0 w-full h-full rounded-lg object-fill opacity-50 pointer-events-none"
         />
       )}

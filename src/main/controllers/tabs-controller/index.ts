@@ -598,44 +598,6 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   }
 
   /**
-   * Sets the active tab/group for a specific window-space pair without
-   * deriving the window from the tab. Used when a tab's owner window
-   * differs from the target (e.g. inheriting an active tab during sync).
-   */
-  public setActiveTabForWindowSpace(windowId: number, spaceId: string, tabOrGroup: Tab | TabGroup): void {
-    const key = `${windowId}-${spaceId}` as WindowSpaceReference;
-    this.spaceActiveTabMap.set(key, tabOrGroup);
-  }
-
-  /**
-   * Ensures the target window-space has an active tab. If none is set,
-   * inherits from another window or picks the first tab in the space.
-   *
-   * Used in sync mode when a window switches spaces — the new space may
-   * have tabs but no active-tab entry for this specific window yet.
-   */
-  public ensureActiveTabForWindowSpace(windowId: number, spaceId: string): void {
-    if (this.getActiveTab(windowId, spaceId)) return;
-
-    // Inherit from another window that already has an active tab in this space
-    const allWindows = browserWindowsController.getWindows();
-    for (const otherWindow of allWindows) {
-      if (otherWindow.id === windowId) continue;
-      const otherActive = this.getActiveTab(otherWindow.id, spaceId);
-      if (otherActive) {
-        this.setActiveTabForWindowSpace(windowId, spaceId, otherActive);
-        return;
-      }
-    }
-
-    // Fallback: pick the first tab in the space
-    const tabsInSpace = this.getTabsInSpace(spaceId);
-    if (tabsInSpace.length > 0) {
-      this.setActiveTabForWindowSpace(windowId, spaceId, tabsInSpace[0]);
-    }
-  }
-
-  /**
    * Remove the active tab for a space and set a new one if possible
    */
   public removeActiveTab(windowId: number, spaceId: string) {
@@ -1027,12 +989,6 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
    */
   public setCurrentWindowSpace(windowId: number, spaceId: string) {
     this.windowActiveSpaceMap.set(windowId, spaceId);
-
-    // In sync mode, ensure the new window-space has an active tab
-    // (inherit from another window if needed).
-    if (isTabSyncEnabled()) {
-      this.ensureActiveTabForWindowSpace(windowId, spaceId);
-    }
 
     this.emit("current-space-changed", windowId, spaceId);
   }

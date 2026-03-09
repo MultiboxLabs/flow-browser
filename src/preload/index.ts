@@ -434,7 +434,7 @@ const tabsAPI: FlowTabsAPI = {
   onTabsContentUpdated: (callback: (tabs: TabData[]) => void) => {
     return listenOnIPCChannel("tabs:on-tabs-content-updated", callback);
   },
-  onPlaceholderChanged: (callback: (url: string | null) => void) => {
+  onPlaceholderChanged: (callback: (snapshotId: string | null) => void) => {
     return listenOnIPCChannel("tabs:on-placeholder-changed", callback);
   },
   switchToTab: async (tabId: number) => {
