@@ -1035,9 +1035,12 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   /**
    * Normalize tab positions to prevent drift to negative infinity.
    * Called periodically or when positions are getting too extreme.
+   *
+   * In sync mode the renderer shows ALL tabs in a space regardless of
+   * which window owns them, so normalization must cover the full set.
    */
   public normalizePositions(windowId: number, spaceId: string) {
-    const tabs = this.getTabsInWindowSpace(windowId, spaceId);
+    const tabs = isTabSyncEnabled() ? this.getTabsInSpace(spaceId) : this.getTabsInWindowSpace(windowId, spaceId);
     if (tabs.length === 0) return;
 
     // Sort by current position
