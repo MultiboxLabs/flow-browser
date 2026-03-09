@@ -657,6 +657,12 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
    * Set the focused tab for a space
    */
   private setFocusedTab(tab: Tab) {
+    for (const [key, focusedTab] of this.spaceFocusedTabMap.entries()) {
+      if (focusedTab.id === tab.id) {
+        this.spaceFocusedTabMap.delete(key);
+      }
+    }
+
     const windowSpaceReference = `${tab.getWindow().id}-${tab.spaceId}` as WindowSpaceReference;
     this.spaceFocusedTabMap.set(windowSpaceReference, tab);
     tab.webContents?.focus();
@@ -676,6 +682,37 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   public getFocusedTab(windowId: number, spaceId: string): Tab | undefined {
     const windowSpaceReference = `${windowId}-${spaceId}` as WindowSpaceReference;
     return this.spaceFocusedTabMap.get(windowSpaceReference);
+  }
+
+  /**
+   * Ensure the current active tab/group in a window-space has an actual focused tab.
+   * Used after sync-driven window moves where the tab view changes windows without
+   * producing a fresh webContents focus event on its own.
+   */
+  public focusActiveTab(windowId: number, spaceId: string): void {
+    const activeTabOrGroup = this.getActiveTab(windowId, spaceId);
+    if (!activeTabOrGroup) {
+      this.removeFocusedTab(windowId, spaceId);
+      return;
+    }
+
+    if (activeTabOrGroup instanceof Tab) {
+      this.setFocusedTab(activeTabOrGroup);
+      return;
+    }
+
+    const currentFocusedTab = this.getFocusedTab(windowId, spaceId);
+    if (currentFocusedTab && activeTabOrGroup.hasTab(currentFocusedTab.id)) {
+      this.setFocusedTab(currentFocusedTab);
+      return;
+    }
+
+    const nextFocusedTab = activeTabOrGroup.tabs[0];
+    if (nextFocusedTab) {
+      this.setFocusedTab(nextFocusedTab);
+    } else {
+      this.removeFocusedTab(windowId, spaceId);
+    }
   }
 
   // --- Tab Removal ---

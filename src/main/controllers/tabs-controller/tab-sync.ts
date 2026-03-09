@@ -380,6 +380,7 @@ export function initTabSync(): void {
       const currentSpaceId = window.currentSpaceId;
       if (!currentSpaceId) return;
       const tabsController = getTabsController();
+      tabsController.focusActiveTab(window.id, currentSpaceId);
       tabsController.emit("active-tab-changed", window.id, currentSpaceId);
     })
       .catch((err) => {
