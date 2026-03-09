@@ -83,6 +83,7 @@ function BrowserContent() {
           src={placeholderUrl}
           alt=""
           draggable={false}
+          onError={() => setPlaceholderUrl(null)}
           className="absolute inset-0 w-full h-full rounded-lg object-fill opacity-50 pointer-events-none"
         />
       )}

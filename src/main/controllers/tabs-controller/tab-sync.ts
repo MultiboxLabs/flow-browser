@@ -9,7 +9,7 @@
 import { getSettingValueById } from "@/saving/settings";
 import { windowsController } from "@/controllers/windows-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
-import { BrowserWindow } from "@/controllers/windows-controller/types";
+import type { BrowserWindow } from "@/controllers/windows-controller/types";
 import {
   storeSnapshot,
   removeSnapshot
@@ -180,34 +180,40 @@ export async function moveTabOrGroupToWindow(tab: Tab, window: BrowserWindow): P
 }
 
 /**
- * Ensures the target window has an active tab for the given space.
- * If none is set, inherits from another window or picks the first tab.
- * Sets `spaceActiveTabMap` directly (can't use `setActiveTab()` because
- * it derives windowId from the tab's current window).
+ * Relocates tabs from a closing window to a surviving window.
+ *
+ * Called from BrowserWindow.destroy(). When sync is enabled and other browser
+ * windows exist, tabs are moved instead of destroyed so the shared tab set
+ * survives the window close.
+ *
+ * @param tabs  Tabs that belonged to the closing window (captured before the
+ *              window was removed from the controller).
+ * @returns `true` if tabs were relocated (caller should skip destruction).
  */
-export function ensureActiveTabForWindowSpace(windowId: number, spaceId: string): void {
+export function relocateTabsFromClosingWindow(tabs: Tab[]): boolean {
+  if (!isTabSyncEnabled()) return false;
+
+  const survivingWindows = browserWindowsController.getWindows();
+  if (survivingWindows.length === 0) return false;
+
   const tabsController = getTabsController();
-  const existing = tabsController.getActiveTab(windowId, spaceId);
-  if (existing) return;
+  const targetWindow = survivingWindows[0];
 
-  // Find an active tab/group from another window in the same space
-  const allWindows = browserWindowsController.getWindows();
-  for (const otherWindow of allWindows) {
-    if (otherWindow.id === windowId) continue;
-    const otherActive = tabsController.getActiveTab(otherWindow.id, spaceId);
-    if (otherActive) {
-      const key = `${windowId}-${spaceId}` as `${number}-${string}`;
-      tabsController.spaceActiveTabMap.set(key, otherActive);
-      return;
-    }
+  for (const tab of tabs) {
+    tab.visible = false;
+    tab.setWindow(targetWindow);
+
+    const layoutManager = tabsController.getLayoutManager(tab.id);
+    layoutManager?.onWindowChanged();
   }
 
-  // Fallback: pick the first tab in the space
-  const tabsInSpace = tabsController.getTabsInSpace(spaceId);
-  if (tabsInSpace.length > 0) {
-    const key = `${windowId}-${spaceId}` as `${number}-${string}`;
-    tabsController.spaceActiveTabMap.set(key, tabsInSpace[0]);
+  // Re-run layout so the surviving window shows the correct active tab
+  const targetSpaceId = targetWindow.currentSpaceId;
+  if (targetSpaceId) {
+    tabsController.emit("active-tab-changed", targetWindow.id, targetSpaceId);
   }
+
+  return true;
 }
 
 // Automatic tab relocation

@@ -14,8 +14,7 @@ import { spacesController } from "@/controllers/spaces-controller";
 import { tabPersistenceManager } from "@/saving/tabs";
 import { quitController } from "@/controllers/quit-controller";
 import { hex_is_light } from "@/modules/utils";
-import { getSettingValueById } from "@/saving/settings";
-import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { relocateTabsFromClosingWindow } from "@/controllers/tabs-controller/tab-sync";
 import { ViewLayer } from "~/layers";
 import {
   SidebarInterpolation,
@@ -367,38 +366,18 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       this.sidebarInterpolation = null;
     }
 
-    const closingWindowId = this.id;
-    const tabsInClosingWindow = tabsController.getTabsInWindow(closingWindowId);
+    const closingWindowTabs = tabsController.getTabsInWindow(this.id);
 
     const result = super.destroy(...args);
     if (result) {
       // Skip during quit — the process is dying and the database is already closed,
       // so calling tab.destroy() would crash when it tries to access SQLite.
       if (!quitController.isQuitting) {
-        const syncEnabled = getSettingValueById("syncTabsAcrossWindows") === true;
-        const survivingWindows = browserWindowsController.getWindows();
-
-        if (syncEnabled && survivingWindows.length > 0) {
-          // In sync mode, relocate tabs to a surviving window instead of destroying them.
-          const targetWindow = survivingWindows[0];
-
-          for (const tab of tabsInClosingWindow) {
-            tab.visible = false;
-            tab.setWindow(targetWindow);
-
-            const layoutManager = tabsController.getLayoutManager(tab.id);
-            layoutManager?.onWindowChanged();
-          }
-
-          // Ensure the surviving window has an active tab and re-runs layout
-          const targetSpaceId = targetWindow.currentSpaceId;
-          if (targetSpaceId) {
-            tabsController.emit("active-tab-changed", targetWindow.id, targetSpaceId);
-          }
-        } else {
-          // Normal mode (or last window closing): destroy tabs after a delay
+        // In sync mode, relocate tabs to a surviving window instead of destroying them.
+        // Falls through to destruction when sync is off or no other windows exist.
+        if (!relocateTabsFromClosingWindow(closingWindowTabs)) {
           setTimeout(() => {
-            for (const tab of tabsInClosingWindow) {
+            for (const tab of closingWindowTabs) {
               tab.destroy();
             }
           }, 500);

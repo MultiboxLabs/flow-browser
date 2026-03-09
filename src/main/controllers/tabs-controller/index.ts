@@ -18,7 +18,7 @@ import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
 import { FLAGS } from "@/modules/flags";
 import { quitController } from "@/controllers/quit-controller";
-import { ensureActiveTabForWindowSpace, isTabSyncEnabled, registerTabsController } from "./tab-sync";
+import { isTabSyncEnabled, registerTabsController } from "./tab-sync";
 
 export const NEW_TAB_URL = "flow://new-tab";
 const ARCHIVE_CHECK_INTERVAL_MS = 10 * 1000;
@@ -57,7 +57,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
   // Window Space Maps
   public windowActiveSpaceMap: Map<number, string>;
-  public spaceActiveTabMap: Map<WindowSpaceReference, Tab | TabGroup>;
+  private spaceActiveTabMap: Map<WindowSpaceReference, Tab | TabGroup>;
   public spaceFocusedTabMap: Map<WindowSpaceReference, Tab>;
   /** Activation history stores both tab IDs (number) and group IDs (string) */
   public spaceActivationHistory: Map<WindowSpaceReference, (number | string)[]>;
@@ -598,6 +598,44 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   }
 
   /**
+   * Sets the active tab/group for a specific window-space pair without
+   * deriving the window from the tab. Used when a tab's owner window
+   * differs from the target (e.g. inheriting an active tab during sync).
+   */
+  public setActiveTabForWindowSpace(windowId: number, spaceId: string, tabOrGroup: Tab | TabGroup): void {
+    const key = `${windowId}-${spaceId}` as WindowSpaceReference;
+    this.spaceActiveTabMap.set(key, tabOrGroup);
+  }
+
+  /**
+   * Ensures the target window-space has an active tab. If none is set,
+   * inherits from another window or picks the first tab in the space.
+   *
+   * Used in sync mode when a window switches spaces — the new space may
+   * have tabs but no active-tab entry for this specific window yet.
+   */
+  public ensureActiveTabForWindowSpace(windowId: number, spaceId: string): void {
+    if (this.getActiveTab(windowId, spaceId)) return;
+
+    // Inherit from another window that already has an active tab in this space
+    const allWindows = browserWindowsController.getWindows();
+    for (const otherWindow of allWindows) {
+      if (otherWindow.id === windowId) continue;
+      const otherActive = this.getActiveTab(otherWindow.id, spaceId);
+      if (otherActive) {
+        this.setActiveTabForWindowSpace(windowId, spaceId, otherActive);
+        return;
+      }
+    }
+
+    // Fallback: pick the first tab in the space
+    const tabsInSpace = this.getTabsInSpace(spaceId);
+    if (tabsInSpace.length > 0) {
+      this.setActiveTabForWindowSpace(windowId, spaceId, tabsInSpace[0]);
+    }
+  }
+
+  /**
    * Remove the active tab for a space and set a new one if possible
    */
   public removeActiveTab(windowId: number, spaceId: string) {
@@ -993,7 +1031,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     // In sync mode, ensure the new window-space has an active tab
     // (inherit from another window if needed).
     if (isTabSyncEnabled()) {
-      ensureActiveTabForWindowSpace(windowId, spaceId);
+      this.ensureActiveTabForWindowSpace(windowId, spaceId);
     }
 
     this.emit("current-space-changed", windowId, spaceId);
