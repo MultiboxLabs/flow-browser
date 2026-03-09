@@ -227,7 +227,7 @@ export async function moveTabOrGroupToWindow(tab: Tab, window: BrowserWindow): P
 export function relocateTabsFromClosingWindow(closingWindowId: number, tabs: Tab[]): boolean {
   if (!isTabSyncEnabled()) return false;
 
-  const survivingWindows = browserWindowsController.getWindows();
+  const survivingWindows = browserWindowsController.getWindows().filter((w) => w.id !== closingWindowId);
   if (survivingWindows.length === 0) return false;
 
   const tabsController = getTabsController();
