@@ -82,7 +82,7 @@ function getActionForType(type: AutocompleteMatch["type"]) {
     case "zero-suggest":
     default:
       return "Navigate";
-    }
+  }
 }
 
 export function OmniboxMain() {
