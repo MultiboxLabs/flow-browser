@@ -1,5 +1,6 @@
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { onboarding } from "@/controllers/windows-controller/interfaces/onboarding";
+import { posthogController } from "@/controllers/posthog-controller";
 import { SettingsDataStore } from "@/saving/settings";
 import { debugPrint } from "@/modules/output";
 import { app } from "electron";
@@ -40,6 +41,8 @@ export async function setOnboardingCompleted() {
   await SettingsDataStore.set(ONBOARDING_KEY, ONBOARDING_VERSION);
   onboardingCompleted = true;
   onboarding.hide();
+
+  posthogController.captureEvent("onboarding-completed");
 
   if (browserWindowsController.getWindows().length === 0) {
     browserWindowsController.create();

@@ -21,3 +21,8 @@ import "./loaded-profiles-controller";
 import "./tabs-controller";
 import "./handoff-controller";
 import "./sessions-controller";
+
+// Observability: wires up PostHog event tracking across all controllers.
+// Must be imported after all controllers are instantiated.
+import { initializeObservability } from "./posthog-controller/observability";
+initializeObservability();
