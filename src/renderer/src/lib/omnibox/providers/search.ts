@@ -94,8 +94,8 @@ function mapVerbatimRelevance(serverVerbatimRelevance: number | undefined, input
   // If server says low verbatim, we reduce our score; if high, we keep ours.
   // Server typically sends 851 for normal queries, higher when confident.
   if (serverVerbatimRelevance >= 1300) {
-    // Server is very confident — boost up to 1400
-    return Math.min(serverVerbatimRelevance, 1400);
+    // Server is very confident — boost up to 1400, but never below our explicit input intent.
+    return Math.max(baseRelevance, Math.min(serverVerbatimRelevance, 1400));
   } else if (serverVerbatimRelevance < 600) {
     // Server says verbatim is very low relevance — reduce ours
     return Math.min(baseRelevance, 1100);

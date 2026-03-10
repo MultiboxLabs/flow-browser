@@ -25,6 +25,10 @@ export class Omnibox {
 
   /** Whether the initial load of the omnibox URL has completed. */
   private initialLoadComplete: boolean = false;
+  /** Whether the renderer has registered its IPC listeners and can receive show events. */
+  private rendererReady: boolean = false;
+  /** Most recent show payload queued while waiting for renderer readiness. */
+  private pendingShowParams: OmniboxShowParams | null = null;
 
   constructor(parentWindow: BrowserWindow) {
     debugPrint("OMNIBOX", `Creating new omnibox for window ${parentWindow.id}`);
@@ -53,6 +57,10 @@ export class Omnibox {
     parentWindow.on("resize", () => {
       debugPrint("OMNIBOX", "Parent window resize event received");
       this.updateBounds();
+    });
+
+    onmiboxWC.on("did-start-loading", () => {
+      this.rendererReady = false;
     });
 
     // Track when the initial load finishes
@@ -91,6 +99,15 @@ export class Omnibox {
 
     // If the omnibox renderer is already loaded, send params via IPC instead of reloading
     if (this.initialLoadComplete) {
+      if (!this.rendererReady) {
+        debugPrint("OMNIBOX", "Renderer not ready yet, queueing show event until listener registration");
+        this.pendingShowParams = {
+          currentInput: params?.currentInput ?? null,
+          openIn: (params?.openIn as "current" | "new_tab") ?? "new_tab"
+        };
+        return;
+      }
+
       debugPrint("OMNIBOX", "Omnibox already loaded, sending show event via IPC instead of reloading");
       const showParams: OmniboxShowParams = {
         currentInput: params?.currentInput ?? null,
@@ -137,7 +154,27 @@ export class Omnibox {
       return;
     }
 
+    if (!this.rendererReady) {
+      debugPrint("OMNIBOX", "Renderer not ready yet, queueing show event");
+      this.pendingShowParams = params;
+      return;
+    }
+
     debugPrint("OMNIBOX", `Sending show event with params: ${JSON.stringify(params)}`);
+    this.webContents.send("omnibox:do-show", params);
+  }
+
+  markRendererReady() {
+    this.assertNotDestroyed();
+    this.rendererReady = true;
+
+    if (!this.pendingShowParams) {
+      return;
+    }
+
+    const params = this.pendingShowParams;
+    this.pendingShowParams = null;
+    debugPrint("OMNIBOX", "Renderer ready, flushing queued show event");
     this.webContents.send("omnibox:do-show", params);
   }
 

@@ -44,3 +44,17 @@ ipcMain.on("omnibox:hide", (event) => {
   const omnibox = parentWindow.omnibox;
   omnibox.hide();
 });
+
+ipcMain.on("omnibox:renderer-ready", (event) => {
+  const omniboxWindow = browserWindowsManager
+    .getAll()
+    .find((window) => "omnibox" in window && window.omnibox.webContents === event.sender);
+
+  if (!omniboxWindow || !browserWindowsManager.isInstanceOf(omniboxWindow)) {
+    debugPrint("OMNIBOX", "Renderer-ready received for unknown omnibox webContents");
+    return;
+  }
+
+  debugPrint("OMNIBOX", "Renderer reported ready for IPC show events");
+  omniboxWindow.omnibox.markRendererReady();
+});
