@@ -1,68 +1,54 @@
-interface HistoryEntry {
-  id: number;
-  url: string;
-  title: string;
-  visitCount: number;
-  typedCount: number; // How often typed directly
-  lastVisitTime: number; // Timestamp
+import type { HistoryEntry } from "~/flow/interfaces/browser/history";
+
+export type { HistoryEntry };
+
+/**
+ * Get significant history entries from the main process via IPC.
+ * These are entries that are typed, frequently visited, or recently visited.
+ * Used for IMUI population and quick matching.
+ */
+export async function getSignificantHistory(): Promise<HistoryEntry[]> {
+  try {
+    return await flow.history.getSignificant();
+  } catch (err) {
+    console.error("[HistoryDataProvider] Failed to get significant history:", err);
+    return [];
+  }
 }
 
-const MOCK_HISTORY_ENABLED = false;
-
-const MOCK_HISTORY: HistoryEntry[] = [
-  {
-    id: 1,
-    url: "https://www.google.com/",
-    title: "Google",
-    visitCount: 100,
-    typedCount: 20,
-    lastVisitTime: Date.now() - 86400000 * 1
-  },
-  {
-    id: 2,
-    url: "https://github.com/",
-    title: "GitHub",
-    visitCount: 50,
-    typedCount: 10,
-    lastVisitTime: Date.now() - 86400000 * 2
-  },
-  {
-    id: 3,
-    url: "https://stackoverflow.com/questions",
-    title: "Stack Overflow - Questions",
-    visitCount: 80,
-    typedCount: 5,
-    lastVisitTime: Date.now() - 3600000 * 5
-  },
-  {
-    id: 4,
-    url: "https://developer.mozilla.org/en-US/",
-    title: "MDN Web Docs",
-    visitCount: 30,
-    typedCount: 2,
-    lastVisitTime: Date.now() - 86400000 * 7
-  },
-  {
-    id: 5,
-    url: "http://localhost:3000/",
-    title: "Local Dev Server",
-    visitCount: 200,
-    typedCount: 50,
-    lastVisitTime: Date.now() - 3600000 * 1
-  },
-  {
-    id: 6,
-    url: "https://news.ycombinator.com/",
-    title: "Hacker News",
-    visitCount: 60,
-    typedCount: 8,
-    lastVisitTime: Date.now() - 86400000 * 3
+/**
+ * Search history by query string (URL or title substring).
+ * Used by HistoryURLProvider for async DB-backed matching.
+ */
+export async function searchHistory(query: string, limit?: number): Promise<HistoryEntry[]> {
+  try {
+    return await flow.history.search(query, limit);
+  } catch (err) {
+    console.error("[HistoryDataProvider] Failed to search history:", err);
+    return [];
   }
-];
+}
 
-export async function getHistory() {
-  if (MOCK_HISTORY_ENABLED) {
-    return MOCK_HISTORY;
+/**
+ * Get recent history entries for zero-suggest.
+ */
+export async function getRecentHistory(limit?: number): Promise<HistoryEntry[]> {
+  try {
+    return await flow.history.getRecent(limit);
+  } catch (err) {
+    console.error("[HistoryDataProvider] Failed to get recent history:", err);
+    return [];
   }
-  return [];
+}
+
+/**
+ * Get most visited history entries for zero-suggest.
+ */
+export async function getMostVisitedHistory(limit?: number): Promise<HistoryEntry[]> {
+  try {
+    return await flow.history.getMostVisited(limit);
+  } catch (err) {
+    console.error("[HistoryDataProvider] Failed to get most visited history:", err);
+    return [];
+  }
 }

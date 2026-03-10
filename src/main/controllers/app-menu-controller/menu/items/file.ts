@@ -47,7 +47,7 @@ export const createFileMenu = (): MenuItemConstructorOptions => ({
           omnibox.hide();
         } else {
           omnibox.setBounds(null);
-          omnibox.loadInterface(null);
+          omnibox.sendShowEvent({ currentInput: null, openIn: "new_tab" });
           omnibox.show();
         }
       }
