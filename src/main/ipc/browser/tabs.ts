@@ -9,6 +9,7 @@ import { tabsController } from "@/controllers/tabs-controller";
 import { serializeTabForRenderer, serializeTabGroupForRenderer } from "@/saving/tabs/serialization";
 import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
 import { GlanceTabGroup } from "@/controllers/tabs-controller/tab-groups/glance";
+import { registerToken, validateAndConsumeToken } from "@/ipc/app/drag-token";
 
 /**
  * Attempts to restore a tab's group membership after it has been recreated.
@@ -335,46 +336,63 @@ ipcMain.handle("tabs:move-tab", async (event, tabId: number, newPosition: number
   return true;
 });
 
-ipcMain.handle("tabs:move-tab-to-window-space", async (event, tabId: number, spaceId: string, newPosition?: number) => {
-  const webContents = event.sender;
-  const window = browserWindowsController.getWindowFromWebContents(webContents);
-  if (!window) return false;
-
-  const tab = tabsController.getTabById(tabId);
-  if (!tab) return false;
-
-  const space = await spacesController.get(spaceId);
-  if (!space) return false;
-
-  // Capture source space before move (for normalizing after)
-  const sourceSpaceId = tab.spaceId;
-
-  // Collect all tabs to move (includes tab group members)
-  let targetTabs: Tab[] = [tab];
-  const tabGroup = tabsController.getTabGroupByTabId(tab.id);
-  if (tabGroup) {
-    targetTabs = tabGroup.tabs;
-  }
-
-  // Move all tabs in the group to the new space
-  for (const targetTab of targetTabs) {
-    targetTab.setSpace(spaceId);
-    targetTab.setWindow(window);
-
-    if (newPosition !== undefined) {
-      targetTab.updateStateProperty("position", newPosition);
-    }
-  }
-
-  // Normalize positions in both source and target spaces
-  tabsController.normalizePositions(window.id, spaceId);
-  if (sourceSpaceId !== spaceId) {
-    tabsController.normalizePositions(window.id, sourceSpaceId);
-  }
-
-  tabsController.setActiveTab(tab);
-  return true;
+ipcMain.on("drag:register-token", (_event, token: string, tabId: number) => {
+  registerToken(token, tabId);
 });
+
+ipcMain.handle(
+  "tabs:move-tab-to-window-space",
+  async (event, tabId: number, spaceId: string, newPosition?: number, dragToken?: string) => {
+    const webContents = event.sender;
+    const window = browserWindowsController.getWindowFromWebContents(webContents);
+    if (!window) return false;
+
+    const tab = tabsController.getTabById(tabId);
+    if (!tab) return false;
+
+    const space = await spacesController.get(spaceId);
+    if (!space) return false;
+
+    // For external cross-window drops a one-use drag token is required.
+    // Validate and consume it before proceeding so it cannot be replayed.
+    if (dragToken !== undefined) {
+      if (!validateAndConsumeToken(dragToken, tabId)) return false;
+    }
+
+    // Capture source location before move (for normalizing after)
+    const sourceSpaceId = tab.spaceId;
+    const sourceWindowId = tab.getWindow()?.id;
+
+    // Collect all tabs to move (includes tab group members)
+    let targetTabs: Tab[] = [tab];
+    const tabGroup = tabsController.getTabGroupByTabId(tab.id);
+    if (tabGroup) {
+      targetTabs = tabGroup.tabs;
+    }
+
+    // Move all tabs in the group to the new space
+    for (const targetTab of targetTabs) {
+      targetTab.setSpace(spaceId);
+      targetTab.setWindow(window);
+
+      if (newPosition !== undefined) {
+        targetTab.updateStateProperty("position", newPosition);
+      }
+    }
+
+    // Normalize positions in the target space
+    tabsController.normalizePositions(window.id, spaceId);
+
+    // Normalize positions in the source space (may be in a different window for cross-window moves)
+    if (sourceSpaceId !== spaceId || sourceWindowId !== window.id) {
+      const normalizeWindowId = sourceWindowId ?? window.id;
+      tabsController.normalizePositions(normalizeWindowId, sourceSpaceId);
+    }
+
+    tabsController.setActiveTab(tab);
+    return true;
+  }
+);
 
 ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
   const webContents = event.sender;

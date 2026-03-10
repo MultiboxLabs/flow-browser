@@ -3,8 +3,15 @@ import { cn } from "@/lib/utils";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { SpaceIcon } from "@/lib/phosphor-icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { TabGroupSourceData } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
+import {
+  type TabGroupSourceData,
+  canDropExternalTabGroup,
+  canDropElementTabGroup,
+  parseExternalTabGroupDrop
+} from "@/lib/tab-drag-mime";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
+import { dropTargetForExternal } from "@atlaskit/pragmatic-drag-and-drop/external/adapter";
+import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 import { AnimatePresence, motion } from "motion/react";
 
 // Layout constants (px)
@@ -64,35 +71,57 @@ function SpaceButton({ space, isActive, compact }: SpaceButtonProps) {
       removeDraggingTimeout();
     }
 
-    return dropTargetForElements({
-      element,
-      canDrop: (args) => {
-        const sourceData = args.source.data as TabGroupSourceData;
-        if (sourceData.type !== "tab-group") return false;
+    function handleDrop(sourceData: TabGroupSourceData, isExternal: boolean) {
+      stopDragging();
 
-        const sourceProfileId = sourceData.profileId;
-        const targetProfileId = space.profileId;
-
-        // Does not support moving tabs between profiles
-        if (sourceProfileId !== targetProfileId) return false;
-
-        // Don't allow dropping on the space the tab is already in
-        if (sourceData.spaceId === space.id) return false;
-
-        return true;
-      },
-      onDragEnter: startDragging,
-      onDrag: startDragging,
-      onDragLeave: stopDragging,
-      onDrop: (args) => {
-        stopDragging();
-
-        // Move the tab to this space (no specific position — append to end)
-        const sourceData = args.source.data as TabGroupSourceData;
-        const sourceTabId = sourceData.primaryTabId;
-        flow.tabs.moveTabToWindowSpace(sourceTabId, space.id);
+      // Validate profile compatibility
+      if (sourceData.profileId !== space.profileId) {
+        // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
+        return;
       }
-    });
+
+      // For external (cross-window) drops, always move via IPC even if same space
+      if (!isExternal && sourceData.spaceId === space.id) {
+        return;
+      }
+
+      // Move the tab to this space (no specific position — append to end)
+      const sourceTabId = sourceData.primaryTabId;
+      flow.tabs.moveTabToWindowSpace(sourceTabId, space.id, undefined, sourceData.dragToken);
+    }
+
+    return combine(
+      dropTargetForElements({
+        element,
+        canDrop: (args) =>
+          canDropElementTabGroup(args.source.data, {
+            profileId: space.profileId,
+            excludeSpaceId: space.id
+          }),
+        onDragEnter: startDragging,
+        onDrag: startDragging,
+        onDragLeave: stopDragging,
+        onDrop: (args) => {
+          const sourceData = args.source.data as TabGroupSourceData;
+          handleDrop(sourceData, false);
+        }
+      }),
+
+      dropTargetForExternal({
+        element,
+        canDrop: (args) => canDropExternalTabGroup(args.source.types, space.profileId),
+        onDragEnter: startDragging,
+        onDrag: startDragging,
+        onDragLeave: stopDragging,
+        onDrop: (args) => {
+          stopDragging();
+
+          const sourceData = parseExternalTabGroupDrop(args.source);
+          if (!sourceData) return;
+          handleDrop(sourceData, true);
+        }
+      })
+    );
   }, [onClick, removeDraggingTimeout, space.profileId, space.id]);
 
   const showIcon = !compact || isHovered || isActive;

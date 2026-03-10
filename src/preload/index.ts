@@ -449,8 +449,12 @@ const tabsAPI: FlowTabsAPI = {
     return ipcRenderer.invoke("tabs:move-tab", tabId, newPosition);
   },
 
-  moveTabToWindowSpace: async (tabId: number, spaceId: string, newPosition?: number) => {
-    return ipcRenderer.invoke("tabs:move-tab-to-window-space", tabId, spaceId, newPosition);
+  moveTabToWindowSpace: async (tabId: number, spaceId: string, newPosition?: number, dragToken?: string) => {
+    return ipcRenderer.invoke("tabs:move-tab-to-window-space", tabId, spaceId, newPosition, dragToken);
+  },
+
+  registerDragToken: (token: string, tabId: number) => {
+    ipcRenderer.send("drag:register-token", token, tabId);
   },
 
   // Special Exception: This is allowed for all internal protocols.
