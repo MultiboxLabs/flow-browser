@@ -126,6 +126,17 @@ export class Omnibox {
    */
   sendShowEvent(params: OmniboxShowParams) {
     this.assertNotDestroyed();
+
+    if (!this.initialLoadComplete) {
+      debugPrint("OMNIBOX", "Initial load not complete, routing show event through loadInterface");
+      const queryParams: QueryParams = { openIn: params.openIn };
+      if (params.currentInput !== null) {
+        queryParams.currentInput = params.currentInput;
+      }
+      this.loadInterface(queryParams);
+      return;
+    }
+
     debugPrint("OMNIBOX", `Sending show event with params: ${JSON.stringify(params)}`);
     this.webContents.send("omnibox:do-show", params);
   }

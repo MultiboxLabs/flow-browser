@@ -1,5 +1,5 @@
 import { getDb, schema } from "@/saving/db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import type { OmniboxShortcutRow } from "@/saving/db/schema";
 
 /**
@@ -67,7 +67,7 @@ export class OmniboxShortcutsService {
   /**
    * Search for shortcuts matching the given input text.
    * Returns shortcuts where the stored inputText is a prefix of (or equal to)
-   * the current input, ordered by relevance (hit count decayed by recency).
+   * the current input, ordered by frequency and recency before provider-side scoring.
    *
    * @param inputText The text the user has typed so far
    * @param limit Maximum results to return
@@ -87,7 +87,7 @@ export class OmniboxShortcutsService {
         .select()
         .from(schema.omniboxShortcuts)
         .where(sql`${normalizedInput} LIKE ${schema.omniboxShortcuts.inputText} || '%'`)
-        .orderBy(desc(schema.omniboxShortcuts.lastAccessTime))
+        .orderBy(desc(schema.omniboxShortcuts.hitCount), desc(schema.omniboxShortcuts.lastAccessTime))
         .limit(limit)
         .all();
     } catch (err) {

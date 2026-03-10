@@ -108,9 +108,13 @@ export class AutocompleteController {
     if (this.activeProviders > 0) {
       console.log("AutocompleteController: Stopping active providers.");
       this.providers.forEach((provider) => provider.stop());
-      this.activeProviders = 0;
-      this.currentInput = null;
     }
+
+    this.activeProviders = 0;
+    this.currentInput = null;
+    this._userIsNavigating = false;
+    this.pendingMatches = [];
+    this.providerStartTimes.clear();
   }
 
   /**

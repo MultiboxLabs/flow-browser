@@ -25,10 +25,9 @@ export function normalizeUrlForDedup(url: string): string {
     let host = parsed.hostname.toLowerCase();
     if (host.startsWith("www.")) host = host.slice(4);
 
-    // Remove default ports
-    // (new URL already strips default ports, but be explicit)
+    // new URL() already strips scheme-default ports, so any remaining port is significant.
     const port = parsed.port;
-    const hasNonDefaultPort = port && port !== "80" && port !== "443";
+    const hasNonDefaultPort = port !== "";
     const portSuffix = hasNonDefaultPort ? `:${port}` : "";
 
     // Normalize path: remove trailing slash (for all paths, not just root)
