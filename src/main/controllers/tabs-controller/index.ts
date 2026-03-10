@@ -32,6 +32,11 @@ type TabsControllerEvents = {
 
 type WindowSpaceReference = `${number}-${string}`;
 
+function shouldPersistTab(tab: Tab): boolean {
+  if (tab.loadedProfile.profileData.ephemeral) return false;
+  return true;
+}
+
 /**
  * Per-tab managers that the controller owns.
  * Stored alongside each Tab so the controller can call lifecycle/layout methods.
@@ -294,9 +299,11 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       windowTabContentChanged(tab.getWindow().id, tab.id);
 
       // Mark tab dirty for persistence
-      const windowGroupId = `w-${tab.getWindow().id}`;
-      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-      tabPersistenceManager.markDirty(tab.uniqueId, serialized);
+      if (shouldPersistTab(tab)) {
+        const windowGroupId = `w-${tab.getWindow().id}`;
+        const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
+        tabPersistenceManager.markDirty(tab.uniqueId, serialized);
+      }
     });
     tab.on("space-changed", () => {
       if (quitController.isQuitting) return;
@@ -305,9 +312,11 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       windowTabsChanged(tab.getWindow().id);
 
       // Mark tab dirty for persistence
-      const windowGroupId = `w-${tab.getWindow().id}`;
-      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-      tabPersistenceManager.markDirty(tab.uniqueId, serialized);
+      if (shouldPersistTab(tab)) {
+        const windowGroupId = `w-${tab.getWindow().id}`;
+        const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
+        tabPersistenceManager.markDirty(tab.uniqueId, serialized);
+      }
     });
     tab.on("window-changed", (oldWindowId) => {
       if (quitController.isQuitting) return;
@@ -319,9 +328,11 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       }
 
       // Mark tab dirty for persistence
-      const windowGroupId = `w-${tab.getWindow().id}`;
-      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-      tabPersistenceManager.markDirty(tab.uniqueId, serialized);
+      if (shouldPersistTab(tab)) {
+        const windowGroupId = `w-${tab.getWindow().id}`;
+        const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
+        tabPersistenceManager.markDirty(tab.uniqueId, serialized);
+      }
     });
     tab.on("focused", () => {
       if (this.isTabActive(tab)) {
@@ -353,16 +364,20 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       }
 
       // Add to recently closed (user-initiated close only)
-      const windowGroupId = `w-${tab.getWindow().id}`;
-      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-      const group = this.getTabGroupByTabId(tab.id);
-      const groupData = group ? serializeTabGroup(group) : undefined;
-      recentlyClosedManager
-        .add(serialized, groupData)
-        .catch((err) => console.error("[TabsController] Failed to save recently closed tab:", err));
+      if (shouldPersistTab(tab)) {
+        const windowGroupId = `w-${tab.getWindow().id}`;
+        const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
+        const group = this.getTabGroupByTabId(tab.id);
+        const groupData = group ? serializeTabGroup(group) : undefined;
+        recentlyClosedManager
+          .add(serialized, groupData)
+          .catch((err) => console.error("[TabsController] Failed to save recently closed tab:", err));
+      }
 
       // Remove from persistence
-      tabPersistenceManager.markRemoved(tab.uniqueId);
+      if (shouldPersistTab(tab)) {
+        tabPersistenceManager.markRemoved(tab.uniqueId);
+      }
 
       // Remove managers
       this.tabManagers.delete(tab.id);
@@ -372,9 +387,11 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     });
 
     // --- Initial persistence ---
-    const windowGroupId = `w-${windowId}`;
-    const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-    tabPersistenceManager.markDirty(tab.uniqueId, serialized);
+    if (shouldPersistTab(tab)) {
+      const windowGroupId = `w-${windowId}`;
+      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
+      tabPersistenceManager.markDirty(tab.uniqueId, serialized);
+    }
 
     // Return tab
     this.emit("tab-created", tab);

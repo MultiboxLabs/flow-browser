@@ -31,6 +31,10 @@ ipcMain.handle("updates:install-update", () => {
   return autoUpdateController.installUpdate();
 });
 
+ipcMain.handle("updates:has-updated", () => {
+  return autoUpdateController.hasUpdated;
+});
+
 export function fireUpdateStatusChanged(updateStatus: UpdateStatus) {
   sendMessageToListeners("updates:on-update-status-changed", updateStatus);
 }

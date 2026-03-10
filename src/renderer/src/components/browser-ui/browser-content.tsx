@@ -65,7 +65,9 @@ function BrowserContent() {
     });
   }, [onSidebarResize]);
 
-  return <div className={cn("rounded-lg", "flex-1 relative remove-app-drag", "bg-white/20")} />;
+  return (
+    <div className={cn("rounded-lg", "flex-1 relative remove-app-drag", "bg-white/20", "shadow-xl shadow-black/20")} />
+  );
 }
 
 // Use memo to prevent unnecessary re-renders

@@ -1,8 +1,15 @@
 // This controller handles all profile related operations
 // The raw controller is used to handle the raw data operations, and operations are cached here
 
-import { RawProfilesController, ProfileData, ProfileDataSchema } from "@/controllers/profiles-controller/raw";
+import {
+  RawProfilesController,
+  ProfileData,
+  ProfileDataSchema,
+  ExtraProfileCreationInfo
+} from "@/controllers/profiles-controller/raw";
+import { spacesController } from "@/controllers/spaces-controller";
 import { debugError } from "@/modules/output";
+import { createIncognitoProfileId } from "@/modules/incognito/utils";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { generateID } from "@/modules/utils";
 
@@ -18,7 +25,7 @@ type ProfilesControllerEvents = {
 };
 
 // Re-exporting Schema
-export { type ProfileData, ProfileDataSchema };
+export { type ProfileData, ProfileDataSchema, type ExtraProfileCreationInfo };
 
 class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
   private raw: RawProfilesController;
@@ -82,8 +89,13 @@ class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
   }
 
   // CRUD Functions //
-  private async _create(profileId: string, profileName: string, shouldCreateSpace: boolean = true): Promise<boolean> {
-    const result = await this.raw.create(profileId, profileName, shouldCreateSpace);
+  private async _create(
+    profileId: string,
+    profileName: string,
+    shouldCreateSpace: boolean = true,
+    extraInfo: ExtraProfileCreationInfo = {}
+  ): Promise<boolean> {
+    const result = await this.raw.create(profileId, profileName, shouldCreateSpace, extraInfo);
     if (result.success) {
       this._setCachedProfileData(profileId, result.profileData);
       this.emit("profile-created", profileId, result.profileData);
@@ -91,9 +103,45 @@ class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
     }
     return false;
   }
-  public async create(profileName: string, shouldCreateSpace: boolean = true): Promise<boolean> {
+  public async create(
+    profileName: string,
+    shouldCreateSpace: boolean = true,
+    extraInfo: ExtraProfileCreationInfo = {}
+  ): Promise<boolean> {
     const profileId = generateID();
-    return await this._create(profileId, profileName, shouldCreateSpace);
+    return await this._create(profileId, profileName, shouldCreateSpace, extraInfo);
+  }
+
+  /**
+   * Creates a new incognito profile and its associated space, returning the
+   * profile and space IDs on success, or null on failure.
+   */
+  public async createIncognito(): Promise<{ profileId: string; spaceId: string } | null> {
+    const profileId = createIncognitoProfileId();
+    const profileName = "Incognito";
+
+    const created = await this._create(profileId, profileName, false, {
+      internal: true,
+      ephemeral: true
+    });
+    if (!created) return null;
+
+    const spaceCreated = await spacesController.create(profileId, profileName, {
+      bgStartColor: "#000000",
+      bgEndColor: "#000000"
+    });
+    if (!spaceCreated) {
+      await this.delete(profileId);
+      return null;
+    }
+
+    const space = await spacesController.getLastUsedFromProfile(profileId);
+    if (!space) {
+      await this.delete(profileId);
+      return null;
+    }
+
+    return { profileId, spaceId: space.id };
   }
 
   public async get(profileId: string) {
@@ -157,6 +205,17 @@ class ProfilesController extends TypedEventEmitter<ProfilesControllerEvents> {
     // Populate the cache
     await this._requestAllProfiles();
     return await this.getAll();
+  }
+
+  public async getAreProfilesInternal(): Promise<Record<string, boolean>> {
+    const profiles = await this.getAll();
+    const areProfilesInternal: Record<string, boolean> = {};
+
+    for (const profile of profiles) {
+      areProfilesInternal[profile.id] = profile.internal;
+    }
+
+    return areProfilesInternal;
   }
 
   /** Warning: This should not be used outside of this controller */

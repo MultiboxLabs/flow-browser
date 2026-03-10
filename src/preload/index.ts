@@ -419,6 +419,9 @@ const browserAPI: FlowBrowserAPI = {
   },
   createWindow: () => {
     return ipcRenderer.send("browser:create-window");
+  },
+  createIncognitoWindow: () => {
+    return ipcRenderer.send("browser:create-incognito-window");
   }
 };
 
@@ -577,6 +580,9 @@ const interfaceAPI: FlowInterfaceAPI = {
 const profilesAPI: FlowProfilesAPI = {
   getProfiles: async () => {
     return ipcRenderer.invoke("profiles:get-all");
+  },
+  getAreProfilesInternal: async () => {
+    return ipcRenderer.invoke("profiles:get-are-internal");
   },
   createProfile: async (profileName: string) => {
     return ipcRenderer.invoke("profiles:create", profileName);
@@ -773,6 +779,23 @@ const windowsAPI: FlowWindowsAPI = {
   },
   closeSettingsWindow: () => {
     return ipcRenderer.send("settings:close");
+  },
+
+  // Generic window controls (work for any internal window)
+  minimizeCurrentWindow: () => {
+    return ipcRenderer.send("window:minimize");
+  },
+  maximizeCurrentWindow: () => {
+    return ipcRenderer.send("window:maximize");
+  },
+  closeCurrentWindow: () => {
+    return ipcRenderer.send("window:close");
+  },
+  getCurrentWindowState: () => {
+    return ipcRenderer.invoke("window:get-state");
+  },
+  onCurrentWindowStateChanged: (callback: (state: WindowState) => void) => {
+    return listenOnIPCChannel("window:state-changed", callback);
   }
 };
 
@@ -814,6 +837,9 @@ const updatesAPI: FlowUpdatesAPI = {
   },
   installUpdate: async () => {
     return ipcRenderer.invoke("updates:install-update");
+  },
+  hasUpdated: async () => {
+    return ipcRenderer.invoke("updates:has-updated");
   }
 };
 

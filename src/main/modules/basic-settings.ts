@@ -88,25 +88,6 @@ export const BasicSettings: BasicSetting[] = [
     ]
   },
 
-  // Sidebar Collapse Mode
-  {
-    id: "sidebarCollapseMode",
-    name: "Sidebar Collapse Mode",
-    showName: true,
-    type: "enum",
-    defaultValue: "icon",
-    options: [
-      {
-        id: "icon",
-        name: "Icon"
-      },
-      {
-        id: "offcanvas",
-        name: "Off-Screen"
-      }
-    ]
-  },
-
   // Sidebar Side
   {
     id: "sidebarSide",
@@ -253,7 +234,7 @@ export const BasicSettingCards: BasicSettingCard[] = [
   {
     title: "Sidebar Settings",
     subtitle: "Choose how the sidebar should behave",
-    settings: ["sidebarSide", "sidebarCollapseMode"]
+    settings: ["sidebarSide"]
   },
 
   // Performance Settings Card

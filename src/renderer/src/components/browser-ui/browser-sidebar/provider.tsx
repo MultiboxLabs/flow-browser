@@ -94,6 +94,14 @@ interface BrowserSidebarContextValue {
   setForceFloating: (forceFloating: boolean) => void;
 
   /**
+   * Register/unregister an open popover by a stable ID.
+   * While any popover is registered, the floating sidebar will not detach even
+   * if the cursor moves outside the sidebar bounds.
+   */
+  addActivePopover: (id: string) => void;
+  removeActivePopover: (id: string) => void;
+
+  /**
    * Subscribe to sidebar width changes during drag resize.
    * The callback receives the new width in pixels.
    * Returns an unsubscribe function.
@@ -112,6 +120,9 @@ export const useBrowserSidebar = () => {
   }
   return context;
 };
+
+/** Returns the sidebar context, or null if used outside a BrowserSidebarProvider. */
+export const useOptionalBrowserSidebar = () => useContext(BrowserSidebarContext);
 
 interface BrowserSidebarProviderProps {
   children: React.ReactNode;
@@ -169,7 +180,20 @@ export function BrowserSidebarProvider({ children, hasSidebar = true }: BrowserS
   }, [hasSidebar, attachedDirectionSetting]);
 
   // Floating Sidebar //
-  const isFloating = useFloatingSidebarTrigger(attachedDirectionRef, recordedSidebarSizeRef);
+  const isLockedRef = useRef(false);
+  const activePopoversRef = useRef(new Set<string>());
+
+  const addActivePopover = useCallback((id: string) => {
+    activePopoversRef.current.add(id);
+    isLockedRef.current = true;
+  }, []);
+
+  const removeActivePopover = useCallback((id: string) => {
+    activePopoversRef.current.delete(id);
+    isLockedRef.current = activePopoversRef.current.size > 0;
+  }, []);
+
+  const isFloating = useFloatingSidebarTrigger(attachedDirectionRef, recordedSidebarSizeRef, isLockedRef);
 
   // Running Animation //
   const [runningAnimationId, setRunningAnimationId] = useState<string | null>(null);
@@ -285,6 +309,9 @@ export function BrowserSidebarProvider({ children, hasSidebar = true }: BrowserS
 
         mode,
         recordedSidebarSizeRef,
+
+        addActivePopover,
+        removeActivePopover,
 
         onSidebarResize,
         notifySidebarResize,

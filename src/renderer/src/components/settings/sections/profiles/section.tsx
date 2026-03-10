@@ -287,7 +287,8 @@ function ProfileEditor({
     const checkProfileCount = async () => {
       try {
         const allProfiles = await flow.profiles.getProfiles();
-        setIsLastProfile(allProfiles.length <= 1);
+        const userProfiles = allProfiles.filter((profile) => !profile.internal);
+        setIsLastProfile(userProfiles.length <= 1);
       } catch (error) {
         console.error("Failed to check profile count:", error);
       }
@@ -570,12 +571,13 @@ export function ProfilesSettings({ navigateToSpaces, navigateToSpace }: Profiles
   const [newProfileName, setNewProfileName] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  // Fetch profiles from the API
+  // Fetch profiles from the API, excluding internal profiles
+  // (e.g. incognito profiles) since they are ephemeral and shouldn't be managed.
   const fetchProfiles = async () => {
     setIsLoading(true);
     try {
       const fetchedProfiles = await flow.profiles.getProfiles();
-      setProfiles(fetchedProfiles);
+      setProfiles(fetchedProfiles.filter((profile) => !profile.internal));
     } catch (error) {
       console.error("Failed to fetch profiles:", error);
     } finally {

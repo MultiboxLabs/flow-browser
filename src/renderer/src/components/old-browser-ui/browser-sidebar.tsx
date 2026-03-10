@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/resizable-sidebar";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { CollapseMode, SidebarVariant, SidebarSide } from "@/components/old-browser-ui/main";
+import { SidebarVariant, SidebarSide } from "@/components/old-browser-ui/main";
 import { PlusIcon, SettingsIcon } from "lucide-react";
 import { SidebarSpacesSwitcher } from "@/components/old-browser-ui/sidebar/spaces-switcher";
 import { ScrollableSidebarContent } from "@/components/old-browser-ui/sidebar/content/sidebar-content";
@@ -24,7 +24,6 @@ import { motion, AnimatePresence } from "motion/react";
 import { SidebarFooterUpdate } from "@/components/old-browser-ui/sidebar/footer/update";
 
 type BrowserSidebarProps = {
-  collapseMode: CollapseMode;
   variant: SidebarVariant;
   side: SidebarSide;
   setIsHoveringSidebar: (isHovering: boolean) => void;
@@ -143,7 +142,6 @@ function SidebarContent({
   open,
   side,
   variant,
-  collapseMode,
   themeClasses,
   handleMouseEnter,
   handleMouseLeave,
@@ -154,7 +152,6 @@ function SidebarContent({
   open: boolean;
   side: SidebarSide;
   variant: SidebarVariant;
-  collapseMode: CollapseMode;
   themeClasses: string;
   handleMouseEnter: () => void;
   handleMouseLeave: () => void;
@@ -166,7 +163,7 @@ function SidebarContent({
     <Sidebar
       side={side}
       variant={variant}
-      collapsible={collapseMode}
+      collapsible="offcanvas"
       className={sidebarClassNames}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -179,7 +176,7 @@ function SidebarContent({
   );
 }
 
-export function BrowserSidebar({ collapseMode, variant, side, setIsHoveringSidebar, setVariant }: BrowserSidebarProps) {
+export function BrowserSidebar({ variant, side, setIsHoveringSidebar, setVariant }: BrowserSidebarProps) {
   const { open, toggleSidebar, width } = useSidebar();
   const { isCurrentSpaceLight } = useSpaces();
 
@@ -260,7 +257,6 @@ export function BrowserSidebar({ collapseMode, variant, side, setIsHoveringSideb
             open={open}
             side={side}
             variant={variant}
-            collapseMode={collapseMode}
             themeClasses={themeClasses}
             handleMouseEnter={handleMouseEnter}
             handleMouseLeave={handleMouseLeave}

@@ -325,6 +325,8 @@ export class Omnibox {
         flow.windows.openSettingsWindow();
       } else if (pedalAction === "open_new_window") {
         flow.browser.createWindow();
+      } else if (pedalAction === "open_incognito_window") {
+        flow.browser.createIncognitoWindow();
       } else if (pedalAction === "open_extensions") {
         flow.tabs.newTab("flow://extensions", true);
       }

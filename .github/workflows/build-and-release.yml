@@ -34,7 +34,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
         with:
-          bun-version: latest
+          bun-version: 1.3.10
 
       - name: Use Stock Electron (Ubuntu ARM only)
         if: matrix.os == 'ubuntu-24.04-arm'
@@ -50,7 +50,7 @@ jobs:
         if: matrix.os == 'ubuntu-24.04-arm'
         run: |
           sudo apt-get install -y ruby ruby-dev
-          sudo gem install --no-document fpm
+          sudo gem install --no-document fpm -v 1.17.0
 
       - name: Setup Flatpak (Ubuntu only)
         if: matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm'
@@ -64,7 +64,7 @@ jobs:
 
       - name: Install Castlabs EVS
         if: matrix.os == 'macos-latest' || matrix.os == 'macos-15-intel' || matrix.os == 'windows-latest'
-        run: python3 -m pip install --upgrade castlabs-evs --break-system-packages
+        run: python3 -m pip install castlabs-evs==1.1.5 --break-system-packages
 
       - name: Login to Castlabs EVS (macOS)
         if: matrix.os == 'macos-latest' || matrix.os == 'macos-15-intel'

@@ -116,7 +116,7 @@ function GoBackButton({
 
       {backwardEntries.length > 0 && (
         <PortalPopover.Root open={open} onOpenChange={setOpen}>
-          <PopoverTrigger ref={triggerRef} className="absolute opacity-0 pointer-events-none" />
+          <PopoverTrigger ref={triggerRef} className="absolute inset-0 opacity-0 pointer-events-none" />
           <PortalPopover.Content className={cn("w-56 p-2", spaceInjectedClasses)}>
             {backwardEntries.map((entry, index) => (
               <div
@@ -203,7 +203,7 @@ function GoForwardButton({
 
       {forwardEntries.length > 0 && (
         <PortalPopover.Root open={open} onOpenChange={setOpen}>
-          <PopoverTrigger ref={triggerRef} className="absolute opacity-0 pointer-events-none" />
+          <PopoverTrigger ref={triggerRef} className="absolute inset-0 opacity-0 pointer-events-none" />
           <PortalPopover.Content className={cn("w-56 p-2", spaceInjectedClasses)}>
             {forwardEntries.map((entry, index) => (
               <div
@@ -299,13 +299,18 @@ export function NavigationControls() {
       return;
     }
 
+    let cancelled = false;
     flow.navigation.getTabNavigationStatus(tabId).then((status) => {
-      if (!status) return;
+      if (cancelled || !status) return;
       setCanGoBack(status.canGoBack);
       setCanGoForward(status.canGoForward);
       setEntries(status.navigationHistory.map((entry, index) => ({ ...entry, index })));
       setActiveIndex(status.activeIndex);
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [focusedTabId, isLoading, addressUrl]);
 
   const backwardEntries = useMemo(() => entries.slice(0, activeIndex).reverse(), [entries, activeIndex]);

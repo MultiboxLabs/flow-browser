@@ -83,7 +83,7 @@ function NavigationButton({
       />
 
       <PortalPopover.Root open={open} onOpenChange={setOpen}>
-        <PopoverTrigger ref={triggerRef} className="absolute opacity-0 pointer-events-none" />
+        <PopoverTrigger ref={triggerRef} className="absolute inset-0 opacity-0 pointer-events-none" />
         <PortalPopover.Content className={cn("w-56 p-2", spaceInjectedClasses)}>
           {navigationEntries.map((entry, index) => (
             <div

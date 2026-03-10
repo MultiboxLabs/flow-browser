@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { SpaceSwitcher } from "@/components/browser-ui/browser-sidebar/_components/space-switcher";
 import { SpacePagesCarousel } from "@/components/browser-ui/browser-sidebar/_components/space-pages-carousel";
 import { BrowserActionList } from "@/components/browser-ui/browser-sidebar/_components/browser-action-list";
+import { UpdateBanner } from "@/components/browser-ui/browser-sidebar/_components/update-banner";
 
 function SidebarIcon({ className }: { className?: string }) {
   return (
@@ -62,6 +63,8 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
         <PinGridGate />
         <SpacePagesCarousel />
       </div>
+      {/* Update Banner */}
+      <UpdateBanner />
       {/* Bottom Section */}
       <div className="shrink-0 flex items-center justify-between h-4 my-2">
         <Button

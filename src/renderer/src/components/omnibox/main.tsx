@@ -1,7 +1,7 @@
 import { Command, CommandItem, CommandList } from "@/components/ui/command";
 import { AutocompleteMatch, InlineCompletion } from "@/lib/omnibox/types";
 import { Omnibox } from "@/lib/omnibox/omnibox";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Search,
   History,
@@ -13,7 +13,8 @@ import {
   PuzzleIcon,
   Globe,
   Bookmark,
-  ArrowUpRight
+  ArrowUpRight,
+  Shield
 } from "lucide-react";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { AnimatePresence } from "motion/react";
@@ -47,6 +48,9 @@ function getIconForType(type: AutocompleteMatch["type"], match: AutocompleteMatc
       }
       if (match.destinationUrl === "open_new_window") {
         return <PlusSquare className="h-5 w-5 text-green-500" />;
+      }
+      if (match.destinationUrl === "open_incognito_window") {
+        return <Shield className="h-5 w-5 text-slate-500" />;
       }
       if (match.destinationUrl === "open_extensions") {
         return <PuzzleIcon className="h-5 w-5 text-purple-500" />;

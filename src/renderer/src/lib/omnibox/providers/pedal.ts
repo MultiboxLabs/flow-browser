@@ -21,6 +21,11 @@ const PEDALS = [
     description: "Open new window"
   },
   {
+    triggers: ["incognito", "new incognito window", "private window"],
+    action: "open_incognito_window",
+    description: "Open incognito window"
+  },
+  {
     triggers: ["extensions", "extension", "extension manager"],
     action: "open_extensions",
     description: "Extensions Manager"

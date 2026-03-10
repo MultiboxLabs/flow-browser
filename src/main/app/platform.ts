@@ -1,6 +1,7 @@
 import { app, Menu, MenuItem } from "electron";
 import { debugPrint } from "@/modules/output";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { hasCompletedOnboarding } from "@/saving/onboarding";
 
 function setupWindowsUserTasks() {
   app.setUserTasks([
@@ -21,8 +22,11 @@ function setupMacOSDock() {
   dockMenu.append(
     new MenuItem({
       label: "New Window",
-      click: () => {
-        browserWindowsController.create();
+      click: async () => {
+        const completed = await hasCompletedOnboarding();
+        if (completed) {
+          browserWindowsController.create();
+        }
       }
     })
   );

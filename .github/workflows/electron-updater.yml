@@ -30,7 +30,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
         with:
-          bun-version: latest
+          bun-version: 1.3.10
 
       - name: Install Dependencies
         run: bun install --development --frozen-lockfile
@@ -53,7 +53,53 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check if update is needed
+        id: check-current-major
+        run: |
+          VERSION="${{ steps.upgrade-current-major.outputs.version }}"
+          BRANCH="workflow/bump-electron-current-major"
+
+          # Check if there are any file changes from the upgrade script
+          if git diff --quiet; then
+            echo "No file changes detected. Skipping."
+            echo "should_update=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Check if an open PR already exists for this branch
+          PR_JSON=$(gh pr list --head "$BRANCH" --state open --json number,title --jq '.[0] // empty')
+          if [ -n "$PR_JSON" ]; then
+            PR_NUMBER=$(echo "$PR_JSON" | jq -r '.number')
+            PR_TITLE=$(echo "$PR_JSON" | jq -r '.title')
+
+            # If PR already targets this exact version, skip to avoid unnecessary force push
+            if echo "$PR_TITLE" | grep -qF "$VERSION"; then
+              echo "PR #$PR_NUMBER already targets version $VERSION. Skipping."
+              echo "should_update=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            # PR exists but targets a different version - check for manual commits
+            REMOTE_REF=$(git ls-remote --heads origin "$BRANCH" | awk '{print $1}')
+            if [ -n "$REMOTE_REF" ]; then
+              git fetch origin "$BRANCH" --quiet
+              # Count commits on the PR branch not authored by github-actions[bot]
+              MANUAL_COMMITS=$(git log "origin/main..origin/$BRANCH" --format='%an' | grep -cv 'github-actions\[bot\]' || true)
+              if [ "$MANUAL_COMMITS" -gt 0 ]; then
+                echo "PR #$PR_NUMBER has $MANUAL_COMMITS manual commit(s). Skipping to preserve changes."
+                gh pr comment "$PR_NUMBER" --body "A newer Electron version **$VERSION** is available, but this PR has manual commits so it was not automatically updated. Please update manually or close this PR to allow a new one to be created."
+                echo "should_update=false" >> $GITHUB_OUTPUT
+                exit 0
+              fi
+            fi
+          fi
+
+          echo "should_update=true" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create Pull Request
+        if: steps.check-current-major.outputs.should_update == 'true'
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -93,7 +139,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
         with:
-          bun-version: latest
+          bun-version: 1.3.10
 
       - name: Install Dependencies
         run: bun install --development --frozen-lockfile
@@ -116,7 +162,53 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check if update is needed
+        id: check-next-major
+        run: |
+          VERSION="${{ steps.upgrade-next-major.outputs.version }}"
+          BRANCH="workflow/bump-electron-next-major"
+
+          # Check if there are any file changes from the upgrade script
+          if git diff --quiet; then
+            echo "No file changes detected. Skipping."
+            echo "should_update=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Check if an open PR already exists for this branch
+          PR_JSON=$(gh pr list --head "$BRANCH" --state open --json number,title --jq '.[0] // empty')
+          if [ -n "$PR_JSON" ]; then
+            PR_NUMBER=$(echo "$PR_JSON" | jq -r '.number')
+            PR_TITLE=$(echo "$PR_JSON" | jq -r '.title')
+
+            # If PR already targets this exact version, skip to avoid unnecessary force push
+            if echo "$PR_TITLE" | grep -qF "$VERSION"; then
+              echo "PR #$PR_NUMBER already targets version $VERSION. Skipping."
+              echo "should_update=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+
+            # PR exists but targets a different version - check for manual commits
+            REMOTE_REF=$(git ls-remote --heads origin "$BRANCH" | awk '{print $1}')
+            if [ -n "$REMOTE_REF" ]; then
+              git fetch origin "$BRANCH" --quiet
+              # Count commits on the PR branch not authored by github-actions[bot]
+              MANUAL_COMMITS=$(git log "origin/main..origin/$BRANCH" --format='%an' | grep -cv 'github-actions\[bot\]' || true)
+              if [ "$MANUAL_COMMITS" -gt 0 ]; then
+                echo "PR #$PR_NUMBER has $MANUAL_COMMITS manual commit(s). Skipping to preserve changes."
+                gh pr comment "$PR_NUMBER" --body "A newer Electron version **$VERSION** is available, but this PR has manual commits so it was not automatically updated. Please update manually or close this PR to allow a new one to be created."
+                echo "should_update=false" >> $GITHUB_OUTPUT
+                exit 0
+              fi
+            fi
+          fi
+
+          echo "should_update=true" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create Pull Request
+        if: steps.check-next-major.outputs.should_update == 'true'
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

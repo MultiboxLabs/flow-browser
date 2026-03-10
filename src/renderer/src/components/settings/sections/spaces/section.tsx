@@ -45,8 +45,11 @@ export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }:
         flow.profiles.getProfiles(),
         flow.spaces.getSpaces()
       ]);
-      setProfiles(fetchedProfiles);
-      setSpaces(fetchedSpaces);
+      const internalProfileIds = new Set(
+        fetchedProfiles.filter((profile) => profile.internal).map((profile) => profile.id)
+      );
+      setProfiles(fetchedProfiles.filter((profile) => !profile.internal));
+      setSpaces(fetchedSpaces.filter((space) => !internalProfileIds.has(space.profileId)));
 
       // Set active space if initialSelectedSpace is provided
       if (initialSelectedSpace) {

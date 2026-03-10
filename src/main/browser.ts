@@ -14,24 +14,33 @@ import { runOnboardingOrInitialWindow } from "@/app/onboarding";
 import { setupAppLifecycle } from "@/app/lifecycle";
 import { tabPersistenceManager } from "@/saving/tabs";
 import { initCursorEdgeMonitor } from "@/controllers/windows-controller/utils/cursor-edge-monitor";
+import { cleanupStaleEphemeralProfiles } from "@/controllers/profiles-controller/ephemeral";
 
-// Start tab persistence flush interval (writes dirty tabs to disk every ~2s)
-tabPersistenceManager.start();
+async function bootstrapBrowser() {
+  await cleanupStaleEphemeralProfiles().catch((error) => {
+    console.error("Failed to cleanup stale ephemeral profiles:", error);
+  });
 
-// Start cursor edge monitor (detects pointer near window edges for floating sidebar)
-initCursorEdgeMonitor();
+  // Start tab persistence flush interval (writes dirty tabs to disk every ~2s)
+  tabPersistenceManager.start();
 
-// Handle initial URL (runs asynchronously)
-processInitialUrl();
+  // Start cursor edge monitor (detects pointer near window edges for floating sidebar)
+  initCursorEdgeMonitor();
 
-// Setup second instance handler
-setupSecondInstanceHandling();
+  // Handle initial URL (runs asynchronously)
+  processInitialUrl();
 
-// Setup platform specific features
-setupPlatformIntegration();
+  // Setup second instance handler
+  setupSecondInstanceHandling();
 
-// Open onboarding / create initial window
-runOnboardingOrInitialWindow();
+  // Setup platform specific features
+  setupPlatformIntegration();
 
-// App lifecycle events
-setupAppLifecycle();
+  // Open onboarding / create initial window
+  runOnboardingOrInitialWindow();
+
+  // App lifecycle events
+  setupAppLifecycle();
+}
+
+void bootstrapBrowser();

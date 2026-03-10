@@ -59,7 +59,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       y: options.y,
       center: hasPositionOptions ? false : true,
 
-      titleBarStyle: process.platform === "darwin" ? "hidden" : undefined,
+      titleBarStyle: process.platform === "darwin" || process.platform === "win32" ? "hidden" : undefined,
       titleBarOverlay: {
         height: 30,
         symbolColor: nativeTheme.shouldUseDarkColors ? "white" : "black",
@@ -174,6 +174,9 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       if (!spaceId) return;
       spacesController.get(spaceId).then((space) => {
         if (!space) return;
+
+        // win32 and linux only
+        if (process.platform === "darwin") return;
 
         browserWindow.setTitleBarOverlay({
           height: 30,

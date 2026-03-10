@@ -231,7 +231,6 @@ getVersionUpdatedFrom()
       const currentVersion = app.getVersion();
       if (currentVersion !== updatedFromVersion) {
         autoUpdateController.hasUpdated = true;
-        // TODO: do something with this information
       }
     }
   });
