@@ -5,10 +5,12 @@ import {
   PersistedTabData,
   PersistedTabGroupData,
   TabData,
+  TabGeometryUpdate,
   TabGroupData,
   TAB_SCHEMA_VERSION,
   NavigationEntry
 } from "~/types/tabs";
+import { PageBounds } from "~/flow/types";
 
 /**
  * Removes sleep mode entries from a navigation history array.
@@ -114,7 +116,11 @@ export function serializeTab(tab: Tab, windowGroupId: string, preSleepState?: Pr
  * @param tab - The tab to serialize
  * @param preSleepState - Optional pre-sleep state from TabLifecycleManager
  */
-export function serializeTabForRenderer(tab: Tab, preSleepState?: PreSleepState | null): TabData {
+export function serializeTabForRenderer(
+  tab: Tab,
+  preSleepState?: PreSleepState | null,
+  bounds?: PageBounds | null
+): TabData {
   const windowId = tab.getWindow().id;
 
   // Use pre-sleep URL for sleeping tabs (webContents would show about:blank)
@@ -142,7 +148,17 @@ export function serializeTabForRenderer(tab: Tab, preSleepState?: PreSleepState 
     audible: tab.audible,
     fullScreen: tab.fullScreen,
     isPictureInPicture: tab.isPictureInPicture,
-    asleep: tab.asleep
+    asleep: tab.asleep,
+    visible: tab.visible,
+    bounds: bounds ?? null
+  };
+}
+
+export function serializeTabGeometryForRenderer(tab: Tab, bounds?: PageBounds | null): TabGeometryUpdate {
+  return {
+    tabId: tab.id,
+    visible: tab.visible,
+    bounds: bounds ?? null
   };
 }
 

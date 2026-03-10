@@ -1,12 +1,22 @@
 import { BaseTabGroup } from "@/controllers/tabs-controller/tab-groups";
 import { spacesController } from "@/controllers/spaces-controller";
 import { clipboard, ipcMain, Menu, MenuItem } from "electron";
-import { PersistedTabGroupData, TabData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
+import {
+  PersistedTabGroupData,
+  TabData,
+  TabGeometryUpdate,
+  WindowActiveTabIds,
+  WindowFocusedTabIds
+} from "~/types/tabs";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import { Tab } from "@/controllers/tabs-controller/tab";
 import { tabsController } from "@/controllers/tabs-controller";
-import { serializeTabForRenderer, serializeTabGroupForRenderer } from "@/saving/tabs/serialization";
+import {
+  serializeTabForRenderer,
+  serializeTabGeometryForRenderer,
+  serializeTabGroupForRenderer
+} from "@/saving/tabs/serialization";
 import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
 import { GlanceTabGroup } from "@/controllers/tabs-controller/tab-groups/glance";
 
@@ -87,7 +97,8 @@ function getWindowTabsData(window: BrowserWindow) {
 
   const tabDatas = tabs.map((tab) => {
     const managers = tabsController.getTabManagers(tab.id);
-    return serializeTabForRenderer(tab, managers?.lifecycle.preSleepState);
+    const bounds = !tab.asleep && tab.view ? (managers?.bounds.getCurrentBounds() ?? null) : null;
+    return serializeTabForRenderer(tab, managers?.lifecycle.preSleepState, bounds);
   });
   const tabGroupDatas = tabGroups.map((tabGroup) => serializeTabGroupForRenderer(tabGroup));
 
@@ -155,6 +166,7 @@ ipcMain.handle("tabs:get-data", async (event) => {
 // pending content changes for that window (the full refresh includes them).
 
 const DEBOUNCE_MS = 80;
+const GEOMETRY_DEBOUNCE_MS = 16;
 
 /** Windows that need a full data refresh (structural change). */
 const structuralQueue: Set<number> = new Set();
@@ -162,7 +174,11 @@ const structuralQueue: Set<number> = new Set();
 /** Windows → set of tab IDs with content-only changes. */
 const contentQueue: Map<number, Set<number>> = new Map();
 
+/** Windows → tab geometry updates keyed by tab ID. */
+const geometryQueue: Map<number, Map<number, TabGeometryUpdate>> = new Map();
+
 let queueTimeout: NodeJS.Timeout | null = null;
+let geometryQueueTimeout: NodeJS.Timeout | null = null;
 
 function scheduleQueueProcessing() {
   if (queueTimeout) return; // already scheduled
@@ -170,6 +186,14 @@ function scheduleQueueProcessing() {
     processQueues();
     queueTimeout = null;
   }, DEBOUNCE_MS);
+}
+
+function scheduleGeometryQueueProcessing() {
+  if (geometryQueueTimeout) return;
+  geometryQueueTimeout = setTimeout(() => {
+    processGeometryQueue();
+    geometryQueueTimeout = null;
+  }, GEOMETRY_DEBOUNCE_MS);
 }
 
 function processQueues() {
@@ -199,7 +223,8 @@ function processQueues() {
       if (!tab) continue;
 
       const managers = tabsController.getTabManagers(tabId);
-      updatedTabs.push(serializeTabForRenderer(tab, managers?.lifecycle.preSleepState));
+      const bounds = !tab.asleep && tab.view ? (managers?.bounds.getCurrentBounds() ?? null) : null;
+      updatedTabs.push(serializeTabForRenderer(tab, managers?.lifecycle.preSleepState, bounds));
     }
 
     if (updatedTabs.length > 0) {
@@ -207,6 +232,20 @@ function processQueues() {
     }
   }
   contentQueue.clear();
+}
+
+function processGeometryQueue() {
+  for (const [windowId, updatesByTabId] of geometryQueue) {
+    const window = browserWindowsController.getWindowById(windowId);
+    if (!window) continue;
+
+    const updates = [...updatesByTabId.values()];
+    if (updates.length > 0) {
+      window.sendMessageToCoreWebContents("tabs:on-tab-geometry-updated", updates);
+    }
+  }
+
+  geometryQueue.clear();
 }
 
 /**
@@ -236,6 +275,24 @@ export function windowTabContentChanged(windowId: number, tabId: number) {
   tabIds.add(tabId);
 
   scheduleQueueProcessing();
+}
+
+export function windowTabGeometryChanged(windowId: number, tabId: number) {
+  const tab = tabsController.getTabById(tabId);
+  if (!tab) return;
+
+  const managers = tabsController.getTabManagers(tabId);
+  const bounds = !tab.asleep && tab.view ? (managers?.bounds.getCurrentBounds() ?? null) : null;
+  const update = serializeTabGeometryForRenderer(tab, bounds);
+
+  let updatesByTabId = geometryQueue.get(windowId);
+  if (!updatesByTabId) {
+    updatesByTabId = new Map();
+    geometryQueue.set(windowId, updatesByTabId);
+  }
+
+  updatesByTabId.set(tabId, update);
+  scheduleGeometryQueueProcessing();
 }
 
 ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {
