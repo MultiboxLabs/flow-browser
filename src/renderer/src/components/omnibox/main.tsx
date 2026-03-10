@@ -2,7 +2,19 @@ import { Command, CommandItem, CommandList } from "@/components/ui/command";
 import { AutocompleteMatch, InlineCompletion } from "@/lib/omnibox/types";
 import { Omnibox } from "@/lib/omnibox/omnibox";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Search, Zap, Settings, PlusSquare, PuzzleIcon, Globe } from "lucide-react";
+import {
+  Search,
+  History,
+  Zap,
+  Terminal,
+  Settings,
+  PlusSquare,
+  Link,
+  PuzzleIcon,
+  Globe,
+  Bookmark,
+  ArrowUpRight
+} from "lucide-react";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { AnimatePresence } from "motion/react";
 import { motion } from "motion/react";
@@ -20,15 +32,15 @@ function getIconForType(type: AutocompleteMatch["type"], match: AutocompleteMatc
     case "verbatim":
       return <Search className="h-5 w-5 text-primary" />;
     case "history-url":
-      return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5" />;
+      return <History className="h-5 w-5 text-amber-500" />;
     case "url-what-you-typed":
       return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5" />;
     case "navsuggest":
-      return <Globe className="h-5 w-5 text-primary" />;
+      return <Globe className="h-5 w-5 text-blue-500" />;
     case "bookmark":
-      return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5" />;
+      return <Bookmark className="h-5 w-5 text-yellow-500" />;
     case "shortcut":
-      return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5" />;
+      return <ArrowUpRight className="h-5 w-5 text-violet-500" />;
     case "pedal":
       if (match.destinationUrl === "open_settings") {
         return <Settings className="h-5 w-5 text-blue-500" />;
@@ -41,20 +53,36 @@ function getIconForType(type: AutocompleteMatch["type"], match: AutocompleteMatc
       }
       return <Zap className="h-5 w-5 text-purple-500" />;
     case "open-tab":
-      return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5" />;
+      return <Terminal className="h-5 w-5 text-teal-600 dark:text-teal-500" />;
     case "zero-suggest":
     default:
-      return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5" />;
+      return <Link className="h-5 w-5 text-gray-500" />;
   }
 }
 
 function getActionForType(type: AutocompleteMatch["type"]) {
   switch (type) {
+    case "search-query":
+    case "verbatim":
+      return "Search";
     case "open-tab":
       return "Switch to Tab";
+    case "history-url":
+      return "History";
+    case "url-what-you-typed":
+      return "Go to";
+    case "navsuggest":
+      return "Navigate";
+    case "bookmark":
+      return "Bookmark";
+    case "shortcut":
+      return "Shortcut";
+    case "pedal":
+      return "Action";
+    case "zero-suggest":
     default:
-      return null;
-  }
+      return "Navigate";
+    }
 }
 
 export function OmniboxMain() {
