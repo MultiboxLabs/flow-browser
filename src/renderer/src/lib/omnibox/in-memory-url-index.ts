@@ -12,6 +12,10 @@
  *
  * Population: loads significant history from main process via IPC on init,
  * then refreshes incrementally on new visits or periodically.
+ *
+ * Phase 5 additions:
+ *   - Cache/restore: serialize the index to localStorage for fast startup
+ *   - Diagnostic getters for the debug page (entryCount, wordCount, etc.)
  */
 
 import { tokenize } from "@/lib/omnibox/tokenizer";
@@ -44,6 +48,18 @@ export interface IMUIQueryResult {
   /** Which tokens in the title matched each input term. */
   titleTermMatches: number;
 }
+
+/** Serialized form of the IMUI for localStorage caching. */
+interface IMUISnapshot {
+  version: number;
+  timestamp: number;
+  entries: IMUIEntry[];
+}
+
+const IMUI_CACHE_KEY = "flow:imui-cache";
+const IMUI_CACHE_VERSION = 1;
+/** Maximum age of a cache before we force a fresh load (1 hour). */
+const IMUI_CACHE_MAX_AGE = 60 * 60 * 1000;
 
 /**
  * The In-Memory URL Index.
@@ -87,10 +103,28 @@ export class InMemoryURLIndex {
     return this.entries.size;
   }
 
+  /** Number of unique words in the inverted index (for diagnostics). */
+  get wordCount(): number {
+    return this.wordToIds.size;
+  }
+
+  /** Number of prefix entries (for diagnostics). */
+  get prefixCount(): number {
+    return this.prefixToWords.size;
+  }
+
+  /** Timestamp of last refresh (for diagnostics). */
+  get lastRefresh(): number {
+    return this.lastRefreshTime;
+  }
+
   /**
    * Populate the index from the main process history DB.
    * Should be called once on omnibox initialization; further calls
    * are throttled to REFRESH_INTERVAL.
+   *
+   * On first call, attempts to restore from localStorage cache for instant
+   * availability, then fetches fresh data in the background.
    */
   async populate(): Promise<void> {
     const now = Date.now();
@@ -98,15 +132,20 @@ export class InMemoryURLIndex {
       return; // Too soon for a refresh
     }
 
-    try {
-      const entries = await getSignificantHistory();
-      this.rebuild(entries);
-      this.lastRefreshTime = now;
-      this._populated = true;
-      console.log(`[IMUI] Populated with ${this.entries.size} entries, ${this.wordToIds.size} unique words`);
-    } catch (err) {
-      console.error("[IMUI] Failed to populate:", err);
+    // On first population, try restoring from cache for instant results
+    if (!this._populated) {
+      const restored = this.restoreFromCache();
+      if (restored) {
+        console.log(`[IMUI] Restored ${this.entries.size} entries from cache`);
+        // Still fetch fresh data in the background
+        this.fetchAndRebuild(now).catch((err) => {
+          console.error("[IMUI] Background refresh after cache restore failed:", err);
+        });
+        return;
+      }
     }
+
+    await this.fetchAndRebuild(now);
   }
 
   /**
@@ -114,7 +153,7 @@ export class InMemoryURLIndex {
    */
   async forceRefresh(): Promise<void> {
     this.lastRefreshTime = 0;
-    await this.populate();
+    await this.fetchAndRebuild(Date.now());
   }
 
   /**
@@ -194,8 +233,101 @@ export class InMemoryURLIndex {
   }
 
   // ---------------------------------------------------------------------------
+  // Cache / Restore (Phase 5)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Save the current index state to localStorage for fast startup on next open.
+   */
+  saveToCache(): void {
+    if (!this._populated || this.entries.size === 0) return;
+
+    try {
+      const snapshot: IMUISnapshot = {
+        version: IMUI_CACHE_VERSION,
+        timestamp: Date.now(),
+        entries: Array.from(this.entries.values())
+      };
+      localStorage.setItem(IMUI_CACHE_KEY, JSON.stringify(snapshot));
+      console.log(`[IMUI] Saved ${snapshot.entries.length} entries to cache`);
+    } catch (err) {
+      console.warn("[IMUI] Failed to save cache:", err);
+    }
+  }
+
+  /**
+   * Restore the index from localStorage cache.
+   * Returns true if a valid cache was found and restored.
+   */
+  private restoreFromCache(): boolean {
+    try {
+      const raw = localStorage.getItem(IMUI_CACHE_KEY);
+      if (!raw) return false;
+
+      const snapshot: IMUISnapshot = JSON.parse(raw);
+
+      // Validate version
+      if (snapshot.version !== IMUI_CACHE_VERSION) {
+        console.log("[IMUI] Cache version mismatch, discarding");
+        localStorage.removeItem(IMUI_CACHE_KEY);
+        return false;
+      }
+
+      // Check age
+      if (Date.now() - snapshot.timestamp > IMUI_CACHE_MAX_AGE) {
+        console.log("[IMUI] Cache too old, discarding");
+        localStorage.removeItem(IMUI_CACHE_KEY);
+        return false;
+      }
+
+      // Rebuild the index from cached entries
+      this.entries.clear();
+      this.wordToIds.clear();
+      this.prefixToWords.clear();
+
+      for (const entry of snapshot.entries.slice(0, InMemoryURLIndex.MAX_ENTRIES)) {
+        // Recompute frecency since time has passed
+        entry.frecency = calculateFrecency(
+          entry.visitCount,
+          entry.typedCount,
+          entry.lastVisitTime,
+          entry.lastVisitType
+        );
+        this.entries.set(entry.historyId, entry);
+        this.addToIndexes(entry);
+      }
+
+      this._populated = true;
+      this.lastRefreshTime = snapshot.timestamp;
+      return true;
+    } catch (err) {
+      console.warn("[IMUI] Failed to restore cache:", err);
+      localStorage.removeItem(IMUI_CACHE_KEY);
+      return false;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Index building
   // ---------------------------------------------------------------------------
+
+  /**
+   * Fetch significant history from the main process and rebuild the index.
+   */
+  private async fetchAndRebuild(now: number): Promise<void> {
+    try {
+      const entries = await getSignificantHistory();
+      this.rebuild(entries);
+      this.lastRefreshTime = now;
+      this._populated = true;
+      console.log(`[IMUI] Populated with ${this.entries.size} entries, ${this.wordToIds.size} unique words`);
+
+      // Save to cache after successful population
+      this.saveToCache();
+    } catch (err) {
+      console.error("[IMUI] Failed to populate:", err);
+    }
+  }
 
   /**
    * Rebuild the entire index from a list of history entries.

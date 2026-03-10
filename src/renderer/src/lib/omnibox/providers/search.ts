@@ -77,6 +77,15 @@ function mapVerbatimRelevance(serverVerbatimRelevance: number | undefined, input
       break;
   }
 
+  // For URL inputs, always use base relevance (1100). Navigation must always
+  // beat search when the user typed something that looks like a URL.
+  // Server blending must not override this — Google often returns high
+  // verbatim relevance for popular domains (e.g. "roblox.com"), which would
+  // incorrectly push the search result above the url-what-you-typed match.
+  if (inputType === InputType.URL) {
+    return baseRelevance;
+  }
+
   if (serverVerbatimRelevance === undefined) {
     return baseRelevance;
   }
@@ -85,7 +94,7 @@ function mapVerbatimRelevance(serverVerbatimRelevance: number | undefined, input
   // If server says low verbatim, we reduce our score; if high, we keep ours.
   // Server typically sends 851 for normal queries, higher when confident.
   if (serverVerbatimRelevance >= 1300) {
-    // Server is very confident — trust it (but still cap by input type)
+    // Server is very confident — boost up to 1400, but never below our explicit input intent.
     return Math.max(baseRelevance, Math.min(serverVerbatimRelevance, 1400));
   } else if (serverVerbatimRelevance < 600) {
     // Server says verbatim is very low relevance — reduce ours

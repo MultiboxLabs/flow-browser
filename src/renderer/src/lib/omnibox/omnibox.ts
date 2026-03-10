@@ -1,4 +1,4 @@
-import { AutocompleteController } from "@/lib/omnibox/autocomplete-controller";
+import { AutocompleteController, ProviderTiming } from "@/lib/omnibox/autocomplete-controller";
 import { AutocompleteProvider } from "@/lib/omnibox/base-provider";
 import { SearchProvider } from "@/lib/omnibox/providers/search";
 import { HistoryURLProvider } from "@/lib/omnibox/providers/history-url";
@@ -243,12 +243,24 @@ export class Omnibox {
       // Re-trigger with 'focus' trigger, especially important for ZeroSuggest
       this.controller.start(input);
     } else if (text !== this.lastInputText || trigger === "focus") {
-      // If text changed OR it's a focus event (even with same text initially)
-      this.controller.start(input);
+      // Use onUserKeystroke for typed input to properly handle arrow-key lock
+      if (trigger === "keystroke") {
+        this.controller.onUserKeystroke(input);
+      } else {
+        this.controller.start(input);
+      }
     }
     // Else: Keystroke didn't change text (e.g., arrow keys) - do nothing for now
 
     this.lastInputText = text;
+  }
+
+  /**
+   * Notify the controller that the user is navigating results with arrow keys.
+   * This suppresses result list updates until the next keystroke.
+   */
+  public onUserArrowKey(): void {
+    this.controller.onUserArrowKey();
   }
 
   /** Call this when the Omnibox is blurred or closed to clean up. */
@@ -260,6 +272,28 @@ export class Omnibox {
   /** Force a refresh of the IMUI (e.g., after many navigations). */
   public async refreshIndex(): Promise<void> {
     await this.imui.forceRefresh();
+  }
+
+  // --- Diagnostic getters (for debug page) ---
+
+  /** Provider timing data for the most recent query. */
+  get providerTimings(): ProviderTiming[] {
+    return this.controller.providerTimings;
+  }
+
+  /** IMUI word count. */
+  get imuiWordCount(): number {
+    return this.imui.wordCount;
+  }
+
+  /** IMUI prefix count. */
+  get imuiPrefixCount(): number {
+    return this.imui.prefixCount;
+  }
+
+  /** IMUI last refresh time. */
+  get imuiLastRefresh(): number | null {
+    return this.imui.lastRefresh;
   }
 
   public openMatch(autocompleteMatch: AutocompleteMatch, whereToOpen: "current" | "new_tab"): void {
