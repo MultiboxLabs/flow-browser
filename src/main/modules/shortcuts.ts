@@ -98,6 +98,14 @@ const typedShortcuts = [
     name: "Find in Page",
     shortcut: "CommandOrControl+F",
     category: "Tab"
+  },
+
+  // Ripple
+  {
+    id: "ripple.toggleSidebar",
+    name: "Toggle Ripple Sidebar",
+    shortcut: "CommandOrControl+Shift+.",
+    category: "Browser"
   }
 ] as const satisfies ShortcutAction[];
 

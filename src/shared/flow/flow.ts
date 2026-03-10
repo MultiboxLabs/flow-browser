@@ -21,6 +21,7 @@ import { FlowOnboardingAPI } from "~/flow/interfaces/settings/onboarding";
 import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI } from "~/flow/interfaces/app/shortcuts";
+import { FlowRippleAPI } from "~/flow/interfaces/ripple/interface";
 
 declare global {
   /**
@@ -55,5 +56,8 @@ declare global {
     icons: FlowIconsAPI;
     openExternal: FlowOpenExternalAPI;
     onboarding: FlowOnboardingAPI;
+
+    // Ripple AI Agent
+    ripple: FlowRippleAPI;
   };
 }

@@ -36,6 +36,7 @@ import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
 import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/find-in-page";
+import { FlowRippleAPI } from "~/flow/interfaces/ripple/interface";
 import type {
   AssertCredentialErrorCodes,
   AssertCredentialResult,
@@ -859,6 +860,25 @@ const shortcutsAPI: FlowShortcutsAPI = {
   }
 };
 
+// RIPPLE API //
+const rippleAPI: FlowRippleAPI = {
+  initialize: async () => {
+    return ipcRenderer.invoke("ripple:initialize");
+  },
+  getStatus: async () => {
+    return ipcRenderer.invoke("ripple:get-status");
+  },
+  getServerUrl: async () => {
+    return ipcRenderer.invoke("ripple:get-server-url");
+  },
+  toggleSidebar: () => {
+    return ipcRenderer.send("ripple:toggle-sidebar");
+  },
+  onToggleSidebar: (callback: () => void) => {
+    return listenOnIPCChannel("ripple:on-toggle-sidebar", callback);
+  }
+};
+
 // EXPOSE FLOW API //
 const flowAPI: typeof flow = {
   // App APIs
@@ -899,6 +919,9 @@ const flowAPI: typeof flow = {
   settings: wrapAPI(settingsAPI, "settings"),
   icons: wrapAPI(iconsAPI, "settings"),
   openExternal: wrapAPI(openExternalAPI, "settings"),
-  onboarding: wrapAPI(onboardingAPI, "settings")
+  onboarding: wrapAPI(onboardingAPI, "settings"),
+
+  // Ripple AI Agent
+  ripple: wrapAPI(rippleAPI, "app")
 };
 contextBridge.exposeInMainWorld("flow", flowAPI);

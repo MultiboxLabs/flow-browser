@@ -229,6 +229,9 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
   /** Active sidebar open/close interpolation, or null when static. */
   private sidebarInterpolation: SidebarInterpolation | null = null;
 
+  /** Active Ripple sidebar open/close interpolation, or null when static. */
+  private rippleSidebarInterpolation: SidebarInterpolation | null = null;
+
   /**
    * Accepts declarative layout parameters from the renderer and computes
    * page bounds. When `sidebarAnimating` is true, starts an ease-in-out
@@ -242,13 +245,10 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     // to match the CSS transition start time in the renderer.
     const advanceMs = sentAt ? Math.max(0, Date.now() - sentAt) : 0;
 
-    // Compute the target effective sidebar width from the new params.
+    // --- Main sidebar interpolation ---
     const targetWidth = params.sidebarVisible ? params.sidebarWidth : 0;
 
     if (params.sidebarAnimating) {
-      // Determine starting width for the interpolation.
-      // Prefer the current interpolation value (handles rapid toggle / mid-animation
-      // re-trigger gracefully), otherwise derive from previous params.
       let fromWidth: number;
       if (this.sidebarInterpolation) {
         fromWidth = this.sidebarInterpolation.currentValue;
@@ -256,7 +256,6 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       } else if (prevParams) {
         fromWidth = prevParams.sidebarVisible ? prevParams.sidebarWidth : 0;
       } else {
-        // No previous state (first params ever) — no animation possible.
         fromWidth = targetWidth;
       }
 
@@ -269,25 +268,61 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
             this.recomputePageBounds();
           },
           () => {
-            // Animation complete
             this.sidebarInterpolation = null;
             this.recomputePageBounds();
           }
         );
         this.sidebarInterpolation.start(advanceMs);
       } else {
-        // from === to: nothing to animate (e.g. duplicate message)
         this.sidebarInterpolation = null;
-        this.recomputePageBounds();
       }
     } else {
-      // Not animating — apply immediately
       if (this.sidebarInterpolation) {
         this.sidebarInterpolation.stop();
         this.sidebarInterpolation = null;
       }
-      this.recomputePageBounds();
     }
+
+    // --- Ripple sidebar interpolation ---
+    const rippleTargetWidth = params.rippleSidebarVisible ? params.rippleSidebarWidth : 0;
+
+    if (params.rippleSidebarAnimating) {
+      let rippleFromWidth: number;
+      if (this.rippleSidebarInterpolation) {
+        rippleFromWidth = this.rippleSidebarInterpolation.currentValue;
+        this.rippleSidebarInterpolation.stop();
+      } else if (prevParams) {
+        rippleFromWidth = prevParams.rippleSidebarVisible ? prevParams.rippleSidebarWidth : 0;
+      } else {
+        rippleFromWidth = rippleTargetWidth;
+      }
+
+      if (rippleFromWidth !== rippleTargetWidth) {
+        this.rippleSidebarInterpolation = new SidebarInterpolation(
+          rippleFromWidth,
+          rippleTargetWidth,
+          SIDEBAR_ANIMATE_DURATION,
+          () => {
+            this.recomputePageBounds();
+          },
+          () => {
+            this.rippleSidebarInterpolation = null;
+            this.recomputePageBounds();
+          }
+        );
+        this.rippleSidebarInterpolation.start(advanceMs);
+      } else {
+        this.rippleSidebarInterpolation = null;
+      }
+    } else {
+      if (this.rippleSidebarInterpolation) {
+        this.rippleSidebarInterpolation.stop();
+        this.rippleSidebarInterpolation = null;
+      }
+    }
+
+    // Always recompute after processing both sidebars
+    this.recomputePageBounds();
   }
 
   /**
@@ -310,34 +345,54 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     if (this.destroyed || this.browserWindow.isDestroyed()) return;
 
     const [cw, ch] = this.browserWindow.getContentSize();
-    const { topbarHeight, topbarVisible, sidebarWidth, sidebarSide, sidebarVisible, contentTopOffset } =
-      this.layoutParams;
+    const {
+      topbarHeight,
+      topbarVisible,
+      sidebarWidth,
+      sidebarSide,
+      sidebarVisible,
+      contentTopOffset,
+      rippleSidebarWidth,
+      rippleSidebarVisible
+    } = this.layoutParams;
 
-    // Effective sidebar width (animated or static)
-    let effectiveSidebarWidth: number;
+    // --- Main sidebar effective width (animated or static) ---
+    let effectiveMainSidebarWidth: number;
     if (this.sidebarInterpolation) {
-      // During animation, subtract a small buffer so the WebContentsView
-      // extends slightly under the sidebar. This hides any residual desync
-      // from IPC delay, setTimeout jitter, and compositor frame misalignment.
-      // The buffer tapers to 0 near the target to avoid a visible snap when
-      // the animation completes. The sidebar's opaque background covers the
-      // overlap, so the user never sees the webcontents underneath.
       const ANIM_BUFFER = 15;
       const targetWidth = sidebarVisible ? sidebarWidth : 0;
       const remaining = Math.abs(this.sidebarInterpolation.currentValue - targetWidth);
       const buffer = Math.min(ANIM_BUFFER, remaining);
-      effectiveSidebarWidth = Math.max(0, this.sidebarInterpolation.currentValue - buffer);
+      effectiveMainSidebarWidth = Math.max(0, this.sidebarInterpolation.currentValue - buffer);
     } else {
-      effectiveSidebarWidth = sidebarVisible ? sidebarWidth : 0;
+      effectiveMainSidebarWidth = sidebarVisible ? sidebarWidth : 0;
     }
+
+    // --- Ripple sidebar effective width (animated or static) ---
+    // The ripple sidebar is always on the opposite side of the main sidebar.
+    let effectiveRippleSidebarWidth: number;
+    if (this.rippleSidebarInterpolation) {
+      const ANIM_BUFFER = 15;
+      const rippleTarget = rippleSidebarVisible ? rippleSidebarWidth : 0;
+      const remaining = Math.abs(this.rippleSidebarInterpolation.currentValue - rippleTarget);
+      const buffer = Math.min(ANIM_BUFFER, remaining);
+      effectiveRippleSidebarWidth = Math.max(0, this.rippleSidebarInterpolation.currentValue - buffer);
+    } else {
+      effectiveRippleSidebarWidth = rippleSidebarVisible ? rippleSidebarWidth : 0;
+    }
+
+    // Compute left/right sidebar widths based on which side the main sidebar is on.
+    // Ripple is always on the opposite side.
+    const leftWidth = sidebarSide === "left" ? effectiveMainSidebarWidth : effectiveRippleSidebarWidth;
+    const rightWidth = sidebarSide === "right" ? effectiveMainSidebarWidth : effectiveRippleSidebarWidth;
 
     const PADDING = 12;
     const padTop = (topbarVisible ? topbarHeight : PADDING) + (contentTopOffset ?? 0);
     const padBottom = PADDING;
 
-    const x = (sidebarSide === "left" ? effectiveSidebarWidth : 0) + PADDING;
+    const x = leftWidth + PADDING;
     const y = padTop;
-    const width = Math.max(0, cw - effectiveSidebarWidth - PADDING * 2);
+    const width = Math.max(0, cw - leftWidth - rightWidth - PADDING * 2);
     const height = Math.max(0, ch - padTop - padBottom);
 
     const newBounds: PageBounds = { x, y, width, height };
@@ -363,6 +418,10 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     if (this.sidebarInterpolation) {
       this.sidebarInterpolation.stop();
       this.sidebarInterpolation = null;
+    }
+    if (this.rippleSidebarInterpolation) {
+      this.rippleSidebarInterpolation.stop();
+      this.rippleSidebarInterpolation = null;
     }
 
     const result = super.destroy(...args);
