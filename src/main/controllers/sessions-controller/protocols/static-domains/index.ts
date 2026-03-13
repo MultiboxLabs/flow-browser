@@ -21,7 +21,7 @@ export function registerStaticDomainsRoutes(protocol: CustomProtocol, app: Hono)
     const path = c.req.param("path") ?? "/";
 
     for (const domainInfo of domainInfos) {
-      if (domainInfo.hostname !== domain.toLowerCase()) {
+      if (!domain || domainInfo.hostname !== domain.toLowerCase()) {
         continue;
       }
 
