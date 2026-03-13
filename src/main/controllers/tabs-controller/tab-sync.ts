@@ -127,6 +127,11 @@ export function isTabSyncEnabled(): boolean {
   return getSettingValueById("syncTabsAcrossWindows") === true;
 }
 
+/** Returns true if the tab belongs to an internal profile (e.g. incognito). */
+export function isInternalProfileTab(tab: Tab): boolean {
+  return tab.loadedProfile.profileData.internal === true;
+}
+
 /**
  * Moves the active tab/group for a window-space into the given window.
  * Captures a screenshot before moving so the old window gets a placeholder.
@@ -145,8 +150,12 @@ async function moveActiveTabToWindow(window: BrowserWindow, isStale?: () => bool
   clearPlaceholderInRenderer(window.id);
 
   if (activeTabOrGroup instanceof Tab) {
+    // Internal-profile tabs must not be synced across windows
+    if (isInternalProfileTab(activeTabOrGroup)) return;
     await moveTabToWindowIfNeeded(activeTabOrGroup, window, isStale);
   } else if (activeTabOrGroup instanceof BaseTabGroup) {
+    // If any tab in the group is internal, skip the entire group move
+    if (activeTabOrGroup.tabs.some(isInternalProfileTab)) return;
     // Check staleness before starting the group move. Once begun, complete
     // the full group to avoid leaving it split across windows.
     if (isStale?.()) return;
@@ -220,8 +229,9 @@ export async function moveTabOrGroupToWindow(tab: Tab, window: BrowserWindow): P
  * windows exist, tabs are moved instead of destroyed so the shared tab set
  * survives the window close.
  *
- * Ephemeral (incognito) tabs are never relocated — they are excluded from
- * the move and returned to the caller so it can destroy them normally.
+ * Internal-profile (e.g. incognito) tabs can only relocate to a surviving
+ * window that has the same profile active in its current space. If no such
+ * window exists, they are returned as unrelocatable for destruction.
  *
  * @param tabs  Tabs that belonged to the closing window (captured before the
  *              window was removed from the controller).
@@ -350,8 +360,12 @@ async function relocateDisplacedTabs(): Promise<void> {
 
           const tabs: Tab[] = active instanceof Tab ? [active] : [...active.tabs];
 
-          windowActiveTabs.set(win.id, tabs);
-          windowWantedTabIds.set(win.id, new Set(tabs.map((t) => t.id)));
+          // Internal-profile tabs are not synced — skip them
+          const syncableTabs = tabs.filter((t) => !isInternalProfileTab(t));
+          if (syncableTabs.length === 0) continue;
+
+          windowActiveTabs.set(win.id, syncableTabs);
+          windowWantedTabIds.set(win.id, new Set(syncableTabs.map((t) => t.id)));
         }
 
         // For each window, check if any of its wanted tabs are in the wrong window

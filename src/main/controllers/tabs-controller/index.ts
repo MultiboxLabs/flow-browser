@@ -18,7 +18,7 @@ import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
 import { FLAGS } from "@/modules/flags";
 import { quitController } from "@/controllers/quit-controller";
-import { clearPlaceholdersForTab, isTabSyncEnabled, registerTabsController } from "./tab-sync";
+import { clearPlaceholdersForTab, isInternalProfileTab, isTabSyncEnabled, registerTabsController } from "./tab-sync";
 
 export const NEW_TAB_URL = "flow://new-tab";
 const ARCHIVE_CHECK_INTERVAL_MS = 10 * 1000;
@@ -1103,7 +1103,16 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
    * which window owns them, so normalization must cover the full set.
    */
   public normalizePositions(windowId: number, spaceId: string) {
-    const tabs = isTabSyncEnabled() ? this.getTabsInSpace(spaceId) : this.getTabsInWindowSpace(windowId, spaceId);
+    let tabs: Tab[];
+    if (isTabSyncEnabled()) {
+      // In sync mode, normalize all tabs in the space but exclude
+      // internal-profile tabs from other windows (they are not synced).
+      tabs = this.getTabsInSpace(spaceId).filter(
+        (tab) => tab.getWindow().id === windowId || !isInternalProfileTab(tab)
+      );
+    } else {
+      tabs = this.getTabsInWindowSpace(windowId, spaceId);
+    }
     if (tabs.length === 0) return;
 
     // Sort by current position

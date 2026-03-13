@@ -1,4 +1,4 @@
-import { BaseTabGroup } from "@/controllers/tabs-controller/tab-groups";
+import { BaseTabGroup, TabGroup } from "@/controllers/tabs-controller/tab-groups";
 import { spacesController } from "@/controllers/spaces-controller";
 import { clipboard, ipcMain, Menu, MenuItem } from "electron";
 import { PersistedTabGroupData, TabData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
@@ -9,7 +9,12 @@ import { tabsController } from "@/controllers/tabs-controller";
 import { serializeTabForRenderer, serializeTabGroupForRenderer } from "@/saving/tabs/serialization";
 import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
 import { GlanceTabGroup } from "@/controllers/tabs-controller/tab-groups/glance";
-import { isTabSyncEnabled, moveTabOrGroupToWindow, runTabSyncMutation } from "@/controllers/tabs-controller/tab-sync";
+import {
+  isInternalProfileTab,
+  isTabSyncEnabled,
+  moveTabOrGroupToWindow,
+  runTabSyncMutation
+} from "@/controllers/tabs-controller/tab-sync";
 
 /**
  * Attempts to restore a tab's group membership after it has been recreated.
@@ -84,12 +89,24 @@ function getWindowTabsData(window: BrowserWindow) {
   const windowId = window.id;
   const syncEnabled = isTabSyncEnabled();
 
-  // When sync is enabled, return ALL tabs across all windows;
-  // otherwise only tabs belonging to this window.
-  const tabs = syncEnabled ? [...tabsController.tabs.values()] : tabsController.getTabsInWindow(windowId);
-  const tabGroups = syncEnabled
-    ? [...tabsController.tabGroups.values()]
-    : tabsController.getTabGroupsInWindow(windowId);
+  // When sync is enabled, return all tabs across all windows EXCEPT
+  // internal-profile tabs that belong to other windows (those stay private).
+  let tabs: Tab[];
+  let tabGroups: TabGroup[];
+
+  if (syncEnabled) {
+    tabs = [...tabsController.tabs.values()].filter(
+      (tab) => tab.getWindow().id === windowId || !isInternalProfileTab(tab)
+    );
+    // Include tab groups that still have at least one visible tab
+    const visibleTabIds = new Set(tabs.map((t) => t.id));
+    tabGroups = [...tabsController.tabGroups.values()].filter((group) =>
+      group.tabs.some((t) => visibleTabIds.has(t.id))
+    );
+  } else {
+    tabs = tabsController.getTabsInWindow(windowId);
+    tabGroups = tabsController.getTabGroupsInWindow(windowId);
+  }
 
   const tabDatas = tabs.map((tab) => {
     const managers = tabsController.getTabManagers(tab.id);
@@ -239,7 +256,19 @@ export function windowTabsChanged(windowId: number) {
  * When tab sync is enabled, the change is enqueued for all browser windows.
  */
 export function windowTabContentChanged(windowId: number, tabId: number) {
-  const targetWindowIds = isTabSyncEnabled() ? browserWindowsController.getWindows().map((w) => w.id) : [windowId];
+  let targetWindowIds: number[];
+
+  if (isTabSyncEnabled()) {
+    // Internal-profile tabs are not synced — only notify the owning window
+    const tab = tabsController.getTabById(tabId);
+    if (tab && isInternalProfileTab(tab)) {
+      targetWindowIds = [windowId];
+    } else {
+      targetWindowIds = browserWindowsController.getWindows().map((w) => w.id);
+    }
+  } else {
+    targetWindowIds = [windowId];
+  }
 
   for (const targetId of targetWindowIds) {
     // If a structural change is already pending for this window, skip —
