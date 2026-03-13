@@ -6,7 +6,7 @@ import { createIncognitoWindow } from "@/modules/incognito/windows";
 import { FLAGS } from "@/modules/flags";
 
 function setupWindowsUserTasks() {
-  app.setUserTasks([
+  const tasks: Electron.Task[] = [
     {
       program: process.execPath,
       arguments: "--new-window",
@@ -15,7 +15,20 @@ function setupWindowsUserTasks() {
       title: "New Window",
       description: "Create a new window"
     }
-  ]);
+  ];
+
+  if (FLAGS.INCOGNITO_ENABLED) {
+    tasks.push({
+      program: process.execPath,
+      arguments: "--new-incognito-window",
+      iconPath: process.execPath,
+      iconIndex: 0,
+      title: "New Incognito Window",
+      description: "Create a new incognito window"
+    });
+  }
+
+  app.setUserTasks(tasks);
 }
 
 function setupMacOSDock() {
