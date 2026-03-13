@@ -367,18 +367,24 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     }
 
     const closingWindowTabs = tabsController.getTabsInWindow(this.id);
-    const shouldRelocateTabs = !quitController.isQuitting && relocateTabsFromClosingWindow(this.id, closingWindowTabs);
+    // relocateTabsFromClosingWindow returns null when sync is off or no surviving
+    // windows exist, otherwise the list of ephemeral tabs that were NOT relocated.
+    const unrelocatedTabs = !quitController.isQuitting
+      ? relocateTabsFromClosingWindow(this.id, closingWindowTabs)
+      : null;
 
     const result = super.destroy(...args);
     if (result) {
       // Skip during quit — the process is dying and the database is already closed,
       // so calling tab.destroy() would crash when it tries to access SQLite.
       if (!quitController.isQuitting) {
-        // In sync mode, relocate tabs to a surviving window instead of destroying them.
-        // Falls through to destruction when sync is off or no other windows exist.
-        if (!shouldRelocateTabs) {
+        // Determine which tabs still need destruction:
+        // - null  → sync was off / no surviving windows; destroy all tabs
+        // - array → only the unrelocated (ephemeral) tabs need destroying
+        const tabsToDestroy = unrelocatedTabs ?? closingWindowTabs;
+        if (tabsToDestroy.length > 0) {
           setTimeout(() => {
-            for (const tab of closingWindowTabs) {
+            for (const tab of tabsToDestroy) {
               tab.destroy();
             }
           }, 500);

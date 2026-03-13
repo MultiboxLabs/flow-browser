@@ -220,20 +220,36 @@ export async function moveTabOrGroupToWindow(tab: Tab, window: BrowserWindow): P
  * windows exist, tabs are moved instead of destroyed so the shared tab set
  * survives the window close.
  *
+ * Ephemeral (incognito) tabs are never relocated — they are excluded from
+ * the move and returned to the caller so it can destroy them normally.
+ *
  * @param tabs  Tabs that belonged to the closing window (captured before the
  *              window was removed from the controller).
- * @returns `true` if tabs were relocated (caller should skip destruction).
+ * @returns The list of tabs that were **not** relocated and still need
+ *          destruction, or `null` when sync is disabled / no surviving
+ *          windows exist (meaning the caller should destroy all tabs).
  */
-export function relocateTabsFromClosingWindow(closingWindowId: number, tabs: Tab[]): boolean {
-  if (!isTabSyncEnabled()) return false;
+export function relocateTabsFromClosingWindow(closingWindowId: number, tabs: Tab[]): Tab[] | null {
+  if (!isTabSyncEnabled()) return null;
 
   const survivingWindows = browserWindowsController.getWindows().filter((w) => w.id !== closingWindowId);
-  if (survivingWindows.length === 0) return false;
+  if (survivingWindows.length === 0) return null;
 
   const tabsController = getTabsController();
   const targetWindow = survivingWindows[0];
 
+  // Ephemeral (incognito) tabs must not leak into regular windows.
+  const relocatable: Tab[] = [];
+  const unrelocatable: Tab[] = [];
   for (const tab of tabs) {
+    if (tab.loadedProfile.profileData.ephemeral) {
+      unrelocatable.push(tab);
+    } else {
+      relocatable.push(tab);
+    }
+  }
+
+  for (const tab of relocatable) {
     tab.visible = false;
     tab.setWindow(targetWindow);
 
@@ -250,7 +266,7 @@ export function relocateTabsFromClosingWindow(closingWindowId: number, tabs: Tab
     tabsController.emit("active-tab-changed", targetWindow.id, targetSpaceId);
   }
 
-  return true;
+  return unrelocatable;
 }
 
 // Automatic tab relocation

@@ -102,6 +102,16 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       windowTabsChanged(tab.getWindow().id);
     });
 
+    // When a space is deleted, destroy every tab that still references it.
+    // Without this, standalone space deletion (e.g. from Settings) leaves
+    // orphaned tabs with stale spaceId references.
+    spacesController.on("space-deleted", (_profileId, spaceId) => {
+      if (quitController.isQuitting) return;
+      for (const tab of this.getTabsInSpace(spaceId)) {
+        tab.destroy();
+      }
+    });
+
     // Archive/sleep check interval
     const interval = setInterval(() => {
       for (const tab of this.tabs.values()) {
