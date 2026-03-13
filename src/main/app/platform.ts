@@ -49,7 +49,7 @@ function setupMacOSDock() {
   dockMenu.append(
     new MenuItem({
       label: "New Incognito Window",
-      visible: FLAGS.INCOGNITO_ENABLED,
+      enabled: FLAGS.INCOGNITO_ENABLED,
       click: () => {
         createIncognitoWindow().catch((error) => {
           console.error("Failed to create incognito window:", error);

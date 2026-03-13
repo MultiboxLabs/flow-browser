@@ -40,5 +40,5 @@ export const FLAGS: Flags = {
   FAVICONS_REMOVE_PATH: true,
 
   // Incognito: Enable incognito windows
-  INCOGNITO_ENABLED: true
+  INCOGNITO_ENABLED: false
 };
