@@ -107,7 +107,8 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     // orphaned tabs with stale spaceId references.
     spacesController.on("space-deleted", (_profileId, spaceId) => {
       if (quitController.isQuitting) return;
-      for (const tab of this.getTabsInSpace(spaceId)) {
+      const tabs = this.getTabsInSpace(spaceId);
+      for (const tab of tabs) {
         tab.destroy();
       }
     });

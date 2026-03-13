@@ -242,7 +242,8 @@ export function relocateTabsFromClosingWindow(closingWindowId: number, tabs: Tab
   const relocatable: Tab[] = [];
   const unrelocatable: Tab[] = [];
   for (const tab of tabs) {
-    if (tab.loadedProfile.profileData.ephemeral) {
+    const ephemeral = tab.loadedProfile.profileData.ephemeral;
+    if (ephemeral) {
       unrelocatable.push(tab);
     } else {
       relocatable.push(tab);
@@ -255,6 +256,30 @@ export function relocateTabsFromClosingWindow(closingWindowId: number, tabs: Tab
 
     const layoutManager = tabsController.getLayoutManager(tab.id);
     layoutManager?.onWindowChanged();
+  }
+
+  // Unrelocatable tabs are about to be destroyed. Clear any active/focused
+  // references that surviving windows hold to these tabs so that
+  // relocateDisplacedTabs doesn't try (and fail) to move them.
+  if (unrelocatable.length > 0) {
+    const unrelocatableIds = new Set(unrelocatable.map((t) => t.id));
+    for (const win of survivingWindows) {
+      const spaceId = win.currentSpaceId;
+      if (!spaceId) continue;
+
+      const active = tabsController.getActiveTab(win.id, spaceId);
+      if (!active) continue;
+
+      // Check if the active element is (or contains) an unrelocatable tab
+      const isStale =
+        active instanceof Tab
+          ? unrelocatableIds.has(active.id)
+          : active.tabs.some((t: Tab) => unrelocatableIds.has(t.id));
+
+      if (isStale) {
+        tabsController.removeActiveTab(win.id, spaceId);
+      }
+    }
   }
 
   // Purge stale map entries for the closing window
@@ -324,6 +349,7 @@ async function relocateDisplacedTabs(): Promise<void> {
           if (!active) continue;
 
           const tabs: Tab[] = active instanceof Tab ? [active] : [...active.tabs];
+
           windowActiveTabs.set(win.id, tabs);
           windowWantedTabIds.set(win.id, new Set(tabs.map((t) => t.id)));
         }
@@ -331,8 +357,17 @@ async function relocateDisplacedTabs(): Promise<void> {
         // For each window, check if any of its wanted tabs are in the wrong window
         for (const [targetWindowId, tabs] of windowActiveTabs) {
           for (const tab of tabs) {
+            if (tab.isDestroyed) {
+              continue;
+            }
             const viewOwnerWindowId = tab.getWindow().id;
             if (viewOwnerWindowId === targetWindowId) continue; // already here
+
+            // If the owner window no longer exists (destroyed), the tab is
+            // orphaned and will be cleaned up by its scheduled destruction.
+            // Attempting to relocate it would fail and re-trigger this
+            // function in an infinite loop.
+            if (!browserWindowsController.getWindowById(viewOwnerWindowId)) continue;
 
             // Is the tab also wanted by the window that currently owns the view?
             const ownerWanted = windowWantedTabIds.get(viewOwnerWindowId);
