@@ -2,6 +2,8 @@ import { app, Menu, MenuItem } from "electron";
 import { debugPrint } from "@/modules/output";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { hasCompletedOnboarding } from "@/saving/onboarding";
+import { createIncognitoWindow } from "@/modules/incognito/windows";
+import { FLAGS } from "@/modules/flags";
 
 function setupWindowsUserTasks() {
   app.setUserTasks([
@@ -34,7 +36,12 @@ function setupMacOSDock() {
   dockMenu.append(
     new MenuItem({
       label: "New Incognito Window",
-      enabled: false
+      visible: FLAGS.INCOGNITO_ENABLED,
+      click: () => {
+        createIncognitoWindow().catch((error) => {
+          console.error("Failed to create incognito window:", error);
+        });
+      }
     })
   );
 
