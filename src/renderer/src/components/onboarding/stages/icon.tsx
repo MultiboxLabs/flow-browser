@@ -134,7 +134,7 @@ export function OnboardingIcon({ advance }: { advance: OnboardingAdvanceCallback
                       <img
                         src={`flow://asset/icons/${icon.imageId}`}
                         alt={icon.name}
-                        className="h-10 w-10 rounded-lg shadow-lg"
+                        className="size-10 platform-darwin:size-12 rounded-lg shadow-lg"
                       />
                     ) : (
                       <div className="h-10 w-10 rounded-lg bg-[#0066FF] shadow-lg flex items-center justify-center text-xl font-bold text-white">
