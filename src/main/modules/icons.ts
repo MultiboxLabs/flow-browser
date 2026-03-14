@@ -153,6 +153,11 @@ export const macOsIcons = [
     id: "summer",
     name: "Summer",
     image_id: "summer.png"
+  },
+  {
+    id: "candy",
+    name: "Candy",
+    image_id: "candy.png"
   }
 ] as const satisfies IconData[];
 
