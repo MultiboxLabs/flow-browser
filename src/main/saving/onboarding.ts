@@ -39,11 +39,17 @@ export async function hasCompletedOnboarding() {
 export async function setOnboardingCompleted() {
   await SettingsDataStore.set(ONBOARDING_KEY, ONBOARDING_VERSION);
   onboardingCompleted = true;
-  onboarding.hide();
 
+  // Create the browser window BEFORE hiding the onboarding window so that
+  // there is never a moment with zero open windows.  On non-macOS platforms
+  // Electron fires `window-all-closed` synchronously when the last window is
+  // destroyed, which calls `app.quit()` and prevents the browser window from
+  // ever being created.
   if (browserWindowsController.getWindows().length === 0) {
-    browserWindowsController.create();
+    await browserWindowsController.create();
   }
+
+  onboarding.hide();
 }
 
 export async function resetOnboarding() {
