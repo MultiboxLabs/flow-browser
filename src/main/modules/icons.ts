@@ -30,7 +30,7 @@ export const supportedPlatforms: NodeJS.Platform[] = [
   "linux"
   // No support for Windows or other platforms
 ];
-const iconsDirectory = path.join(PATHS.ASSETS, "public", "icons");
+const iconsDirectory = path.join(PATHS.ASSETS, "public", process.platform === "darwin" ? "macos-icons" : "icons");
 
 // Persistent icon directory — transformed PNGs saved here for macOS Finder/Dock
 const persistentIconsDir = path.join(FLOW_DATA_DIR, "icons");
@@ -38,7 +38,7 @@ const persistentIconsDir = path.join(FLOW_DATA_DIR, "icons");
 type IconData = {
   id: string;
   name: string;
-  image_id: string;
+  image_id: string | null;
   author?: string;
 };
 
@@ -121,6 +121,46 @@ export const icons = [
   }
 ] as const satisfies IconData[];
 
+// macOS-specific icon set — served from assets/public/macos-icons/.
+// "default" has no image_id; selecting it resets to the Liquid Glass system icon.
+export const macOsIcons = [
+  {
+    id: "default",
+    name: "Default",
+    image_id: "default.png"
+  },
+  {
+    id: "darkness",
+    name: "Darkness",
+    image_id: "darkness.png"
+  },
+  {
+    id: "glowy",
+    name: "Glowy",
+    image_id: "glowy.png"
+  },
+  {
+    id: "minimal_flat",
+    name: "Minimal Flat",
+    image_id: "minimal_flat.png"
+  },
+  {
+    id: "nature",
+    name: "Nature",
+    image_id: "nature.png"
+  },
+  {
+    id: "summer",
+    name: "Summer",
+    image_id: "summer.png"
+  }
+] as const satisfies IconData[];
+
+/** Returns the platform-appropriate icon list. */
+export function getIcons() {
+  return process.platform === "darwin" ? macOsIcons : icons;
+}
+
 export type IconId = (typeof icons)[number]["id"];
 const iconIds = icons.map((icon) => icon.id);
 const IconIdSchema = type.enumerated(...iconIds);
@@ -130,6 +170,12 @@ async function transformAppIcon(imagePath: string): Promise<Buffer> {
   try {
     // Read the image file
     const inputBuffer = fs.readFileSync(imagePath);
+
+    // Pre-rendered Liquid Glass icons for macOS, do not need transforming
+    if (process.platform === "darwin") {
+      debugPrint("ICONS", "Skipping transformation for pre-rendered Liquid Glass icon.");
+      return inputBuffer;
+    }
 
     // Size constants
     const totalSize = 1024;

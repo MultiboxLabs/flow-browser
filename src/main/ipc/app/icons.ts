@@ -1,8 +1,8 @@
-import { icons, setCurrentIconId, supportedPlatforms, type IconId, getCurrentIconId } from "@/modules/icons";
+import { getIcons, setCurrentIconId, supportedPlatforms, type IconId, getCurrentIconId } from "@/modules/icons";
 import { ipcMain } from "electron";
 
 ipcMain.handle("icons:get-all", () => {
-  return icons;
+  return getIcons();
 });
 
 ipcMain.handle("icons:is-platform-supported", () => {
