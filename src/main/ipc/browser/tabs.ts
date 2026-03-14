@@ -10,8 +10,8 @@ import { serializeTabForRenderer, serializeTabGroupForRenderer } from "@/saving/
 import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
 import { GlanceTabGroup } from "@/controllers/tabs-controller/tab-groups/glance";
 import {
-  isInternalProfileTab,
   isTabSyncEnabled,
+  isSyncExcludedTab,
   moveTabOrGroupToWindow,
   runTabSyncMutation
 } from "@/controllers/tabs-controller/tab-sync";
@@ -90,14 +90,16 @@ function getWindowTabsData(window: BrowserWindow) {
   const syncEnabled = isTabSyncEnabled();
 
   // When sync is enabled, return all tabs across all windows EXCEPT
-  // internal-profile tabs that belong to other windows (those stay private).
+  // internal-profile tabs and popup-window tabs that belong to other windows
+  // (those stay private). Popup windows themselves are not part of sync.
   let tabs: Tab[];
   let tabGroups: TabGroup[];
 
-  if (syncEnabled) {
-    tabs = [...tabsController.tabs.values()].filter(
-      (tab) => tab.getWindow().id === windowId || !isInternalProfileTab(tab)
-    );
+  if (syncEnabled && window.browserWindowType === "normal") {
+    tabs = [...tabsController.tabs.values()].filter((tab) => {
+      if (tab.getWindow().id === windowId) return true;
+      return !isSyncExcludedTab(tab);
+    });
     // Include tab groups that still have at least one visible tab
     const visibleTabIds = new Set(tabs.map((t) => t.id));
     tabGroups = [...tabsController.tabGroups.values()].filter((group) =>
@@ -259,9 +261,9 @@ export function windowTabContentChanged(windowId: number, tabId: number) {
   let targetWindowIds: number[];
 
   if (isTabSyncEnabled()) {
-    // Internal-profile tabs are not synced — only notify the owning window
+    // Internal-profile and popup-window tabs are not synced — only notify the owning window
     const tab = tabsController.getTabById(tabId);
-    if (tab && isInternalProfileTab(tab)) {
+    if (tab && isSyncExcludedTab(tab)) {
       targetWindowIds = [windowId];
     } else {
       targetWindowIds = browserWindowsController.getWindows().map((w) => w.id);

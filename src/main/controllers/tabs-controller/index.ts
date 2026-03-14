@@ -18,7 +18,7 @@ import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
 import { FLAGS } from "@/modules/flags";
 import { quitController } from "@/controllers/quit-controller";
-import { clearPlaceholdersForTab, isInternalProfileTab, isTabSyncEnabled, registerTabsController } from "./tab-sync";
+import { clearPlaceholdersForTab, isSyncExcludedTab, isTabSyncEnabled, registerTabsController } from "./tab-sync";
 
 export const NEW_TAB_URL = "flow://new-tab";
 const ARCHIVE_CHECK_INTERVAL_MS = 10 * 1000;
@@ -1106,10 +1106,8 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     let tabs: Tab[];
     if (isTabSyncEnabled()) {
       // In sync mode, normalize all tabs in the space but exclude
-      // internal-profile tabs from other windows (they are not synced).
-      tabs = this.getTabsInSpace(spaceId).filter(
-        (tab) => tab.getWindow().id === windowId || !isInternalProfileTab(tab)
-      );
+      // internal-profile and popup-window tabs from other windows (they are not synced).
+      tabs = this.getTabsInSpace(spaceId).filter((tab) => tab.getWindow().id === windowId || !isSyncExcludedTab(tab));
     } else {
       tabs = this.getTabsInWindowSpace(windowId, spaceId);
     }

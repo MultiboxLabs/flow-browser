@@ -132,6 +132,16 @@ export function isInternalProfileTab(tab: Tab): boolean {
   return tab.loadedProfile.profileData.internal === true;
 }
 
+/** Returns true if the tab currently belongs to a popup window. */
+export function isPopupWindowTab(tab: Tab): boolean {
+  return tab.getWindow().browserWindowType === "popup";
+}
+
+/** Returns true if the tab should be excluded from tab sync (internal or popup). */
+export function isSyncExcludedTab(tab: Tab): boolean {
+  return isInternalProfileTab(tab) || isPopupWindowTab(tab);
+}
+
 /**
  * Moves the active tab/group for a window-space into the given window.
  * Captures a screenshot before moving so the old window gets a placeholder.
@@ -150,12 +160,12 @@ async function moveActiveTabToWindow(window: BrowserWindow, isStale?: () => bool
   clearPlaceholderInRenderer(window.id);
 
   if (activeTabOrGroup instanceof Tab) {
-    // Internal-profile tabs must not be synced across windows
-    if (isInternalProfileTab(activeTabOrGroup)) return;
+    // Internal-profile and popup-window tabs must not be synced across windows
+    if (isSyncExcludedTab(activeTabOrGroup)) return;
     await moveTabToWindowIfNeeded(activeTabOrGroup, window, isStale);
   } else if (activeTabOrGroup instanceof BaseTabGroup) {
-    // If any tab in the group is internal, skip the entire group move
-    if (activeTabOrGroup.tabs.some(isInternalProfileTab)) return;
+    // If any tab in the group is excluded from sync, skip the entire group move
+    if (activeTabOrGroup.tabs.some(isSyncExcludedTab)) return;
     // Check staleness before starting the group move. Once begun, complete
     // the full group to avoid leaving it split across windows.
     if (isStale?.()) return;
@@ -362,8 +372,8 @@ async function relocateDisplacedTabs(): Promise<void> {
 
           const tabs: Tab[] = active instanceof Tab ? [active] : [...active.tabs];
 
-          // Internal-profile tabs are not synced — skip them
-          const syncableTabs = tabs.filter((t) => !isInternalProfileTab(t));
+          // Internal-profile and popup-window tabs are not synced — skip them
+          const syncableTabs = tabs.filter((t) => !isSyncExcludedTab(t));
           if (syncableTabs.length === 0) continue;
 
           windowActiveTabs.set(win.id, syncableTabs);
