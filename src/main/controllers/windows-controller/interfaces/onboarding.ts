@@ -9,7 +9,8 @@ export const onboarding = {
     await window.show();
   },
   hide: () => {
-    const window = onboardingWindowManager().getSingletonWindow();
+    const window = onboardingWindowManager().getExistingSingletonWindow();
+    if (!window) return;
     window.destroy();
   },
   isVisible: () => {
