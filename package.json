@@ -60,6 +60,7 @@
     "@iamevan/react-resizable-panels": "^3.0.7",
     "@pdfslick/react": "^3.0.0",
     "@phosphor-icons/react": "^2.1.7",
+    "@rolldown/plugin-babel": "^0.2.1",
     "@tailwindcss/typography": "^0.5.16",
     "@tailwindcss/vite": "^4.2.1",
     "@types/chrome": "^0.1.37",
