@@ -166,9 +166,12 @@ export function getIcons() {
   return process.platform === "darwin" ? macOsIcons : icons;
 }
 
-export type IconId = (typeof icons)[number]["id"];
+export type MacOsIconId = (typeof macOsIcons)[number]["id"];
+export type IconId = (typeof icons)[number]["id"] | MacOsIconId;
+
 const iconIds = icons.map((icon) => icon.id);
-const IconIdSchema = type.enumerated(...iconIds);
+const macOsIconIds = macOsIcons.map((icon) => icon.id);
+const IconIdSchema = type.enumerated(...iconIds, ...macOsIconIds);
 
 async function transformAppIcon(imagePath: string): Promise<Buffer> {
   debugPrint("ICONS", "Transforming app icon:", imagePath);
