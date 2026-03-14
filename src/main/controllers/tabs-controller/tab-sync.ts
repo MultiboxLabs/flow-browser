@@ -10,6 +10,7 @@ import { getSettingValueById } from "@/saving/settings";
 import { windowsController } from "@/controllers/windows-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import type { BrowserWindow } from "@/controllers/windows-controller/types";
+import { spacesController } from "@/controllers/spaces-controller";
 import {
   storeSnapshot,
   removeSnapshot
@@ -232,6 +233,19 @@ export async function moveTabOrGroupToWindow(tab: Tab, window: BrowserWindow): P
   }
 }
 
+// Helper to find a window with a specific profile active in its current space
+function findWindowWithProfile(windows: BrowserWindow[], profileId: string): BrowserWindow | null {
+  for (const win of windows) {
+    const spaceId = win.currentSpaceId;
+    if (!spaceId) continue;
+    const space = spacesController.getFromCache(spaceId);
+    if (space?.profileId === profileId) {
+      return win;
+    }
+  }
+  return null;
+}
+
 /**
  * Relocates tabs from a closing window to a surviving window.
  *
@@ -258,26 +272,42 @@ export function relocateTabsFromClosingWindow(closingWindowId: number, tabs: Tab
   if (survivingWindows.length === 0) return null;
 
   const tabsController = getTabsController();
-  const targetWindow = survivingWindows[0];
+  const defaultTargetWindow = survivingWindows[0];
 
-  // Ephemeral (incognito) tabs must not leak into regular windows.
-  const relocatable: Tab[] = [];
+  // Tabs from internal profiles (e.g. incognito) can only relocate to windows
+  // with the same profile active. Regular tabs can relocate to any window.
+  const relocatable = new Map<BrowserWindow, Tab[]>();
   const unrelocatable: Tab[] = [];
+
   for (const tab of tabs) {
-    const ephemeral = tab.loadedProfile.profileData.ephemeral;
-    if (ephemeral) {
-      unrelocatable.push(tab);
+    const isInternal = tab.loadedProfile.profileData.internal;
+    if (isInternal) {
+      // Try to find a window with the same profile
+      const targetWindow = findWindowWithProfile(survivingWindows, tab.profileId);
+      if (targetWindow) {
+        const list = relocatable.get(targetWindow) ?? [];
+        list.push(tab);
+        relocatable.set(targetWindow, list);
+      } else {
+        unrelocatable.push(tab);
+      }
     } else {
-      relocatable.push(tab);
+      // Regular tabs go to the default target
+      const list = relocatable.get(defaultTargetWindow) ?? [];
+      list.push(tab);
+      relocatable.set(defaultTargetWindow, list);
     }
   }
 
-  for (const tab of relocatable) {
-    tab.visible = false;
-    tab.setWindow(targetWindow);
+  // Relocate tabs to their respective target windows
+  for (const [targetWindow, windowTabs] of relocatable) {
+    for (const tab of windowTabs) {
+      tab.visible = false;
+      tab.setWindow(targetWindow);
 
-    const layoutManager = tabsController.getLayoutManager(tab.id);
-    layoutManager?.onWindowChanged();
+      const layoutManager = tabsController.getLayoutManager(tab.id);
+      layoutManager?.onWindowChanged();
+    }
   }
 
   // Unrelocatable tabs are about to be destroyed. Clear any active/focused
@@ -307,10 +337,12 @@ export function relocateTabsFromClosingWindow(closingWindowId: number, tabs: Tab
   // Purge stale map entries for the closing window
   tabsController.cleanupWindowEntries(closingWindowId);
 
-  // Re-run layout so the surviving window shows the correct active tab
-  const targetSpaceId = targetWindow.currentSpaceId;
-  if (targetSpaceId) {
-    tabsController.emit("active-tab-changed", targetWindow.id, targetSpaceId);
+  // Re-run layout so each target window shows the correct active tab
+  for (const targetWindow of relocatable.keys()) {
+    const targetSpaceId = targetWindow.currentSpaceId;
+    if (targetSpaceId) {
+      tabsController.emit("active-tab-changed", targetWindow.id, targetSpaceId);
+    }
   }
 
   return unrelocatable;
