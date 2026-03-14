@@ -242,7 +242,9 @@ export async function moveTabOrGroupToWindow(tab: Tab, window: BrowserWindow): P
 export function relocateTabsFromClosingWindow(closingWindowId: number, tabs: Tab[]): Tab[] | null {
   if (!isTabSyncEnabled()) return null;
 
-  const survivingWindows = browserWindowsController.getWindows().filter((w) => w.id !== closingWindowId);
+  const survivingWindows = browserWindowsController
+    .getWindows()
+    .filter((w) => w.id !== closingWindowId && w.browserWindowType === "normal");
   if (survivingWindows.length === 0) return null;
 
   const tabsController = getTabsController();
@@ -343,7 +345,7 @@ async function relocateDisplacedTabs(): Promise<void> {
 
       await runTabSyncMutation(async () => {
         const tabsController = getTabsController();
-        const allWindows = browserWindowsController.getWindows();
+        const allWindows = browserWindowsController.getWindows().filter((w) => w.browserWindowType === "normal");
 
         // Build a map: windowId -> all active tabs for its current space.
         // For tab groups, every member tab is included so that the full group
@@ -429,7 +431,7 @@ export function initTabSync(): void {
     if (!isTabSyncEnabled()) return;
 
     const window = browserWindowsController.getWindowById(id);
-    if (!window) return;
+    if (!window || window.browserWindowType !== "normal") return;
 
     const generation = ++_focusMoveGeneration;
     const isStale = () => generation !== _focusMoveGeneration;

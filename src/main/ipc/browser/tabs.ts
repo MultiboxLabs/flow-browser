@@ -295,6 +295,7 @@ ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {
   if (!tab) return false;
 
   if (isTabSyncEnabled()) {
+    let switched = false;
     await runTabSyncMutation(async () => {
       if (window.destroyed) return;
       const currentTab = tabsController.getTabById(tabId);
@@ -307,9 +308,17 @@ ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {
         await moveTabOrGroupToWindow(currentTab, window);
       }
 
-      tabsController.setActiveTab(currentTab);
+      // Re-validate after the async move: the tab or window may have been
+      // destroyed, or the move may have silently bailed out.
+      const movedTab = tabsController.getTabById(tabId);
+      if (!movedTab || movedTab.isDestroyed) return;
+      if (window.destroyed) return;
+      if (movedTab.getWindow().id !== window.id) return;
+
+      tabsController.setActiveTab(movedTab);
+      switched = true;
     });
-    return true;
+    return switched;
   }
 
   tabsController.setActiveTab(tab);
