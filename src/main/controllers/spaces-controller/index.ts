@@ -83,6 +83,10 @@ class SpacesController extends TypedEventEmitter<SpacesControllerEvents> {
     this.cache.set(spaceId, spaceData);
   }
 
+  public getFromCache(spaceId: string): SpaceData | undefined {
+    return this.cache.get(spaceId);
+  }
+
   private _getSpacesFromCache(profileId?: string): SpaceDataWithId[] {
     // Get all spaces in the cache
     const spaces: SpaceDataWithId[] = [];

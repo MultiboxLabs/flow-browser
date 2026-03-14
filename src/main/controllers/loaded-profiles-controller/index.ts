@@ -301,7 +301,8 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
     this.emit("profile-unloaded", profileId);
 
     // Destroy all tabs in the profile
-    tabsController.getTabsInProfile(profileId).forEach((tab) => {
+    const tabs = tabsController.getTabsInProfile(profileId);
+    tabs.forEach((tab) => {
       tab.destroy();
     });
   }

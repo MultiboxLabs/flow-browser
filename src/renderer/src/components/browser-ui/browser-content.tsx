@@ -1,8 +1,11 @@
-import { memo, useLayoutEffect, useRef } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PageLayoutParams } from "~/flow/types";
 import { cn } from "@/lib/utils";
 import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
 import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
+import type { TabPlaceholderUpdate } from "~/types/tabs";
+
+const PLACEHOLDER_CLEAR_DELAY_MS = 180;
 
 /**
  * BrowserContent is the placeholder div that represents the page content area.
@@ -21,6 +24,52 @@ import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 function BrowserContent() {
   const { mode, recordedSidebarSizeRef, isAnimating, attachedDirection, onSidebarResize } = useBrowserSidebar();
   const { topbarHeight, topbarVisible, contentTopOffset } = useAdaptiveTopbar();
+
+  // Tab-sync placeholder: screenshot shown when the active tab's view
+  // has been moved to another window.
+  const [placeholderSnapshotId, setPlaceholderSnapshotId] = useState<string | null>(null);
+  const clearPlaceholderTimeoutRef = useRef<number | null>(null);
+  const latestPlaceholderGenerationRef = useRef(0);
+
+  useEffect(() => {
+    const clearPendingPlaceholder = () => {
+      if (clearPlaceholderTimeoutRef.current !== null) {
+        window.clearTimeout(clearPlaceholderTimeoutRef.current);
+        clearPlaceholderTimeoutRef.current = null;
+      }
+    };
+
+    const unsub = flow.tabs.onPlaceholderChanged(({ snapshotId, generation }: TabPlaceholderUpdate) => {
+      if (generation < latestPlaceholderGenerationRef.current) {
+        return;
+      }
+      latestPlaceholderGenerationRef.current = generation;
+      clearPendingPlaceholder();
+
+      if (snapshotId) {
+        setPlaceholderSnapshotId(snapshotId);
+        return;
+      }
+
+      setPlaceholderSnapshotId((currentSnapshotId) => {
+        if (!currentSnapshotId) return currentSnapshotId;
+
+        clearPlaceholderTimeoutRef.current = window.setTimeout(() => {
+          clearPlaceholderTimeoutRef.current = null;
+          setPlaceholderSnapshotId(null);
+        }, PLACEHOLDER_CLEAR_DELAY_MS);
+
+        return currentSnapshotId;
+      });
+    });
+
+    return () => {
+      clearPendingPlaceholder();
+      unsub();
+    };
+  }, []);
+
+  const placeholderUrl = placeholderSnapshotId ? `flow-internal://tab-snapshot?id=${placeholderSnapshotId}` : null;
 
   // Derive sidebar visibility from the mode.
   // Floating sidebars are overlays (PortalComponent) and have zero layout impact.
@@ -66,7 +115,17 @@ function BrowserContent() {
   }, [onSidebarResize]);
 
   return (
-    <div className={cn("rounded-lg", "flex-1 relative remove-app-drag", "bg-white/20", "shadow-xl shadow-black/20")} />
+    <div className={cn("rounded-lg", "flex-1 relative remove-app-drag", "bg-white/20", "shadow-xl shadow-black/20")}>
+      {placeholderUrl && (
+        <img
+          src={placeholderUrl}
+          alt=""
+          draggable={false}
+          onError={() => setPlaceholderSnapshotId(null)}
+          className="absolute inset-0 w-full h-full rounded-lg object-fill opacity-50 pointer-events-none"
+        />
+      )}
+    </div>
   );
 }
 

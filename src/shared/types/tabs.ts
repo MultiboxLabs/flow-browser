@@ -121,3 +121,8 @@ export type WindowTabsData = {
   focusedTabIds: WindowFocusedTabIds;
   activeTabIds: WindowActiveTabIds;
 };
+
+export type TabPlaceholderUpdate = {
+  snapshotId: string | null;
+  generation: number;
+};

@@ -18,6 +18,7 @@ import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
 import { FLAGS } from "@/modules/flags";
 import { quitController } from "@/controllers/quit-controller";
+import { clearPlaceholdersForTab, isSyncExcludedTab, isTabSyncEnabled, registerTabsController } from "./tab-sync";
 
 export const NEW_TAB_URL = "flow://new-tab";
 const ARCHIVE_CHECK_INTERVAL_MS = 10 * 1000;
@@ -56,7 +57,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
   // Window Space Maps
   public windowActiveSpaceMap: Map<number, string>;
-  public spaceActiveTabMap: Map<WindowSpaceReference, Tab | TabGroup>;
+  private spaceActiveTabMap: Map<WindowSpaceReference, Tab | TabGroup>;
   public spaceFocusedTabMap: Map<WindowSpaceReference, Tab>;
   /** Activation history stores both tab IDs (number) and group IDs (string) */
   public spaceActivationHistory: Map<WindowSpaceReference, (number | string)[]>;
@@ -99,6 +100,17 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     this.on("tab-removed", (tab) => {
       if (quitController.isQuitting) return;
       windowTabsChanged(tab.getWindow().id);
+    });
+
+    // When a space is deleted, destroy every tab that still references it.
+    // Without this, standalone space deletion (e.g. from Settings) leaves
+    // orphaned tabs with stale spaceId references.
+    spacesController.on("space-deleted", (_profileId, spaceId) => {
+      if (quitController.isQuitting) return;
+      const tabs = this.getTabsInSpace(spaceId);
+      for (const tab of tabs) {
+        tab.destroy();
+      }
     });
 
     // Archive/sleep check interval
@@ -354,6 +366,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       // Cleanup lifecycle
       lifecycleManager.onDestroy();
       boundsController.destroy();
+      clearPlaceholdersForTab(tab.id);
 
       // During quit, skip all persistence and tab management — the database
       // is closed and windows are being torn down. Accessing them would crash.
@@ -655,6 +668,12 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
    * Set the focused tab for a space
    */
   private setFocusedTab(tab: Tab) {
+    for (const [key, focusedTab] of this.spaceFocusedTabMap.entries()) {
+      if (focusedTab.id === tab.id) {
+        this.spaceFocusedTabMap.delete(key);
+      }
+    }
+
     const windowSpaceReference = `${tab.getWindow().id}-${tab.spaceId}` as WindowSpaceReference;
     this.spaceFocusedTabMap.set(windowSpaceReference, tab);
     tab.webContents?.focus();
@@ -674,6 +693,37 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   public getFocusedTab(windowId: number, spaceId: string): Tab | undefined {
     const windowSpaceReference = `${windowId}-${spaceId}` as WindowSpaceReference;
     return this.spaceFocusedTabMap.get(windowSpaceReference);
+  }
+
+  /**
+   * Ensure the current active tab/group in a window-space has an actual focused tab.
+   * Used after sync-driven window moves where the tab view changes windows without
+   * producing a fresh webContents focus event on its own.
+   */
+  public focusActiveTab(windowId: number, spaceId: string): void {
+    const activeTabOrGroup = this.getActiveTab(windowId, spaceId);
+    if (!activeTabOrGroup) {
+      this.removeFocusedTab(windowId, spaceId);
+      return;
+    }
+
+    if (activeTabOrGroup instanceof Tab) {
+      this.setFocusedTab(activeTabOrGroup);
+      return;
+    }
+
+    const currentFocusedTab = this.getFocusedTab(windowId, spaceId);
+    if (currentFocusedTab && activeTabOrGroup.hasTab(currentFocusedTab.id)) {
+      this.setFocusedTab(currentFocusedTab);
+      return;
+    }
+
+    const nextFocusedTab = activeTabOrGroup.tabs[0];
+    if (nextFocusedTab) {
+      this.setFocusedTab(nextFocusedTab);
+    } else {
+      this.removeFocusedTab(windowId, spaceId);
+    }
   }
 
   // --- Tab Removal ---
@@ -988,6 +1038,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
    */
   public setCurrentWindowSpace(windowId: number, spaceId: string) {
     this.windowActiveSpaceMap.set(windowId, spaceId);
+
     this.emit("current-space-changed", windowId, spaceId);
   }
 
@@ -1022,14 +1073,44 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     }
   }
 
+  /**
+   * Purge all map entries associated with a given window.
+   * Called when a window is closed to prevent stale references from
+   * accumulating in the internal tracking maps.
+   */
+  public cleanupWindowEntries(windowId: number): void {
+    this.windowActiveSpaceMap.delete(windowId);
+
+    const prefix = `${windowId}-`;
+    for (const key of this.spaceActiveTabMap.keys()) {
+      if (key.startsWith(prefix)) this.spaceActiveTabMap.delete(key);
+    }
+    for (const key of this.spaceFocusedTabMap.keys()) {
+      if (key.startsWith(prefix)) this.spaceFocusedTabMap.delete(key);
+    }
+    for (const key of this.spaceActivationHistory.keys()) {
+      if (key.startsWith(prefix)) this.spaceActivationHistory.delete(key);
+    }
+  }
+
   // --- Position Normalization ---
 
   /**
    * Normalize tab positions to prevent drift to negative infinity.
    * Called periodically or when positions are getting too extreme.
+   *
+   * In sync mode the renderer shows ALL tabs in a space regardless of
+   * which window owns them, so normalization must cover the full set.
    */
   public normalizePositions(windowId: number, spaceId: string) {
-    const tabs = this.getTabsInWindowSpace(windowId, spaceId);
+    let tabs: Tab[];
+    if (isTabSyncEnabled()) {
+      // In sync mode, normalize all tabs in the space but exclude
+      // internal-profile and popup-window tabs from other windows (they are not synced).
+      tabs = this.getTabsInSpace(spaceId).filter((tab) => tab.getWindow().id === windowId || !isSyncExcludedTab(tab));
+    } else {
+      tabs = this.getTabsInWindowSpace(windowId, spaceId);
+    }
     if (tabs.length === 0) return;
 
     // Sort by current position
@@ -1044,3 +1125,4 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
 export { type TabsController };
 export const tabsController = new TabsController();
+registerTabsController(tabsController);

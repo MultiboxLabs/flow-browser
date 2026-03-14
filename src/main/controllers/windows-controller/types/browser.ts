@@ -14,6 +14,7 @@ import { spacesController } from "@/controllers/spaces-controller";
 import { tabPersistenceManager } from "@/saving/tabs";
 import { quitController } from "@/controllers/quit-controller";
 import { hex_is_light } from "@/modules/utils";
+import { relocateTabsFromClosingWindow } from "@/controllers/tabs-controller/tab-sync";
 import { ViewLayer } from "~/layers";
 import {
   SidebarInterpolation,
@@ -365,17 +366,29 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       this.sidebarInterpolation = null;
     }
 
+    const closingWindowTabs = tabsController.getTabsInWindow(this.id);
+    // relocateTabsFromClosingWindow returns null when sync is off or no surviving
+    // windows exist, otherwise the list of ephemeral tabs that were NOT relocated.
+    const unrelocatedTabs = !quitController.isQuitting
+      ? relocateTabsFromClosingWindow(this.id, closingWindowTabs)
+      : null;
+
     const result = super.destroy(...args);
     if (result) {
-      // Destroy all tabs in the window after a delay.
       // Skip during quit — the process is dying and the database is already closed,
       // so calling tab.destroy() would crash when it tries to access SQLite.
       if (!quitController.isQuitting) {
-        setTimeout(() => {
-          for (const tab of tabsController.getTabsInWindow(this.id)) {
-            tab.destroy();
-          }
-        }, 500);
+        // Determine which tabs still need destruction:
+        // - null  → sync was off / no surviving windows; destroy all tabs
+        // - array → only the unrelocated (ephemeral) tabs need destroying
+        const tabsToDestroy = unrelocatedTabs ?? closingWindowTabs;
+        if (tabsToDestroy.length > 0) {
+          setTimeout(() => {
+            for (const tab of tabsToDestroy) {
+              tab.destroy();
+            }
+          }, 500);
+        }
       }
 
       this.omnibox.destroy();

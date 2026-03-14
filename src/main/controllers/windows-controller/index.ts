@@ -47,7 +47,9 @@ class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
     this.windows.set(id, window);
     this.emit("window-added", id, window);
 
-    window.browserWindow.on("focus", () => this.emit("window-focused", id, window));
+    window.browserWindow.on("focus", () => {
+      if (!window.destroyed) this.emit("window-focused", id, window);
+    });
     window.on("destroyed", () => this._removeWindow(id));
 
     debugPrint("WINDOWS", "Window added with type", window.type, "and id", id);
@@ -67,6 +69,7 @@ class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
   // Get Functions //
   public getFocused() {
     for (const window of this.windows.values()) {
+      if (window.destroyed || window.browserWindow.isDestroyed()) continue;
       if (window.browserWindow.isFocused()) {
         return window;
       }
@@ -81,6 +84,8 @@ class WindowsController extends TypedEventEmitter<WindowsControllerEvents> {
 
   public getWindowFromWebContents(webContents: WebContents): BaseWindow | null {
     for (const window of this.windows.values()) {
+      if (window.destroyed || window.browserWindow.isDestroyed()) continue;
+
       const foundWebContents = window.getAllWebContents();
 
       for (const wc of foundWebContents) {
