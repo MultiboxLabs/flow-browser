@@ -8,7 +8,7 @@ import type { TabData } from "~/types/tabs";
 /**
  * Derives the "primary" media tab from all tabs in the window.
  * Priority: first tab with mediaPlaybackState "playing", then first audible
- * (non-muted) tab, then first muted tab that was playing.
+ * (non-muted) tab, then first paused tab (has metadata), then first muted tab.
  */
 function usePrimaryMediaTab(): TabData | null {
   const { tabsData } = useTabs();
@@ -18,6 +18,7 @@ function usePrimaryMediaTab(): TabData | null {
 
     let playingTab: TabData | null = null;
     let audibleTab: TabData | null = null;
+    let pausedTab: TabData | null = null;
     let mutedTab: TabData | null = null;
 
     for (const tab of tabsData.tabs) {
@@ -27,25 +28,30 @@ function usePrimaryMediaTab(): TabData | null {
       if (tab.audible && !audibleTab) {
         audibleTab = tab;
       }
+      if (tab.mediaPlaybackState === "paused" && !pausedTab) {
+        pausedTab = tab;
+      }
       if (tab.muted && !tab.audible && !mutedTab) {
         mutedTab = tab;
       }
     }
 
-    // Prefer tab with "playing" mediaSession state, then audible, then muted
-    return playingTab ?? audibleTab ?? mutedTab ?? null;
+    // Prefer tab with "playing" mediaSession state, then audible, then paused, then muted
+    return playingTab ?? audibleTab ?? pausedTab ?? mutedTab ?? null;
   }, [tabsData]);
 }
 
 /**
- * Returns all tabs that are currently producing audio or are muted.
+ * Returns all tabs that are currently producing audio, paused with metadata, or muted.
  */
 function useMediaTabCount(): number {
   const { tabsData } = useTabs();
 
   return useMemo(() => {
     if (!tabsData?.tabs) return 0;
-    return tabsData.tabs.filter((tab) => tab.audible || tab.muted).length;
+    return tabsData.tabs.filter(
+      (tab) => tab.audible || tab.muted || tab.mediaPlaybackState === "playing" || tab.mediaPlaybackState === "paused"
+    ).length;
   }, [tabsData]);
 }
 
