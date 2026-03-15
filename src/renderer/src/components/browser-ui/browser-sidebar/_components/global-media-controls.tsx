@@ -1,9 +1,12 @@
 import { cn, craftActiveFaviconURL } from "@/lib/utils";
-import { Pause, Play, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
+import { Pause, Play, SkipBack, SkipForward, Volume2, VolumeX, X } from "lucide-react";
 import { memo, useCallback, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useFocusedTabId, useTabs } from "@/components/providers/tabs-provider";
 import type { TabData } from "~/types/tabs";
+
+const MAX_MEDIA_CARDS = 5;
+const EASE_OUT: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 /**
  * Returns all tabs that have media activity (playing, paused, audible, or muted),
@@ -37,8 +40,38 @@ function useMediaTabs(): TabData[] {
       }
     }
 
-    return [...playing, ...audible, ...paused, ...muted];
+    return [...playing, ...audible, ...paused, ...muted].slice(0, MAX_MEDIA_CARDS);
   }, [tabsData, focusedTabId]);
+}
+
+// --- Favicon --- //
+
+function Favicon({
+  tab,
+  size = "size-4",
+  faviconError,
+  onFaviconError
+}: {
+  tab: TabData;
+  size?: string;
+  faviconError: boolean;
+  onFaviconError: () => void;
+}) {
+  return (
+    <div className={cn(size, "shrink-0")}>
+      {tab.faviconURL && !faviconError ? (
+        <img
+          src={craftActiveFaviconURL(tab.id, tab.faviconURL)}
+          alt=""
+          className="size-full rounded-sm object-contain overflow-hidden"
+          style={{ userSelect: "none", WebkitUserDrag: "none" } as React.CSSProperties}
+          onError={onFaviconError}
+        />
+      ) : (
+        <div className="size-full bg-gray-300 dark:bg-gray-300/30 rounded-sm" />
+      )}
+    </div>
+  );
 }
 
 // --- MediaControlButton --- //
@@ -74,7 +107,15 @@ function MediaControlButton({
 
 // --- MediaCard --- //
 
-const MediaCard = memo(function MediaCard({ tab }: { tab: TabData }) {
+const MediaCard = memo(function MediaCard({
+  tab,
+  expanded,
+  showStack
+}: {
+  tab: TabData;
+  expanded: boolean;
+  showStack: boolean;
+}) {
   const [faviconError, setFaviconError] = useState(false);
 
   // Reset favicon error when the tab's favicon changes
@@ -83,6 +124,8 @@ const MediaCard = memo(function MediaCard({ tab }: { tab: TabData }) {
     setPrevFavicon(tab.faviconURL);
     setFaviconError(false);
   }
+
+  const handleFaviconError = useCallback(() => setFaviconError(true), []);
 
   const handlePlayPause = useCallback(
     (e: React.MouseEvent) => {
@@ -116,66 +159,93 @@ const MediaCard = memo(function MediaCard({ tab }: { tab: TabData }) {
     [tab.id, tab.muted]
   );
 
+  const handleClose = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      flow.tabs.closeTab(tab.id);
+    },
+    [tab.id]
+  );
+
   const handleSwitchToTab = useCallback(() => {
     flow.tabs.switchToTab(tab.id);
   }, [tab.id]);
 
   const displayTitle = tab.mediaTitle || tab.title;
-  const displayArtist = tab.mediaArtist || null;
   const isPlaying = tab.mediaPlaybackState === "playing" || (tab.audible && !tab.muted);
 
   return (
-    <motion.div
-      key={tab.id}
-      initial={{ opacity: 0, height: 0, marginTop: 0 }}
-      animate={{ opacity: 1, height: "auto", marginTop: 8 }}
-      exit={{ opacity: 0, height: 0, marginTop: 0 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="shrink-0 overflow-hidden"
-    >
-      <div
-        className={cn(
-          "w-full rounded-xl overflow-hidden",
-          "border border-black/10 dark:border-white/15",
-          "bg-black/5 dark:bg-white/10"
-        )}
-      >
-        {/* Top row: favicon + title */}
+    <div className={cn("relative", showStack && !expanded && "pb-[5px]")}>
+      {/* Fake stacked card behind (only for first card when collapsed and multiple tabs) */}
+      {showStack && !expanded && (
         <div
           className={cn(
-            "flex items-center gap-2 px-2.5 pt-2 pb-1",
-            "cursor-pointer",
-            "hover:bg-black/5 dark:hover:bg-white/5",
-            "transition-colors duration-100"
+            "absolute left-[3px] right-[3px] top-[4px] bottom-0",
+            "rounded-xl",
+            "bg-white/60 dark:bg-neutral-800/60",
+            "border border-black/5 dark:border-white/10"
           )}
-          onClick={handleSwitchToTab}
-        >
-          {/* Favicon */}
-          <div className="size-4 shrink-0">
-            {tab.faviconURL && !faviconError ? (
-              <img
-                src={craftActiveFaviconURL(tab.id, tab.faviconURL)}
-                alt=""
-                className="size-full rounded-sm object-contain overflow-hidden"
-                style={{ userSelect: "none", WebkitUserDrag: "none" } as React.CSSProperties}
-                onError={() => setFaviconError(true)}
-              />
-            ) : (
-              <div className="size-full bg-gray-300 dark:bg-gray-300/30 rounded-sm" />
-            )}
-          </div>
+        />
+      )}
 
-          {/* Title + Artist */}
-          <div className="flex-1 min-w-0">
-            <div className="truncate text-xs font-medium text-black/90 dark:text-white/90">{displayTitle}</div>
-            {displayArtist && (
-              <div className="truncate text-[10px] text-black/50 dark:text-white/50">{displayArtist}</div>
-            )}
-          </div>
-        </div>
+      {/* Actual card */}
+      <div
+        className={cn(
+          "relative w-full rounded-xl overflow-hidden",
+          "border border-black/10 dark:border-white/15",
+          "bg-white dark:bg-neutral-900",
+          "shadow-sm"
+        )}
+      >
+        {/* Title row — only visible when expanded */}
+        <AnimatePresence initial={false}>
+          {expanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{
+                duration: 0.3,
+                ease: EASE_OUT,
+                opacity: { duration: 0.2 }
+              }}
+              className="overflow-hidden"
+            >
+              <div
+                className={cn(
+                  "flex items-center gap-2 px-2.5 pt-2 pb-1",
+                  "cursor-pointer",
+                  "hover:bg-black/5 dark:hover:bg-white/5",
+                  "transition-colors duration-100"
+                )}
+                onClick={handleSwitchToTab}
+              >
+                <Favicon tab={tab} size="size-4" faviconError={faviconError} onFaviconError={handleFaviconError} />
+                <div className="flex-1 min-w-0 truncate text-xs font-medium text-black/90 dark:text-white/90">
+                  {displayTitle}
+                </div>
+                <button
+                  className={cn(
+                    "size-5 flex items-center justify-center rounded-md shrink-0",
+                    "hover:bg-black/10 dark:hover:bg-white/10",
+                    "active:bg-black/15 dark:active:bg-white/15",
+                    "transition-colors duration-100",
+                    "cursor-pointer"
+                  )}
+                  onClick={handleClose}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  title="Close tab"
+                >
+                  <X className="size-3 text-black/50 dark:text-white/50" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Bottom row: playback controls */}
-        <div className="flex items-center justify-center gap-1 px-2 pb-2 pt-0.5">
+        {/* Controls row — always visible */}
+        <div className="flex items-center gap-1 px-2 py-1.5">
+          <Favicon tab={tab} size="size-5" faviconError={faviconError} onFaviconError={handleFaviconError} />
           <MediaControlButton icon={SkipBack} onClick={handlePrevTrack} label="Previous track" size="size-3" />
           <MediaControlButton
             icon={isPlaying ? Pause : Play}
@@ -197,7 +267,7 @@ const MediaCard = memo(function MediaCard({ tab }: { tab: TabData }) {
           />
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 });
 
@@ -205,12 +275,26 @@ const MediaCard = memo(function MediaCard({ tab }: { tab: TabData }) {
 
 export const GlobalMediaControls = memo(function GlobalMediaControls() {
   const mediaTabs = useMediaTabs();
+  const [hovered, setHovered] = useState(false);
+
+  if (mediaTabs.length === 0) return null;
 
   return (
-    <AnimatePresence>
-      {mediaTabs.map((tab) => (
-        <MediaCard key={tab.id} tab={tab} />
-      ))}
-    </AnimatePresence>
+    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <AnimatePresence initial={false}>
+        {mediaTabs.map((tab, index) => (
+          <motion.div
+            key={tab.id}
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: "auto", marginTop: 8 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            transition={{ duration: 0.3, ease: EASE_OUT }}
+            className="shrink-0 overflow-hidden"
+          >
+            <MediaCard tab={tab} expanded={hovered} showStack={index === 0 && mediaTabs.length > 1} />
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
   );
 });
