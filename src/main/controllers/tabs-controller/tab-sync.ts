@@ -11,6 +11,7 @@ import { windowsController } from "@/controllers/windows-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import type { BrowserWindow } from "@/controllers/windows-controller/types";
 import { spacesController } from "@/controllers/spaces-controller";
+import { pinnedTabsController } from "@/controllers/pinned-tabs-controller";
 import {
   storeSnapshot,
   removeSnapshot
@@ -470,8 +471,6 @@ let _focusMoveGeneration = 0;
 export function initTabSync(): void {
   // Move the active tab's view to the focused window
   windowsController.on("window-focused", (id) => {
-    if (!isTabSyncEnabled()) return;
-
     const window = browserWindowsController.getWindowById(id);
     if (!window || window.browserWindowType !== "normal") return;
 
@@ -484,6 +483,18 @@ export function initTabSync(): void {
       const spaceId = window.currentSpaceId;
       if (!spaceId) return;
       if (isStale()) return;
+
+      // Pinned-tab associations always sync across windows regardless of the
+      // syncTabsAcrossWindows setting. For regular tabs, only proceed when
+      // tab sync is enabled.
+      if (!isTabSyncEnabled()) {
+        const tabsController = getTabsController();
+        const activeTabOrGroup = tabsController.getActiveTab(window.id, spaceId);
+        const isPinnedAssociated =
+          activeTabOrGroup instanceof Tab && pinnedTabsController.getPinnedIdByTabId(activeTabOrGroup.id) !== null;
+        if (!isPinnedAssociated) return;
+      }
+
       await moveActiveTabToWindow(window, isStale);
       if (isStale()) return;
       const currentSpaceId = window.currentSpaceId;

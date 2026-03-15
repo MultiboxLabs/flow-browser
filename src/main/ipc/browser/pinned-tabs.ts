@@ -5,6 +5,7 @@ import { browserWindowsController } from "@/controllers/windows-controller/inter
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import { clipboard, ipcMain, Menu, MenuItem } from "electron";
 import { PinnedTabData } from "~/types/pinned-tabs";
+import { moveTabOrGroupToWindow } from "@/controllers/tabs-controller/tab-sync";
 
 // --- Change notification ---
 
@@ -63,24 +64,12 @@ function movePinnedAssociatedTabs(windowId: number, newSpaceId: string, profileI
     const tab = tabsController.getTabById(tabId);
     if (tab && tab.ephemeral && tab.getWindow().id === windowId && tab.spaceId !== newSpaceId) {
       tab.setSpace(newSpaceId);
+      tabsController.setActiveTab(tab);
     }
   }
 }
 
 // --- Shared helpers ---
-
-/**
- * Move an ephemeral associated tab to the current space if it's in a different one.
- * Pinned tabs are per-profile, so the associated tab should follow the user across spaces.
- */
-function moveEphemeralTabToCurrentSpace(
-  tab: ReturnType<typeof tabsController.getTabById>,
-  currentSpaceId: string | null
-) {
-  if (tab && currentSpaceId && tab.ephemeral && tab.spaceId !== currentSpaceId) {
-    tab.setSpace(currentSpaceId);
-  }
-}
 
 /**
  * Create a new ephemeral tab for a pinned tab, associate it, and activate it.
@@ -157,15 +146,15 @@ async function handlePinnedTabClick(
   if (associatedTabId !== null) {
     const tab = tabsController.getTabById(associatedTabId);
     if (tab && !tab.isDestroyed) {
+      // Associations are single-tab, so reuse the live tab by moving it into
+      // the requesting window before activating it there.
       if (tab.getWindow().id !== window.id) {
-        // Associations are single-tab, so reuse the live tab by moving it into
-        // the requesting window before activating it there.
-        tabsController.moveTabToWindow(tab, window);
+        await moveTabOrGroupToWindow(tab, window);
       }
+
       if (navigateToDefault && tab.url !== pinnedTab.defaultUrl) {
         tab.loadURL(pinnedTab.defaultUrl);
       }
-      moveEphemeralTabToCurrentSpace(tab, window.currentSpaceId);
       tabsController.setActiveTab(tab);
       return true;
     }
