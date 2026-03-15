@@ -192,7 +192,7 @@ function PopupToolbar() {
 
   return (
     <div ref={ref} className={cn("w-full flex items-center gap-2 px-1 pb-2", !isCurrentSpaceLight && "dark")}>
-      {platform === "darwin" && <SidebarWindowControlsMacOS />}
+      {platform === "darwin" && <SidebarWindowControlsMacOS offset={10} />}
       <NavigationControls />
       <AddressBar />
     </div>
