@@ -39,7 +39,7 @@ tabsController.on("tab-removed", (tab) => {
 // follow the user across spaces within the same profile.
 tabsController.on("current-space-changed", (windowId, newSpaceId) => {
   // Resolve the profile for the new space (synchronous cache lookup)
-  const space = spacesController.getCached(newSpaceId);
+  const space = spacesController.getFromCache(newSpaceId);
   if (space) {
     movePinnedAssociatedTabs(windowId, newSpaceId, space.profileId);
     return;
