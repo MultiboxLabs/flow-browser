@@ -42,7 +42,8 @@ export type TabEvents = {
     string,
     "new-window" | "foreground-tab" | "background-tab" | "default" | "other",
     Electron.WebContentsViewConstructorOptions | undefined,
-    Electron.HandlerDetails | undefined
+    Electron.HandlerDetails | undefined,
+    { noLoadURL?: boolean }
   ];
   focused: [];
   // Updated property keys
@@ -80,6 +81,9 @@ export interface TabCreationOptions {
   faviconURL?: string;
   navHistory?: NavigationEntry[];
   navHistoryIndex?: number;
+
+  // Others
+  noLoadURL?: boolean;
 }
 
 function createWebContentsView(
@@ -450,7 +454,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     // Handle devtools open url — emit event instead of calling controller
     webContents.on("devtools-open-url", (_event, url) => {
-      this.emit("new-tab-requested", url, "foreground-tab", undefined, undefined);
+      this.emit("new-tab-requested", url, "foreground-tab", undefined, undefined, { noLoadURL: false });
     });
 
     // Handle content state changes.
@@ -503,7 +507,8 @@ export class Tab extends TypedEventEmitter<TabEvents> {
                 handlerDetails.url,
                 handlerDetails.disposition,
                 constructorOptions,
-                handlerDetails
+                handlerDetails,
+                { noLoadURL: true }
               );
               // The controller will create the tab and return its webContents
               // via a synchronous callback pattern

@@ -284,14 +284,6 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       }
     }
 
-    // Handle initial URL load (only if not restoring from nav history)
-    if (tab._needsInitialLoad) {
-      const initialURL = tabCreationOptions.url || tab.loadedProfile.newTabUrl || NEW_TAB_URL;
-      setImmediate(() => {
-        tab.loadURL(initialURL);
-      });
-    }
-
     // --- Setup event listeners ---
     tab.on("updated", (properties) => {
       // During quit, the database is already closed — skip all persistence
@@ -358,8 +350,8 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     });
 
     // Handle new-tab-requested — replaces old Tab.createNewTab()
-    tab.on("new-tab-requested", (url, disposition, constructorOptions, handlerDetails) => {
-      this.handleNewTabRequested(tab, url, disposition, constructorOptions, handlerDetails);
+    tab.on("new-tab-requested", (url, disposition, constructorOptions, handlerDetails, options) => {
+      this.handleNewTabRequested(tab, url, disposition, constructorOptions, handlerDetails, options);
     });
 
     tab.on("destroyed", () => {
@@ -406,6 +398,19 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       tabPersistenceManager.markDirty(tab.uniqueId, serialized);
     }
 
+    // --- Initial URL load ---
+    // Called synchronously after all listeners are wired, so navigation events
+    // are never missed. No setImmediate needed — webContents.loadURL() is async
+    // and its events fire in future turns. Placing this call here (before
+    // createWindow returns for window.open tabs) also ensures the navigation is
+    // already in flight when the opener calls popup.document.write(): the
+    // implicit document.open() in document.write cancels the pending navigation
+    // rather than the other way around.
+    if (tab._needsInitialLoad && tabCreationOptions.noLoadURL !== true) {
+      const initialURL = tabCreationOptions.url || tab.loadedProfile.newTabUrl || NEW_TAB_URL;
+      tab.loadURL(initialURL);
+    }
+
     // Return tab
     this.emit("tab-created", tab);
     return tab;
@@ -420,7 +425,8 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     url: string,
     disposition: "new-window" | "foreground-tab" | "background-tab" | "default" | "other",
     constructorOptions: Electron.WebContentsViewConstructorOptions | undefined,
-    handlerDetails: Electron.HandlerDetails | undefined
+    handlerDetails: Electron.HandlerDetails | undefined,
+    options: { noLoadURL?: boolean }
   ) {
     let windowId = sourceTab.getWindow().id;
 
@@ -449,7 +455,8 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     }
 
     const newTab = this.internalCreateTab(windowId, sourceTab.profileId, sourceTab.spaceId, constructorOptions, {
-      url
+      url,
+      noLoadURL: options.noLoadURL
     });
 
     // Set the webContents reference so the createWindow callback can return it
