@@ -31,6 +31,8 @@ import BrowserContent from "@/components/browser-ui/browser-content";
 import { FindInPage } from "@/components/browser-ui/find-in-page";
 import { NavigationControls } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
 import { AddressBar } from "@/components/browser-ui/browser-sidebar/_components/address-bar";
+import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
+import { usePlatform } from "@/components/main/platform";
 
 export type BrowserUIType = "main" | "popup";
 export type SidebarVariant = "attached" | "floating";
@@ -169,6 +171,7 @@ const LoadingIndicator = memo(function LoadingIndicator() {
 function PopupToolbar() {
   const { isCurrentSpaceLight } = useSpaces();
   const { setContentTopOffset } = useAdaptiveTopbar();
+  const { platform } = usePlatform();
   const ref = useRef<HTMLDivElement>(null);
 
   // Measure once on mount + whenever the element resizes.
@@ -189,6 +192,7 @@ function PopupToolbar() {
 
   return (
     <div ref={ref} className={cn("w-full flex items-center gap-2 px-1 pb-2", !isCurrentSpaceLight && "dark")}>
+      {platform === "darwin" && <SidebarWindowControlsMacOS />}
       <NavigationControls />
       <AddressBar />
     </div>
