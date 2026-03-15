@@ -572,12 +572,25 @@ ipcMain.handle("tabs:media-play-pause", async (_event, tabId: number) => {
   const tab = tabsController.getTabById(tabId);
   if (!tab?.webContents) return false;
 
+  // Try the media element first (most reliable), then fall back to
+  // the page's captured MediaSession play/pause action handlers.
   const script = `
     (function() {
       var media = document.querySelector('video:not([muted]), audio:not([muted])') || document.querySelector('video, audio');
       if (media) {
         if (media.paused) { media.play(); } else { media.pause(); }
         return true;
+      }
+      var handlers = window.__flowMediaActionHandlers;
+      if (handlers) {
+        var playHandler = handlers.get('play');
+        var pauseHandler = handlers.get('pause');
+        if (playHandler || pauseHandler) {
+          // Determine current state from mediaSession if possible
+          var state = navigator.mediaSession && navigator.mediaSession.playbackState;
+          if (state === 'playing' && pauseHandler) { pauseHandler(); return true; }
+          if (playHandler) { playHandler(); return true; }
+        }
       }
       return false;
     })()
@@ -593,23 +606,18 @@ ipcMain.handle("tabs:media-next-track", async (_event, tabId: number) => {
   const tab = tabsController.getTabById(tabId);
   if (!tab?.webContents) return false;
 
-  // Invoke the page's MediaSession "nexttrack" action handler.
-  // The MediaSession API stores action handlers internally — we call
-  // navigator.mediaSession.callAction() if available (Chromium internal),
-  // or simulate via keyboard event on the video element as fallback.
+  // Call the page's captured MediaSession "nexttrack" action handler.
+  // The preload monkey-patches navigator.mediaSession.setActionHandler()
+  // and stores references in window.__flowMediaActionHandlers.
   const script = `
     (function() {
       try {
-        if (navigator.mediaSession) {
-          // Chromium exposes an internal callActionHandler we can trigger
-          // by setting up a shim: create a temporary MediaSession action
-          // that simply re-dispatches, or rely on the site's own handler.
-          // The most reliable approach is to use the page's key handler:
-          document.dispatchEvent(new KeyboardEvent('keydown', {
-            key: 'MediaTrackNext', code: 'MediaTrackNext', bubbles: true
-          }));
+        var handlers = window.__flowMediaActionHandlers;
+        if (handlers) {
+          var handler = handlers.get('nexttrack');
+          if (handler) { handler(); return true; }
         }
-        return true;
+        return false;
       } catch(e) { return false; }
     })()
   `;
@@ -627,12 +635,12 @@ ipcMain.handle("tabs:media-previous-track", async (_event, tabId: number) => {
   const script = `
     (function() {
       try {
-        if (navigator.mediaSession) {
-          document.dispatchEvent(new KeyboardEvent('keydown', {
-            key: 'MediaTrackPrevious', code: 'MediaTrackPrevious', bubbles: true
-          }));
+        var handlers = window.__flowMediaActionHandlers;
+        if (handlers) {
+          var handler = handlers.get('previoustrack');
+          if (handler) { handler(); return true; }
         }
-        return true;
+        return false;
       } catch(e) { return false; }
     })()
   `;

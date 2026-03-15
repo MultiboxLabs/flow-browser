@@ -303,6 +303,28 @@ function setupMediaSessionWatcher() {
     // "primary" media source per tab (most recently active or audible).
     if (window.self !== window.top) return;
 
+    // Monkey-patch navigator.mediaSession.setActionHandler so we can capture
+    // the action handler references registered by the page. This lets us
+    // invoke them directly from executeJavaScript (e.g. for skip track)
+    // instead of dispatching fake keyboard events which don't trigger
+    // MediaSession handlers.
+    const actionHandlers = new Map<string, MediaSessionActionHandler | null>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__flowMediaActionHandlers = actionHandlers;
+
+    try {
+      const originalSetActionHandler = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
+      navigator.mediaSession.setActionHandler = (
+        action: MediaSessionAction,
+        handler: MediaSessionActionHandler | null
+      ) => {
+        actionHandlers.set(action, handler);
+        originalSetActionHandler(action, handler);
+      };
+    } catch {
+      // Some pages may freeze navigator.mediaSession — ignore errors
+    }
+
     let lastMetadata: {
       title: string | null;
       artist: string | null;
@@ -325,17 +347,16 @@ function setupMediaSessionWatcher() {
         artwork = largest?.src || null;
       }
 
-      // Prefer the MediaSession playbackState when the site sets it, but
-      // fall back to the actual media-element state so we react instantly
-      // when we toggle play/pause via executeJavaScript.
-      let playbackState: "playing" | "paused" | "none" =
-        ms.playbackState === "playing" || ms.playbackState === "paused" ? ms.playbackState : "none";
-
-      if (playbackState === "none") {
-        const media = document.querySelector("video, audio") as HTMLMediaElement | null;
-        if (media) {
-          playbackState = media.paused ? "paused" : "playing";
-        }
+      // Derive playback state from the actual media element when possible
+      // because it's the ground truth. navigator.mediaSession.playbackState
+      // is set by page JS and many sites never update it after the initial
+      // set (e.g. they set "playing" but forget to set "paused").
+      let playbackState: "playing" | "paused" | "none" = "none";
+      const media = document.querySelector("video, audio") as HTMLMediaElement | null;
+      if (media) {
+        playbackState = media.paused ? "paused" : "playing";
+      } else if (ms.playbackState === "playing" || ms.playbackState === "paused") {
+        playbackState = ms.playbackState;
       }
 
       // Only return if we have actual metadata
@@ -383,19 +404,22 @@ function setupMediaSessionWatcher() {
     // The MediaSession API doesn't emit events, but sites usually update
     // the metadata when the media element's attributes change
     const setupObserver = () => {
-      // Check for changes periodically (throttled)
-      let rafId: number | null = null;
+      // Coalesce rapid DOM mutations with a short setTimeout.
+      // NOTE: We intentionally avoid requestAnimationFrame here because
+      // Chromium completely suspends rAF in background tabs, and media
+      // controls are specifically for background tabs.
+      let timerId: ReturnType<typeof setTimeout> | null = null;
       const check = () => {
         sendMetadataUpdate();
-        rafId = null;
+        timerId = null;
       };
 
       const scheduleCheck = () => {
-        if (rafId) return;
-        rafId = requestAnimationFrame(check);
+        if (timerId) return;
+        timerId = setTimeout(check, 120);
       };
 
-      // Watch for media element changes
+      // Watch for media element attribute changes (e.g. src, title)
       const observer = new MutationObserver(scheduleCheck);
 
       // Observe the whole document for attribute changes
@@ -405,15 +429,15 @@ function setupMediaSessionWatcher() {
         subtree: true
       });
 
-      // Listen for play/pause events on media elements so the playback
-      // state updates immediately when media is toggled (e.g. via our
-      // executeJavaScript play/pause command). Capture phase ensures we
-      // catch events even if the site stops propagation.
-      document.addEventListener("play", scheduleCheck, true);
-      document.addEventListener("pause", scheduleCheck, true);
+      // Listen for play/pause events on media elements. These are
+      // critical state changes so we send immediately (not debounced).
+      // Capture phase ensures we catch events even if the site stops
+      // propagation.
+      document.addEventListener("play", () => sendMetadataUpdate(), true);
+      document.addEventListener("pause", () => sendMetadataUpdate(), true);
 
-      // Also check periodically as a fallback (every 5 seconds)
-      setInterval(check, 5000);
+      // Also check periodically as a fallback (every 3 seconds)
+      setInterval(check, 3000);
 
       // Check immediately
       check();
