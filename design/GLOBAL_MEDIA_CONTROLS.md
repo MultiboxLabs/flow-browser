@@ -361,16 +361,28 @@ The current IPC model sends tab data per-window. Each window's sidebar shows med
 
 ## Implementation Order
 
-| Step | Phase   | Effort | Description                                                        |
-| ---- | ------- | ------ | ------------------------------------------------------------------ |
-| 1    | 1.4     | Small  | Add mute/unmute to tab context menu                                |
-| 2    | 1.1     | Medium | Add media play/pause/skip IPC handlers (executeJavaScript)         |
-| 3    | 1.2-1.3 | Small  | Extend FlowTabsAPI interface + preload bridge                      |
-| 4    | 1.5     | Medium | Build GlobalMediaControls sidebar component (title + favicon only) |
-| 5    | 2.1-2.2 | Large  | Add MediaSession metadata extraction in main process               |
-| 6    | 2.3-2.4 | Medium | Extend TabData + enhance UI with track/artist/artwork              |
-| 7    | 3.1-3.3 | Small  | Register hardware media key shortcuts                              |
-| 8    | 4       | Small  | Polish: multi-tab, animations, edge cases                          |
+| Step | Phase   | Effort | Status    | Description                                                        |
+| ---- | ------- | ------ | --------- | ------------------------------------------------------------------ |
+| 1    | 1.4     | Small  | DONE      | Add mute/unmute to tab context menu                                |
+| 2    | 1.1     | Medium | DONE      | Add media play/pause/skip IPC handlers (executeJavaScript)         |
+| 3    | 1.2-1.3 | Small  | DONE      | Extend FlowTabsAPI interface + preload bridge                      |
+| 4    | 1.5     | Medium | DONE      | Build GlobalMediaControls sidebar component (title + favicon only) |
+| 5    | 2.1-2.2 | Large  | DONE      | Add MediaSession metadata extraction via preload push approach     |
+| 6    | 2.3-2.4 | Medium | DONE      | Extend TabData + enhance UI with track/artist/artwork              |
+| 7    | 3.1-3.3 | Small  | CANCELLED | Hardware media keys (handled natively by Chromium/system)          |
+| 8    | 4       | Small  | DONE      | Multi-tab cards, active tab filtering, animations                  |
+
+### Implementation Notes
+
+**Preload-based push approach (Phase 2)**: Instead of polling via `executeJavaScript`, we use `contextBridge.executeInMainWorld()` to inject a MutationObserver + play/pause event listeners that push metadata changes via IPC. This is more efficient and avoids the complexity of managing polling intervals from the main process.
+
+**Action handler monkey-patching**: The preload also monkey-patches `navigator.mediaSession.setActionHandler()` to capture handler references in `window.__flowMediaActionHandlers`. This allows skip track and play/pause controls to call the page's actual MediaSession handlers directly, rather than dispatching fake keyboard events which don't trigger MediaSession handlers.
+
+**Background tab compatibility**: Uses `setTimeout` (not `requestAnimationFrame`) for debouncing because Chromium completely suspends rAF in background tabs. Play/pause events are sent immediately (not debounced) for instant UI response.
+
+**Playback state derivation**: Always derives playback state from the actual `<video>`/`<audio>` element's `.paused` property as ground truth, falling back to `navigator.mediaSession.playbackState` only when no media element exists. Many sites set playbackState to "playing" but never update it to "paused".
+
+**TODO**: Support media controls in iframes (e.g. YouTube embeds). Currently only watches the main frame to avoid duplicate/conflicting messages.
 
 ---
 
