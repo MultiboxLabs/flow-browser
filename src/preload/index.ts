@@ -290,6 +290,149 @@ function tryPatchPasskeys() {
 }
 tryPatchPasskeys();
 
+// MEDIA SESSION WATCHER //
+// Watches navigator.mediaSession for metadata changes and sends IPC messages
+// to the main process. This is more efficient than polling via executeJavaScript.
+function setupMediaSessionWatcher() {
+  const mediaSessionScript = () => {
+    // Only run in main frame (not iframes)
+    // TODO: Support media controls in iframes — currently we only watch the main
+    // frame to avoid duplicate/conflicting messages from multiple iframes, but
+    // this means we miss media in embedded players (YouTube embeds, etc.).
+    // When implementing, add frame identification to IPC messages and track the
+    // "primary" media source per tab (most recently active or audible).
+    if (window.self !== window.top) return;
+
+    let lastMetadata: {
+      title: string | null;
+      artist: string | null;
+      artwork: string | null;
+      playbackState: "playing" | "paused" | "none";
+    } | null = null;
+
+    const extractMetadata = () => {
+      const ms = navigator.mediaSession;
+      if (!ms || !ms.metadata) return null;
+
+      const meta = ms.metadata;
+      const title = meta.title || null;
+      const artist = meta.artist || null;
+
+      // Get the largest artwork (usually the last in the array)
+      let artwork: string | null = null;
+      if (meta.artwork && meta.artwork.length > 0) {
+        const largest = meta.artwork[meta.artwork.length - 1];
+        artwork = largest?.src || null;
+      }
+
+      const playbackState: "playing" | "paused" | "none" =
+        ms.playbackState === "playing" || ms.playbackState === "paused" ? ms.playbackState : "none";
+
+      // Only return if we have actual metadata
+      if (!title && !artist) return null;
+
+      return { title, artist, artwork, playbackState };
+    };
+
+    const sendMetadataUpdate = () => {
+      const metadata = extractMetadata();
+      if (metadata) {
+        // Check if changed
+        const changed =
+          !lastMetadata ||
+          lastMetadata.title !== metadata.title ||
+          lastMetadata.artist !== metadata.artist ||
+          lastMetadata.artwork !== metadata.artwork ||
+          lastMetadata.playbackState !== metadata.playbackState;
+
+        if (changed) {
+          lastMetadata = metadata;
+          const api = (
+            window as Window & {
+              electronAPI?: {
+                sendMediaSessionMetadata: (data: {
+                  title: string | null;
+                  artist: string | null;
+                  artwork: string | null;
+                  playbackState: "playing" | "paused" | "none";
+                }) => void;
+              };
+            }
+          ).electronAPI;
+          api?.sendMediaSessionMetadata(metadata);
+        }
+      } else if (lastMetadata) {
+        // Metadata was cleared
+        lastMetadata = null;
+        const api = (window as Window & { electronAPI?: { clearMediaSessionMetadata: () => void } }).electronAPI;
+        api?.clearMediaSessionMetadata();
+      }
+    };
+
+    // Watch for metadata changes using MutationObserver on the document
+    // The MediaSession API doesn't emit events, but sites usually update
+    // the metadata when the media element's attributes change
+    const setupObserver = () => {
+      // Check for changes periodically (throttled)
+      let rafId: number | null = null;
+      const check = () => {
+        sendMetadataUpdate();
+        rafId = null;
+      };
+
+      // Watch for media element changes
+      const observer = new MutationObserver(() => {
+        if (rafId) return;
+        rafId = requestAnimationFrame(check);
+      });
+
+      // Observe the whole document for attribute changes
+      observer.observe(document, {
+        attributes: true,
+        attributeFilter: ["src", "title"],
+        subtree: true
+      });
+
+      // Also check periodically as a fallback (every 5 seconds)
+      setInterval(check, 5000);
+
+      // Check immediately
+      check();
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", setupObserver);
+    } else {
+      setupObserver();
+    }
+  };
+
+  // Expose IPC functions to the page context via contextBridge
+  contextBridge.exposeInMainWorld("electronAPI", {
+    sendMediaSessionMetadata: (metadata: {
+      title: string | null;
+      artist: string | null;
+      artwork: string | null;
+      playbackState: "playing" | "paused" | "none";
+    }) => {
+      ipcRenderer.send("media-session:metadata-changed", metadata);
+    },
+    clearMediaSessionMetadata: () => {
+      ipcRenderer.send("media-session:metadata-cleared");
+    }
+  });
+
+  // Execute the watcher script in the main world
+  contextBridge.executeInMainWorld({
+    func: mediaSessionScript
+  });
+}
+
+// Only setup MediaSession watcher for regular web pages (not internal protocols)
+if (!location.protocol.startsWith("flow")) {
+  setupMediaSessionWatcher();
+}
+
 // INTERNAL FUNCTIONS //
 function getOSFromPlatform(platform: NodeJS.Platform) {
   switch (platform) {
@@ -482,6 +625,19 @@ const tabsAPI: FlowTabsAPI = {
 
   clearRecentlyClosed: async () => {
     return ipcRenderer.invoke("tabs:clear-recently-closed");
+  },
+
+  // Media Controls
+  mediaPlayPause: async (tabId: number) => {
+    return ipcRenderer.invoke("tabs:media-play-pause", tabId);
+  },
+
+  mediaNextTrack: async (tabId: number) => {
+    return ipcRenderer.invoke("tabs:media-next-track", tabId);
+  },
+
+  mediaPreviousTrack: async (tabId: number) => {
+    return ipcRenderer.invoke("tabs:media-previous-track", tabId);
   }
 };
 
