@@ -71,6 +71,7 @@ export type TabData = Omit<PersistedTabData, "navHistory" | "navHistoryIndex"> &
   fullScreen: boolean;
   isPictureInPicture: boolean;
   asleep: boolean;
+  ephemeral?: boolean; // true for pinned-tab-associated tabs that shouldn't appear in the sidebar tab list
 };
 
 /**

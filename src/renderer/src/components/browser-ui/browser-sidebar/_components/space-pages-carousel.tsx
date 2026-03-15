@@ -1,5 +1,6 @@
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { useTabsGroups } from "@/components/providers/tabs-provider";
+import { usePinnedTabs } from "@/components/providers/pinned-tabs-provider";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { SidebarScrollArea } from "./sidebar-scroll-area";
 import { SpaceTitle } from "./space-title";
@@ -9,6 +10,8 @@ import { TabDropTarget } from "./tab-drop-target";
 import { AnimatePresence } from "motion/react";
 import type { Space } from "~/flow/interfaces/sessions/spaces";
 import { cn, hex_is_light } from "@/lib/utils";
+import { PinGrid } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/normal/pin-grid";
+import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
 
 // --- SpaceContentPage --- //
 // Renders the full content for a single space: title, scroll area with tab groups, and drop target.
@@ -16,18 +19,23 @@ import { cn, hex_is_light } from "@/lib/utils";
 interface SpaceContentPageProps {
   space: Space;
   moveTab: (tabId: number, newPosition: number) => void;
+  slotMachineEnabled: boolean;
 }
 
-const SpaceContentPage = memo(function SpaceContentPage({ space, moveTab }: SpaceContentPageProps) {
+const SpaceContentPage = memo(function SpaceContentPage({ space, moveTab, slotMachineEnabled }: SpaceContentPageProps) {
   const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabsGroups();
+  const { unpinToTabList } = usePinnedTabs();
   const isSpaceLight = useMemo(() => hex_is_light(space.bgStartColor || "#000000"), [space.bgStartColor]);
 
+  // Ephemeral tabs (pinned-tab-associated) are already filtered out by the
+  // tabs provider, so getTabGroups returns only visible tab groups.
   const sortedTabGroups = useMemo(() => getTabGroups(space.id), [space.id, getTabGroups]);
   const activeTabGroup = useMemo(() => getActiveTabGroup(space.id), [getActiveTabGroup, space.id]);
   const focusedTab = useMemo(() => getFocusedTab(space.id), [getFocusedTab, space.id]);
 
   return (
-    <div className="min-w-full w-full shrink-0 snap-start snap-always flex flex-col min-h-0 h-full">
+    <div className="min-w-full w-full shrink-0 snap-start snap-always flex flex-col min-h-0 h-full mx-1">
+      {!slotMachineEnabled && <PinGrid profileId={space.profileId} />}
       <SpaceTitle space={space} />
       <SidebarScrollArea className="flex-1 min-h-0">
         <div className="flex flex-col gap-1 flex-1 min-h-full pt-1">
@@ -43,6 +51,7 @@ const SpaceContentPage = memo(function SpaceContentPage({ space, moveTab }: Spac
                 position={tabGroup.position}
                 groupCount={sortedTabGroups.length}
                 moveTab={moveTab}
+                unpinToTabList={unpinToTabList}
               />
             ))}
           </AnimatePresence>
@@ -64,6 +73,7 @@ const SpaceContentPage = memo(function SpaceContentPage({ space, moveTab }: Spac
 
 export function SpacePagesCarousel() {
   const { spaces, currentSpace, setCurrentSpace, isCurrentSpaceInternal } = useSpaces();
+  const { slotMachineEnabled } = useBrowserSidebar();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   // Tracks the space ID that a swipe just switched to, so we can skip
   // the programmatic smooth-scroll for that specific change.
@@ -192,7 +202,7 @@ export function SpacePagesCarousel() {
   if (isCurrentSpaceInternal && currentSpace) {
     return (
       <div className="flex-1 min-h-0 flex flex-col">
-        <SpaceContentPage space={currentSpace} moveTab={moveTab} />
+        <SpaceContentPage space={currentSpace} moveTab={moveTab} slotMachineEnabled={slotMachineEnabled} />
       </div>
     );
   }
@@ -210,7 +220,7 @@ export function SpacePagesCarousel() {
       style={{ scrollbarWidth: "none" }}
     >
       {spaces.map((space) => (
-        <SpaceContentPage key={space.id} space={space} moveTab={moveTab} />
+        <SpaceContentPage key={space.id} space={space} moveTab={moveTab} slotMachineEnabled={slotMachineEnabled} />
       ))}
     </div>
   );
