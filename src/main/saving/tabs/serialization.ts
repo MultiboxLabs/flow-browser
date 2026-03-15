@@ -142,7 +142,13 @@ export function serializeTabForRenderer(tab: Tab, preSleepState?: PreSleepState 
     audible: tab.audible,
     fullScreen: tab.fullScreen,
     isPictureInPicture: tab.isPictureInPicture,
-    asleep: tab.asleep
+    asleep: tab.asleep,
+
+    // Media metadata (runtime-only, from page's navigator.mediaSession)
+    mediaTitle: tab.mediaTitle,
+    mediaArtist: tab.mediaArtist,
+    mediaArtwork: tab.mediaArtwork,
+    mediaPlaybackState: tab.mediaPlaybackState
   };
 }
 
