@@ -3,6 +3,7 @@ import { SearchIcon } from "lucide-react";
 import { memo, useCallback, useRef } from "react";
 import { useAddressUrl, useFocusedTabId } from "@/components/providers/tabs-provider";
 import { simplifyUrl } from "@/lib/url";
+import { PinnedBrowserActions } from "./pinned-browser-actions";
 
 export const AddressBar = memo(function AddressBar() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -45,10 +46,11 @@ export const AddressBar = memo(function AddressBar() {
         isPlaceholder ? "text-black/60 dark:text-white/60" : "text-black dark:text-white"
       )}
     >
-      {isPlaceholder && <SearchIcon strokeWidth={2} className="h-3.5" />}
-      <p className={cn("font-[inter] text-sm font-medium truncate")}>
+      {isPlaceholder && <SearchIcon strokeWidth={2} className="h-3.5 shrink-0" />}
+      <p className={cn("font-[inter] text-sm font-medium truncate min-w-0")}>
         {isPlaceholder ? "Search or Enter URL..." : simplifiedUrl}
       </p>
+      <PinnedBrowserActions />
     </div>
   );
 });
