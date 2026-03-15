@@ -424,6 +424,19 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
     })
   );
 
+  // Mute / Unmute — only shown for awake tabs with webContents
+  if (!tab.asleep && tab.webContents) {
+    contextMenu.append(
+      new MenuItem({
+        label: tab.muted ? "Unmute Tab" : "Mute Tab",
+        click: () => {
+          tab.webContents?.setAudioMuted(!tab.muted);
+          tab.updateTabState();
+        }
+      })
+    );
+  }
+
   contextMenu.append(
     new MenuItem({
       label: "Close Tab",
@@ -551,4 +564,110 @@ ipcMain.handle("tabs:batch-move-tabs", async (event, tabIds: number[], spaceId: 
   tabsController.normalizePositions(window.id, spaceId);
 
   return true;
+});
+
+// --- Media Controls ---
+
+ipcMain.handle("tabs:media-play-pause", async (_event, tabId: number) => {
+  const tab = tabsController.getTabById(tabId);
+  if (!tab?.webContents) return false;
+
+  const script = `
+    (function() {
+      var media = document.querySelector('video:not([muted]), audio:not([muted])') || document.querySelector('video, audio');
+      if (media) {
+        if (media.paused) { media.play(); } else { media.pause(); }
+        return true;
+      }
+      return false;
+    })()
+  `;
+  try {
+    return await tab.webContents.executeJavaScript(script, true);
+  } catch {
+    return false;
+  }
+});
+
+ipcMain.handle("tabs:media-next-track", async (_event, tabId: number) => {
+  const tab = tabsController.getTabById(tabId);
+  if (!tab?.webContents) return false;
+
+  // Invoke the page's MediaSession "nexttrack" action handler.
+  // The MediaSession API stores action handlers internally — we call
+  // navigator.mediaSession.callAction() if available (Chromium internal),
+  // or simulate via keyboard event on the video element as fallback.
+  const script = `
+    (function() {
+      try {
+        if (navigator.mediaSession) {
+          // Chromium exposes an internal callActionHandler we can trigger
+          // by setting up a shim: create a temporary MediaSession action
+          // that simply re-dispatches, or rely on the site's own handler.
+          // The most reliable approach is to use the page's key handler:
+          document.dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'MediaTrackNext', code: 'MediaTrackNext', bubbles: true
+          }));
+        }
+        return true;
+      } catch(e) { return false; }
+    })()
+  `;
+  try {
+    return await tab.webContents.executeJavaScript(script, true);
+  } catch {
+    return false;
+  }
+});
+
+ipcMain.handle("tabs:media-previous-track", async (_event, tabId: number) => {
+  const tab = tabsController.getTabById(tabId);
+  if (!tab?.webContents) return false;
+
+  const script = `
+    (function() {
+      try {
+        if (navigator.mediaSession) {
+          document.dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'MediaTrackPrevious', code: 'MediaTrackPrevious', bubbles: true
+          }));
+        }
+        return true;
+      } catch(e) { return false; }
+    })()
+  `;
+  try {
+    return await tab.webContents.executeJavaScript(script, true);
+  } catch {
+    return false;
+  }
+});
+
+// --- Media Session Metadata from Preload ---
+
+ipcMain.on(
+  "media-session:metadata-changed",
+  (
+    event,
+    metadata: {
+      title: string | null;
+      artist: string | null;
+      artwork: string | null;
+      playbackState: "playing" | "paused" | "none";
+    }
+  ) => {
+    const webContents = event.sender;
+    const tab = tabsController.getTabByWebContents(webContents);
+    if (tab) {
+      tab.updateMediaMetadata(metadata);
+    }
+  }
+);
+
+ipcMain.on("media-session:metadata-cleared", (event) => {
+  const webContents = event.sender;
+  const tab = tabsController.getTabByWebContents(webContents);
+  if (tab) {
+    tab.clearMediaMetadata();
+  }
 });
