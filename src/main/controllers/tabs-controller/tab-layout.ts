@@ -95,7 +95,17 @@ export class TabLayoutManager {
       if (visible) {
         this.lifecycleManager.exitPictureInPicture();
       } else {
-        this.lifecycleManager.enterPictureInPicture();
+        // Only enter PiP if no other tab is already in PiP. Without this guard,
+        // restoring a PiP tab hides the previously-active tab, which then tries
+        // to enter PiP, creating a loop where each tab's PiP exit triggers the
+        // other to enter PiP indefinitely.
+        const windowId = tab.getWindow().id;
+        const anyTabInPiP = this.tabsController
+          .getTabsInWindow(windowId)
+          .some((t) => t.id !== tab.id && t.isPictureInPicture);
+        if (!anyTabInPiP) {
+          this.lifecycleManager.enterPictureInPicture();
+        }
       }
     }
 
