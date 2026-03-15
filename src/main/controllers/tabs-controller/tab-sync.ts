@@ -264,8 +264,12 @@ function findWindowWithProfile(windows: BrowserWindow[], profileId: string): Bro
  *          destruction, or `null` when sync is disabled / no surviving
  *          windows exist (meaning the caller should destroy all tabs).
  */
-export function relocateTabsFromClosingWindow(closingWindowId: number, tabs: Tab[]): Tab[] | null {
+export function relocateTabsFromClosingWindow(closingWindow: BrowserWindow, tabs: Tab[]): Tab[] | null {
   if (!isTabSyncEnabled()) return null;
+
+  const closingWindowId = closingWindow.id;
+  // Popup-window tabs should never be relocated to normal windows
+  if (closingWindow.browserWindowType === "popup") return null;
 
   const survivingWindows = browserWindowsController
     .getWindows()

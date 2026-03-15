@@ -369,9 +369,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     const closingWindowTabs = tabsController.getTabsInWindow(this.id);
     // relocateTabsFromClosingWindow returns null when sync is off or no surviving
     // windows exist, otherwise the list of ephemeral tabs that were NOT relocated.
-    const unrelocatedTabs = !quitController.isQuitting
-      ? relocateTabsFromClosingWindow(this.id, closingWindowTabs)
-      : null;
+    const unrelocatedTabs = !quitController.isQuitting ? relocateTabsFromClosingWindow(this, closingWindowTabs) : null;
 
     const result = super.destroy(...args);
     if (result) {
