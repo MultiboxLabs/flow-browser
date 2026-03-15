@@ -71,6 +71,12 @@ export type TabData = Omit<PersistedTabData, "navHistory" | "navHistoryIndex"> &
   fullScreen: boolean;
   isPictureInPicture: boolean;
   asleep: boolean;
+
+  // Media metadata (from page's navigator.mediaSession, runtime only)
+  mediaTitle: string | null;
+  mediaArtist: string | null;
+  mediaArtwork: string | null;
+  mediaPlaybackState: "playing" | "paused" | "none";
 };
 
 /**

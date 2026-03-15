@@ -103,4 +103,27 @@ export interface FlowTabsAPI {
    * @returns Whether the operation was successful
    */
   clearRecentlyClosed: () => Promise<boolean>;
+
+  // --- Media Controls ---
+
+  /**
+   * Toggle play/pause on a tab's media
+   * @param tabId The id of the tab to control
+   * @returns Whether the action was successful
+   */
+  mediaPlayPause: (tabId: number) => Promise<boolean>;
+
+  /**
+   * Skip to the next track on a tab's media
+   * @param tabId The id of the tab to control
+   * @returns Whether the action was successful
+   */
+  mediaNextTrack: (tabId: number) => Promise<boolean>;
+
+  /**
+   * Skip to the previous track on a tab's media
+   * @param tabId The id of the tab to control
+   * @returns Whether the action was successful
+   */
+  mediaPreviousTrack: (tabId: number) => Promise<boolean>;
 }
