@@ -162,7 +162,7 @@ async function handlePinnedTabClick(
         // the requesting window before activating it there.
         tabsController.moveTabToWindow(tab, window);
       }
-      if (navigateToDefault) {
+      if (navigateToDefault && tab.url !== pinnedTab.defaultUrl) {
         tab.loadURL(pinnedTab.defaultUrl);
       }
       moveEphemeralTabToCurrentSpace(tab, window.currentSpaceId);
