@@ -110,15 +110,12 @@ const electronBuilderConfig: Configuration = {
     icon: "./build/volume-icon.icns"
   },
   linux: {
-    target: ["AppImage", "deb", "flatpak"],
+    target: ["AppImage", "deb"],
     category: "Network;WebBrowser;",
     executableArgs: ["--ozone-platform-hint=auto"],
     icon: "icon.png"
   },
   appImage: {
-    artifactName: "${name}-${version}-${arch}.${ext}"
-  },
-  flatpak: {
     artifactName: "${name}-${version}-${arch}.${ext}"
   },
   npmRebuild: false,
