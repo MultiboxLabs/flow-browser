@@ -33,41 +33,11 @@ tabsController.on("tab-removed", (tab) => {
   pinnedTabsController.onBrowserTabDestroyed(tab.id);
 });
 
-// --- Wire space changes ---
-// When the user switches spaces, move all ephemeral pinned-tab-associated tabs
-// from the same profile into the new space so they remain visible.
-// Pinned tabs are per-profile, not per-space, so their associated tabs should
-// follow the user across spaces within the same profile.
-tabsController.on("current-space-changed", (windowId, newSpaceId) => {
-  // Resolve the profile for the new space (synchronous cache lookup)
-  const space = spacesController.getFromCache(newSpaceId);
-  if (space) {
-    movePinnedAssociatedTabs(windowId, newSpaceId, space.profileId);
-    return;
-  }
-
-  // Cache miss — fetch asynchronously and then move tabs.
-  // Guard against stale closure: by the time the async lookup resolves
-  // the user may have switched spaces again, so verify newSpaceId is
-  // still the active space for this window before proceeding.
-  spacesController.get(newSpaceId).then((fetched) => {
-    if (!fetched) return;
-    const currentSpaceNow = tabsController.windowActiveSpaceMap.get(windowId);
-    if (currentSpaceNow !== newSpaceId) return;
-    movePinnedAssociatedTabs(windowId, newSpaceId, fetched.profileId);
-  });
-});
-
-function movePinnedAssociatedTabs(windowId: number, newSpaceId: string, profileId: string) {
-  const associatedTabIds = pinnedTabsController.getAssociatedTabIdsForProfile(profileId);
-  for (const tabId of associatedTabIds) {
-    const tab = tabsController.getTabById(tabId);
-    if (tab && tab.ephemeral && tab.getWindow().id === windowId && tab.spaceId !== newSpaceId) {
-      tab.setSpace(newSpaceId);
-      tabsController.setActiveTab(tab);
-    }
-  }
-}
+// NOTE: Pinned tabs are per-profile, but their associated ephemeral tabs live
+// in a specific space. We intentionally do NOT move them when switching spaces
+// so that each space maintains its own independent active-tab state. The
+// associated tab is moved to the current space only when the user explicitly
+// clicks the pinned tab (see handlePinnedTabClick).
 
 // --- Shared helpers ---
 
@@ -150,6 +120,13 @@ async function handlePinnedTabClick(
       // the requesting window before activating it there.
       if (tab.getWindow().id !== window.id) {
         await moveTabOrGroupToWindow(tab, window);
+      }
+
+      // If the associated tab is in a different space than the window's
+      // current space, move it into the current space so the user sees it.
+      const currentSpaceId = window.currentSpaceId;
+      if (currentSpaceId && tab.spaceId !== currentSpaceId) {
+        tab.setSpace(currentSpaceId);
       }
 
       if (navigateToDefault && tab.url !== pinnedTab.defaultUrl) {
