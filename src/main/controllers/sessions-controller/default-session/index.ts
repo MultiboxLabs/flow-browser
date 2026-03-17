@@ -3,6 +3,7 @@ import { registerProtocolsWithSession } from "../protocols";
 import { app, session } from "electron";
 import { setupInterceptRules } from "@/controllers/sessions-controller/intercept-rules";
 import { registerPreloadScripts } from "@/controllers/sessions-controller/preload-scripts";
+import { registerDownloadHandler } from "@/modules/downloads-handler";
 
 function initializeDefaultSession() {
   const defaultSession = session.defaultSession;
@@ -11,6 +12,9 @@ function initializeDefaultSession() {
 
   setupInterceptRules(defaultSession);
   registerPreloadScripts(defaultSession);
+
+  // Register download handler for Chrome-like .crdownload behavior
+  registerDownloadHandler(defaultSession);
 }
 
 export let isDefaultSessionReady = false;

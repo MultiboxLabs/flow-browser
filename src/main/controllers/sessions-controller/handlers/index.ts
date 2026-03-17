@@ -1,8 +1,12 @@
 import { debugPrint } from "@/modules/output";
+import { registerDownloadHandler } from "@/modules/downloads-handler";
 import { setAlwaysOpenExternal, shouldAlwaysOpenExternal } from "@/saving/open-external";
 import { app, dialog, OpenExternalPermissionRequest, type Session } from "electron";
 
 export function registerHandlersWithSession(session: Session) {
+  // Register download handler for Chrome-like .crdownload behavior
+  registerDownloadHandler(session);
+
   session.setPermissionRequestHandler(async (webContents, permission, callback, details) => {
     debugPrint("PERMISSIONS", "permission request", webContents?.getURL() || "unknown-url", permission);
 
