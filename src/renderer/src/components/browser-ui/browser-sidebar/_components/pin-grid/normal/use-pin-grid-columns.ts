@@ -30,13 +30,14 @@ export function usePinGridColumns(containerWidth: number, pinCount: number) {
   const cols = useMemo(() => {
     if (containerWidth > 0) {
       const calculated = Math.max(1, Math.floor((containerWidth + GAP) / (MIN_TAB_WIDTH + GAP)));
-      colsRef.current = calculated;
       return calculated;
     }
     return DEFAULT_COLS;
   }, [containerWidth]);
 
-  const gridColumnClass = GRID_COL_CLASSES[Math.min(cols, pinCount, MAX_COLS) - 1] ?? "grid-cols-1";
+  const effectiveCols = Math.max(1, Math.min(cols, pinCount, MAX_COLS));
+  colsRef.current = effectiveCols;
+  const gridColumnClass = GRID_COL_CLASSES[effectiveCols - 1] ?? "grid-cols-1";
 
   return { cols, colsRef, gridColumnClass } as const;
 }

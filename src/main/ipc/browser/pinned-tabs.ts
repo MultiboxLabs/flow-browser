@@ -185,8 +185,7 @@ ipcMain.handle("pinned-tabs:unpin-to-tab-list", async (event, pinnedTabId: strin
   // Get the associated tab for the current space
   const associatedTabId = pinnedTabsController.getAssociatedTabId(pinnedTabId, currentSpaceId);
 
-  // Remove the association for this space only
-  pinnedTabsController.dissociateTab(pinnedTabId, currentSpaceId);
+  let preservedTabId: number | null = null;
 
   // Make the associated tab persistent so it reappears in the sidebar
   if (associatedTabId !== null) {
@@ -196,6 +195,7 @@ ipcMain.handle("pinned-tabs:unpin-to-tab-list", async (event, pinnedTabId: strin
     }
     tabsController.makeTabPersistent(associatedTabId);
     if (tab) {
+      preservedTabId = tab.id;
       tabsController.normalizePositions(tab.getWindow().id, tab.spaceId);
     }
   } else {
@@ -207,6 +207,18 @@ ipcMain.handle("pinned-tabs:unpin-to-tab-list", async (event, pinnedTabId: strin
 
     tabsController.setActiveTab(newTab);
     tabsController.normalizePositions(window.id, currentSpaceId);
+  }
+
+  // Remove the pinned-tab record after the live tab has been restored to the
+  // regular tab list. This keeps unpinning aligned with the remove/unpin
+  // behavior used elsewhere in the feature.
+  const removedTabIds = pinnedTabsController.remove(pinnedTabId);
+  for (const tabId of removedTabIds) {
+    if (tabId === preservedTabId) continue;
+    const tab = tabsController.getTabById(tabId);
+    if (tab && !tab.isDestroyed) {
+      tab.destroy();
+    }
   }
 
   return true;

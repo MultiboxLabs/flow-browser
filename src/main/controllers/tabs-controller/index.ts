@@ -34,6 +34,7 @@ type TabsControllerEvents = {
 type WindowSpaceReference = `${number}-${string}`;
 
 function shouldPersistTab(tab: Tab): boolean {
+  if (tab.ephemeral) return false;
   if (tab.loadedProfile.profileData.ephemeral) return false;
   return true;
 }
@@ -141,7 +142,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
    * repeated across multiple event handlers.
    */
   private persistTab(tab: Tab): void {
-    if (tab.ephemeral) return;
+    if (!shouldPersistTab(tab)) return;
     const lifecycleManager = this.tabManagers.get(tab.id)?.lifecycle;
     const windowGroupId = `w-${tab.getWindow().id}`;
     const serialized = serializeTab(tab, windowGroupId, lifecycleManager?.preSleepState);
