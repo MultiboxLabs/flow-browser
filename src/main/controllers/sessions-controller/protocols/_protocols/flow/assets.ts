@@ -18,7 +18,12 @@ export function registerAssetsRoutes(app: HonoApp) {
     }
 
     // Normalize the path to prevent directory traversal attacks
-    const normalizedPath = path.normalize(assetPath).replace(/^(\.\.(\/|\\|$))+/, "");
+    let normalizedPath = path.normalize(assetPath).replace(/^(\.\.(\/|\\|$))+/, "");
+
+    // On macOS, serve icon thumbnails from the macOS-specific icon set
+    if (process.platform === "darwin" && normalizedPath.startsWith("icons/")) {
+      normalizedPath = "macos-icons/" + normalizedPath.slice("icons/".length);
+    }
 
     const filePath = path.join(PATHS.ASSETS, "public", normalizedPath);
 
