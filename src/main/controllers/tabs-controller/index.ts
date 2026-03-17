@@ -710,6 +710,36 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   }
 
   /**
+   * Returns true when the tab is the active tab (or part of the active group)
+   * in another browser window whose currently visible space matches the tab's
+   * space. In that case the tab is still effectively on-screen, so auto-PiP
+   * should not trigger just because this window hid it.
+   */
+  public isTabVisibleInAnotherWindow(tab: Tab): boolean {
+    for (const window of browserWindowsController.getWindows()) {
+      if (window.browserWindowType !== "normal" || window.destroyed) continue;
+      if (window.id === tab.getWindow().id) continue;
+      if (window.currentSpaceId !== tab.spaceId) continue;
+
+      const activeTabOrGroup = this.getActiveTab(window.id, tab.spaceId);
+      if (!activeTabOrGroup) continue;
+
+      if (activeTabOrGroup instanceof Tab) {
+        if (activeTabOrGroup.id === tab.id) {
+          return true;
+        }
+        continue;
+      }
+
+      if (activeTabOrGroup.hasTab(tab.id)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Ensure the current active tab/group in a window-space has an actual focused tab.
    * Used after sync-driven window moves where the tab view changes windows without
    * producing a fresh webContents focus event on its own.
