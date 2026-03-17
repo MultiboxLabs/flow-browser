@@ -126,4 +126,5 @@ export type WindowTabsData = {
 export type TabPlaceholderUpdate = {
   snapshotId: string | null;
   generation: number;
+  spaceId: string | null;
 };

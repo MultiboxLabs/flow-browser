@@ -44,6 +44,7 @@ type WindowPlaceholderState = {
   snapshotId: string;
   tabId: number;
   generation: number;
+  spaceId: string;
 };
 
 /** Current placeholder state per window, for cleanup. */
@@ -84,7 +85,12 @@ async function captureTabScreenshot(tab: Tab): Promise<Electron.NativeImage | nu
 }
 
 /** Stores a snapshot and sends its ID to the target window's renderer. */
-function sendPlaceholderToRenderer(targetWindow: BrowserWindow, tabId: number, image: Electron.NativeImage): void {
+function sendPlaceholderToRenderer(
+  targetWindow: BrowserWindow,
+  spaceId: string,
+  tabId: number,
+  image: Electron.NativeImage
+): void {
   if (targetWindow.destroyed) return;
 
   const previousPlaceholder = windowPlaceholderState.get(targetWindow.id);
@@ -94,8 +100,8 @@ function sendPlaceholderToRenderer(targetWindow: BrowserWindow, tabId: number, i
 
   const generation = nextPlaceholderGeneration(targetWindow.id);
   const snapshotId = storeSnapshot(image);
-  windowPlaceholderState.set(targetWindow.id, { snapshotId, tabId, generation });
-  sendPlaceholderUpdate(targetWindow, { snapshotId, generation });
+  windowPlaceholderState.set(targetWindow.id, { snapshotId, tabId, generation, spaceId });
+  sendPlaceholderUpdate(targetWindow, { snapshotId, generation, spaceId });
 }
 
 /** Clears the placeholder in a window and frees the stored snapshot. */
@@ -112,13 +118,54 @@ function clearPlaceholderInRenderer(windowId: number): void {
   const win = browserWindowsController.getWindowById(windowId);
   if (!win) return;
 
-  sendPlaceholderUpdate(win, { snapshotId: null, generation });
+  sendPlaceholderUpdate(win, { snapshotId: null, generation, spaceId: win.currentSpaceId });
 }
 
 /** Clears any placeholders currently showing a screenshot for the destroyed tab. */
 export function clearPlaceholdersForTab(tabId: number): void {
   for (const [windowId, placeholderState] of windowPlaceholderState.entries()) {
     if (placeholderState.tabId !== tabId) continue;
+    clearPlaceholderInRenderer(windowId);
+  }
+}
+
+/**
+ * Clears a window's placeholder when its currently visible space no longer
+ * points at any remote syncable tab. Placeholders are window-wide in the
+ * renderer, so without this reconciliation a screenshot from Space A can
+ * linger after switching the window to Space B.
+ */
+function reconcilePlaceholderForWindow(windowId: number): void {
+  const tabsController = getTabsController();
+  const window = browserWindowsController.getWindowById(windowId);
+  if (!window || window.destroyed || window.browserWindowType !== "normal") return;
+
+  const spaceId = window.currentSpaceId;
+  if (!spaceId) {
+    clearPlaceholderInRenderer(windowId);
+    return;
+  }
+
+  const activeTabOrGroup = tabsController.getActiveTab(windowId, spaceId);
+  if (!activeTabOrGroup) {
+    clearPlaceholderInRenderer(windowId);
+    return;
+  }
+
+  const syncableTabs =
+    activeTabOrGroup instanceof Tab
+      ? isSyncExcludedTab(activeTabOrGroup)
+        ? []
+        : [activeTabOrGroup]
+      : activeTabOrGroup.tabs.filter((tab) => !isSyncExcludedTab(tab));
+
+  if (syncableTabs.length === 0) {
+    clearPlaceholderInRenderer(windowId);
+    return;
+  }
+
+  const hasRemoteActiveTab = syncableTabs.some((tab) => tab.getWindow().id !== windowId);
+  if (!hasRemoteActiveTab) {
     clearPlaceholderInRenderer(windowId);
   }
 }
@@ -142,6 +189,14 @@ export function isPopupWindowTab(tab: Tab): boolean {
 /** Returns true if the tab should be excluded from tab sync (internal or popup). */
 export function isSyncExcludedTab(tab: Tab): boolean {
   return isInternalProfileTab(tab) || isPopupWindowTab(tab);
+}
+
+function shouldSyncSharedActiveTab(window: BrowserWindow, spaceId: string): boolean {
+  if (isTabSyncEnabled()) return true;
+
+  const tabsController = getTabsController();
+  const activeTabOrGroup = tabsController.getActiveTab(window.id, spaceId);
+  return activeTabOrGroup instanceof Tab && pinnedTabsController.getPinnedIdByTabId(activeTabOrGroup.id) !== null;
 }
 
 /**
@@ -201,7 +256,7 @@ async function moveTabToWindowIfNeeded(tab: Tab, window: BrowserWindow, isStale?
 
     // Send placeholder to old window before moving (loads behind the native view)
     if (screenshot) {
-      sendPlaceholderToRenderer(oldWindow, tab.id, screenshot);
+      sendPlaceholderToRenderer(oldWindow, tab.spaceId, tab.id, screenshot);
     }
 
     // Move the tab to the new window
@@ -378,8 +433,10 @@ let _relocateRequested = false;
  * the placeholder there.
  *
  * Guard: if the tab is active in BOTH the current owner window and the
- * target window (e.g. right after a focus-move), the tab stays put — the
- * focus handler already placed it correctly.
+ * target window (e.g. right after a focus-move), the tab usually stays put.
+ * The exception is when the target window is currently focused: a space switch
+ * inside that focused window does not emit a new focus event, so the tab must
+ * still be reclaimed there.
  */
 async function relocateDisplacedTabs(): Promise<void> {
   _relocateRequested = true;
@@ -432,17 +489,16 @@ async function relocateDisplacedTabs(): Promise<void> {
             // function in an infinite loop.
             if (!browserWindowsController.getWindowById(viewOwnerWindowId)) continue;
 
-            // Is the tab also wanted by the window that currently owns the view?
-            const ownerWanted = windowWantedTabIds.get(viewOwnerWindowId);
-            if (ownerWanted?.has(tab.id)) {
-              // Both windows want this tab and the owner still has it active —
-              // don't fight the focus handler.
-              continue;
-            }
-
-            // The owner window no longer needs this tab — relocate it
             const targetWindow = browserWindowsController.getWindowById(targetWindowId);
             if (!targetWindow) continue;
+
+            // Is the tab also wanted by the window that currently owns the view?
+            const ownerWanted = windowWantedTabIds.get(viewOwnerWindowId);
+            if (ownerWanted?.has(tab.id) && !targetWindow.browserWindow.isFocused()) {
+              // Both windows want this tab and the target window is not
+              // focused — don't steal the view from the current owner.
+              continue;
+            }
 
             clearPlaceholderInRenderer(targetWindowId);
 
@@ -491,13 +547,7 @@ export function initTabSync(): void {
       // Pinned-tab associations always sync across windows regardless of the
       // syncTabsAcrossWindows setting. For regular tabs, only proceed when
       // tab sync is enabled.
-      if (!isTabSyncEnabled()) {
-        const tabsController = getTabsController();
-        const activeTabOrGroup = tabsController.getActiveTab(window.id, spaceId);
-        const isPinnedAssociated =
-          activeTabOrGroup instanceof Tab && pinnedTabsController.getPinnedIdByTabId(activeTabOrGroup.id) !== null;
-        if (!isPinnedAssociated) return;
-      }
+      if (!shouldSyncSharedActiveTab(window, spaceId)) return;
 
       await moveActiveTabToWindow(window, isStale);
       if (isStale()) return;
@@ -514,14 +564,37 @@ export function initTabSync(): void {
   // Relocate displaced tabs when the active tab or space changes
   const tabsController = getTabsController();
 
-  tabsController.on("active-tab-changed", () => {
+  tabsController.on("active-tab-changed", (windowId) => {
+    reconcilePlaceholderForWindow(windowId);
     if (!isTabSyncEnabled()) return;
     relocateDisplacedTabs().catch((err) => {
       console.error("[tab-sync] Failed to relocate displaced tabs:", err);
     });
   });
 
-  tabsController.on("current-space-changed", () => {
+  tabsController.on("current-space-changed", (windowId) => {
+    reconcilePlaceholderForWindow(windowId);
+
+    const window = browserWindowsController.getWindowById(windowId);
+    if (window && window.browserWindowType === "normal") {
+      const expectedSpaceId = window.currentSpaceId;
+      if (expectedSpaceId && shouldSyncSharedActiveTab(window, expectedSpaceId)) {
+        const isStale = () => window.currentSpaceId !== expectedSpaceId;
+
+        runTabSyncMutation(async () => {
+          if (window.destroyed || isStale()) return;
+          await moveActiveTabToWindow(window, isStale);
+          if (isStale()) return;
+
+          const tabsController = getTabsController();
+          tabsController.focusActiveTab(window.id, expectedSpaceId);
+          tabsController.emit("active-tab-changed", window.id, expectedSpaceId);
+        }).catch((err) => {
+          console.error("[tab-sync] Failed to move active tab on space change:", err);
+        });
+      }
+    }
+
     if (!isTabSyncEnabled()) return;
     relocateDisplacedTabs().catch((err) => {
       console.error("[tab-sync] Failed to relocate displaced tabs on space change:", err);
