@@ -501,14 +501,21 @@ export class Tab extends TypedEventEmitter<TabEvents> {
             action: "allow",
             outlivesOpener: true,
             createWindow: (constructorOptions) => {
+              // For background-tab disposition (middle-click), Electron does NOT provide
+              // a pre-created webContents - we need to load the URL manually.
+              // For foreground-tab/new-window, Electron may provide one.
+              // This is a bit of a hack, may break on future Electron versions.
+              const viewOptions = constructorOptions as Electron.WebContentsViewConstructorOptions;
+              const needsManualLoad = !viewOptions.webContents;
+
               // Emit event for the controller to handle
               this.emit(
                 "new-tab-requested",
                 handlerDetails.url,
                 handlerDetails.disposition,
-                constructorOptions,
+                viewOptions,
                 handlerDetails,
-                { noLoadURL: true }
+                { noLoadURL: !needsManualLoad }
               );
               // The controller will create the tab and return its webContents
               // via a synchronous callback pattern
