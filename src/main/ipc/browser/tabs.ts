@@ -501,6 +501,19 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
     })
   );
 
+  // Mute / Unmute — only shown for awake tabs with webContents
+  if (!tab.asleep && tab.webContents) {
+    contextMenu.append(
+      new MenuItem({
+        label: tab.muted ? "Unmute Tab" : "Mute Tab",
+        click: () => {
+          tab.webContents?.setAudioMuted(!tab.muted);
+          tab.updateTabState();
+        }
+      })
+    );
+  }
+
   contextMenu.append(
     new MenuItem({
       label: "Close Tab",
@@ -628,4 +641,118 @@ ipcMain.handle("tabs:batch-move-tabs", async (event, tabIds: number[], spaceId: 
   tabsController.normalizePositions(window.id, spaceId);
 
   return true;
+});
+
+// --- Media Controls ---
+
+ipcMain.handle("tabs:media-play-pause", async (_event, tabId: number) => {
+  const tab = tabsController.getTabById(tabId);
+  if (!tab?.webContents) return false;
+
+  // Try the media element first (most reliable), then fall back to
+  // the page's captured MediaSession play/pause action handlers.
+  const script = `
+    (function() {
+      var media = document.querySelector('video:not([muted]), audio:not([muted])') || document.querySelector('video, audio');
+      if (media) {
+        if (media.paused) { media.play(); } else { media.pause(); }
+        return true;
+      }
+      var handlers = window.__flowMediaActionHandlers;
+      if (handlers) {
+        var playHandler = handlers.get('play');
+        var pauseHandler = handlers.get('pause');
+        if (playHandler || pauseHandler) {
+          // Determine current state from mediaSession if possible
+          var state = navigator.mediaSession && navigator.mediaSession.playbackState;
+          if (state === 'playing' && pauseHandler) { pauseHandler(); return true; }
+          if (playHandler) { playHandler(); return true; }
+        }
+      }
+      return false;
+    })()
+  `;
+  try {
+    return await tab.webContents.executeJavaScript(script, true);
+  } catch {
+    return false;
+  }
+});
+
+ipcMain.handle("tabs:media-next-track", async (_event, tabId: number) => {
+  const tab = tabsController.getTabById(tabId);
+  if (!tab?.webContents) return false;
+
+  // Call the page's captured MediaSession "nexttrack" action handler.
+  // The preload monkey-patches navigator.mediaSession.setActionHandler()
+  // and stores references in window.__flowMediaActionHandlers.
+  const script = `
+    (function() {
+      try {
+        var handlers = window.__flowMediaActionHandlers;
+        if (handlers) {
+          var handler = handlers.get('nexttrack');
+          if (handler) { handler(); return true; }
+        }
+        return false;
+      } catch(e) { return false; }
+    })()
+  `;
+  try {
+    return await tab.webContents.executeJavaScript(script, true);
+  } catch {
+    return false;
+  }
+});
+
+ipcMain.handle("tabs:media-previous-track", async (_event, tabId: number) => {
+  const tab = tabsController.getTabById(tabId);
+  if (!tab?.webContents) return false;
+
+  const script = `
+    (function() {
+      try {
+        var handlers = window.__flowMediaActionHandlers;
+        if (handlers) {
+          var handler = handlers.get('previoustrack');
+          if (handler) { handler(); return true; }
+        }
+        return false;
+      } catch(e) { return false; }
+    })()
+  `;
+  try {
+    return await tab.webContents.executeJavaScript(script, true);
+  } catch {
+    return false;
+  }
+});
+
+// --- Media Session Metadata from Preload ---
+
+ipcMain.on(
+  "media-session:metadata-changed",
+  (
+    event,
+    metadata: {
+      title: string | null;
+      artist: string | null;
+      artwork: string | null;
+      playbackState: "playing" | "paused" | "none";
+    }
+  ) => {
+    const webContents = event.sender;
+    const tab = tabsController.getTabByWebContents(webContents);
+    if (tab) {
+      tab.updateMediaMetadata(metadata);
+    }
+  }
+);
+
+ipcMain.on("media-session:metadata-cleared", (event) => {
+  const webContents = event.sender;
+  const tab = tabsController.getTabByWebContents(webContents);
+  if (tab) {
+    tab.clearMediaMetadata();
+  }
 });

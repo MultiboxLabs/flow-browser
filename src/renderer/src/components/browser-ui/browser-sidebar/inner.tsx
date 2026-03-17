@@ -14,6 +14,7 @@ import { SpaceSwitcher } from "@/components/browser-ui/browser-sidebar/_componen
 import { SpacePagesCarousel } from "@/components/browser-ui/browser-sidebar/_components/space-pages-carousel";
 import { BrowserActionList } from "@/components/browser-ui/browser-sidebar/_components/browser-action-list";
 import { UpdateBanner } from "@/components/browser-ui/browser-sidebar/_components/update-banner";
+import { GlobalMediaControls } from "@/components/browser-ui/browser-sidebar/_components/global-media-controls";
 
 function SidebarIcon({ className }: { className?: string }) {
   return (
@@ -65,6 +66,8 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
       </div>
       {/* Update Banner */}
       <UpdateBanner />
+      {/* Global Media Controls */}
+      <GlobalMediaControls />
       {/* Bottom Section */}
       <div className="shrink-0 flex items-center justify-between h-4 my-2">
         <Button

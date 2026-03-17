@@ -30,7 +30,18 @@ type TabStateProperty =
   | "asleep"
   | "lastActiveAt"
   | "position";
-type TabContentProperty = "title" | "url" | "isLoading" | "audible" | "muted" | "navHistory" | "navHistoryIndex";
+type TabContentProperty =
+  | "title"
+  | "url"
+  | "isLoading"
+  | "audible"
+  | "muted"
+  | "navHistory"
+  | "navHistoryIndex"
+  | "mediaTitle"
+  | "mediaArtist"
+  | "mediaArtwork"
+  | "mediaPlaybackState";
 
 export type TabPublicProperty = TabStateProperty | TabContentProperty;
 
@@ -165,6 +176,12 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public muted: boolean = false;
   public navHistory: NavigationEntry[] = [];
   public navHistoryIndex: number = 0;
+
+  // Media metadata (from page's navigator.mediaSession, polled while audible)
+  public mediaTitle: string | null = null;
+  public mediaArtist: string | null = null;
+  public mediaArtwork: string | null = null;
+  public mediaPlaybackState: "playing" | "paused" | "none" = "none";
 
   // Cached for nav history diff (avoids JSON.stringify every time)
   private lastNavHistoryLength: number = 0;
@@ -725,6 +742,76 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     const replace = FLAGS.ERROR_PAGE_LOAD_MODE === "replace";
     this.loadURL(errorPageURL.toString(), replace);
+  }
+
+  // --- Media Metadata (from preload) ---
+
+  /**
+   * Updates media metadata from the page's navigator.mediaSession.
+   * Called by the IPC handler when the preload script detects a change.
+   * Emits "updated" if any values change.
+   */
+  public updateMediaMetadata(metadata: {
+    title: string | null;
+    artist: string | null;
+    artwork: string | null;
+    playbackState: "playing" | "paused" | "none";
+  }): void {
+    if (this.isDestroyed) return;
+
+    const changedKeys: TabContentProperty[] = [];
+
+    if (metadata.title !== this.mediaTitle) {
+      this.mediaTitle = metadata.title;
+      changedKeys.push("mediaTitle");
+    }
+    if (metadata.artist !== this.mediaArtist) {
+      this.mediaArtist = metadata.artist;
+      changedKeys.push("mediaArtist");
+    }
+    if (metadata.artwork !== this.mediaArtwork) {
+      this.mediaArtwork = metadata.artwork;
+      changedKeys.push("mediaArtwork");
+    }
+    if (metadata.playbackState !== this.mediaPlaybackState) {
+      this.mediaPlaybackState = metadata.playbackState;
+      changedKeys.push("mediaPlaybackState");
+    }
+
+    if (changedKeys.length > 0) {
+      this.emit("updated", changedKeys);
+    }
+  }
+
+  /**
+   * Clears media metadata when the page loses MediaSession data.
+   * Called by the preload when metadata becomes null.
+   */
+  public clearMediaMetadata(): void {
+    if (this.isDestroyed) return;
+
+    const changedKeys: TabContentProperty[] = [];
+
+    if (this.mediaTitle !== null) {
+      this.mediaTitle = null;
+      changedKeys.push("mediaTitle");
+    }
+    if (this.mediaArtist !== null) {
+      this.mediaArtist = null;
+      changedKeys.push("mediaArtist");
+    }
+    if (this.mediaArtwork !== null) {
+      this.mediaArtwork = null;
+      changedKeys.push("mediaArtwork");
+    }
+    if (this.mediaPlaybackState !== "none") {
+      this.mediaPlaybackState = "none";
+      changedKeys.push("mediaPlaybackState");
+    }
+
+    if (changedKeys.length > 0) {
+      this.emit("updated", changedKeys);
+    }
   }
 
   // --- Destruction ---
