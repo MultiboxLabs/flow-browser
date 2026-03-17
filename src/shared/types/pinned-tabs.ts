@@ -16,6 +16,9 @@ export type PersistedPinnedTabData = {
  * Extends persisted data with runtime association info.
  */
 export type PinnedTabData = PersistedPinnedTabData & {
-  /** Runtime-only: the ID of the live browser tab associated with this pinned tab, or null */
-  associatedTabId: number | null;
+  /**
+   * Runtime-only: map of spaceId -> associated tab ID for this pinned tab.
+   * Each space can have its own instance of a pinned tab.
+   */
+  associatedTabIdsBySpace: Record<string, number>;
 };

@@ -15,17 +15,25 @@ type PinnedTabsControllerEvents = {
  * They are stored in a separate `pinned_tabs` table and associated
  * with live browser tabs at runtime via an in-memory map.
  *
+ * Each pinned tab can have one associated tab per space, allowing
+ * each space to have its own instance of a pinned tab.
+ *
  * All database writes are immediate (pinned tabs change infrequently).
  */
 class PinnedTabsController extends TypedEventEmitter<PinnedTabsControllerEvents> {
   /** In-memory cache of all pinned tabs, keyed by uniqueId */
   private pinnedTabs = new Map<string, PersistedPinnedTabData>();
 
-  /** Runtime association: pinnedTabId → browser tab ID */
-  private associations = new Map<string, number>();
+  /**
+   * Runtime associations: pinnedTabId → spaceId → browser tab ID
+   * Each pinned tab can have one associated tab per space.
+   */
+  private associations = new Map<string, Map<string, number>>();
 
-  /** Reverse lookup: browser tab ID → pinnedTabId */
-  private reverseAssociations = new Map<number, string>();
+  /**
+   * Reverse lookup: browser tab ID → { pinnedTabId, spaceId }
+   */
+  private reverseAssociations = new Map<number, { pinnedTabId: string; spaceId: string }>();
 
   // --- Initialization ---
 
@@ -94,16 +102,20 @@ class PinnedTabsController extends TypedEventEmitter<PinnedTabsControllerEvents>
 
   /**
    * Remove a pinned tab.
-   * Returns the associated browser tab ID (if any) that was cleared during removal.
+   * Returns the associated browser tab IDs (if any) that were cleared during removal.
    */
-  remove(uniqueId: string): number | null {
+  remove(uniqueId: string): number[] {
     const data = this.pinnedTabs.get(uniqueId);
-    if (!data) return null;
+    if (!data) return [];
 
-    // Capture and clear association before removal
-    const associatedTabId = this.associations.get(uniqueId) ?? null;
-    if (associatedTabId !== null) {
-      this.reverseAssociations.delete(associatedTabId);
+    // Capture and clear all associations before removal
+    const spaceAssociations = this.associations.get(uniqueId);
+    const associatedTabIds: number[] = [];
+    if (spaceAssociations) {
+      for (const tabId of spaceAssociations.values()) {
+        associatedTabIds.push(tabId);
+        this.reverseAssociations.delete(tabId);
+      }
       this.associations.delete(uniqueId);
     }
 
@@ -117,7 +129,7 @@ class PinnedTabsController extends TypedEventEmitter<PinnedTabsControllerEvents>
     });
 
     this.emit("changed");
-    return associatedTabId;
+    return associatedTabIds;
   }
 
   /**
@@ -158,35 +170,49 @@ class PinnedTabsController extends TypedEventEmitter<PinnedTabsControllerEvents>
   // --- Association Management ---
 
   /**
-   * Associate a pinned tab with a live browser tab.
+   * Associate a pinned tab with a live browser tab for a specific space.
+   * Each pinned tab can have one associated tab per space.
    */
-  associateTab(pinnedId: string, tabId: number): void {
-    // Clear any existing association for this pinned tab
-    const oldTabId = this.associations.get(pinnedId);
-    if (oldTabId !== undefined) {
+  associateTab(pinnedId: string, spaceId: string, tabId: number): void {
+    // Get or create the space->tab mapping for this pinned tab
+    let spaceAssociations = this.associations.get(pinnedId);
+    if (!spaceAssociations) {
+      spaceAssociations = new Map<string, number>();
+      this.associations.set(pinnedId, spaceAssociations);
+    }
+
+    // Clear any existing association for this tab in the same space
+    const oldTabId = spaceAssociations.get(spaceId);
+    if (oldTabId !== undefined && oldTabId !== tabId) {
       this.reverseAssociations.delete(oldTabId);
     }
 
-    // Clear any existing association for this browser tab
-    const oldPinnedId = this.reverseAssociations.get(tabId);
-    if (oldPinnedId !== undefined) {
-      this.associations.delete(oldPinnedId);
+    // Clear any existing association for this browser tab (in any space/pinned tab)
+    const oldAssociation = this.reverseAssociations.get(tabId);
+    if (oldAssociation !== undefined) {
+      const oldSpaceAssociations = this.associations.get(oldAssociation.pinnedTabId);
+      if (oldSpaceAssociations) {
+        oldSpaceAssociations.delete(oldAssociation.spaceId);
+      }
     }
 
-    this.associations.set(pinnedId, tabId);
-    this.reverseAssociations.set(tabId, pinnedId);
+    spaceAssociations.set(spaceId, tabId);
+    this.reverseAssociations.set(tabId, { pinnedTabId: pinnedId, spaceId });
     this.emit("changed");
   }
 
   /**
-   * Dissociate a pinned tab from its browser tab.
+   * Dissociate a pinned tab from its browser tab in a specific space.
    */
-  dissociateTab(pinnedId: string): void {
-    const tabId = this.associations.get(pinnedId);
-    if (tabId !== undefined) {
-      this.reverseAssociations.delete(tabId);
-      this.associations.delete(pinnedId);
-      this.emit("changed");
+  dissociateTab(pinnedId: string, spaceId: string): void {
+    const spaceAssociations = this.associations.get(pinnedId);
+    if (spaceAssociations) {
+      const tabId = spaceAssociations.get(spaceId);
+      if (tabId !== undefined) {
+        this.reverseAssociations.delete(tabId);
+        spaceAssociations.delete(spaceId);
+        this.emit("changed");
+      }
     }
   }
 
@@ -195,15 +221,31 @@ class PinnedTabsController extends TypedEventEmitter<PinnedTabsControllerEvents>
    * Clears any association pointing to that tab.
    */
   onBrowserTabDestroyed(tabId: number): void {
-    const pinnedId = this.reverseAssociations.get(tabId);
-    if (pinnedId !== undefined) {
-      this.associations.delete(pinnedId);
+    const association = this.reverseAssociations.get(tabId);
+    if (association !== undefined) {
+      const spaceAssociations = this.associations.get(association.pinnedTabId);
+      if (spaceAssociations) {
+        spaceAssociations.delete(association.spaceId);
+      }
       this.reverseAssociations.delete(tabId);
       this.emit("changed");
     }
   }
 
   // --- Query Methods ---
+
+  /**
+   * Convert space associations map to Record for serialization.
+   */
+  private getAssociatedTabIdsBySpace(pinnedId: string): Record<string, number> {
+    const spaceAssociations = this.associations.get(pinnedId);
+    if (!spaceAssociations) return {};
+    const result: Record<string, number> = {};
+    for (const [spaceId, tabId] of spaceAssociations) {
+      result[spaceId] = tabId;
+    }
+    return result;
+  }
 
   /**
    * Get all pinned tabs for a profile, sorted by position.
@@ -214,7 +256,7 @@ class PinnedTabsController extends TypedEventEmitter<PinnedTabsControllerEvents>
       if (data.profileId === profileId) {
         result.push({
           ...data,
-          associatedTabId: this.associations.get(data.uniqueId) ?? null
+          associatedTabIdsBySpace: this.getAssociatedTabIdsBySpace(data.uniqueId)
         });
       }
     }
@@ -233,7 +275,7 @@ class PinnedTabsController extends TypedEventEmitter<PinnedTabsControllerEvents>
       }
       result[data.profileId].push({
         ...data,
-        associatedTabId: this.associations.get(data.uniqueId) ?? null
+        associatedTabIdsBySpace: this.getAssociatedTabIdsBySpace(data.uniqueId)
       });
     }
     // Sort each profile's pinned tabs by position
@@ -251,21 +293,23 @@ class PinnedTabsController extends TypedEventEmitter<PinnedTabsControllerEvents>
     if (!data) return null;
     return {
       ...data,
-      associatedTabId: this.associations.get(uniqueId) ?? null
+      associatedTabIdsBySpace: this.getAssociatedTabIdsBySpace(uniqueId)
     };
   }
 
   /**
-   * Get the associated browser tab ID for a pinned tab.
+   * Get the associated browser tab ID for a pinned tab in a specific space.
    */
-  getAssociatedTabId(pinnedId: string): number | null {
-    return this.associations.get(pinnedId) ?? null;
+  getAssociatedTabId(pinnedId: string, spaceId: string): number | null {
+    const spaceAssociations = this.associations.get(pinnedId);
+    if (!spaceAssociations) return null;
+    return spaceAssociations.get(spaceId) ?? null;
   }
 
   /**
-   * Get the pinned tab ID associated with a browser tab.
+   * Get the pinned tab ID and space ID associated with a browser tab.
    */
-  getPinnedIdByTabId(tabId: number): string | null {
+  getPinnedIdByTabId(tabId: number): { pinnedTabId: string; spaceId: string } | null {
     return this.reverseAssociations.get(tabId) ?? null;
   }
 
@@ -274,10 +318,12 @@ class PinnedTabsController extends TypedEventEmitter<PinnedTabsControllerEvents>
    */
   getAssociatedTabIdsForProfile(profileId: string): number[] {
     const result: number[] = [];
-    for (const [pinnedId, tabId] of this.associations) {
+    for (const [pinnedId, spaceAssociations] of this.associations) {
       const pinnedTab = this.pinnedTabs.get(pinnedId);
       if (pinnedTab && pinnedTab.profileId === profileId) {
-        result.push(tabId);
+        for (const tabId of spaceAssociations.values()) {
+          result.push(tabId);
+        }
       }
     }
     return result;

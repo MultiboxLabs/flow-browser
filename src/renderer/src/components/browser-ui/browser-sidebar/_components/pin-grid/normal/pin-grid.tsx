@@ -8,6 +8,7 @@ import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_compon
 import { SidebarScrollArea } from "@/components/browser-ui/browser-sidebar/_components/sidebar-scroll-area";
 import { usePinnedTabs } from "@/components/providers/pinned-tabs-provider";
 import { useFocusedTabId } from "@/components/providers/tabs-provider";
+import { useSpaces } from "@/components/providers/spaces-provider";
 import { usePinGridColumns } from "./use-pin-grid-columns";
 import { usePinGridLayoutAnimations } from "./use-pin-grid-layout-animations";
 import { useEmptyStateDismiss } from "./use-empty-state-dismiss";
@@ -22,6 +23,7 @@ export function PinGrid({ profileId }: PinGridProps) {
   const [measureRef, { width }] = useMeasure<HTMLDivElement>();
   const { getPinnedTabs, createFromTab, click, doubleClick, reorder, showContextMenu } = usePinnedTabs();
   const focusedTabId = useFocusedTabId();
+  const { currentSpace } = useSpaces();
 
   const pinnedTabs = useMemo(() => getPinnedTabs(profileId), [profileId, getPinnedTabs]);
   const pinCount = pinnedTabs.length;
@@ -85,7 +87,7 @@ export function PinGrid({ profileId }: PinGridProps) {
               key={pinnedTab.uniqueId}
               pinnedTab={pinnedTab}
               profileId={profileId}
-              isActive={pinnedTab.associatedTabId !== null && pinnedTab.associatedTabId === focusedTabId}
+              isActive={currentSpace !== null && pinnedTab.associatedTabIdsBySpace[currentSpace.id] === focusedTabId}
               onClick={() => click(pinnedTab.uniqueId)}
               onDoubleClick={() => doubleClick(pinnedTab.uniqueId)}
               onContextMenu={() => showContextMenu(pinnedTab.uniqueId)}
