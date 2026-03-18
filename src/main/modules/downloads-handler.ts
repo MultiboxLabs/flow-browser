@@ -12,6 +12,7 @@ import { app, dialog, type DownloadItem, type Session, type WebContents } from "
 import path from "path";
 import fs from "fs";
 import { debugError, debugPrint } from "@/modules/output";
+import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 
 // Conditionally import macOS progress module
 let macosProgress: typeof import("@/modules/macos-progress") | null = null;
@@ -84,9 +85,13 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
   debugPrint("DOWNLOADS", `  temp crdownload: ${crdownloadPath}`);
 
   // Show save dialog while download is paused
+  const window = browserWindowsController.getWindowFromWebContents(_webContents);
+  if (!window) {
+    item.cancel();
+    return;
+  }
   dialog
-    .showSaveDialog({
-      title: "Save Download",
+    .showSaveDialog(window.browserWindow, {
       defaultPath,
       properties: ["createDirectory", "showOverwriteConfirmation"]
     })
@@ -132,6 +137,7 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
   // Track download progress
   item.on("updated", (_event, state) => {
     const meta = activeDownloads.get(item);
+    debugPrint("DOWNLOADS", `Download updated: ${state}`);
     if (!meta) return;
 
     if (state === "progressing") {
@@ -173,9 +179,7 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
       // Log progress periodically
       if (total > 0) {
         const percent = Math.round((receivedBytes / total) * 100);
-        if (percent % 10 === 0) {
-          debugPrint("DOWNLOADS", `Progress: ${percent}% (${receivedBytes}/${total} bytes)`);
-        }
+        debugPrint("DOWNLOADS", `Progress: ${percent}% (${receivedBytes}/${total} bytes)`);
       }
     } else if (state === "interrupted") {
       debugPrint("DOWNLOADS", `Download interrupted: ${meta.crdownloadPath}`);
