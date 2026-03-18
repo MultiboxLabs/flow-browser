@@ -12,13 +12,42 @@
 
 #import <Cocoa/Cocoa.h>
 
+static NSString * const FlowDockTileUpdateNotification = @"dev.iamevan.flow.dock-tile.update";
+
 @interface FlowDockTilePlugin : NSObject <NSDockTilePlugIn>
+@property (nonatomic, strong) NSDockTile *dockTile;
+ - (void)handleDockTileUpdate:(NSNotification *)notification;
+ - (void)updateDockTile;
 @end
 
 @implementation FlowDockTilePlugin
 
 - (void)setDockTile:(NSDockTile *)dockTile {
-    if (!dockTile) return;
+    self.dockTile = dockTile;
+
+    NSDistributedNotificationCenter *center = [NSDistributedNotificationCenter defaultCenter];
+    [center removeObserver:self];
+
+    if (!dockTile) {
+        return;
+    }
+
+    [center addObserver:self
+               selector:@selector(handleDockTileUpdate:)
+                   name:FlowDockTileUpdateNotification
+                 object:nil
+     suspensionBehavior:NSNotificationSuspensionBehaviorDeliverImmediately];
+
+    [self updateDockTile];
+}
+
+- (void)handleDockTileUpdate:(NSNotification *)notification {
+    (void)notification;
+    [self updateDockTile];
+}
+
+- (void)updateDockTile {
+    if (!self.dockTile) return;
 
     // Resolve the shared file path
     NSString *appSupport = [NSSearchPathForDirectoriesInDomains(
@@ -36,8 +65,8 @@
 
     if (!iconPath || iconPath.length == 0) {
         // No custom icon — clear content view so the bundle icon (Liquid Glass) renders
-        [dockTile setContentView:nil];
-        [dockTile display];
+        [self.dockTile setContentView:nil];
+        [self.dockTile display];
         return;
     }
 
@@ -45,15 +74,19 @@
     NSImage *image = [[NSImage alloc] initWithContentsOfFile:iconPath];
     if (!image) {
         // Failed to load — fall back to default
-        [dockTile setContentView:nil];
-        [dockTile display];
+        [self.dockTile setContentView:nil];
+        [self.dockTile display];
         return;
     }
 
     // Create an image view and set it as the dock tile's content
     NSImageView *imageView = [NSImageView imageViewWithImage:image];
-    [dockTile setContentView:imageView];
-    [dockTile display];
+    [self.dockTile setContentView:imageView];
+    [self.dockTile display];
+}
+
+- (void)dealloc {
+    [[NSDistributedNotificationCenter defaultCenter] removeObserver:self];
 }
 
 @end

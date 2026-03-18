@@ -312,7 +312,10 @@ async function resetToDefaultMacOS(): Promise<boolean> {
     // Clear the shared file so the DockTilePlugin uses default
     mac.writeIconChoiceToSharedFile(null);
 
-    // Invalidate the Dock's icon cache
+    // Ask the DockTilePlugin to reload its shared state immediately
+    mac.notifyDockTilePluginUpdate();
+
+    // Refresh the Dock cache so reset-to-default falls back to the bundle icon
     mac.invalidateDockCache();
 
     debugPrint("ICONS", "macOS: background persistence cleanup complete");
@@ -350,7 +353,10 @@ async function setCustomIconMacOS(iconId: string, imgBuffer: Buffer): Promise<bo
       mac.setFinderIcon(finderIconPath, bundlePath);
     }
 
-    // Invalidate Dock icon cache
+    // Ask the DockTilePlugin to reload its shared state immediately
+    mac.notifyDockTilePluginUpdate();
+
+    // Refresh the Dock cache so the persisted icon propagates consistently
     mac.invalidateDockCache();
 
     debugPrint("ICONS", "macOS: background persistence complete:", iconId);

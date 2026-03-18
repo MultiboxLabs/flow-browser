@@ -9,12 +9,12 @@
 import { app } from "electron";
 import path from "path";
 import fs from "fs";
-// @ts-ignore This package is only available on macOS.
-import { callFunction } from "objc-js";
 import { NSApplication, NSImage, NSImageView, NSWorkspace } from "objcjs-types/AppKit";
+import { NSDistributedNotificationCenter } from "objcjs-types/Foundation";
 import { NSStringFromString } from "objcjs-types/helpers";
 import { debugError, debugPrint } from "@/modules/output";
 import { FLOW_DATA_DIR } from "@/modules/paths";
+import { NSClassFromString } from "objcjs-types/Foundation/functions";
 
 // ---------------------------------------------------------------------------
 // Shared-file path for DockTilePlugin communication
@@ -22,6 +22,7 @@ import { FLOW_DATA_DIR } from "@/modules/paths";
 
 const SHARED_DIR = FLOW_DATA_DIR;
 const SHARED_FILE = path.join(SHARED_DIR, "dock-tile-icon-path");
+const DOCK_TILE_UPDATE_NOTIFICATION = "dev.iamevan.flow.dock-tile.update";
 
 // ---------------------------------------------------------------------------
 // App-bundle path resolution
@@ -161,7 +162,7 @@ export function resetDockIconToDefault(): boolean {
 export function invalidateDockCache(): boolean {
   try {
     const clsName = NSStringFromString("SLSIconAppearanceConfiguration");
-    const cls = callFunction("NSClassFromString", { returns: "@" }, clsName);
+    const cls = NSClassFromString(clsName);
     if (!cls) {
       debugPrint("ICONS", "macOS: SLSIconAppearanceConfiguration not available — skipping cache invalidation");
       return false;
@@ -208,5 +209,22 @@ export function writeIconChoiceToSharedFile(iconPath: string | null): void {
     }
   } catch (err) {
     debugError("ICONS", "macOS: writeIconChoiceToSharedFile failed:", err);
+  }
+}
+
+/**
+ * Ask the DockTile plugin to reload the shared icon state immediately.
+ */
+export function notifyDockTilePluginUpdate(): void {
+  try {
+    NSDistributedNotificationCenter.defaultCenter().postNotificationName$object$userInfo$deliverImmediately$(
+      NSStringFromString(DOCK_TILE_UPDATE_NOTIFICATION),
+      null,
+      null,
+      true
+    );
+    debugPrint("ICONS", "macOS: posted Dock tile update notification");
+  } catch (err) {
+    debugError("ICONS", "macOS: failed to post Dock tile update notification:", err);
   }
 }
