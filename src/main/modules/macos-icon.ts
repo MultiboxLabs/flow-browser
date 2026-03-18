@@ -53,6 +53,7 @@ export function getAppBundlePath(): string | null {
 export function setFinderIcon(pngPath: string, appBundlePath: string): boolean {
   try {
     const nsPath = NSStringFromString(pngPath);
+
     const image = NSImage.alloc().initWithContentsOfFile$(nsPath);
     if (!image) {
       debugError("ICONS", "macOS: failed to load NSImage from", pngPath);
@@ -60,6 +61,7 @@ export function setFinderIcon(pngPath: string, appBundlePath: string): boolean {
     }
 
     const bundleNSPath = NSStringFromString(appBundlePath);
+
     const ok = NSWorkspace.sharedWorkspace().setIcon$forFile$options$(image, bundleNSPath, 0);
     debugPrint("ICONS", `macOS: setIcon on bundle → ${ok}`);
     return !!ok;
@@ -95,16 +97,20 @@ export function clearFinderIcon(appBundlePath: string): boolean {
 export function setDockIcon(pngPath: string): boolean {
   try {
     const nsPath = NSStringFromString(pngPath);
+
     const image = NSImage.alloc().initWithContentsOfFile$(nsPath);
     if (!image) {
       debugError("ICONS", "macOS: failed to load NSImage for dock icon from", pngPath);
       return false;
     }
 
-    // Set the dock tile's content view for crisp rendering
     const dockTile = NSApplication.sharedApplication().dockTile();
+
+    // Set the dock tile's content view for crisp rendering
     const imageView = NSImageView.imageViewWithImage$(image);
+
     dockTile.setContentView$(imageView);
+
     dockTile.display();
 
     debugPrint("ICONS", "macOS: dock icon set via NSApplication");
@@ -116,24 +122,28 @@ export function setDockIcon(pngPath: string): boolean {
 }
 
 /**
- * Reset the running Dock icon to the bundle icon (Liquid Glass).
- * Passing nil to `setApplicationIconImage:` tells AppKit to reload from
- * the bundle's icon resources.
+ * Reset the running Dock icon to the default bundle icon (Liquid Glass).
+ * This clears the content view and reloads the icon from bundle resources.
  */
-export function resetAppIconImage(): boolean {
+export function resetDockIconToDefault(): boolean {
   try {
-    // Pass nil to restore the bundle icon
-    NSApplication.sharedApplication().setApplicationIconImage$(null);
-
-    // Also clear the dock tile content view so the bundle icon renders
     const dockTile = NSApplication.sharedApplication().dockTile();
+
+    // For reset, we can't easily animate since we're removing the view
+    // The bundle icon will appear immediately after clearing
+
+    // Clear the dock tile content view so the bundle icon renders
     dockTile.setContentView$(null);
+
     dockTile.display();
 
-    debugPrint("ICONS", "macOS: resetAppIconImage → nil");
+    // Also clear the application icon image to force reload from bundle
+    NSApplication.sharedApplication().setApplicationIconImage$(null);
+
+    debugPrint("ICONS", "macOS: resetDockIconToDefault complete");
     return true;
   } catch (err) {
-    debugError("ICONS", "macOS: resetAppIconImage failed:", err);
+    debugError("ICONS", "macOS: resetDockIconToDefault failed:", err);
     return false;
   }
 }
@@ -151,8 +161,7 @@ export function resetAppIconImage(): boolean {
 export function invalidateDockCache(): boolean {
   try {
     const clsName = NSStringFromString("SLSIconAppearanceConfiguration");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cls = callFunction("NSClassFromString", { returns: "@" }, clsName) as any;
+    const cls = callFunction("NSClassFromString", { returns: "@" }, clsName);
     if (!cls) {
       debugPrint("ICONS", "macOS: SLSIconAppearanceConfiguration not available — skipping cache invalidation");
       return false;

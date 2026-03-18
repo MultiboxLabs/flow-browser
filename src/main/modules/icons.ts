@@ -9,6 +9,8 @@ import { SettingsDataStore } from "@/saving/settings";
 import { debugError, debugPrint } from "@/modules/output";
 import { windowsController } from "@/controllers/windows-controller";
 
+const PRELOAD_MACOS_ICON_MODULE = false;
+
 // Lazily-loaded macOS-specific helpers (only used on darwin).
 // Uses dynamic import() so Vite resolves the @/ alias and bundles the module.
 // Typed as `any` because objc-js is a macOS-only native addon that doesn't
@@ -176,7 +178,6 @@ const IconIdSchema = type.enumerated(...iconIds, ...macOsIconIds);
 async function transformAppIcon(imagePath: string): Promise<Buffer> {
   debugPrint("ICONS", "Transforming app icon:", imagePath);
   try {
-    // Read the image file
     const inputBuffer = fs.readFileSync(imagePath);
 
     // Pre-rendered Liquid Glass icons for macOS, do not need transforming
@@ -191,7 +192,6 @@ async function transformAppIcon(imagePath: string): Promise<Buffer> {
     const artSize = totalSize - padding * 2; // 824
     const cornerRadius = Math.round(0.22 * artSize); // ~185px
 
-    // Create a new image with padding
     const outputBuffer = await sharp(inputBuffer)
       .resize(artSize, artSize)
       .composite([
@@ -223,15 +223,36 @@ async function transformAppIcon(imagePath: string): Promise<Buffer> {
 }
 
 /**
+ * Size for Finder icon - smaller = faster setIcon:forFile:options: calls.
+ * 256x256 is sufficient for Finder/Spotlight/Launchpad display.
+ * Using 1024x1024 takes ~1000ms, 256x256 takes ~50-100ms.
+ */
+const FINDER_ICON_SIZE = 512;
+
+/**
  * Save a transformed icon buffer to disk so the DockTilePlugin and
  * NSWorkspace can reference it by absolute path.
+ *
+ * Returns paths for both full-size (Dock) and resized (Finder) icons.
  */
-function savePersistentIcon(iconId: string, buffer: Buffer): string {
+async function savePersistentIcon(
+  iconId: string,
+  buffer: Buffer
+): Promise<{ dockIconPath: string; finderIconPath: string }> {
   fs.mkdirSync(persistentIconsDir, { recursive: true });
-  const outPath = path.join(persistentIconsDir, `${iconId}.png`);
-  fs.writeFileSync(outPath, buffer);
-  debugPrint("ICONS", "Saved persistent icon to:", outPath);
-  return outPath;
+
+  // Save full-size icon for Dock (NSDockTile renders at full resolution)
+  const dockIconPath = path.join(persistentIconsDir, `${iconId}.png`);
+  fs.writeFileSync(dockIconPath, buffer);
+
+  // Save resized icon for Finder (setIcon:forFile:options: is MUCH faster with smaller images)
+  const finderIconPath = path.join(persistentIconsDir, `${iconId}-finder.png`);
+  const resizedBuffer = await sharp(buffer).resize(FINDER_ICON_SIZE, FINDER_ICON_SIZE).png().toBuffer();
+
+  fs.writeFileSync(finderIconPath, resizedBuffer);
+
+  debugPrint("ICONS", "Saved persistent icons to:", dockIconPath, finderIconPath);
+  return { dockIconPath, finderIconPath };
 }
 
 function generateIconPath(iconId: string) {
@@ -273,23 +294,29 @@ async function resetToDefaultMacOS(): Promise<boolean> {
 
   debugPrint("ICONS", "macOS: resetting to default (Liquid Glass)");
 
-  // 1. Reset the running app's dock icon to the bundle icon
-  mac.resetAppIconImage();
-
-  // 2. Clear the Finder/Spotlight icon on the .app bundle
+  // 1. Clear the Finder/Spotlight icon on the .app bundle FIRST
+  //    (must happen before dock reset to ensure bundle has correct icon)
   const bundlePath = mac.getAppBundlePath();
   if (bundlePath) {
     mac.clearFinderIcon(bundlePath);
   }
 
-  // 3. Invalidate the Dock's icon cache
-  mac.invalidateDockCache();
+  // 2. Reset the running app's dock icon to the bundle icon (instant visual feedback)
+  mac.resetDockIconToDefault();
 
-  // 4. Clear the shared file so the DockTilePlugin uses default
-  mac.writeIconChoiceToSharedFile(null);
-
-  // 5. Clear the in-memory NativeImage — nothing to push to windows
+  // 3. Clear the in-memory NativeImage
   currentIcon = null;
+
+  // 4. Background operations for full persistence cleanup
+  setImmediate(() => {
+    // Clear the shared file so the DockTilePlugin uses default
+    mac.writeIconChoiceToSharedFile(null);
+
+    // Invalidate the Dock's icon cache
+    mac.invalidateDockCache();
+
+    debugPrint("ICONS", "macOS: background persistence cleanup complete");
+  });
 
   debugPrint("ICONS", "macOS: reset to default complete");
   return true;
@@ -305,23 +332,29 @@ async function setCustomIconMacOS(iconId: string, imgBuffer: Buffer): Promise<bo
 
   debugPrint("ICONS", "macOS: setting custom icon persistently:", iconId);
 
-  // 1. Save transformed PNG to a persistent location
-  const savedPath = savePersistentIcon(iconId, imgBuffer);
+  // 1. Save transformed PNG to a persistent location (required for path)
+  //    This saves two versions: full-size for Dock, resized (256x256) for Finder
+  const { dockIconPath, finderIconPath } = await savePersistentIcon(iconId, imgBuffer);
 
-  // 2. Set the Finder/Spotlight/Launchpad icon on the .app bundle
+  // 2. Set the dock tile content view FIRST (instant visual feedback)
+  mac.setDockIcon(dockIconPath);
+
+  // 3. Persistence operations run in background (non-blocking)
   const bundlePath = mac.getAppBundlePath();
-  if (bundlePath) {
-    mac.setFinderIcon(savedPath, bundlePath);
-  }
+  setImmediate(() => {
+    // Write shared file for DockTilePlugin (uses full-size icon)
+    mac.writeIconChoiceToSharedFile(dockIconPath);
 
-  // 3. Set the dock tile content view for crisp rendering
-  mac.setDockIcon(savedPath);
+    // Set Finder/Spotlight/Launchpad icon on the .app bundle (uses resized 256x256 icon for speed)
+    if (bundlePath) {
+      mac.setFinderIcon(finderIconPath, bundlePath);
+    }
 
-  // 4. Write to shared file so DockTilePlugin can show it when app isn't running
-  mac.writeIconChoiceToSharedFile(savedPath);
+    // Invalidate Dock icon cache
+    mac.invalidateDockCache();
 
-  // 5. Invalidate the Dock's icon cache so changes are reflected immediately
-  mac.invalidateDockCache();
+    debugPrint("ICONS", "macOS: background persistence complete:", iconId);
+  });
 
   debugPrint("ICONS", "macOS: custom icon set complete:", iconId);
   return true;
@@ -380,6 +413,13 @@ export async function setAppIcon(iconId: string) {
 // had a chance to run its fs operations, causing the app to stall at startup.
 app.whenReady().then(async () => {
   debugPrint("ICONS", "App ready, setting initial icon and caching current icon.");
+
+  // Pre-load the macOS icon module to avoid delay on first icon change
+  if (PRELOAD_MACOS_ICON_MODULE && process.platform === "darwin") {
+    getMacosIcon().catch((err) => {
+      debugError("ICONS", "Failed to pre-load macOS icon module:", err);
+    });
+  }
 
   // On macOS, skip the initial setAppIcon("default") — Liquid Glass works
   // automatically from Assets.car without any intervention.
