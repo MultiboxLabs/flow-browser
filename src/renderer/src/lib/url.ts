@@ -81,11 +81,6 @@ export function transformUrl(url: string): string | null {
     return "";
   }
 
-  // History (flow://history)
-  if (urlObject && urlObject.protocol === "flow:" && urlObject.hostname === "history") {
-    return "";
-  }
-
   // PDF Viewer (flow://pdf-viewer)
   if (urlObject && urlObject.protocol === "flow:" && urlObject.hostname === "pdf-viewer") {
     return urlObject.searchParams.get("url") ?? "";
