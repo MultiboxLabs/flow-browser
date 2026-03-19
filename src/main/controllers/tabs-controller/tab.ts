@@ -1,4 +1,4 @@
-import { recordBrowsingHistoryVisit, isHistoryRecordableUrl } from "@/saving/history/browsing-history";
+import { isHistoryRecordableUrl, recordBrowsingHistoryVisit } from "@/saving/history/browsing-history";
 import { cacheFavicon } from "@/modules/favicons";
 import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
@@ -89,6 +89,8 @@ export interface TabCreationOptions {
 
   // Others
   noLoadURL?: boolean;
+  /** Next http(s) history row should increment typed_count (omnibox / address bar). */
+  typedNavigation?: boolean;
 }
 
 function createWebContentsView(
@@ -163,6 +165,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public position: number;
   /** When true, this tab is not saved to the database and will not survive app restart. */
   public ephemeral: boolean;
+
+  /** Consumed on the next recorded history visit (full load or main-frame in-page). */
+  private pendingHistoryTypedIncrement: boolean = false;
 
   // Content properties (from WebContents)
   public title: string = "New Tab";
@@ -431,14 +436,12 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     // Set zoom level limits when webContents is ready
     webContents.on("did-finish-load", () => {
       webContents.setVisualZoomLevelLimits(1, 5);
-      const url = webContents.getURL();
-      if (isHistoryRecordableUrl(url) && !this.loadedProfile.profileData.ephemeral && !this.ephemeral) {
-        recordBrowsingHistoryVisit({
-          profileId: this.profileId,
-          url,
-          title: webContents.getTitle()
-        });
-      }
+      this.recordBrowsingHistoryFromWebContents(webContents);
+    });
+
+    webContents.on("did-navigate-in-page", (_event, url, isMainFrame) => {
+      if (!isMainFrame) return;
+      this.recordBrowsingHistoryFromWebContents(webContents, url);
     });
 
     // Note: Fullscreen listeners are set up by TabLifecycleManager
@@ -722,6 +725,32 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   /**
    * Loads a URL in the tab.
    */
+  /**
+   * Next successful http(s) history recording will increment `typed_count` for that URL.
+   * Used when the user navigates via the omnibox or address bar.
+   */
+  public markTypedNavigationForNextHistoryVisit(): void {
+    this.pendingHistoryTypedIncrement = true;
+  }
+
+  private consumeHistoryTypedPending(): boolean {
+    const v = this.pendingHistoryTypedIncrement;
+    this.pendingHistoryTypedIncrement = false;
+    return v;
+  }
+
+  private recordBrowsingHistoryFromWebContents(webContents: WebContents, urlOverride?: string): void {
+    const url = urlOverride ?? webContents.getURL();
+    if (!isHistoryRecordableUrl(url) || this.loadedProfile.profileData.ephemeral || this.ephemeral) return;
+    const incrementTyped = this.consumeHistoryTypedPending();
+    recordBrowsingHistoryVisit({
+      profileId: this.profileId,
+      url,
+      title: webContents.getTitle(),
+      incrementTyped
+    });
+  }
+
   public loadURL(url: string, replace?: boolean) {
     if (!this.webContents) return;
 

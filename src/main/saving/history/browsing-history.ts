@@ -1,7 +1,7 @@
-import { and, desc, eq, lt, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { getDb } from "@/saving/db";
 import { historyUrls, historyVisits } from "@/saving/db/schema";
-import type { BrowsingHistoryEntry } from "~/types/history";
+import type { BrowsingHistoryEntry, BrowsingHistoryVisit } from "~/types/history";
 
 const RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 
@@ -87,6 +87,116 @@ export function listBrowsingHistoryForProfile(profileId: string): BrowsingHistor
     typedCount: row.typedCount,
     lastVisitTime: row.lastVisitTime
   }));
+}
+
+const VISIT_LIST_LIMIT = 2500;
+
+export function listBrowsingVisitsForProfile(profileId: string, search?: string): BrowsingHistoryVisit[] {
+  const db = getDb();
+  const q = search?.trim();
+  const profileCond = eq(historyUrls.profileId, profileId);
+  const searchCond =
+    q && q.length > 0
+      ? or(
+          sql`instr(lower(${historyUrls.url}), lower(${q})) > 0`,
+          sql`instr(lower(${historyUrls.title}), lower(${q})) > 0`
+        )
+      : undefined;
+
+  const rows = db
+    .select({
+      visitId: historyVisits.id,
+      urlRowId: historyUrls.id,
+      url: historyUrls.url,
+      title: historyUrls.title,
+      visitTime: historyVisits.visitTime
+    })
+    .from(historyVisits)
+    .innerJoin(historyUrls, eq(historyVisits.urlId, historyUrls.id))
+    .where(searchCond ? and(profileCond, searchCond) : profileCond)
+    .orderBy(desc(historyVisits.visitTime))
+    .limit(VISIT_LIST_LIMIT)
+    .all();
+
+  return rows.map((row) => ({
+    visitId: row.visitId,
+    urlRowId: row.urlRowId,
+    url: row.url,
+    title: row.title,
+    visitTime: row.visitTime
+  }));
+}
+
+/** After deleting one or more visits for a URL, refresh aggregates or drop the URL row. */
+export function reconcileUrlAggregatesAfterVisitChange(urlId: number): void {
+  const db = getDb();
+  const stats = db
+    .select({
+      cnt: sql<number>`count(*)`,
+      maxT: sql<number | null>`max(${historyVisits.visitTime})`
+    })
+    .from(historyVisits)
+    .where(eq(historyVisits.urlId, urlId))
+    .get();
+
+  const cnt = Number(stats?.cnt ?? 0);
+  if (cnt === 0) {
+    db.delete(historyUrls).where(eq(historyUrls.id, urlId)).run();
+    return;
+  }
+
+  db.update(historyUrls)
+    .set({
+      visitCount: cnt,
+      lastVisitTime: stats!.maxT ?? Date.now()
+    })
+    .where(eq(historyUrls.id, urlId))
+    .run();
+}
+
+export function deleteBrowsingVisitForProfile(profileId: string, visitId: number): boolean {
+  const db = getDb();
+  const hit = db
+    .select({ urlId: historyVisits.urlId })
+    .from(historyVisits)
+    .innerJoin(historyUrls, eq(historyVisits.urlId, historyUrls.id))
+    .where(and(eq(historyVisits.id, visitId), eq(historyUrls.profileId, profileId)))
+    .limit(1)
+    .all();
+
+  if (!hit[0]) return false;
+  const urlId = hit[0].urlId;
+  db.delete(historyVisits).where(eq(historyVisits.id, visitId)).run();
+  reconcileUrlAggregatesAfterVisitChange(urlId);
+  return true;
+}
+
+export function deleteBrowsingUrlRowForProfile(profileId: string, urlRowId: number): boolean {
+  const db = getDb();
+  const exists = db
+    .select({ id: historyUrls.id })
+    .from(historyUrls)
+    .where(and(eq(historyUrls.id, urlRowId), eq(historyUrls.profileId, profileId)))
+    .limit(1)
+    .all();
+  if (!exists[0]) return false;
+
+  db.delete(historyVisits).where(eq(historyVisits.urlId, urlRowId)).run();
+  db.delete(historyUrls).where(eq(historyUrls.id, urlRowId)).run();
+  return true;
+}
+
+export function clearBrowsingHistoryForProfile(profileId: string): void {
+  const db = getDb();
+  const ids = db
+    .select({ id: historyUrls.id })
+    .from(historyUrls)
+    .where(eq(historyUrls.profileId, profileId))
+    .all()
+    .map((r) => r.id);
+  if (ids.length === 0) return;
+  db.delete(historyVisits).where(inArray(historyVisits.urlId, ids)).run();
+  db.delete(historyUrls).where(eq(historyUrls.profileId, profileId)).run();
 }
 
 /** Drop visits older than 90 days and reconcile URL aggregates. */

@@ -408,6 +408,9 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     // rather than the other way around.
     if (tab._needsInitialLoad && tabCreationOptions.noLoadURL !== true) {
       const initialURL = tabCreationOptions.url || tab.loadedProfile.newTabUrl || NEW_TAB_URL;
+      if (tabCreationOptions.typedNavigation) {
+        tab.markTypedNavigationForNextHistoryVisit();
+      }
       tab.loadURL(initialURL);
     }
 

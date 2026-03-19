@@ -79,6 +79,7 @@ function hasPermission(permission: Permission) {
 
   // Extensions
   const isExtensions = isLocation("flow:", "extensions");
+  const isHistoryPage = isLocation("flow:", "history");
 
   switch (permission) {
     case "all":
@@ -86,7 +87,7 @@ function hasPermission(permission: Permission) {
     case "app":
       return isInternalProtocols || isExtensions;
     case "browser":
-      return isBrowserUI || isOmnibox;
+      return isBrowserUI || isOmnibox || isExtensions || isHistoryPage;
     case "session":
       return isFlowInternalProtocol || isOmnibox || isBrowserUI;
     case "settings":
@@ -460,8 +461,8 @@ const tabsAPI: FlowTabsAPI = {
   },
 
   // Special Exception: This is allowed for all internal protocols.
-  newTab: async (url?: string, isForeground?: boolean, spaceId?: string) => {
-    return ipcRenderer.invoke("tabs:new-tab", url, isForeground, spaceId);
+  newTab: async (url?: string, isForeground?: boolean, spaceId?: string, typedFromAddressBar?: boolean) => {
+    return ipcRenderer.invoke("tabs:new-tab", url, isForeground, spaceId, typedFromAddressBar);
   },
 
   // Special Exception: This is allowed on every tab, but very tightly secured.
@@ -537,8 +538,8 @@ const navigationAPI: FlowNavigationAPI = {
   getTabNavigationStatus: (tabId: number) => {
     return ipcRenderer.invoke("navigation:get-tab-status", tabId);
   },
-  goTo: (url: string, tabId?: number) => {
-    return ipcRenderer.send("navigation:go-to", url, tabId);
+  goTo: (url: string, tabId?: number, typedFromAddressBar?: boolean) => {
+    return ipcRenderer.send("navigation:go-to", url, tabId, typedFromAddressBar);
   },
   stopLoadingTab: (tabId: number) => {
     return ipcRenderer.send("navigation:stop-loading-tab", tabId);
@@ -555,6 +556,18 @@ const navigationAPI: FlowNavigationAPI = {
 const historyAPI: FlowHistoryAPI = {
   list: async () => {
     return ipcRenderer.invoke("history:list");
+  },
+  listVisits: async (search?: string) => {
+    return ipcRenderer.invoke("history:list-visits", search);
+  },
+  deleteVisit: async (visitId: number) => {
+    return ipcRenderer.invoke("history:delete-visit", visitId);
+  },
+  deleteAllForUrl: async (urlRowId: number) => {
+    return ipcRenderer.invoke("history:delete-url", urlRowId);
+  },
+  clearAll: async () => {
+    return ipcRenderer.invoke("history:clear-all");
   }
 };
 

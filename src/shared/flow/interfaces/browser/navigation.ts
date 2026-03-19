@@ -27,7 +27,7 @@ export interface FlowNavigationAPI {
    * @param tabId The id of the tab to navigate to
    * @param url The URL to navigate to
    */
-  goTo: (url: string, tabId?: number) => void;
+  goTo: (url: string, tabId?: number, typedFromAddressBar?: boolean) => void;
 
   /**
    * Stops loading a tab

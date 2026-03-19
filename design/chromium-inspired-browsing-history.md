@@ -1,17 +1,17 @@
 # Chromium-inspired browsing history (Flow)
 
-This document is the **source of truth** for how Flow stores and surfaces browsing history. It is derived from the Chromium History deep dive (URLs + visits, SQLite, per-profile scope, retention) but **intentionally minimal**—no sync, favicon DB, Top Sites, segments, clusters, or downloads-in-history.
+This document is the **source of truth** for how Flow stores and surfaces browsing history. It is derived from the Chromium History deep dive (URLs + visits, SQLite, per-profile scope, retention) but **kept simpler** than Chromium—no sync, separate Favicons DB, Top Sites, segments, clusters, or downloads-in-history.
 
 ## Goals
 
-- Persist **real** history for omnibox and future history UI.
+- Persist **real** history for omnibox and **`flow://history`**.
 - Mirror Chromium’s **core data model**: one row per URL (`urls`) and one row per navigation (`visits`).
 - Scope data **per profile**, like Chromium’s per-profile `History` file.
 - Apply a simple **90-day retention** policy aligned with Chromium’s default horizon.
 
 ## Non-goals (out of scope)
 
-- Parity with Chromium schema v70, transition bitmasks, `from_visit` graphs, keyword search terms, or omnibox typed-score flags.
+- Parity with Chromium schema v70, transition bitmasks, `from_visit` graphs, or keyword search terms.
 - Separate `Favicons` / `Top Sites` databases.
 - Encrypted DB or secure wipe beyond normal SQLite deletes.
 
@@ -28,17 +28,41 @@ This document is the **source of truth** for how Flow stores and surfaces browsi
 
 ## When we record a visit
 
-- **Trigger:** main-frame load completes (`did-finish-load` on the tab’s `WebContents`).
+- **Triggers:**
+  - Main-frame load completes (`did-finish-load`).
+  - Main-frame **in-page** navigations (`did-navigate-in-page`), e.g. `pushState` / hash changes (SPAs).
 - **URL filter:** only `http:` and `https:` (skip internal `flow:`, `flow-internal:`, `about:`, error pages, etc.).
-- **Privacy:** do **not** record for **ephemeral** (incognito) profiles.
+- **Privacy:** do **not** record for **ephemeral** (incognito) profiles or ephemeral tabs.
 - **Title:** use `getTitle()` when non-empty; otherwise fall back to URL hostname.
 
-`typed_count` is stored for Chromium-like shape; Flow may increment it later when navigation is known to be omnibox-typed. Initially it may stay at zero.
+### Typed count (`typed_count`)
 
-## What we show (omnibox)
+Incremented when the user navigates via the **omnibox / address bar** (submit or choosing a suggestion), including **open in new tab** from the omnibox. Implemented by setting a one-shot flag on the tab before `loadURL`:
 
-- Read **aggregated URL rows** for the **window’s current profile** (derived from the active space, same pattern as `profile:get-using`).
-- Sort / score in existing omnibox providers using `visit_count`, `typed_count`, `last_visit_time`, and URL/title match—no change to ranking philosophy beyond feeding real data.
+- `navigation:go-to` optional `typedFromAddressBar`
+- `tabs:new-tab` optional `typedFromAddressBar` (initial load only)
+
+Other navigations (links, redirects, UI outside the omnibox) do not increment `typed_count`.
+
+## Surfaces
+
+### Omnibox
+
+- **`flow.history.list()`** — aggregated URL rows for the window’s profile.
+- Ranking uses `visit_count`, `typed_count`, `last_visit_time`, and match quality.
+
+### History page (`flow://history`)
+
+- Chronological **visit** list (join visits + URLs), Chromium-style **grouping by calendar day** (Today, Yesterday, …).
+- **Search** filters title and URL (case-insensitive substring).
+- **Row actions:** open in focused tab, delete one visit, delete all visits for that URL row.
+- **Clear browsing data** clears all history for the current profile.
+- Uses Flow UI patterns (cards, dark theme route, shadcn-style components) like **Extensions**.
+
+### Discoverability
+
+- Default **new tab** quick link **History** (`flow://history`).
+- Omnibox **pedal** for queries like “history” / “browse history”.
 
 ## Retention
 
@@ -46,13 +70,20 @@ This document is the **source of truth** for how Flow stores and surfaces browsi
 - Remove URL rows that no longer have any visits.
 - Recompute `visit_count` and `last_visit_time` on remaining URLs from their visits so aggregates stay consistent.
 
-## API surface
+## API surface (preload → main)
 
-- **Preload:** `flow.history.list()` → returns `BrowsingHistoryEntry[]` for the invoking window’s profile.
-- **Main:** IPC handler resolves `profile_id` from `event.sender` → browser window → current space (see `profile:get-using`).
+All handlers resolve `profile_id` from `event.sender` → browser window → active space (same idea as `profile:get-using`).
 
-## Future extensions (not implemented now)
+| API                                      | Purpose                             |
+| ---------------------------------------- | ----------------------------------- |
+| `flow.history.list()`                    | Aggregated URLs (omnibox)           |
+| `flow.history.listVisits(search?)`       | Visit rows for the history page     |
+| `flow.history.deleteVisit(id)`           | Remove one visit; reconcile URL row |
+| `flow.history.deleteAllForUrl(urlRowId)` | Remove URL row and its visits       |
+| `flow.history.clearAll()`                | Clear profile history               |
 
-- In-page / SPA navigations (`did-navigate-in-page`).
-- Transition types and user-visible filtering like `chrome://history`.
-- Clear-browsing-data hooks to delete ranges or full history.
+## Future extensions
+
+- Transition types and “user-visible” filtering like `chrome://history`.
+- Time-range deletion (not only “clear all”).
+- Deduping edge cases where `did-finish-load` and `did-navigate-in-page` might both fire for the same logical navigation.
