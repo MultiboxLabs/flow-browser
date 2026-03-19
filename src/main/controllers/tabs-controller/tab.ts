@@ -1,4 +1,8 @@
-import { isHistoryRecordableUrl, recordBrowsingHistoryVisit } from "@/saving/history/browsing-history";
+import {
+  isHistoryRecordableUrl,
+  recordBrowsingHistoryVisit,
+  updateBrowsingHistoryTitleForOpenPage
+} from "@/saving/history/browsing-history";
 import { cacheFavicon } from "@/modules/favicons";
 import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
@@ -439,6 +443,17 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    */
   private setupWebContentsListeners() {
     const webContents = this.webContents!;
+
+    webContents.on("page-title-updated", (_event, title) => {
+      if (this.loadedProfile.profileData.ephemeral) return;
+      const url = webContents.getURL();
+      if (!isHistoryRecordableUrl(url)) return;
+      updateBrowsingHistoryTitleForOpenPage({
+        profileId: this.profileId,
+        url,
+        title
+      });
+    });
 
     // Set zoom level limits when webContents is ready
     webContents.on("did-finish-load", () => {

@@ -71,6 +71,18 @@ export function recordBrowsingHistoryVisit(args: {
   });
 }
 
+/** Update stored title when the live tab title changes (no new visit row). */
+export function updateBrowsingHistoryTitleForOpenPage(args: { profileId: string; url: string; title: string }): void {
+  const trimmed = args.title.trim();
+  if (!trimmed) return;
+
+  getDb()
+    .update(historyUrls)
+    .set({ title: trimmed })
+    .where(and(eq(historyUrls.profileId, args.profileId), eq(historyUrls.url, args.url)))
+    .run();
+}
+
 export function listBrowsingHistoryForProfile(profileId: string): BrowsingHistoryEntry[] {
   const rows = getDb()
     .select()

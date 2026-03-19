@@ -13,6 +13,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger
+} from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -100,6 +107,17 @@ function HistoryPage() {
 
   const openUrl = (url: string) => {
     flow.navigation.goTo(url);
+  };
+
+  const openInNewTab = (url: string) => {
+    void flow.tabs.newTab(url, true);
+  };
+
+  const copyLinkAddress = (url: string) => {
+    void navigator.clipboard.writeText(url).then(
+      () => toast.success("Link copied"),
+      () => toast.error("Could not copy link")
+    );
   };
 
   const removeVisit = async (visitId: number) => {
@@ -202,55 +220,75 @@ function HistoryPage() {
                       </h2>
                       <ul className="mt-0.5">
                         {group.items.map((v) => (
-                          <li
-                            key={v.visitId}
-                            className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted/60 transition-colors group"
-                          >
-                            <button
-                              type="button"
-                              className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
-                              onClick={() => openUrl(v.url)}
-                            >
-                              <img
-                                src={faviconSrcForPageUrl(v.url)}
-                                alt=""
-                                className="size-6 rounded-sm bg-muted shrink-0 object-cover"
-                              />
-                              <div className="min-w-0 flex-1 leading-tight">
-                                <div className="text-sm font-medium text-foreground truncate">
-                                  {v.title || simplifyUrl(v.url)}
-                                </div>
-                                <div className="text-[11px] text-muted-foreground truncate">{simplifyUrl(v.url)}</div>
-                              </div>
-                              <time
-                                className="text-[11px] text-muted-foreground tabular-nums shrink-0 hidden sm:block"
-                                dateTime={new Date(v.visitTime).toISOString()}
-                              >
-                                {new Date(v.visitTime).toLocaleTimeString(undefined, {
-                                  hour: "numeric",
-                                  minute: "2-digit"
-                                })}
-                              </time>
-                            </button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-7 shrink-0 opacity-60 group-hover:opacity-100"
-                                  aria-label="More actions"
+                          <ContextMenu key={v.visitId}>
+                            <ContextMenuTrigger asChild>
+                              <li className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted/60 transition-colors group">
+                                <button
+                                  type="button"
+                                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                                  onClick={() => openUrl(v.url)}
                                 >
-                                  <MoreHorizontal className="size-3.5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => void removeVisit(v.visitId)}>Delete</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => void removeAllForSite(v.urlRowId)}>
-                                  Delete all from this site
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </li>
+                                  <img
+                                    src={faviconSrcForPageUrl(v.url)}
+                                    alt=""
+                                    className="size-6 rounded-sm bg-muted shrink-0 object-cover"
+                                  />
+                                  <div className="min-w-0 flex-1 leading-tight">
+                                    <div className="text-sm font-medium text-foreground truncate">
+                                      {v.title || simplifyUrl(v.url)}
+                                    </div>
+                                    <div className="text-[11px] text-muted-foreground truncate">
+                                      {simplifyUrl(v.url)}
+                                    </div>
+                                  </div>
+                                  <time
+                                    className="text-[11px] text-muted-foreground tabular-nums shrink-0 hidden sm:block"
+                                    dateTime={new Date(v.visitTime).toISOString()}
+                                  >
+                                    {new Date(v.visitTime).toLocaleTimeString(undefined, {
+                                      hour: "numeric",
+                                      minute: "2-digit"
+                                    })}
+                                  </time>
+                                </button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="size-7 shrink-0 opacity-60 group-hover:opacity-100"
+                                      aria-label="More actions"
+                                    >
+                                      <MoreHorizontal className="size-3.5" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => void removeVisit(v.visitId)}>
+                                      Delete
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => void removeAllForSite(v.urlRowId)}>
+                                      Delete all from this site
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </li>
+                            </ContextMenuTrigger>
+                            <ContextMenuContent className="w-52">
+                              <ContextMenuItem onSelect={() => openUrl(v.url)}>Open link</ContextMenuItem>
+                              <ContextMenuItem onSelect={() => openInNewTab(v.url)}>Open in new tab</ContextMenuItem>
+                              <ContextMenuSeparator />
+                              <ContextMenuItem onSelect={() => copyLinkAddress(v.url)}>
+                                Copy link address
+                              </ContextMenuItem>
+                              <ContextMenuSeparator />
+                              <ContextMenuItem variant="destructive" onSelect={() => void removeVisit(v.visitId)}>
+                                Delete
+                              </ContextMenuItem>
+                              <ContextMenuItem variant="destructive" onSelect={() => void removeAllForSite(v.urlRowId)}>
+                                Delete all from this site
+                              </ContextMenuItem>
+                            </ContextMenuContent>
+                          </ContextMenu>
                         ))}
                       </ul>
                     </div>

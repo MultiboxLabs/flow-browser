@@ -34,7 +34,7 @@ This document is the **source of truth** for how Flow stores and surfaces browsi
 - **URL filter:** only `http:` and `https:` (skip internal `flow:`, `flow-internal:`, `about:`, error pages, etc.).
 - **Privacy:** do **not** record for **ephemeral** (incognito) profiles. **Ephemeral tabs** (e.g. pinned-tab slot tabs) **are** recorded so pinned browsing appears in history; those tabs still skip **session tab persistence** as before.
 - **Consecutive same URL (per tab “session”):** while a tab’s `WebContents` is alive, if the **last visit we stored** for that tab has the same **canonical URL key** as the new one, the new one is **ignored** (refresh, duplicate `did-finish-load` / `did-navigate-in-page`, omnibox to the same page, etc.). After you navigate elsewhere and come back, the URL can be recorded again. The key strips the hash; on YouTube, shorts and watch URLs normalize to the video id so tracking query params don’t create false differences. Reset when the tab gets a new `WebContents` (e.g. wake from sleep).
-- **Title:** use `getTitle()` when non-empty; otherwise fall back to URL hostname.
+- **Title:** use `getTitle()` when non-empty; otherwise fall back to URL hostname. On `page-title-updated`, the `history_urls` row for the current URL (same profile + exact URL string) is updated so the stored title tracks the latest document title without adding visits.
 
 ### Typed count (`typed_count`)
 
@@ -56,7 +56,7 @@ Other navigations (links, redirects, UI outside the omnibox) do not increment `t
 
 - Chronological **visit** list (join visits + URLs), Chromium-style **grouping by calendar day** (Today, Yesterday, …).
 - **Search** filters title and URL (case-insensitive substring).
-- **Row actions:** open in focused tab, delete one visit, delete all visits for that URL row.
+- **Row actions:** open in focused tab; **context menu** (right-click) for open in new tab, copy link, delete one visit, delete all visits for that URL row.
 - **Clear browsing data** clears all history for the current profile.
 - Uses Flow UI patterns (cards, dark theme route, shadcn-style components) like **Extensions**.
 
