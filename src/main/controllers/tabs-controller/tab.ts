@@ -172,6 +172,11 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   private skipHistoryOnNextMainFrameFinish: boolean = false;
   /** Main-frame navigation to the same URL as the current page (refresh / `location.reload`). */
   private pendingSameUrlMainFrameNavigation: boolean = false;
+  /** Last history row we wrote for this tab (coalesces duplicate events from SPAs like YouTube Shorts). */
+  private lastHistoryDedupeKey: string = "";
+  private lastHistoryDedupeAt: number = 0;
+
+  private static readonly HISTORY_DEDUPE_WINDOW_MS = 2800;
 
   // Content properties (from WebContents)
   public title: string = "New Tab";
@@ -328,6 +333,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    */
   public initializeView(): void {
     if (this.view) return; // Already initialized
+
+    this.lastHistoryDedupeKey = "";
+    this.lastHistoryDedupeAt = 0;
 
     const webContentsView = createWebContentsView(this.session, this._webContentsViewOptions);
     const webContents = webContentsView.webContents;
@@ -753,6 +761,38 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   }
 
   /**
+   * Normalize URL so duplicate history emissions (same logical page, different query)
+   * collapse. YouTube Shorts often re-fires navigation with tracking params.
+   */
+  private static historyUrlDedupeKey(urlString: string): string {
+    try {
+      const u = new URL(urlString);
+      u.hash = "";
+      const host = u.hostname.toLowerCase().replace(/^www\./, "");
+
+      if (host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com") {
+        const parts = u.pathname.split("/").filter(Boolean);
+        if (parts[0] === "shorts" && parts[1]) {
+          return `yt/shorts/${parts[1]}`;
+        }
+        if (u.pathname === "/watch" || u.pathname.startsWith("/watch/")) {
+          const v = u.searchParams.get("v");
+          if (v) return `yt/watch/${v}`;
+        }
+      }
+
+      if (host === "youtu.be") {
+        const id = u.pathname.replace(/^\//, "").split("/")[0];
+        if (id) return `yt/watch/${id}`;
+      }
+
+      return u.href;
+    } catch {
+      return urlString;
+    }
+  }
+
+  /**
    * Next successful http(s) history recording will increment `typed_count` for that URL.
    * Used when the user navigates via the omnibox or address bar.
    */
@@ -790,7 +830,19 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     }
     this.pendingSameUrlMainFrameNavigation = false;
 
+    const dedupeKey = Tab.historyUrlDedupeKey(url);
+    const now = Date.now();
+    if (dedupeKey === this.lastHistoryDedupeKey && now - this.lastHistoryDedupeAt < Tab.HISTORY_DEDUPE_WINDOW_MS) {
+      if (wouldIncrementTyped) {
+        this.consumeHistoryTypedPending();
+      }
+      return;
+    }
+
     const incrementTyped = this.consumeHistoryTypedPending();
+    this.lastHistoryDedupeKey = dedupeKey;
+    this.lastHistoryDedupeAt = now;
+
     recordBrowsingHistoryVisit({
       profileId: this.profileId,
       url,

@@ -34,6 +34,7 @@ This document is the **source of truth** for how Flow stores and surfaces browsi
 - **URL filter:** only `http:` and `https:` (skip internal `flow:`, `flow-internal:`, `about:`, error pages, etc.).
 - **Privacy:** do **not** record for **ephemeral** (incognito) profiles. **Ephemeral tabs** (e.g. pinned-tab slot tabs) **are** recorded so pinned browsing appears in history; those tabs still skip **session tab persistence** as before.
 - **Refresh:** full reloads of the same URL (Reload / Force reload / same-URL main-frame navigation without an omnibox-typed intent) do **not** append a new visit. Omnibox navigation to the same URL still records when marked typed.
+- **SPA duplicate emissions:** some sites (e.g. YouTube Shorts) fire several main-frame signals for one swipe; Flow dedupes by a **canonical URL key** (YouTube shorts/watch IDs ignore tracking query params) within a **~2.8s** window per tab so one swipe yields one visit.
 - **Title:** use `getTitle()` when non-empty; otherwise fall back to URL hostname.
 
 ### Typed count (`typed_count`)
