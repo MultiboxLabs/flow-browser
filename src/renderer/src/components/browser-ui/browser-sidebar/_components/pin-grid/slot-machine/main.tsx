@@ -98,6 +98,7 @@ let snapshot: SlotMachineSnapshot = {
 };
 
 const listeners = new Set<() => void>();
+let pendingResetTimeout: number | null = null;
 
 function emit() {
   for (const listener of listeners) {
@@ -106,9 +107,25 @@ function emit() {
 }
 
 function subscribe(listener: () => void): () => void {
+  if (pendingResetTimeout !== null) {
+    clearTimeout(pendingResetTimeout);
+    pendingResetTimeout = null;
+  }
+
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
+
+    // Defer the reset so AnimatePresence / StrictMode re-subscribes can cancel it
+    // before we tear down an in-progress roll.
+    if (listeners.size === 0 && rollTimeout !== null) {
+      pendingResetTimeout = window.setTimeout(() => {
+        pendingResetTimeout = null;
+        if (listeners.size === 0 && rollTimeout !== null) {
+          resetSlotMachine();
+        }
+      }, 0);
+    }
   };
 }
 
@@ -197,6 +214,10 @@ export function SlotMachinePinGrid() {
 
 // Clean-up helper – can be called if the easter egg is toggled off.
 export function resetSlotMachine() {
+  if (pendingResetTimeout !== null) {
+    clearTimeout(pendingResetTimeout);
+    pendingResetTimeout = null;
+  }
   if (rollTimeout !== null) {
     clearTimeout(rollTimeout);
     rollTimeout = null;

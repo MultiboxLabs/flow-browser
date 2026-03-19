@@ -27,7 +27,7 @@ const GRID_COL_CLASSES = ["grid-cols-1", "grid-cols-2", "grid-cols-3", "grid-col
 export function usePinGridColumns(containerWidth: number, pinCount: number) {
   const colsRef = useRef(DEFAULT_COLS);
 
-  const cols = useMemo(() => {
+  const measuredCols = useMemo(() => {
     if (containerWidth > 0) {
       const calculated = Math.max(1, Math.floor((containerWidth + GAP) / (MIN_TAB_WIDTH + GAP)));
       return calculated;
@@ -35,9 +35,9 @@ export function usePinGridColumns(containerWidth: number, pinCount: number) {
     return DEFAULT_COLS;
   }, [containerWidth]);
 
-  const effectiveCols = Math.max(1, Math.min(cols, pinCount, MAX_COLS));
+  const effectiveCols = Math.max(1, Math.min(measuredCols, pinCount, MAX_COLS));
   colsRef.current = effectiveCols;
   const gridColumnClass = GRID_COL_CLASSES[effectiveCols - 1] ?? "grid-cols-1";
 
-  return { cols, colsRef, gridColumnClass } as const;
+  return { cols: effectiveCols, colsRef, gridColumnClass } as const;
 }
