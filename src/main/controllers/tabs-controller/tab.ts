@@ -168,15 +168,11 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
   /** Consumed on the next recorded history visit (full load or main-frame in-page). */
   private pendingHistoryTypedIncrement: boolean = false;
-  /** Set before reload(); next `did-finish-load` will not write history. */
-  private skipHistoryOnNextMainFrameFinish: boolean = false;
-  /** Main-frame navigation to the same URL as the current page (refresh / `location.reload`). */
-  private pendingSameUrlMainFrameNavigation: boolean = false;
-  /** Last history row we wrote for this tab (coalesces duplicate events from SPAs like YouTube Shorts). */
-  private lastHistoryDedupeKey: string = "";
-  private lastHistoryDedupeAt: number = 0;
-
-  private static readonly HISTORY_DEDUPE_WINDOW_MS = 2800;
+  /**
+   * Canonical key of the last http(s) visit we stored for this tab in this WebContents
+   * lifetime. If a new visit matches this key, it is skipped (refresh, SPA re-fires, etc.).
+   */
+  private lastRecordedHistoryKey: string = "";
 
   // Content properties (from WebContents)
   public title: string = "New Tab";
@@ -334,8 +330,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public initializeView(): void {
     if (this.view) return; // Already initialized
 
-    this.lastHistoryDedupeKey = "";
-    this.lastHistoryDedupeAt = 0;
+    this.lastRecordedHistoryKey = "";
 
     const webContentsView = createWebContentsView(this.session, this._webContentsViewOptions);
     const webContents = webContentsView.webContents;
@@ -444,20 +439,6 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    */
   private setupWebContentsListeners() {
     const webContents = this.webContents!;
-
-    webContents.on("did-start-navigation", (_event, url: string, isInPlace: boolean, isMainFrame: boolean) => {
-      if (!isMainFrame || isInPlace) return;
-      if (!isHistoryRecordableUrl(url)) return;
-      try {
-        const current = webContents.getURL();
-        if (!current || !isHistoryRecordableUrl(current)) return;
-        if (Tab.urlsMatchForRefreshDetection(current, url)) {
-          this.pendingSameUrlMainFrameNavigation = true;
-        }
-      } catch {
-        /* ignore */
-      }
-    });
 
     // Set zoom level limits when webContents is ready
     webContents.on("did-finish-load", () => {
@@ -748,23 +729,10 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
   // --- Navigation ---
 
-  private static urlsMatchForRefreshDetection(a: string, b: string): boolean {
-    try {
-      const ua = new URL(a);
-      const ub = new URL(b);
-      ua.hash = "";
-      ub.hash = "";
-      return ua.href === ub.href;
-    } catch {
-      return a === b;
-    }
-  }
-
   /**
-   * Normalize URL so duplicate history emissions (same logical page, different query)
-   * collapse. YouTube Shorts often re-fires navigation with tracking params.
+   * Canonical key for “same page” in history (strip hash; YouTube shorts/watch ignore tracking params).
    */
-  private static historyUrlDedupeKey(urlString: string): string {
+  private static historyUrlSessionKey(urlString: string): string {
     try {
       const u = new URL(urlString);
       u.hash = "";
@@ -800,13 +768,6 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     this.pendingHistoryTypedIncrement = true;
   }
 
-  /**
-   * Skip recording for the next main-frame document load (reload / force reload from UI).
-   */
-  public markSkipHistoryOnNextMainFrameFinish(): void {
-    this.skipHistoryOnNextMainFrameFinish = true;
-  }
-
   private consumeHistoryTypedPending(): boolean {
     const v = this.pendingHistoryTypedIncrement;
     this.pendingHistoryTypedIncrement = false;
@@ -817,22 +778,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     const url = urlOverride ?? webContents.getURL();
     if (!isHistoryRecordableUrl(url) || this.loadedProfile.profileData.ephemeral) return;
 
-    if (this.skipHistoryOnNextMainFrameFinish) {
-      this.skipHistoryOnNextMainFrameFinish = false;
-      this.pendingSameUrlMainFrameNavigation = false;
-      return;
-    }
-
     const wouldIncrementTyped = this.pendingHistoryTypedIncrement;
-    if (this.pendingSameUrlMainFrameNavigation && !wouldIncrementTyped) {
-      this.pendingSameUrlMainFrameNavigation = false;
-      return;
-    }
-    this.pendingSameUrlMainFrameNavigation = false;
-
-    const dedupeKey = Tab.historyUrlDedupeKey(url);
-    const now = Date.now();
-    if (dedupeKey === this.lastHistoryDedupeKey && now - this.lastHistoryDedupeAt < Tab.HISTORY_DEDUPE_WINDOW_MS) {
+    const sessionKey = Tab.historyUrlSessionKey(url);
+    if (sessionKey === this.lastRecordedHistoryKey && this.lastRecordedHistoryKey !== "") {
       if (wouldIncrementTyped) {
         this.consumeHistoryTypedPending();
       }
@@ -840,8 +788,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     }
 
     const incrementTyped = this.consumeHistoryTypedPending();
-    this.lastHistoryDedupeKey = dedupeKey;
-    this.lastHistoryDedupeAt = now;
+    this.lastRecordedHistoryKey = sessionKey;
 
     recordBrowsingHistoryVisit({
       profileId: this.profileId,

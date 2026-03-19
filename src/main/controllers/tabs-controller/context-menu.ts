@@ -64,7 +64,7 @@ export function createTabContextMenu(
       // Create all menu sections
       const openLinkItems = createOpenLinkItems(parameters, createNewTab);
       const linkItems = createLinkItems(defaultActions as MenuActions);
-      const navigationItems = createNavigationItems(navigationHistory, webContents, tab, canGoBack, canGoForward);
+      const navigationItems = createNavigationItems(navigationHistory, webContents, canGoBack, canGoForward);
       const extensionItems = createExtensionItems(tab, webContents, parameters);
       const textHistoryItems = createTextHistoryItems(webContents);
       const textEditItems = createTextEditItems(defaultActions as MenuActions, webContents);
@@ -157,7 +157,6 @@ function createLinkItems(defaultActions: MenuActions): Electron.MenuItemConstruc
 function createNavigationItems(
   navigationHistory: NavigationHistory,
   webContents: Electron.WebContents,
-  tab: Tab,
   canGoBack: boolean,
   canGoForward: boolean
 ): Electron.MenuItemConstructorOptions[] {
@@ -179,7 +178,6 @@ function createNavigationItems(
     {
       label: "Reload",
       click: () => {
-        tab.markSkipHistoryOnNextMainFrameFinish();
         webContents.reload();
       },
       enabled: true

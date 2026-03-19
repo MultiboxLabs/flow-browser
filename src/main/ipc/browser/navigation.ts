@@ -31,7 +31,6 @@ ipcMain.on("navigation:reload-tab", (_event, tabId: number) => {
   const tab = tabsController.getTabById(tabId);
   if (!tab) return;
 
-  tab.markSkipHistoryOnNextMainFrameFinish();
   tab.webContents?.reload();
 });
 

@@ -33,8 +33,7 @@ This document is the **source of truth** for how Flow stores and surfaces browsi
   - Main-frame **in-page** navigations (`did-navigate-in-page`), e.g. `pushState` / hash changes (SPAs).
 - **URL filter:** only `http:` and `https:` (skip internal `flow:`, `flow-internal:`, `about:`, error pages, etc.).
 - **Privacy:** do **not** record for **ephemeral** (incognito) profiles. **Ephemeral tabs** (e.g. pinned-tab slot tabs) **are** recorded so pinned browsing appears in history; those tabs still skip **session tab persistence** as before.
-- **Refresh:** full reloads of the same URL (Reload / Force reload / same-URL main-frame navigation without an omnibox-typed intent) do **not** append a new visit. Omnibox navigation to the same URL still records when marked typed.
-- **SPA duplicate emissions:** some sites (e.g. YouTube Shorts) fire several main-frame signals for one swipe; Flow dedupes by a **canonical URL key** (YouTube shorts/watch IDs ignore tracking query params) within a **~2.8s** window per tab so one swipe yields one visit.
+- **Consecutive same URL (per tab “session”):** while a tab’s `WebContents` is alive, if the **last visit we stored** for that tab has the same **canonical URL key** as the new one, the new one is **ignored** (refresh, duplicate `did-finish-load` / `did-navigate-in-page`, omnibox to the same page, etc.). After you navigate elsewhere and come back, the URL can be recorded again. The key strips the hash; on YouTube, shorts and watch URLs normalize to the video id so tracking query params don’t create false differences. Reset when the tab gets a new `WebContents` (e.g. wake from sleep).
 - **Title:** use `getTitle()` when non-empty; otherwise fall back to URL hostname.
 
 ### Typed count (`typed_count`)
