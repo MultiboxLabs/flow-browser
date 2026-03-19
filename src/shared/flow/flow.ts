@@ -11,6 +11,7 @@ import { FlowInterfaceAPI } from "~/flow/interfaces/browser/interface";
 import { FlowOmniboxAPI } from "~/flow/interfaces/browser/omnibox";
 import { FlowNewTabAPI } from "~/flow/interfaces/browser/newTab";
 import { FlowFindInPageAPI } from "~/flow/interfaces/browser/find-in-page";
+import { FlowHistoryAPI } from "~/flow/interfaces/browser/history";
 
 import { FlowProfilesAPI } from "~/flow/interfaces/sessions/profiles";
 import { FlowSpacesAPI } from "~/flow/interfaces/sessions/spaces";
@@ -43,6 +44,7 @@ declare global {
     pinnedTabs: FlowPinnedTabsAPI;
     page: FlowPageAPI;
     navigation: FlowNavigationAPI;
+    history: FlowHistoryAPI;
     interface: FlowInterfaceAPI;
     omnibox: FlowOmniboxAPI;
     newTab: FlowNewTabAPI;

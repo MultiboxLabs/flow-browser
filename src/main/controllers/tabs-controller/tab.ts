@@ -1,3 +1,4 @@
+import { recordBrowsingHistoryVisit, isHistoryRecordableUrl } from "@/saving/history/browsing-history";
 import { cacheFavicon } from "@/modules/favicons";
 import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
@@ -430,6 +431,14 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     // Set zoom level limits when webContents is ready
     webContents.on("did-finish-load", () => {
       webContents.setVisualZoomLevelLimits(1, 5);
+      const url = webContents.getURL();
+      if (isHistoryRecordableUrl(url) && !this.loadedProfile.profileData.ephemeral && !this.ephemeral) {
+        recordBrowsingHistoryVisit({
+          profileId: this.profileId,
+          url,
+          title: webContents.getTitle()
+        });
+      }
     });
 
     // Note: Fullscreen listeners are set up by TabLifecycleManager

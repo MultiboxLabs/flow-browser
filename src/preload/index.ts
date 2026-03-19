@@ -38,6 +38,7 @@ import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
 import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/find-in-page";
+import { FlowHistoryAPI } from "~/flow/interfaces/browser/history";
 import type {
   AssertCredentialErrorCodes,
   AssertCredentialResult,
@@ -550,6 +551,13 @@ const navigationAPI: FlowNavigationAPI = {
   }
 };
 
+// HISTORY API //
+const historyAPI: FlowHistoryAPI = {
+  list: async () => {
+    return ipcRenderer.invoke("history:list");
+  }
+};
+
 // INTERFACE API //
 const interfaceAPI: FlowInterfaceAPI = {
   setWindowButtonPosition: (position: { x: number; y: number }) => {
@@ -916,6 +924,7 @@ const flowAPI: typeof flow = {
   pinnedTabs: wrapAPI(pinnedTabsAPI, "browser"),
   page: wrapAPI(pageAPI, "browser"),
   navigation: wrapAPI(navigationAPI, "browser"),
+  history: wrapAPI(historyAPI, "browser"),
   interface: wrapAPI(interfaceAPI, "browser", {
     moveWindowTo: "all",
     resizeWindowTo: "all"

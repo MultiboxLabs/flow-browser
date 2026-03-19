@@ -5,6 +5,7 @@ import path from "path";
 import { app } from "electron";
 import { FLOW_DATA_DIR } from "@/modules/paths";
 import { debugPrint, debugError } from "@/modules/output";
+import { pruneBrowsingHistory } from "@/saving/history/browsing-history";
 import * as schema from "./schema";
 
 const DB_PATH = path.join(FLOW_DATA_DIR, "flow.db");
@@ -55,6 +56,12 @@ function initDatabase(): ReturnType<typeof drizzle<typeof schema>> {
   } catch (err) {
     debugError("DB", "Migration failed:", err);
     throw err;
+  }
+
+  try {
+    pruneBrowsingHistory();
+  } catch (err) {
+    debugError("DB", "Browsing history prune failed:", err);
   }
 
   debugPrint("DB", "Database initialized successfully");
