@@ -105,10 +105,6 @@ function HistoryPage() {
 
   const grouped = useMemo(() => groupVisitsByDay(visits), [visits]);
 
-  const openUrl = (url: string) => {
-    flow.navigation.goTo(url);
-  };
-
   const openInNewTab = (url: string) => {
     void flow.tabs.newTab(url, true);
   };
@@ -223,10 +219,10 @@ function HistoryPage() {
                           <ContextMenu key={v.visitId}>
                             <ContextMenuTrigger asChild>
                               <li className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted/60 transition-colors group">
-                                <button
-                                  type="button"
-                                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
-                                  onClick={() => openUrl(v.url)}
+                                <a
+                                  href={v.url}
+                                  rel="noopener noreferrer"
+                                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left no-underline text-inherit rounded-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none"
                                 >
                                   <img
                                     src={faviconSrcForPageUrl(v.url)}
@@ -250,7 +246,7 @@ function HistoryPage() {
                                       minute: "2-digit"
                                     })}
                                   </time>
-                                </button>
+                                </a>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button
@@ -274,7 +270,9 @@ function HistoryPage() {
                               </li>
                             </ContextMenuTrigger>
                             <ContextMenuContent className="w-52">
-                              <ContextMenuItem onSelect={() => openUrl(v.url)}>Open link</ContextMenuItem>
+                              <ContextMenuItem onSelect={() => window.location.assign(v.url)}>
+                                Open link
+                              </ContextMenuItem>
                               <ContextMenuItem onSelect={() => openInNewTab(v.url)}>Open in new tab</ContextMenuItem>
                               <ContextMenuSeparator />
                               <ContextMenuItem onSelect={() => copyLinkAddress(v.url)}>

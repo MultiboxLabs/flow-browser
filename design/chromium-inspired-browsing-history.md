@@ -56,7 +56,7 @@ Other navigations (links, redirects, UI outside the omnibox) do not increment `t
 
 - Chronological **visit** list (join visits + URLs), Chromium-style **grouping by calendar day** (Today, Yesterday, …).
 - **Search** filters title and URL (case-insensitive substring).
-- **Row actions:** open in focused tab; **context menu** (right-click) for open in new tab, copy link, delete one visit, delete all visits for that URL row.
+- **Row actions:** primary row is a normal `<a href>` (same-tab navigation); **context menu** (right-click) for open in current tab, new tab, copy link, delete one visit, delete all visits for that URL row.
 - **Clear browsing data** clears all history for the current profile.
 - Uses Flow UI patterns (cards, dark theme route, shadcn-style components) like **Extensions**.
 
