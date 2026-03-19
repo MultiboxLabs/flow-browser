@@ -3,11 +3,15 @@ import { AttachedDirection, useBrowserSidebar } from "./provider";
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
 import { usePlatform } from "@/components/main/platform";
 import { AddressBar } from "./_components/address-bar";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import { NavigationControls, NavButton } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
-import { PinGridGate } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/gate";
+import { SlotMachineGuard } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/slot-machine/guard";
+import {
+  SlotMachinePinGrid,
+  resetSlotMachine
+} from "@/components/browser-ui/browser-sidebar/_components/pin-grid/slot-machine/main";
 import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SpaceSwitcher } from "@/components/browser-ui/browser-sidebar/_components/space-switcher";
@@ -32,10 +36,18 @@ function SidebarIcon({ className }: { className?: string }) {
 }
 
 export function SidebarInner({ direction, variant }: { direction: AttachedDirection; variant: SidebarVariant }) {
-  const { isAnimating, setVisible, mode } = useBrowserSidebar();
+  const { isAnimating, setVisible, mode, slotMachineEnabled, setSlotMachineEnabled } = useBrowserSidebar();
   const { platform } = usePlatform();
 
   const { isCurrentSpaceLight } = useSpaces();
+
+  const handleSetSlotMachine = useCallback(
+    (enabled: boolean) => {
+      if (!enabled) resetSlotMachine();
+      setSlotMachineEnabled(enabled);
+    },
+    [setSlotMachineEnabled]
+  );
 
   const spaceInjectedClasses = useMemo(() => cn(isCurrentSpaceLight ? "" : "dark"), [isCurrentSpaceLight]);
 
@@ -60,7 +72,8 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
       {/* Middle Section */}
       <div className="flex-1 min-h-0 gap-2 flex flex-col overflow-hidden">
         <AddressBar />
-        <PinGridGate />
+        <SlotMachineGuard passed={slotMachineEnabled} setPassed={handleSetSlotMachine} />
+        {slotMachineEnabled && <SlotMachinePinGrid />}
         <SpacePagesCarousel />
       </div>
       {/* Update Banner */}

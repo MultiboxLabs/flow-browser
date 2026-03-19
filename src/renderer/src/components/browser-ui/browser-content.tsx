@@ -3,6 +3,7 @@ import { PageLayoutParams } from "~/flow/types";
 import { cn } from "@/lib/utils";
 import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
 import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
+import { useSpaces } from "@/components/providers/spaces-provider";
 import type { TabPlaceholderUpdate } from "~/types/tabs";
 
 const PLACEHOLDER_CLEAR_DELAY_MS = 180;
@@ -24,12 +25,14 @@ const PLACEHOLDER_CLEAR_DELAY_MS = 180;
 function BrowserContent() {
   const { mode, recordedSidebarSizeRef, isAnimating, attachedDirection, onSidebarResize } = useBrowserSidebar();
   const { topbarHeight, topbarVisible, contentTopOffset } = useAdaptiveTopbar();
+  const { currentSpace } = useSpaces();
 
   // Tab-sync placeholder: screenshot shown when the active tab's view
   // has been moved to another window.
   const [placeholderSnapshotId, setPlaceholderSnapshotId] = useState<string | null>(null);
   const clearPlaceholderTimeoutRef = useRef<number | null>(null);
   const latestPlaceholderGenerationRef = useRef(0);
+  const currentSpaceIdRef = useRef<string | null>(currentSpace?.id ?? null);
 
   useEffect(() => {
     const clearPendingPlaceholder = () => {
@@ -39,7 +42,10 @@ function BrowserContent() {
       }
     };
 
-    const unsub = flow.tabs.onPlaceholderChanged(({ snapshotId, generation }: TabPlaceholderUpdate) => {
+    const unsub = flow.tabs.onPlaceholderChanged(({ snapshotId, generation, spaceId }: TabPlaceholderUpdate) => {
+      if (spaceId !== currentSpaceIdRef.current) {
+        return;
+      }
       if (generation < latestPlaceholderGenerationRef.current) {
         return;
       }
@@ -68,6 +74,15 @@ function BrowserContent() {
       unsub();
     };
   }, []);
+
+  useEffect(() => {
+    currentSpaceIdRef.current = currentSpace?.id ?? null;
+    if (clearPlaceholderTimeoutRef.current !== null) {
+      window.clearTimeout(clearPlaceholderTimeoutRef.current);
+      clearPlaceholderTimeoutRef.current = null;
+    }
+    setPlaceholderSnapshotId(null);
+  }, [currentSpace?.id]);
 
   const placeholderUrl = placeholderSnapshotId ? `flow-internal://tab-snapshot?id=${placeholderSnapshotId}` : null;
 

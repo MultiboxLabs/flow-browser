@@ -1,10 +1,11 @@
 import "../pin.css";
 
 import { cn } from "@/lib/utils";
-import { useState, useCallback, useRef } from "react";
-import { PinnedTabButton } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pinned-tab-button";
+import { useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
-import { useUnmount } from "react-use";
+import { PinVisual } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/pin-visual";
+
+// ── Constants ──────────────────────────────────────────────────────────
 
 const POPULAR_WEBSITES: string[] = [
   "youtube.com",
@@ -29,8 +30,18 @@ const POPULAR_WEBSITES: string[] = [
   "medium.com"
 ];
 
+// ── Helpers ────────────────────────────────────────────────────────────
+
 interface SlotState {
   domain: string;
+}
+
+function randomDomain(): string {
+  return POPULAR_WEBSITES[Math.floor(Math.random() * POPULAR_WEBSITES.length)];
+}
+
+function createInitialSlots(): SlotState[] {
+  return Array.from({ length: 9 }, () => ({ domain: randomDomain() }));
 }
 
 function openWinnerTabs(domains: [string, string, string]) {
@@ -68,84 +79,125 @@ function openWinnerTabs(domains: [string, string, string]) {
   }
 }
 
+// ── External Store ─────────────────────────────────────────────────────
+// All slot machine state and animation logic lives here, outside of React.
+// Every mounted SlotMachinePinGrid instance subscribes via useSyncExternalStore
+// so they all render the exact same snapshot – even during AnimatePresence
+// overlap when both the exiting and entering sidebars coexist.
+
+interface SlotMachineSnapshot {
+  slots: SlotState[];
+  isRolling: boolean;
+  showWinners: boolean;
+}
+
+let snapshot: SlotMachineSnapshot = {
+  slots: createInitialSlots(),
+  isRolling: false,
+  showWinners: false
+};
+
+const listeners = new Set<() => void>();
+let pendingResetTimeout: number | null = null;
+
+function emit() {
+  for (const listener of listeners) {
+    listener();
+  }
+}
+
+function subscribe(listener: () => void): () => void {
+  if (pendingResetTimeout !== null) {
+    clearTimeout(pendingResetTimeout);
+    pendingResetTimeout = null;
+  }
+
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+
+    // Defer the reset so AnimatePresence / StrictMode re-subscribes can cancel it
+    // before we tear down an in-progress roll.
+    if (listeners.size === 0 && rollTimeout !== null) {
+      pendingResetTimeout = window.setTimeout(() => {
+        pendingResetTimeout = null;
+        if (listeners.size === 0 && rollTimeout !== null) {
+          resetSlotMachine();
+        }
+      }, 0);
+    }
+  };
+}
+
+function getSnapshot(): SlotMachineSnapshot {
+  return snapshot;
+}
+
+function setSnapshot(partial: Partial<SlotMachineSnapshot>) {
+  snapshot = { ...snapshot, ...partial };
+  emit();
+}
+
+// ── Roll animation (runs entirely outside React) ───────────────────────
+
+let rollTimeout: number | null = null;
+
+function randomizeSlotsOnce() {
+  const prev = snapshot.slots;
+  const newTopRow: SlotState[] = Array.from({ length: 3 }, () => ({ domain: randomDomain() }));
+  setSnapshot({ slots: [...newTopRow, ...prev.slice(0, 6)] });
+}
+
+function handleRoll() {
+  if (snapshot.isRolling) return;
+
+  setSnapshot({ isRolling: true, showWinners: false });
+
+  let speed = 50;
+  let shiftCount = 0;
+  const totalShifts = 30;
+
+  const spin = () => {
+    randomizeSlotsOnce();
+    shiftCount++;
+
+    if (shiftCount > 20) {
+      speed = speed + 20;
+    }
+
+    if (shiftCount < totalShifts) {
+      rollTimeout = window.setTimeout(spin, speed);
+    } else {
+      // Finished spinning
+      rollTimeout = window.setTimeout(() => {
+        rollTimeout = null;
+        const winners: [string, string, string] = [
+          snapshot.slots[3].domain,
+          snapshot.slots[4].domain,
+          snapshot.slots[5].domain
+        ];
+        setSnapshot({ isRolling: false, showWinners: true });
+        openWinnerTabs(winners);
+      }, 300);
+    }
+  };
+
+  spin();
+}
+
+// ── React Component ────────────────────────────────────────────────────
+
 export function SlotMachinePinGrid() {
-  const [slots, setSlots] = useState<SlotState[]>(() =>
-    Array.from({ length: 9 }, () => ({
-      domain: POPULAR_WEBSITES[Math.floor(Math.random() * POPULAR_WEBSITES.length)]
-    }))
-  );
-
-  const [isRolling, setIsRolling] = useState(false);
-  const [showWinners, setShowWinners] = useState(false);
-  const intervalRef = useRef<number | null>(null);
-  const timeoutRef = useRef<number | null>(null);
-
-  const randomizeSlotsOnce = useCallback(() => {
-    // Shift down and add new top row
-    setSlots((prev) => {
-      const newTopRow = Array.from({ length: 3 }, () => ({
-        domain: POPULAR_WEBSITES[Math.floor(Math.random() * POPULAR_WEBSITES.length)]
-      }));
-      return [...newTopRow, ...prev.slice(0, 6)];
-    });
-  }, []);
-
-  const handleRoll = useCallback(() => {
-    if (isRolling) return;
-
-    setIsRolling(true);
-    setShowWinners(false);
-
-    let speed = 50; // Start fast (50ms between shifts)
-    let shiftCount = 0;
-    const totalShifts = 30; // Total number of shifts
-
-    const spin = () => {
-      randomizeSlotsOnce();
-      shiftCount++;
-
-      // Start slowing down after 20 shifts
-      if (shiftCount > 20) {
-        speed = speed + 20; // Slow down progressively
-      }
-
-      if (shiftCount < totalShifts) {
-        timeoutRef.current = window.setTimeout(spin, speed);
-      } else {
-        // Finished spinning
-        setTimeout(() => {
-          setShowWinners(true);
-          setIsRolling(false);
-          setSlots((currentSlots) => {
-            const winners: [string, string, string] = [
-              currentSlots[3].domain,
-              currentSlots[4].domain,
-              currentSlots[5].domain
-            ];
-            openWinnerTabs(winners);
-            return currentSlots;
-          });
-        }, 300);
-      }
-    };
-
-    spin();
-  }, [isRolling, randomizeSlotsOnce]);
-
-  useUnmount(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-  });
+  const { slots, isRolling, showWinners } = useSyncExternalStore(subscribe, getSnapshot);
 
   return (
     <>
       <div className={cn("grid grid-cols-3 gap-2", "overflow-hidden max-h-40")}>
         {slots.map((slot, index) => {
-          // Middle row indices are 3, 4, 5
           const isWinner = showWinners && index >= 3 && index <= 5;
 
           return (
-            <PinnedTabButton
+            <PinVisual
               key={index}
               faviconUrl={`https://www.google.com/s2/favicons?domain=${slot.domain}&sz=128`}
               isActive={isWinner}
@@ -154,8 +206,27 @@ export function SlotMachinePinGrid() {
         })}
       </div>
       <Button variant="secondary" onClick={handleRoll} disabled={isRolling} className="w-full">
-        {isRolling ? "🎰 Rolling..." : "🎰 ROLL"}
+        {isRolling ? "\u{1F3B0} Rolling..." : "\u{1F3B0} ROLL"}
       </Button>
     </>
   );
+}
+
+// Clean-up helper – can be called if the easter egg is toggled off.
+export function resetSlotMachine() {
+  if (pendingResetTimeout !== null) {
+    clearTimeout(pendingResetTimeout);
+    pendingResetTimeout = null;
+  }
+  if (rollTimeout !== null) {
+    clearTimeout(rollTimeout);
+    rollTimeout = null;
+  }
+  // Use setSnapshot to create a new object reference so that
+  // useSyncExternalStore correctly detects the change.
+  setSnapshot({
+    slots: createInitialSlots(),
+    isRolling: false,
+    showWinners: false
+  });
 }

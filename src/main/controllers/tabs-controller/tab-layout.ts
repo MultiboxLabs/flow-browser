@@ -103,7 +103,8 @@ export class TabLayoutManager {
         const anyTabInPiP = this.tabsController
           .getTabsInWindow(windowId)
           .some((t) => t.id !== tab.id && t.isPictureInPicture);
-        if (!anyTabInPiP) {
+        const isStillVisibleElsewhere = this.tabsController.isTabVisibleInAnotherWindow(tab);
+        if (!anyTabInPiP && !isStillVisibleElsewhere) {
           this.lifecycleManager.enterPictureInPicture();
         }
       }
