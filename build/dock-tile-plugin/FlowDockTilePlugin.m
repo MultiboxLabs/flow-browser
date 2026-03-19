@@ -23,7 +23,7 @@ static NSString * const FlowDockTileUpdateNotification = @"dev.iamevan.flow.dock
 @implementation FlowDockTilePlugin
 
 - (void)setDockTile:(NSDockTile *)dockTile {
-    self.dockTile = dockTile;
+    _dockTile = dockTile;
 
     NSDistributedNotificationCenter *center = [NSDistributedNotificationCenter defaultCenter];
     [center removeObserver:self];
@@ -47,6 +47,10 @@ static NSString * const FlowDockTileUpdateNotification = @"dev.iamevan.flow.dock
 }
 
 - (void)updateDockTile {
+    if (![NSThread isMainThread]) {
+        dispatch_async(dispatch_get_main_queue(), ^{ [self updateDockTile]; });
+        return;
+    }
     if (!self.dockTile) return;
 
     // Resolve the shared file path
@@ -79,8 +83,12 @@ static NSString * const FlowDockTileUpdateNotification = @"dev.iamevan.flow.dock
         return;
     }
 
-    // Create an image view and set it as the dock tile's content
-    NSImageView *imageView = [NSImageView imageViewWithImage:image];
+    // Match Dock expectations: sized to the tile, on the main thread.
+    NSSize tileSize = self.dockTile.size;
+    NSImageView *imageView =
+        [[NSImageView alloc] initWithFrame:NSMakeRect(0, 0, tileSize.width, tileSize.height)];
+    imageView.wantsLayer = YES;
+    imageView.image = image;
     [self.dockTile setContentView:imageView];
     [self.dockTile display];
 }

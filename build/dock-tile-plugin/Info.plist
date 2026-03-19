@@ -5,20 +5,18 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleExecutable</key>
-	<string>FlowDockTilePlugin</string>
+	<string>DockTilePlugin</string>
 	<key>CFBundleIdentifier</key>
 	<string>dev.iamevan.flow.DockTilePlugin</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>FlowDockTilePlugin</string>
+	<string>DockTilePlugin</string>
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
-	<key>NSPrincipalClass</key>
-	<string>FlowDockTilePlugin</string>
 </dict>
 </plist>

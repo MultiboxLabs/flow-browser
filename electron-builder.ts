@@ -99,11 +99,11 @@ const electronBuilderConfig: Configuration = {
     entitlements: "./build/entitlements.mac.plist",
     notarize: true,
     provisioningProfile: "build/profile.provisionprofile",
-    binaries: ["Contents/PlugIns/FlowDockTilePlugin.plugin"],
+    binaries: ["Contents/PlugIns/DockTilePlugIn.plugin"],
     extendInfo: {
       CFBundleIconName: "AppIcon",
       NSUserActivityTypes: ["NSUserActivityTypeBrowsingWeb"],
-      NSDockTilePlugIn: "FlowDockTilePlugin.plugin"
+      NSDockTilePlugIn: "DockTilePlugIn.plugin"
     }
   },
   dmg: {

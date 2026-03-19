@@ -121,7 +121,7 @@ The plugin:
 **Bundle structure:**
 
 ```
-FlowDockTilePlugin.plugin/
+DockTilePlugIn.plugin/
   Contents/
     Info.plist          (NSPrincipalClass = FlowDockTilePlugin)
     MacOS/
@@ -132,11 +132,11 @@ FlowDockTilePlugin.plugin/
 
 - Compiled in `afterPack.js` hook using `clang` (available on all Macs with Xcode CLI tools)
 - Placed in `<App>.app/Contents/PlugIns/`
-- `NSDockTilePlugIn = "FlowDockTilePlugin"` added to Info.plist via electron-builder `extendInfo`
+- `NSDockTilePlugIn = "DockTilePlugIn.plugin"` added to Info.plist via electron-builder `extendInfo`
 
 ### 6. electron-builder config (`electron-builder.ts`)
 
-- Add `NSDockTilePlugIn: "FlowDockTilePlugin"` to `mac.extendInfo`
+- Add `NSDockTilePlugIn: "DockTilePlugIn.plugin"` to `mac.extendInfo`
 - Ensure `objc-js` native prebuilds are handled (may need `asarUnpack` entry)
 
 ### 7. Shared state: plugin communication
