@@ -608,7 +608,19 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       this.removeFocusedTab(windowId, spaceId);
     }
 
+    this.flushBrowsingHistoryForActivatedTabOrGroup(tabOrGroup);
+
     this.emit("active-tab-changed", windowId, spaceId);
+  }
+
+  private flushBrowsingHistoryForActivatedTabOrGroup(tabOrGroup: Tab | TabGroup): void {
+    if (tabOrGroup instanceof Tab) {
+      tabOrGroup.recordBrowsingHistoryOnActivationIfNeeded();
+    } else {
+      for (const t of tabOrGroup.tabs) {
+        t.recordBrowsingHistoryOnActivationIfNeeded();
+      }
+    }
   }
 
   /**

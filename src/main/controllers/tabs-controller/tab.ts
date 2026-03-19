@@ -446,6 +446,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     webContents.on("page-title-updated", (_event, title) => {
       if (this.loadedProfile.profileData.ephemeral) return;
+      if (!this.tabsController.isTabActive(this)) return;
       const url = webContents.getURL();
       if (!isHistoryRecordableUrl(url)) return;
       updateBrowsingHistoryTitleForOpenPage({
@@ -789,9 +790,20 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     return v;
   }
 
+  /**
+   * When the tab becomes selected (or is part of the active tab group), record the
+   * current page if needed. Background/restored tabs do not write history until then.
+   */
+  public recordBrowsingHistoryOnActivationIfNeeded(): void {
+    if (this.isDestroyed || !this.webContents) return;
+    if (!this.tabsController.isTabActive(this)) return;
+    this.recordBrowsingHistoryFromWebContents(this.webContents);
+  }
+
   private recordBrowsingHistoryFromWebContents(webContents: WebContents, urlOverride?: string): void {
     const url = urlOverride ?? webContents.getURL();
     if (!isHistoryRecordableUrl(url) || this.loadedProfile.profileData.ephemeral) return;
+    if (!this.tabsController.isTabActive(this)) return;
 
     const wouldIncrementTyped = this.pendingHistoryTypedIncrement;
     const sessionKey = Tab.historyUrlSessionKey(url);
