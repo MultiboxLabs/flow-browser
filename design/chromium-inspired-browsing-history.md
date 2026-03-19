@@ -32,7 +32,8 @@ This document is the **source of truth** for how Flow stores and surfaces browsi
   - Main-frame load completes (`did-finish-load`).
   - Main-frame **in-page** navigations (`did-navigate-in-page`), e.g. `pushState` / hash changes (SPAs).
 - **URL filter:** only `http:` and `https:` (skip internal `flow:`, `flow-internal:`, `about:`, error pages, etc.).
-- **Privacy:** do **not** record for **ephemeral** (incognito) profiles or ephemeral tabs.
+- **Privacy:** do **not** record for **ephemeral** (incognito) profiles. **Ephemeral tabs** (e.g. pinned-tab slot tabs) **are** recorded so pinned browsing appears in history; those tabs still skip **session tab persistence** as before.
+- **Refresh:** full reloads of the same URL (Reload / Force reload / same-URL main-frame navigation without an omnibox-typed intent) do **not** append a new visit. Omnibox navigation to the same URL still records when marked typed.
 - **Title:** use `getTitle()` when non-empty; otherwise fall back to URL hostname.
 
 ### Typed count (`typed_count`)

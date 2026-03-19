@@ -168,6 +168,10 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
   /** Consumed on the next recorded history visit (full load or main-frame in-page). */
   private pendingHistoryTypedIncrement: boolean = false;
+  /** Set before reload(); next `did-finish-load` will not write history. */
+  private skipHistoryOnNextMainFrameFinish: boolean = false;
+  /** Main-frame navigation to the same URL as the current page (refresh / `location.reload`). */
+  private pendingSameUrlMainFrameNavigation: boolean = false;
 
   // Content properties (from WebContents)
   public title: string = "New Tab";
@@ -432,6 +436,20 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    */
   private setupWebContentsListeners() {
     const webContents = this.webContents!;
+
+    webContents.on("did-start-navigation", (_event, url: string, isInPlace: boolean, isMainFrame: boolean) => {
+      if (!isMainFrame || isInPlace) return;
+      if (!isHistoryRecordableUrl(url)) return;
+      try {
+        const current = webContents.getURL();
+        if (!current || !isHistoryRecordableUrl(current)) return;
+        if (Tab.urlsMatchForRefreshDetection(current, url)) {
+          this.pendingSameUrlMainFrameNavigation = true;
+        }
+      } catch {
+        /* ignore */
+      }
+    });
 
     // Set zoom level limits when webContents is ready
     webContents.on("did-finish-load", () => {
@@ -722,15 +740,31 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
   // --- Navigation ---
 
-  /**
-   * Loads a URL in the tab.
-   */
+  private static urlsMatchForRefreshDetection(a: string, b: string): boolean {
+    try {
+      const ua = new URL(a);
+      const ub = new URL(b);
+      ua.hash = "";
+      ub.hash = "";
+      return ua.href === ub.href;
+    } catch {
+      return a === b;
+    }
+  }
+
   /**
    * Next successful http(s) history recording will increment `typed_count` for that URL.
    * Used when the user navigates via the omnibox or address bar.
    */
   public markTypedNavigationForNextHistoryVisit(): void {
     this.pendingHistoryTypedIncrement = true;
+  }
+
+  /**
+   * Skip recording for the next main-frame document load (reload / force reload from UI).
+   */
+  public markSkipHistoryOnNextMainFrameFinish(): void {
+    this.skipHistoryOnNextMainFrameFinish = true;
   }
 
   private consumeHistoryTypedPending(): boolean {
@@ -741,7 +775,21 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
   private recordBrowsingHistoryFromWebContents(webContents: WebContents, urlOverride?: string): void {
     const url = urlOverride ?? webContents.getURL();
-    if (!isHistoryRecordableUrl(url) || this.loadedProfile.profileData.ephemeral || this.ephemeral) return;
+    if (!isHistoryRecordableUrl(url) || this.loadedProfile.profileData.ephemeral) return;
+
+    if (this.skipHistoryOnNextMainFrameFinish) {
+      this.skipHistoryOnNextMainFrameFinish = false;
+      this.pendingSameUrlMainFrameNavigation = false;
+      return;
+    }
+
+    const wouldIncrementTyped = this.pendingHistoryTypedIncrement;
+    if (this.pendingSameUrlMainFrameNavigation && !wouldIncrementTyped) {
+      this.pendingSameUrlMainFrameNavigation = false;
+      return;
+    }
+    this.pendingSameUrlMainFrameNavigation = false;
+
     const incrementTyped = this.consumeHistoryTypedPending();
     recordBrowsingHistoryVisit({
       profileId: this.profileId,
@@ -750,6 +798,10 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       incrementTyped
     });
   }
+
+  /**
+   * Loads a URL in the tab.
+   */
 
   public loadURL(url: string, replace?: boolean) {
     if (!this.webContents) return;

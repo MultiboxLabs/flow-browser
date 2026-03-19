@@ -1,5 +1,11 @@
 import { MenuItemConstructorOptions } from "electron";
-import { getFocusedBrowserWindow, getFocusedWindow, getTab, getTabWcFromFocusedWindow } from "../helpers";
+import {
+  getFocusedBrowserWindow,
+  getFocusedWindow,
+  getTab,
+  getTabFromFocusedWindow,
+  getTabWcFromFocusedWindow
+} from "../helpers";
 import { toggleSidebar } from "@/ipc/browser/interface";
 import { getCurrentShortcut } from "@/modules/shortcuts";
 import { browserWindowsManager } from "@/controllers/windows-controller";
@@ -44,18 +50,20 @@ export const createViewMenu = (): MenuItemConstructorOptions => ({
       label: "Reload",
       accelerator: getCurrentShortcut("tab.reload"),
       click: () => {
-        const tabWc = getTabWcFromFocusedWindow();
-        if (!tabWc) return;
-        tabWc.reload();
+        const tab = getTabFromFocusedWindow();
+        if (!tab?.webContents) return;
+        tab.markSkipHistoryOnNextMainFrameFinish();
+        tab.webContents.reload();
       }
     },
     {
       label: "Force Reload",
       accelerator: getCurrentShortcut("tab.forceReload"),
       click: () => {
-        const tabWc = getTabWcFromFocusedWindow();
-        if (!tabWc) return;
-        tabWc.reloadIgnoringCache();
+        const tab = getTabFromFocusedWindow();
+        if (!tab?.webContents) return;
+        tab.markSkipHistoryOnNextMainFrameFinish();
+        tab.webContents.reloadIgnoringCache();
       }
     },
     {

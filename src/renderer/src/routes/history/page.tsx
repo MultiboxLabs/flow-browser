@@ -165,22 +165,22 @@ function HistoryPage() {
           </AlertDialog>
         </div>
 
-        <Card className="border-border mb-6">
-          <CardContent className="pt-6">
+        <Card className="border-border mb-6 gap-0 py-0 shadow-sm">
+          <CardContent className="px-4 py-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search history"
-                className="pl-10"
+                className="pl-10 h-9"
                 aria-label="Search history"
               />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-border overflow-hidden">
+        <Card className="border-border overflow-hidden gap-0 py-0 shadow-sm">
           <CardContent className="p-0">
             {loading ? (
               <div className="py-16 text-center text-muted-foreground text-sm">Loading…</div>
@@ -197,33 +197,33 @@ function HistoryPage() {
                 <div className="p-2">
                   {grouped.map((group) => (
                     <div key={group.dayStart} className="mb-6 last:mb-0">
-                      <h2 className="text-sm font-semibold text-muted-foreground px-3 py-2 sticky top-0 bg-card z-1 border-b border-border/60">
+                      <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-3 py-1.5 sticky top-0 bg-card z-1 border-b border-border/60">
                         {group.label}
                       </h2>
-                      <ul className="mt-1">
+                      <ul className="mt-0.5">
                         {group.items.map((v) => (
                           <li
                             key={v.visitId}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-muted/60 transition-colors group"
+                            className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted/60 transition-colors group"
                           >
                             <button
                               type="button"
-                              className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                              className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
                               onClick={() => openUrl(v.url)}
                             >
                               <img
                                 src={faviconSrcForPageUrl(v.url)}
                                 alt=""
-                                className="size-8 rounded-md bg-muted shrink-0 object-cover"
+                                className="size-6 rounded-sm bg-muted shrink-0 object-cover"
                               />
-                              <div className="min-w-0 flex-1">
-                                <div className="font-medium text-foreground truncate">
+                              <div className="min-w-0 flex-1 leading-tight">
+                                <div className="text-sm font-medium text-foreground truncate">
                                   {v.title || simplifyUrl(v.url)}
                                 </div>
-                                <div className="text-xs text-muted-foreground truncate">{simplifyUrl(v.url)}</div>
+                                <div className="text-[11px] text-muted-foreground truncate">{simplifyUrl(v.url)}</div>
                               </div>
                               <time
-                                className="text-xs text-muted-foreground tabular-nums shrink-0 hidden sm:block"
+                                className="text-[11px] text-muted-foreground tabular-nums shrink-0 hidden sm:block"
                                 dateTime={new Date(v.visitTime).toISOString()}
                               >
                                 {new Date(v.visitTime).toLocaleTimeString(undefined, {
@@ -237,10 +237,10 @@ function HistoryPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="size-8 shrink-0 opacity-60 group-hover:opacity-100"
+                                  className="size-7 shrink-0 opacity-60 group-hover:opacity-100"
                                   aria-label="More actions"
                                 >
-                                  <MoreHorizontal className="size-4" />
+                                  <MoreHorizontal className="size-3.5" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
