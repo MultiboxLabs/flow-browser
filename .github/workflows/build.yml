@@ -111,11 +111,13 @@ jobs:
           flatpak-builder --user --install-deps-from=flathub --repo="${{ github.workspace }}/flatpak-repo" \
             --force-clean --download-only build-dir com.flow_browser.flow.yml
 
-      - name: Build Flatpak (offline)
+      # Ubuntu's flatpak-builder is too old for --disable-network; --disable-download
+      # avoids re-fetching sources (flatpak-bun-generator output + archives) during build.
+      - name: Build Flatpak (no source downloads)
         working-directory: flatpak-upstream
         run: |
           flatpak-builder --user --repo="${{ github.workspace }}/flatpak-repo" \
-            --disable-download --disable-network \
+            --disable-download \
             build-dir com.flow_browser.flow.yml
 
       - name: Create Flatpak bundle
