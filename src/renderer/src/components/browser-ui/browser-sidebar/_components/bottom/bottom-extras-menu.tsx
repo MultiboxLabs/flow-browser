@@ -13,7 +13,7 @@ function BottomExtraItem({ setOpen, children }: { setOpen: (open: boolean) => vo
         flow.tabs.newTab("flow://history", true);
         setOpen(false);
       }}
-      className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm hover:bg-accent cursor-pointer"
+      className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm hover:bg-accent"
     >
       {children}
     </div>
