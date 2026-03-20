@@ -64,6 +64,15 @@ jobs:
             --exclude='flatpak-upstream/' \
             ./ flatpak-upstream/main/
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+        with:
+          bun-version: 1.3.10
+
+      - name: Generate Flatpak sources from local bun.lock
+        working-directory: flatpak-upstream
+        run: bunx flatpak-bun-generator@latest ./main/bun.lock --output ./generated-sources.json
+
       - name: Patch Flathub manifest to build from this checkout
         run: |
           python3 <<'PY'
