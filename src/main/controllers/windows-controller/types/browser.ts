@@ -1,5 +1,5 @@
 import { BaseWindow, BaseWindowEvents } from "@/controllers/windows-controller/types/base";
-import { BrowserWindow as ElectronBrowserWindow, nativeTheme, WebContents } from "electron";
+import { app, BrowserWindow as ElectronBrowserWindow, nativeTheme, WebContents } from "electron";
 import { type PageBounds } from "@/ipc/browser/page";
 import { type PageLayoutParams } from "~/flow/types";
 import { appMenuController } from "@/controllers/app-menu-controller";
@@ -94,7 +94,9 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       } else if (type === "popup") {
         browserWindow.loadURL("flow-internal://popup-ui/");
       }
-      // browserWindow.webContents.openDevTools({ mode: "detach" });
+      if (!app.isPackaged && !!process.env.BROWSER_WINDOW_DEVTOOLS) {
+        browserWindow.webContents.openDevTools({ mode: "detach" });
+      }
     });
 
     super("browser", browserWindow, { showAfterLoad: true, showDelay: 50 });
