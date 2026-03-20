@@ -238,7 +238,7 @@ jobs:
             <summary>One-line installer (Unstable):</summary>
 
             ```bash
-            bunx flow-debug-build --open ${{ github.run_id }}
+            bunx flow-debug-build@1.2.1 --open ${{ github.run_id }}
             ```
 
             </details>
