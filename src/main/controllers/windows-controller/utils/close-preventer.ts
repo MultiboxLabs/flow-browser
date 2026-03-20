@@ -1,4 +1,4 @@
-// Prevent Ctrl+W on Windows from closing the entire windows
+// Prevent Ctrl+W on Windows and Linux from closing the entire windows
 // So we can process it ourselves by closing the focused tab.
 
 import { app, type WebContents, webContents } from "electron";
