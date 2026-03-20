@@ -12,8 +12,9 @@ CREATE UNIQUE INDEX `idx_history_urls_profile_url` ON `history_urls` (`profile_i
 --> statement-breakpoint
 CREATE TABLE `history_visits` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`url_id` integer NOT NULL,
-	`visit_time` integer NOT NULL
+	`url_id` integer NOT NULL REFERENCES `history_urls`(`id`) ON DELETE CASCADE,
+	`visit_time` integer NOT NULL,
+	`typed` integer DEFAULT 0 NOT NULL
 );
 --> statement-breakpoint
 CREATE INDEX `idx_history_visits_url_id` ON `history_visits` (`url_id`);
