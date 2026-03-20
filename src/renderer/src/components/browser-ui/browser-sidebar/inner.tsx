@@ -14,10 +14,10 @@ import {
 } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/slot-machine/main";
 import { Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SpaceSwitcher } from "@/components/browser-ui/browser-sidebar/_components/space-switcher";
+import { SpaceSwitcher } from "@/components/browser-ui/browser-sidebar/_components/bottom/space-switcher";
 import { SpacePagesCarousel } from "@/components/browser-ui/browser-sidebar/_components/space-pages-carousel";
-import { BrowserActionList } from "@/components/browser-ui/browser-sidebar/_components/browser-action-list";
 import { UpdateBanner } from "@/components/browser-ui/browser-sidebar/_components/update-banner";
+import { BottomExtrasMenu } from "@/components/browser-ui/browser-sidebar/_components/bottom/bottom-extras-menu";
 
 function SidebarIcon({ className }: { className?: string }) {
   return (
@@ -88,7 +88,7 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
           <Settings strokeWidth={2} className="w-4 h-4 text-black/80 dark:text-white/80" />
         </Button>
         <SpaceSwitcher />
-        <BrowserActionList />
+        <BottomExtrasMenu />
       </div>
       <div className="h-3" />
     </div>
