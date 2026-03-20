@@ -105,20 +105,14 @@ jobs:
       - name: Setup Flathub remote
         run: flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-      - name: Download Flatpak sources and SDK (online)
+      # Single online build: a second phase with --disable-download runs the sandbox without
+      # outbound network, but bun still resolves optional/native deps (e.g. rolldown/lightningcss
+      # bindings) that flatpak-bun-generator may not fully vendor — bun install then fails.
+      - name: Build Flatpak
         working-directory: flatpak-upstream
         run: |
           flatpak-builder --user --install-deps-from=flathub --repo="${{ github.workspace }}/flatpak-repo" \
-            --force-clean --download-only build-dir com.flow_browser.flow.yml
-
-      # Ubuntu's flatpak-builder is too old for --disable-network; --disable-download
-      # avoids re-fetching sources (flatpak-bun-generator output + archives) during build.
-      - name: Build Flatpak (no source downloads)
-        working-directory: flatpak-upstream
-        run: |
-          flatpak-builder --user --repo="${{ github.workspace }}/flatpak-repo" \
-            --disable-download \
-            build-dir com.flow_browser.flow.yml
+            --force-clean build-dir com.flow_browser.flow.yml
 
       - name: Create Flatpak bundle
         run: |
