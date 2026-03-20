@@ -109,8 +109,11 @@ export const historyVisits = sqliteTable(
   "history_visits",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    urlId: integer("url_id").notNull(),
-    visitTime: integer("visit_time").notNull()
+    urlId: integer("url_id")
+      .notNull()
+      .references(() => historyUrls.id, { onDelete: "cascade" }),
+    visitTime: integer("visit_time").notNull(),
+    typed: integer("typed", { mode: "boolean" }).notNull().default(false)
   },
   (table) => [
     index("idx_history_visits_url_id").on(table.urlId),

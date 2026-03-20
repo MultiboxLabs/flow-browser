@@ -22,6 +22,13 @@
       "when": 1772400000000,
       "tag": "0002_chromium_history",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1772500000000,
+      "tag": "0003_history_visits_typed_fk",
+      "breakpoints": true
     }
   ]
 }

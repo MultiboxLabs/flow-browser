@@ -67,7 +67,9 @@ export function recordBrowsingHistoryVisit(args: {
         .all();
       urlId = inserted[0]!.id;
     }
-    tx.insert(historyVisits).values({ urlId, visitTime: now }).run();
+    tx.insert(historyVisits)
+      .values({ urlId, visitTime: now, typed: args.incrementTyped ?? false })
+      .run();
   });
 }
 
@@ -145,6 +147,7 @@ export function reconcileUrlAggregatesAfterVisitChange(urlId: number): void {
   const stats = db
     .select({
       cnt: sql<number>`count(*)`,
+      typedCnt: sql<number>`coalesce(sum(${historyVisits.typed}), 0)`,
       maxT: sql<number | null>`max(${historyVisits.visitTime})`
     })
     .from(historyVisits)
@@ -160,6 +163,7 @@ export function reconcileUrlAggregatesAfterVisitChange(urlId: number): void {
   db.update(historyUrls)
     .set({
       visitCount: cnt,
+      typedCount: Number(stats!.typedCnt ?? 0),
       lastVisitTime: stats!.maxT ?? Date.now()
     })
     .where(eq(historyUrls.id, urlId))
@@ -222,6 +226,7 @@ export function pruneBrowsingHistory(): void {
   db.run(
     sql`UPDATE history_urls SET
       visit_count = (SELECT COUNT(*) FROM history_visits WHERE history_visits.url_id = history_urls.id),
+      typed_count = COALESCE((SELECT SUM(typed) FROM history_visits WHERE history_visits.url_id = history_urls.id), 0),
       last_visit_time = COALESCE((SELECT MAX(visit_time) FROM history_visits WHERE history_visits.url_id = history_urls.id), last_visit_time)`
   );
 }

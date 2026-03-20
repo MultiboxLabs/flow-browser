@@ -37,6 +37,7 @@ function initDatabase(): ReturnType<typeof drizzle<typeof schema>> {
   sqlite = new Database(DB_PATH);
 
   // Configure SQLite pragmas for performance and concurrency
+  sqlite.pragma("foreign_keys = ON");
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("synchronous = NORMAL");
   sqlite.pragma("cache_size = -64000"); // 64MB cache
