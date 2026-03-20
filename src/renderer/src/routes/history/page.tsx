@@ -26,6 +26,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { simplifyUrl } from "@/lib/url";
 import type { BrowsingHistoryVisit } from "~/types/history";
 import { Clock, MoreHorizontal, Search, Trash2 } from "lucide-react";
@@ -64,12 +65,6 @@ function groupVisitsByDay(
       label: daySectionLabel(dayStart),
       items: items.sort((a, b) => b.visitTime - a.visitTime)
     }));
-}
-
-function faviconSrcForPageUrl(url: string): string {
-  const u = new URL("flow://favicon");
-  u.searchParams.set("url", url);
-  return u.toString();
 }
 
 function HistoryPage() {
@@ -223,11 +218,7 @@ function HistoryPage() {
                             rel="noopener noreferrer"
                             className="flex min-w-0 flex-1 items-center gap-3 text-left no-underline text-inherit rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                           >
-                            <img
-                              src={faviconSrcForPageUrl(v.url)}
-                              alt=""
-                              className="size-5 rounded-sm bg-muted shrink-0 object-cover"
-                            />
+                            <WebsiteFavicon url={v.url} className="size-5 rounded-sm bg-muted shrink-0 object-cover" />
                             <div className="min-w-0 flex-1">
                               <span className="text-sm text-foreground truncate block leading-snug">
                                 {v.title || simplifyUrl(v.url)}
