@@ -73,46 +73,10 @@ jobs:
       - name: Generate Flatpak sources from local bun.lock
         working-directory: flatpak-upstream
         run: |
-          set -euo pipefail
-          echo "=== Checking bun.lock exists ==="
-          ls -la ./main/bun.lock
-          echo "=== Removing old generated-sources.json from Flathub ==="
           rm -f ./generated-sources.json
-          echo "=== Installing flatpak-bun-generator ==="
           bun add -g flatpak-bun-generator@latest
-          echo "=== Finding generator binary ==="
-          GENERATOR_BIN="$(bun pm bin -g)/flatpak-bun-generator"
-          echo "Generator path: $GENERATOR_BIN"
-          ls -la "$GENERATOR_BIN" || echo "Binary not found at expected path!"
-          echo "=== Checking Node/Bun versions ==="
-          node --version
-          bun --version
-          echo "=== Checking if generator script is executable ==="
-          file "$GENERATOR_BIN"
-          head -5 "$(readlink -f "$GENERATOR_BIN")"
-          echo "=== Running flatpak-bun-generator with explicit node ==="
-          SCRIPT_PATH="$(readlink -f "$GENERATOR_BIN")"
-          echo "Resolved script: $SCRIPT_PATH"
-          node "$SCRIPT_PATH" ./main/bun.lock --output ./generated-sources.json 2>&1 || {
-            echo "Generator failed with exit code $?"
-            echo "=== Trying with bun instead ==="
-            bun "$SCRIPT_PATH" ./main/bun.lock --output ./generated-sources.json 2>&1
-          }
-          echo "=== Verifying generated-sources.json ==="
-          if [ ! -f ./generated-sources.json ]; then
-            echo "ERROR: generated-sources.json was not created!"
-            exit 1
-          fi
-          ls -la ./generated-sources.json
-          echo "=== Source count ==="
-          URL_COUNT=$(grep -c '"url"' ./generated-sources.json)
-          echo "Found $URL_COUNT URLs in generated-sources.json"
-          if [ "$URL_COUNT" -lt 100 ]; then
-            echo "ERROR: generated-sources.json has too few entries ($URL_COUNT < 100), generation likely failed!"
-            exit 1
-          fi
-          echo "=== First 50 lines ==="
-          head -50 ./generated-sources.json
+          SCRIPT_PATH="$(readlink -f "$(bun pm bin -g)/flatpak-bun-generator")"
+          node "$SCRIPT_PATH" ./main/bun.lock --output ./generated-sources.json
 
       - name: Patch Flathub manifest to build from this checkout
         run: |
