@@ -560,6 +560,9 @@ const historyAPI: FlowHistoryAPI = {
   listVisits: async (search?: string) => {
     return ipcRenderer.invoke("history:list-visits", search);
   },
+  listVisitsPage: async (args) => {
+    return ipcRenderer.invoke("history:list-visits-page", args);
+  },
   deleteVisit: async (visitId: number) => {
     return ipcRenderer.invoke("history:delete-visit", visitId);
   },

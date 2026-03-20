@@ -16,3 +16,14 @@ export type BrowsingHistoryVisit = {
   title: string;
   visitTime: number;
 };
+
+/** Cursor for keyset pagination of visits (newest first). */
+export type HistoryVisitsPageCursor = {
+  visitTime: number;
+  visitId: number;
+};
+
+export type HistoryVisitsPage = {
+  visits: BrowsingHistoryVisit[];
+  nextCursor: HistoryVisitsPageCursor | null;
+};

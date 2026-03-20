@@ -1,7 +1,12 @@
 import { and, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { getDb } from "@/saving/db";
 import { historyUrls, historyVisits } from "@/saving/db/schema";
-import type { BrowsingHistoryEntry, BrowsingHistoryVisit } from "~/types/history";
+import type {
+  BrowsingHistoryEntry,
+  BrowsingHistoryVisit,
+  HistoryVisitsPage,
+  HistoryVisitsPageCursor
+} from "~/types/history";
 
 const RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 
@@ -139,6 +144,72 @@ export function listBrowsingVisitsForProfile(profileId: string, search?: string)
     title: row.title,
     visitTime: row.visitTime
   }));
+}
+
+const HISTORY_PAGE_DEFAULT_LIMIT = 80;
+const HISTORY_PAGE_MAX_LIMIT = 200;
+
+export function listBrowsingVisitsPageForProfile(
+  profileId: string,
+  args: { search?: string; limit?: number; cursor?: HistoryVisitsPageCursor }
+): HistoryVisitsPage {
+  const db = getDb();
+  const q = args.search?.trim();
+  const profileCond = eq(historyUrls.profileId, profileId);
+  const searchCond =
+    q && q.length > 0
+      ? or(
+          sql`instr(lower(${historyUrls.url}), lower(${q})) > 0`,
+          sql`instr(lower(${historyUrls.title}), lower(${q})) > 0`
+        )
+      : undefined;
+
+  const cursor = args.cursor;
+  const cursorCond =
+    cursor != null
+      ? or(
+          lt(historyVisits.visitTime, cursor.visitTime),
+          and(eq(historyVisits.visitTime, cursor.visitTime), lt(historyVisits.id, cursor.visitId))
+        )
+      : undefined;
+
+  const conditions = [profileCond];
+  if (searchCond) conditions.push(searchCond);
+  if (cursorCond) conditions.push(cursorCond);
+
+  const rawLimit = args.limit ?? HISTORY_PAGE_DEFAULT_LIMIT;
+  const limit = Math.min(Math.max(rawLimit, 1), HISTORY_PAGE_MAX_LIMIT);
+
+  const rows = db
+    .select({
+      visitId: historyVisits.id,
+      urlRowId: historyUrls.id,
+      url: historyUrls.url,
+      title: historyUrls.title,
+      visitTime: historyVisits.visitTime
+    })
+    .from(historyVisits)
+    .innerJoin(historyUrls, eq(historyVisits.urlId, historyUrls.id))
+    .where(and(...conditions))
+    .orderBy(desc(historyVisits.visitTime), desc(historyVisits.id))
+    .limit(limit + 1)
+    .all();
+
+  const hasMore = rows.length > limit;
+  const slice = hasMore ? rows.slice(0, limit) : rows;
+  const last = slice[slice.length - 1];
+  const nextCursor: HistoryVisitsPageCursor | null =
+    hasMore && last != null ? { visitTime: last.visitTime, visitId: last.visitId } : null;
+
+  const visits: BrowsingHistoryVisit[] = slice.map((row) => ({
+    visitId: row.visitId,
+    urlRowId: row.urlRowId,
+    url: row.url,
+    title: row.title,
+    visitTime: row.visitTime
+  }));
+
+  return { visits, nextCursor };
 }
 
 /** After deleting one or more visits for a URL, refresh aggregates or drop the URL row. */

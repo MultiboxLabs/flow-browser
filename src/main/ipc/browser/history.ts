@@ -5,8 +5,10 @@ import {
   deleteBrowsingUrlRowForProfile,
   deleteBrowsingVisitForProfile,
   listBrowsingHistoryForProfile,
-  listBrowsingVisitsForProfile
+  listBrowsingVisitsForProfile,
+  listBrowsingVisitsPageForProfile
 } from "@/saving/history/browsing-history";
+import type { HistoryVisitsPageCursor } from "~/types/history";
 import { ipcMain } from "electron";
 
 async function profileIdFromSender(sender: Electron.WebContents): Promise<string | null> {
@@ -29,6 +31,18 @@ ipcMain.handle("history:list-visits", async (event, search?: string) => {
   if (!profileId) return [];
   return listBrowsingVisitsForProfile(profileId, search);
 });
+
+ipcMain.handle(
+  "history:list-visits-page",
+  async (
+    event,
+    args: { search?: string; limit: number; cursor?: HistoryVisitsPageCursor }
+  ) => {
+    const profileId = await profileIdFromSender(event.sender);
+    if (!profileId) return { visits: [], nextCursor: null };
+    return listBrowsingVisitsPageForProfile(profileId, args);
+  }
+);
 
 ipcMain.handle("history:delete-visit", async (event, visitId: number) => {
   const profileId = await profileIdFromSender(event.sender);

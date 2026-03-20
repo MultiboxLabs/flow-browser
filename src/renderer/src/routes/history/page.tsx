@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import {
   AlertDialog,
@@ -28,9 +29,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { simplifyUrl } from "@/lib/url";
-import type { BrowsingHistoryVisit } from "~/types/history";
+import type { BrowsingHistoryVisit, HistoryVisitsPageCursor } from "~/types/history";
 import { Clock, MoreHorizontal, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+
+const HISTORY_PAGE_SIZE = 80;
+
+function historyVisitsQueryKey(search: string) {
+  return ["history", "visits", search] as const;
+}
 
 function startOfLocalDay(ts: number): number {
   const d = new Date(ts);
@@ -70,30 +77,60 @@ function groupVisitsByDay(
 function HistoryPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [visits, setVisits] = useState<BrowsingHistoryVisit[]>([]);
-  const [loading, setLoading] = useState(true);
   const searchRef = useRef<HTMLInputElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => window.clearTimeout(t);
   }, [search]);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      const v = await flow.history.listVisits(debouncedSearch || undefined);
-      setVisits(v);
-    } catch {
-      toast.error("Could not load history");
-    } finally {
-      setLoading(false);
-    }
-  }, [debouncedSearch]);
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isError,
+    isFetchingNextPage,
+    isPending,
+    refetch
+  } = useInfiniteQuery({
+    queryKey: historyVisitsQueryKey(debouncedSearch),
+    queryFn: async ({ pageParam }: { pageParam: HistoryVisitsPageCursor | undefined }) => {
+      return flow.history.listVisitsPage({
+        search: debouncedSearch || undefined,
+        limit: HISTORY_PAGE_SIZE,
+        cursor: pageParam
+      });
+    },
+    initialPageParam: undefined as HistoryVisitsPageCursor | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined
+  });
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (isError) toast.error("Could not load history");
+  }, [isError]);
+
+  const visits = useMemo(() => data?.pages.flatMap((p) => p.visits) ?? [], [data]);
+
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el || !hasNextPage) return;
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const hit = entries.some((e) => e.isIntersecting);
+        if (hit && !isFetchingNextPage) void fetchNextPage();
+      },
+      { root: null, rootMargin: "240px", threshold: 0 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  const invalidateHistory = () => {
+    void queryClient.invalidateQueries({ queryKey: ["history", "visits"] });
+  };
 
   const grouped = useMemo(() => groupVisitsByDay(visits), [visits]);
 
@@ -112,7 +149,7 @@ function HistoryPage() {
     const ok = await flow.history.deleteVisit(visitId);
     if (ok) {
       toast.success("Removed from history");
-      void refresh();
+      invalidateHistory();
     } else {
       toast.error("Could not remove visit");
     }
@@ -122,7 +159,7 @@ function HistoryPage() {
     const ok = await flow.history.deleteAllForUrl(urlRowId);
     if (ok) {
       toast.success("Removed visits for this site");
-      void refresh();
+      invalidateHistory();
     } else {
       toast.error("Could not remove site history");
     }
@@ -131,7 +168,7 @@ function HistoryPage() {
   const clearAll = async () => {
     await flow.history.clearAll();
     toast.success("History cleared");
-    void refresh();
+    invalidateHistory();
   };
 
   return (
@@ -160,7 +197,7 @@ function HistoryPage() {
                 variant="ghost"
                 size="sm"
                 className="gap-2 text-muted-foreground hover:text-foreground border shrink-0"
-                disabled={visits.length === 0 && !loading}
+                disabled={visits.length === 0 && !isPending}
               >
                 <Trash2 className="size-4" />
                 Clear data
@@ -189,8 +226,15 @@ function HistoryPage() {
         transition={{ duration: 0.25, ease: "easeOut" }}
         className="max-w-3xl mx-auto w-full px-6 py-6 flex flex-col gap-4"
       >
-        {loading ? (
+        {isPending ? (
           <div className="py-20 text-center text-muted-foreground text-sm">Loading…</div>
+        ) : isError ? (
+          <div className="py-20 text-center space-y-3">
+            <p className="text-foreground font-medium">Could not load history</p>
+            <Button variant="outline" size="sm" onClick={() => void refetch()}>
+              Try again
+            </Button>
+          </div>
         ) : visits.length === 0 ? (
           <div className="py-20 text-center">
             <Clock className="size-10 mx-auto text-muted-foreground mb-3 opacity-40" />
@@ -276,6 +320,15 @@ function HistoryPage() {
               </CardContent>
             </Card>
           ))
+        )}
+        {visits.length > 0 && (
+          <div
+            ref={loadMoreRef}
+            className="min-h-8 py-4 flex flex-col items-center justify-center gap-1 text-muted-foreground text-sm"
+          >
+            {isFetchingNextPage ? <span>Loading more…</span> : null}
+            {!hasNextPage && !isFetchingNextPage ? <span>End of history</span> : null}
+          </div>
         )}
       </motion.div>
     </div>
