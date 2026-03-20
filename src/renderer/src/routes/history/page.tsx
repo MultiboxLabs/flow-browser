@@ -201,8 +201,8 @@ function HistoryPage() {
           </div>
         ) : (
           grouped.map((group) => (
-            <Card key={group.dayStart} className="overflow-hidden gap-0 py-0 shadow-sm">
-              <CardHeader className="px-4 py-2.5! border-border/60 gap-0 border-b bg-muted/30">
+            <Card key={group.dayStart} className="gap-0 py-0 shadow-sm overflow-clip">
+              <CardHeader className="sticky top-15 z-5 px-4 py-2.5! border-border/60 gap-0 border-b bg-muted/95 backdrop-blur-sm">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   {group.label}
                 </span>
