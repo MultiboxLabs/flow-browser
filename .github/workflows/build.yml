@@ -87,7 +87,7 @@ jobs:
           today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
           text, n = re.subn(
               r'(<release version=")[^"]+(" date=")[^"]+(")',
-              rf"\g<1>{version}\2{today}\3",
+              rf"\g<1>{version}\g<2>{today}\g<3>",
               text,
               count=1,
           )
