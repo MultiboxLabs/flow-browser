@@ -2,6 +2,8 @@ import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provi
 import { WindowControlsLinux } from "@/components/browser-ui/window-controls/linux";
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
 import { usePlatform } from "@/components/main/platform";
+import { useSpaces } from "@/components/providers/spaces-provider";
+import { cn } from "@/lib/utils";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 // Context //
@@ -83,11 +85,15 @@ export function AdaptiveTopbarProvider({ children }: AdaptiveTopbarProviderProps
 // Component //
 export function AdaptiveTopbar() {
   const { topbarHeight, topbarVisible, isFullscreen } = useAdaptiveTopbar();
+  const { isCurrentSpaceLight } = useSpaces();
   const { platform } = usePlatform();
   if (!topbarVisible) return null;
   if (isFullscreen) return null;
   return (
-    <div className="w-full flex flex-row items-center" style={{ height: `${topbarHeight}px` }}>
+    <div
+      className={cn("w-full flex flex-row items-center", !isCurrentSpaceLight && "dark")}
+      style={{ height: `${topbarHeight}px` }}
+    >
       <div className="w-3" />
       {platform === "darwin" && <SidebarWindowControlsMacOS />}
       {platform === "linux" && (
