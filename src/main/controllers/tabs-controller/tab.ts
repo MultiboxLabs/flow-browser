@@ -93,7 +93,10 @@ export interface TabCreationOptions {
 
   // Others
   noLoadURL?: boolean;
-  /** Next http(s) history row should increment typed_count (omnibox / address bar). */
+  /**
+   * When true, `TabsController` applies typed intent for the initial `loadURL(initialURL)` using that
+   * same URL string (see `markTypedNavigationForNextHistoryVisit`).
+   */
   typedNavigation?: boolean;
 }
 
@@ -170,8 +173,11 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   /** When true, this tab is not saved to the database and will not survive app restart. */
   public ephemeral: boolean;
 
-  /** Consumed on the next recorded history visit (full load or main-frame in-page). */
-  private pendingHistoryTypedIncrement: boolean = false;
+  /**
+   * When set, the next recorded http(s) visit counts as typed only if it commits to this exact URL
+   * (avoids crediting a later navigation after a cancelled load).
+   */
+  private pendingHistoryTypedUrl: string | null = null;
   /**
    * Canonical key of the last http(s) visit we stored for this tab in this WebContents
    * lifetime. If a new visit matches this key, it is skipped (refresh, SPA re-fires, etc.).
@@ -335,6 +341,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     if (this.view) return; // Already initialized
 
     this.lastRecordedHistoryKey = "";
+    this.pendingHistoryTypedUrl = null;
 
     const webContentsView = createWebContentsView(this.session, this._webContentsViewOptions);
     const webContents = webContentsView.webContents;
@@ -777,17 +784,23 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   }
 
   /**
-   * Next successful http(s) history recording will increment `typed_count` for that URL.
-   * Used when the user navigates via the omnibox or address bar.
+   * Next successful http(s) history recording increments `typed_count` only if the committed URL
+   * matches `url` (same string as passed to loadURL).
    */
-  public markTypedNavigationForNextHistoryVisit(): void {
-    this.pendingHistoryTypedIncrement = true;
+  public markTypedNavigationForNextHistoryVisit(url: string): void {
+    this.pendingHistoryTypedUrl = url;
   }
 
-  private consumeHistoryTypedPending(): boolean {
-    const v = this.pendingHistoryTypedIncrement;
-    this.pendingHistoryTypedIncrement = false;
-    return v;
+  private clearPendingHistoryTypedNavigation(): void {
+    this.pendingHistoryTypedUrl = null;
+  }
+
+  /** Clears pending typed intent; returns whether it applied to this recorded URL. */
+  private consumeHistoryTypedPendingForRecordedUrl(recordedUrl: string): boolean {
+    const pending = this.pendingHistoryTypedUrl;
+    this.pendingHistoryTypedUrl = null;
+    if (pending === null) return false;
+    return pending === recordedUrl;
   }
 
   /**
@@ -802,19 +815,21 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
   private recordBrowsingHistoryFromWebContents(webContents: WebContents, urlOverride?: string): void {
     const url = urlOverride ?? webContents.getURL();
-    if (!isHistoryRecordableUrl(url) || this.loadedProfile.profileData.ephemeral) return;
+
     if (!this.tabsController.isTabActive(this)) return;
 
-    const wouldIncrementTyped = this.pendingHistoryTypedIncrement;
-    const sessionKey = Tab.historyUrlSessionKey(url);
-    if (sessionKey === this.lastRecordedHistoryKey && this.lastRecordedHistoryKey !== "") {
-      if (wouldIncrementTyped) {
-        this.consumeHistoryTypedPending();
-      }
+    if (!isHistoryRecordableUrl(url) || this.loadedProfile.profileData.ephemeral) {
+      this.clearPendingHistoryTypedNavigation();
       return;
     }
 
-    const incrementTyped = this.consumeHistoryTypedPending();
+    const sessionKey = Tab.historyUrlSessionKey(url);
+    if (sessionKey === this.lastRecordedHistoryKey && this.lastRecordedHistoryKey !== "") {
+      this.consumeHistoryTypedPendingForRecordedUrl(url);
+      return;
+    }
+
+    const incrementTyped = this.consumeHistoryTypedPendingForRecordedUrl(url);
     this.lastRecordedHistoryKey = sessionKey;
 
     recordBrowsingHistoryVisit({

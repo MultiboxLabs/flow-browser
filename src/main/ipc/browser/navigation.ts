@@ -13,8 +13,8 @@ ipcMain.on("navigation:go-to", (event, url: string, tabId?: number, typedFromAdd
   const tab = tabId ? tabsController.getTabById(tabId) : tabsController.getFocusedTab(window.id, currentSpace);
   if (!tab) return false;
 
-  if (typedFromAddressBar) {
-    tab.markTypedNavigationForNextHistoryVisit();
+  if (typedFromAddressBar === true) {
+    tab.markTypedNavigationForNextHistoryVisit(url);
   }
   tab.loadURL(url);
   return true;

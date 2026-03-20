@@ -22,7 +22,7 @@ This document is the **source of truth** for how Flow stores and surfaces browsi
   - `history_urls` — canonical URL row per `(profile_id, url)`:
     - `id`, `profile_id`, `url`, `title`, `visit_count`, `typed_count`, `last_visit_time`
   - `history_visits` — one row per recorded navigation:
-    - `id`, `url_id` → `history_urls.id`, `visit_time` (ms since epoch)
+    - `id`, `url_id` → `history_urls.id` (**foreign key**, `ON DELETE CASCADE`), `visit_time` (ms since epoch), `typed` (whether this visit was an address-bar / omnibox navigation)
 
 **Indices:** unique `(profile_id, url)` on URLs; `url_id` and `visit_time` on visits for queries and pruning.
 
@@ -39,12 +39,12 @@ This document is the **source of truth** for how Flow stores and surfaces browsi
 
 ### Typed count (`typed_count`)
 
-Incremented when the user navigates via the **omnibox / address bar** (submit or choosing a suggestion), including **open in new tab** from the omnibox. Implemented by setting a one-shot flag on the tab before `loadURL`:
+Incremented when the user navigates via the **omnibox / address bar** (submit or choosing a suggestion), including **open in new tab** from the omnibox. Before `loadURL`, main stores the **intended URL string**; only a recorded visit whose committed URL **matches** that string increments `typed_count` (avoids applying the marker after a failed navigation or to a different final URL). Each visit row stores a `typed` boolean so `typed_count` on `history_urls` can be **recomputed** from visits after deletes or retention pruning.
 
 - `navigation:go-to` optional `typedFromAddressBar`
 - `tabs:new-tab` optional `typedFromAddressBar` (initial load only)
 
-Other navigations (links, redirects, UI outside the omnibox) do not increment `typed_count`.
+Other navigations (links, redirects, UI outside the omnibox) do not increment `typed_count`. Navigations that do not produce a history row (non-`http(s)` URL, ephemeral profile, etc.) **clear** any pending typed marker so it does not apply to a later page.
 
 ## Surfaces
 
@@ -70,7 +70,7 @@ Other navigations (links, redirects, UI outside the omnibox) do not increment `t
 
 - On database init (after migrations), delete visits with `visit_time` older than **90 days**.
 - Remove URL rows that no longer have any visits.
-- Recompute `visit_count` and `last_visit_time` on remaining URLs from their visits so aggregates stay consistent.
+- Recompute `visit_count`, `typed_count`, and `last_visit_time` on remaining URLs from their visits so aggregates stay consistent.
 
 ## API surface (preload → main)
 
