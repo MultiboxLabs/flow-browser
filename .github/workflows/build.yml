@@ -78,7 +78,7 @@ jobs:
               "        path: main\n"
               "        dest: main\n"
           )
-          new_text, n = re.sub(pattern, replacement, text, count=1, flags=re.DOTALL)
+          new_text, n = re.subn(pattern, replacement, text, count=1, flags=re.DOTALL)
           if n != 1:
               raise SystemExit(
                   "Expected to replace exactly one Flathub main source archive block; "
