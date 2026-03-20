@@ -19,6 +19,7 @@
     "start:nightly": "bun run scripts/temp-change-name/command --name 'Flow Nightly' electron-vite preview",
     "dev": "electron-vite dev",
     "dev:watch": "electron-vite dev --watch",
+    "dev:devtools": "cross-env BROWSER_WINDOW_DEVTOOLS=true bun run dev",
     "build": "bun run typecheck && cross-env PRODUCTION_BUILD=true electron-vite build && bun run script:prune-frontend-routes",
     "build:unpack": "bun run build && electron-builder --dir",
     "build:win": "bun run build && electron-builder --win",
