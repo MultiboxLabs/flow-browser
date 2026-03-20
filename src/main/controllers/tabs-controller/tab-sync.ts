@@ -63,6 +63,17 @@ function sendPlaceholderUpdate(targetWindow: BrowserWindow, update: TabPlacehold
 }
 
 /**
+ * Keeps the underlying Electron view hidden while a tab is transferred
+ * between windows. The sync/close flows intentionally bypass the normal
+ * layout manager when marking the tab dormant, so we must mirror the
+ * model-level `visible = false` flag onto the actual WebContentsView.
+ */
+function prepareTabForWindowTransfer(tab: Tab): void {
+  tab.visible = false;
+  tab.view?.setVisible(false);
+}
+
+/**
  * Captures a screenshot of the tab. Must be called while the view is still
  * attached — capturePage returns empty once the view is detached.
  */
@@ -260,7 +271,7 @@ async function moveTabToWindowIfNeeded(tab: Tab, window: BrowserWindow, isStale?
     }
 
     // Move the tab to the new window
-    tab.visible = false;
+    prepareTabForWindowTransfer(tab);
     tab.setWindow(window);
 
     // Reset cached bounds so the layout manager re-applies for the new window
@@ -362,7 +373,7 @@ export function relocateTabsFromClosingWindow(closingWindow: BrowserWindow, tabs
   // Relocate tabs to their respective target windows
   for (const [targetWindow, windowTabs] of relocatable) {
     for (const tab of windowTabs) {
-      tab.visible = false;
+      prepareTabForWindowTransfer(tab);
       tab.setWindow(targetWindow);
 
       const layoutManager = tabsController.getLayoutManager(tab.id);
