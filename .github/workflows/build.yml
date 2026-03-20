@@ -76,11 +76,17 @@ jobs:
           set -euo pipefail
           echo "=== Checking bun.lock exists ==="
           ls -la ./main/bun.lock
-          echo "=== Checking for existing generated-sources.json from Flathub ==="
-          ls -la ./generated-sources.json 2>/dev/null && echo "WARNING: Old generated-sources.json exists!" || echo "No existing generated-sources.json"
+          echo "=== Removing old generated-sources.json from Flathub ==="
+          rm -f ./generated-sources.json
+          echo "=== Installing flatpak-bun-generator ==="
+          bun add -g flatpak-bun-generator@latest
           echo "=== Running flatpak-bun-generator ==="
-          bunx flatpak-bun-generator@latest ./main/bun.lock --output ./generated-sources.json 2>&1
+          flatpak-bun-generator ./main/bun.lock --output ./generated-sources.json
           echo "=== Verifying generated-sources.json ==="
+          if [ ! -f ./generated-sources.json ]; then
+            echo "ERROR: generated-sources.json was not created!"
+            exit 1
+          fi
           ls -la ./generated-sources.json
           echo "=== Source count ==="
           URL_COUNT=$(grep -c '"url"' ./generated-sources.json)
@@ -89,7 +95,8 @@ jobs:
             echo "ERROR: generated-sources.json has too few entries ($URL_COUNT < 100), generation likely failed!"
             exit 1
           fi
-          head -100 ./generated-sources.json
+          echo "=== First 50 lines ==="
+          head -50 ./generated-sources.json
 
       - name: Patch Flathub manifest to build from this checkout
         run: |
