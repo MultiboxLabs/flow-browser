@@ -80,8 +80,12 @@ jobs:
           rm -f ./generated-sources.json
           echo "=== Installing flatpak-bun-generator ==="
           bun add -g flatpak-bun-generator@latest
+          echo "=== Finding generator binary ==="
+          GENERATOR_BIN="$(bun pm bin -g)/flatpak-bun-generator"
+          echo "Generator path: $GENERATOR_BIN"
+          ls -la "$GENERATOR_BIN" || echo "Binary not found at expected path!"
           echo "=== Running flatpak-bun-generator ==="
-          flatpak-bun-generator ./main/bun.lock --output ./generated-sources.json
+          "$GENERATOR_BIN" ./main/bun.lock --output ./generated-sources.json
           echo "=== Verifying generated-sources.json ==="
           if [ ! -f ./generated-sources.json ]; then
             echo "ERROR: generated-sources.json was not created!"
