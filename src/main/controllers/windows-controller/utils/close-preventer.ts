@@ -4,7 +4,7 @@
 import { app, type WebContents, webContents } from "electron";
 import { menuCloseTab } from "@/controllers/app-menu-controller/menu/items/view";
 
-const enabled = process.platform === "win32";
+const enabled = process.platform === "win32" || process.platform === "linux";
 
 const registeredWebContentIds: Set<number> = new Set();
 
