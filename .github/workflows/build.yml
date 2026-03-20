@@ -35,6 +35,7 @@ jobs:
 
   # Flatpak using manifest + generated-sources from Flathub (cloned each run to stay in sync)
   build-flatpak:
+    needs: before-build-comment
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     strategy:
@@ -104,11 +105,18 @@ jobs:
       - name: Setup Flathub remote
         run: flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-      - name: Build Flatpak
+      - name: Download Flatpak sources and SDK (online)
         working-directory: flatpak-upstream
         run: |
           flatpak-builder --user --install-deps-from=flathub --repo="${{ github.workspace }}/flatpak-repo" \
-            --force-clean build-dir com.flow_browser.flow.yml
+            --force-clean --download-only build-dir com.flow_browser.flow.yml
+
+      - name: Build Flatpak (offline)
+        working-directory: flatpak-upstream
+        run: |
+          flatpak-builder --user --repo="${{ github.workspace }}/flatpak-repo" \
+            --disable-download --disable-network \
+            build-dir com.flow_browser.flow.yml
 
       - name: Create Flatpak bundle
         run: |
