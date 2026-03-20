@@ -84,8 +84,20 @@ jobs:
           GENERATOR_BIN="$(bun pm bin -g)/flatpak-bun-generator"
           echo "Generator path: $GENERATOR_BIN"
           ls -la "$GENERATOR_BIN" || echo "Binary not found at expected path!"
-          echo "=== Running flatpak-bun-generator ==="
-          "$GENERATOR_BIN" ./main/bun.lock --output ./generated-sources.json
+          echo "=== Checking Node/Bun versions ==="
+          node --version
+          bun --version
+          echo "=== Checking if generator script is executable ==="
+          file "$GENERATOR_BIN"
+          head -5 "$(readlink -f "$GENERATOR_BIN")"
+          echo "=== Running flatpak-bun-generator with explicit node ==="
+          SCRIPT_PATH="$(readlink -f "$GENERATOR_BIN")"
+          echo "Resolved script: $SCRIPT_PATH"
+          node "$SCRIPT_PATH" ./main/bun.lock --output ./generated-sources.json 2>&1 || {
+            echo "Generator failed with exit code $?"
+            echo "=== Trying with bun instead ==="
+            bun "$SCRIPT_PATH" ./main/bun.lock --output ./generated-sources.json 2>&1
+          }
           echo "=== Verifying generated-sources.json ==="
           if [ ! -f ./generated-sources.json ]; then
             echo "ERROR: generated-sources.json was not created!"
