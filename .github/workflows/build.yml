@@ -65,6 +65,40 @@ jobs:
             --exclude='flatpak-upstream/' \
             ./ flatpak-upstream/main/
 
+      - name: Set Flatpak metainfo version (package version + short SHA)
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+          import re
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          sha = os.environ["GITHUB_SHA"]
+          short = sha[:7]
+          root = Path("flatpak-upstream/main")
+
+          pkg = json.loads((root / "package.json").read_text())
+          base = str(pkg["version"]).split("+", 1)[0]
+          version = f"{base}+{short}"
+
+          meta_path = root / "com.flow_browser.flow.metainfo.xml"
+          text = meta_path.read_text()
+          today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+          text, n = re.subn(
+              r'(<release version=")[^"]+(" date=")[^"]+(")',
+              rf"\g<1>{version}\2{today}\3",
+              text,
+              count=1,
+          )
+          if n != 1:
+              raise SystemExit(
+                  "Expected exactly one <release> in com.flow_browser.flow.metainfo.xml; "
+                  "update the regex in build.yml if the file changed."
+              )
+          meta_path.write_text(text)
+          PY
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
         with:
