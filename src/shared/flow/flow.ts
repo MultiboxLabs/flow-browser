@@ -11,6 +11,7 @@ import { FlowInterfaceAPI } from "~/flow/interfaces/browser/interface";
 import { FlowOmniboxAPI } from "~/flow/interfaces/browser/omnibox";
 import { FlowNewTabAPI } from "~/flow/interfaces/browser/newTab";
 import { FlowFindInPageAPI } from "~/flow/interfaces/browser/find-in-page";
+import { FlowPasskeyOverlayAPI } from "~/flow/interfaces/browser/passkey-overlay";
 
 import { FlowProfilesAPI } from "~/flow/interfaces/sessions/profiles";
 import { FlowSpacesAPI } from "~/flow/interfaces/sessions/spaces";
@@ -47,6 +48,7 @@ declare global {
     omnibox: FlowOmniboxAPI;
     newTab: FlowNewTabAPI;
     findInPage: FlowFindInPageAPI;
+    passkeyOverlay: FlowPasskeyOverlayAPI;
 
     // Session APIs
     profiles: FlowProfilesAPI;

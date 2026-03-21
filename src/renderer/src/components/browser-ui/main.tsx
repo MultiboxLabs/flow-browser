@@ -30,6 +30,7 @@ import { ActionsProvider } from "@/components/providers/actions-provider";
 import { PinnedTabsProvider } from "@/components/providers/pinned-tabs-provider";
 import BrowserContent from "@/components/browser-ui/browser-content";
 import { FindInPage } from "@/components/browser-ui/find-in-page";
+import { PasskeyOverlay } from "@/components/browser-ui/passkey-overlay";
 import { NavigationControls } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
 import { AddressBar } from "@/components/browser-ui/browser-sidebar/_components/address-bar";
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
@@ -273,6 +274,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
                     <div className="relative w-full h-full flex flex-col">
                       <LoadingIndicator />
                       <FindInPage />
+                      <PasskeyOverlay />
                       {!hasSidebar && <PopupToolbar />}
                       <BrowserContent />
                     </div>
