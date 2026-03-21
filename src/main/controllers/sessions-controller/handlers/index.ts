@@ -1,5 +1,5 @@
 import { debugPrint } from "@/modules/output";
-import { registerDownloadHandler } from "@/modules/downloads-handler";
+import { registerDownloadHandler } from "@/modules/downloads/handler";
 import { setAlwaysOpenExternal, shouldAlwaysOpenExternal } from "@/saving/open-external";
 import { app, dialog, OpenExternalPermissionRequest, type Session } from "electron";
 

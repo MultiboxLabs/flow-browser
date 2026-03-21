@@ -3,7 +3,7 @@ import { registerProtocolsWithSession } from "../protocols";
 import { app, session } from "electron";
 import { setupInterceptRules } from "@/controllers/sessions-controller/intercept-rules";
 import { registerPreloadScripts } from "@/controllers/sessions-controller/preload-scripts";
-import { registerDownloadHandler } from "@/modules/downloads-handler";
+import { registerDownloadHandler } from "@/modules/downloads/handler";
 
 function initializeDefaultSession() {
   const defaultSession = session.defaultSession;

@@ -24,9 +24,9 @@ import { debugError, debugPrint } from "@/modules/output";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 
 // Conditionally import macOS progress module
-let macosProgress: typeof import("@/modules/macos-progress") | null = null;
+let macosProgress: typeof import("@/modules/downloads/macos-progress") | null = null;
 if (process.platform === "darwin") {
-  import("@/modules/macos-progress")
+  import("@/modules/downloads/macos-progress")
     .then((module) => {
       macosProgress = module;
     })
@@ -75,11 +75,11 @@ function hiddenCrdownloadPathInDownloads(downloadsDir: string, crdownloadBasenam
   return path.join(downloadsDir, `.${crdownloadBasename}`);
 }
 
-async function ensureMacosProgressModule(): Promise<typeof import("@/modules/macos-progress") | null> {
+async function ensureMacosProgressModule(): Promise<typeof import("@/modules/downloads/macos-progress") | null> {
   if (process.platform !== "darwin") return null;
   if (macosProgress) return macosProgress;
   try {
-    const mod = await import("@/modules/macos-progress");
+    const mod = await import("@/modules/downloads/macos-progress");
     macosProgress = mod;
     return mod;
   } catch (err) {
