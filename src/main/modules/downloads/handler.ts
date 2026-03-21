@@ -12,7 +12,7 @@
 
 import { app, dialog, type DownloadItem, type Session, type WebContents } from "electron";
 import path from "path";
-import fs from "fs";
+import fs from "fs/promises";
 import { debugError, debugPrint } from "@/modules/output";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 
@@ -62,6 +62,15 @@ interface DownloadMetadata {
 
 const activeDownloads = new Map<DownloadItem, DownloadMetadata>();
 
+async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function generateCrdownloadNumber(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -75,11 +84,11 @@ function generateCrdownloadBasename(): string {
  * Move the in-progress download to the user's chosen directory.
  * Tries cheapest/best first; `rename` fails across volumes (`EXDEV`), so we fall back to links.
  */
-function moveCrdownloadToFinalDir(
+async function moveCrdownloadToFinalDir(
   currentPath: string,
   finalDir: string,
   crdownloadBasename: string
-): { kind: MirrorKind; newPath: string } {
+): Promise<{ kind: MirrorKind; newPath: string }> {
   const targetPath = path.join(finalDir, crdownloadBasename);
 
   // Same directory - no move needed
@@ -88,9 +97,9 @@ function moveCrdownloadToFinalDir(
   }
 
   // Remove existing file at target if it exists
-  if (fs.existsSync(targetPath)) {
+  if (await pathExists(targetPath)) {
     try {
-      fs.unlinkSync(targetPath);
+      await fs.unlink(targetPath);
     } catch {
       /* ignore */
     }
@@ -98,7 +107,7 @@ function moveCrdownloadToFinalDir(
 
   // Same volume: one inode moves to target; open FD from Chromium keeps working.
   try {
-    fs.renameSync(currentPath, targetPath);
+    await fs.rename(currentPath, targetPath);
     return { kind: "moved", newPath: targetPath };
   } catch {
     /* continue */
@@ -106,7 +115,7 @@ function moveCrdownloadToFinalDir(
 
   // Same volume, second name for the same inode.
   try {
-    fs.linkSync(currentPath, targetPath);
+    await fs.link(currentPath, targetPath);
     return { kind: "hardlink", newPath: targetPath };
   } catch {
     /* continue */
@@ -114,7 +123,7 @@ function moveCrdownloadToFinalDir(
 
   // Cross-volume: symlink to absolute path.
   try {
-    fs.symlinkSync(currentPath, targetPath);
+    await fs.symlink(currentPath, targetPath);
     return { kind: "symlink", newPath: targetPath };
   } catch {
     /* continue */
@@ -122,7 +131,7 @@ function moveCrdownloadToFinalDir(
 
   // Last resort: empty decoy at target path.
   try {
-    fs.writeFileSync(targetPath, "");
+    await fs.writeFile(targetPath, "");
     return { kind: "placeholder", newPath: currentPath };
   } catch (err) {
     debugError("DOWNLOADS", "Could not move .crdownload to user path:", err);
@@ -131,13 +140,13 @@ function moveCrdownloadToFinalDir(
 }
 
 /** Removes the symlink/hardlink/placeholder if one was created. */
-function removeSecondaryPath(primaryPath: string, secondaryPath: string): void {
+async function removeSecondaryPath(primaryPath: string, secondaryPath: string): Promise<void> {
   if (primaryPath === secondaryPath) return;
   try {
-    if (fs.existsSync(secondaryPath)) {
-      const st = fs.lstatSync(secondaryPath);
+    if (await pathExists(secondaryPath)) {
+      const st = await fs.lstat(secondaryPath);
       if (st.isSymbolicLink() || st.isFile()) {
-        fs.unlinkSync(secondaryPath);
+        await fs.unlink(secondaryPath);
       }
     }
   } catch (err) {
@@ -151,10 +160,10 @@ function needsSecondaryCleanup(kind?: MirrorKind): boolean {
 }
 
 /** Clean up secondary path if one was created (hardlink/symlink/placeholder). */
-function cleanupSecondaryPath(meta: DownloadMetadata, crdownloadBasename: string): void {
+async function cleanupSecondaryPath(meta: DownloadMetadata, crdownloadBasename: string): Promise<void> {
   if (needsSecondaryCleanup(meta.mirrorKind) && meta.finalPath) {
     const secondaryPath = path.join(path.dirname(meta.finalPath), crdownloadBasename);
-    removeSecondaryPath(meta.crdownloadPath, secondaryPath);
+    await removeSecondaryPath(meta.crdownloadPath, secondaryPath);
   }
 }
 
@@ -169,10 +178,10 @@ function finalizeMacProgress(mp: MacOSProgress | null, progressId: string | null
 }
 
 /** Delete a file safely with error logging. */
-function deleteFile(filePath: string, description: string): void {
+async function deleteFile(filePath: string, description: string): Promise<void> {
   try {
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    if (await pathExists(filePath)) {
+      await fs.unlink(filePath);
       debugPrint("DOWNLOADS", `Deleted ${description}: ${filePath}`);
     }
   } catch (err) {
@@ -181,11 +190,11 @@ function deleteFile(filePath: string, description: string): void {
 }
 
 /** Move .crdownload to final path (rename or copy+delete). */
-function moveTempToFinal(crdownloadPath: string, finalPath: string): boolean {
+async function moveTempToFinal(crdownloadPath: string, finalPath: string): Promise<boolean> {
   // Remove existing final file if present
-  if (fs.existsSync(finalPath)) {
+  if (await pathExists(finalPath)) {
     try {
-      fs.unlinkSync(finalPath);
+      await fs.unlink(finalPath);
     } catch {
       /* ignore */
     }
@@ -193,14 +202,14 @@ function moveTempToFinal(crdownloadPath: string, finalPath: string): boolean {
 
   // Try rename first (fastest)
   try {
-    fs.renameSync(crdownloadPath, finalPath);
+    await fs.rename(crdownloadPath, finalPath);
     debugPrint("DOWNLOADS", `Moved to final path: ${finalPath}`);
     return true;
   } catch {
     // Fall back to copy+delete for cross-device moves
     try {
-      fs.copyFileSync(crdownloadPath, finalPath);
-      fs.unlinkSync(crdownloadPath);
+      await fs.copyFile(crdownloadPath, finalPath);
+      await fs.unlink(crdownloadPath);
       debugPrint("DOWNLOADS", `Copied to final path: ${finalPath}`);
       return true;
     } catch (copyErr) {
@@ -245,13 +254,13 @@ function updateMacProgress(meta: DownloadMetadata, receivedBytes: number, totalB
  * Handles download completion/cancellation logic.
  * Separated so it can be called both immediately (if user confirmed) or deferred (if not).
  */
-function handleDownloadCompletion(
+async function handleDownloadCompletion(
   _item: DownloadItem,
   meta: DownloadMetadata,
   state: "completed" | "cancelled" | "interrupted",
   mp: MacOSProgress | null,
   crdownloadBasename: string
-): void {
+): Promise<void> {
   debugPrint("DOWNLOADS", `Download ${state}: ${meta.crdownloadPath}`);
 
   if (state === "completed") {
@@ -259,24 +268,24 @@ function handleDownloadCompletion(
 
     // Only move to final path if user confirmed save dialog
     if (meta.saveConfirmed && meta.finalPath) {
-      cleanupSecondaryPath(meta, crdownloadBasename);
-      moveTempToFinal(meta.crdownloadPath, meta.finalPath);
+      await cleanupSecondaryPath(meta, crdownloadBasename);
+      await moveTempToFinal(meta.crdownloadPath, meta.finalPath);
     } else {
       // Download completed before user chose save location; leave temp file
       debugPrint("DOWNLOADS", `No save location chosen yet`);
     }
   } else if (state === "cancelled") {
     finalizeMacProgress(mp, meta.progressId, false);
-    cleanupSecondaryPath(meta, crdownloadBasename);
-    deleteFile(meta.crdownloadPath, "partial download");
+    await cleanupSecondaryPath(meta, crdownloadBasename);
+    await deleteFile(meta.crdownloadPath, "partial download");
   } else if (state === "interrupted") {
     finalizeMacProgress(mp, meta.progressId, false);
     // Leave partial files on disk for recovery; only remove secondary path if present
-    cleanupSecondaryPath(meta, crdownloadBasename);
+    await cleanupSecondaryPath(meta, crdownloadBasename);
   }
 }
 
-/** Main `will-download` handler: sync setup, async dialog, then event-driven move + completion. */
+/** Main `will-download` handler: sync `setSavePath`, async dialog and filesystem work, then event-driven completion. */
 export function handleDownload(_webContents: WebContents, item: DownloadItem): void {
   const suggestedFilename = item.getFilename();
   const downloadsDir = app.getPath("downloads");
@@ -337,7 +346,7 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
 
       // If download already completed before user cancelled, manually clean up the file
       if (metadata.earlyCompletion?.state === "completed") {
-        deleteFile(metadata.crdownloadPath, "completed download after user cancelled");
+        await deleteFile(metadata.crdownloadPath, "completed download after user cancelled");
         activeDownloads.delete(item);
       } else {
         // Download still in progress, cancel it normally
@@ -356,7 +365,7 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     // If download already completed/cancelled before dialog finished, handle it now
     if (metadata.earlyCompletion) {
       debugPrint("DOWNLOADS", `Handling early completion (${metadata.earlyCompletion.state})`);
-      handleDownloadCompletion(item, metadata, metadata.earlyCompletion.state, mp, crdownloadBasename);
+      await handleDownloadCompletion(item, metadata, metadata.earlyCompletion.state, mp, crdownloadBasename);
       activeDownloads.delete(item);
     }
   })();
@@ -366,45 +375,45 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     if (!meta) return;
 
     // Only move file if user has confirmed save location and file exists
-    if (
-      state === "progressing" &&
-      !meta.mirrorSetup &&
-      meta.saveConfirmed &&
-      meta.finalPath &&
-      fs.existsSync(meta.crdownloadPath)
-    ) {
+    if (state === "progressing" && !meta.mirrorSetup && meta.saveConfirmed && meta.finalPath) {
       meta.mirrorSetup = true;
-      const finalDir = path.dirname(meta.finalPath);
-      const originalPath = meta.crdownloadPath;
-      const result = moveCrdownloadToFinalDir(meta.crdownloadPath, finalDir, crdownloadBasename);
-      meta.mirrorKind = result.kind;
-
-      debugPrint("DOWNLOADS", `In-progress .crdownload (${result.kind}): ${result.newPath}`);
-
-      // Only update macOS progress path if we successfully MOVED the file (not hardlink/symlink/placeholder)
-      if (result.kind === "moved") {
-        meta.crdownloadPath = result.newPath;
-
-        // Verify file exists at new location before updating progress
-        if (fs.existsSync(result.newPath)) {
-          if (macosProgress && meta.progressId) {
-            debugPrint("DOWNLOADS", `Recreating macOS progress from ${originalPath} to ${result.newPath}`);
-            // Recreate progress at new location (more reliable than updating path)
-            const newProgressId = macosProgress.recreateFileProgressAtPath(meta.progressId, result.newPath, () => {
-              debugPrint("DOWNLOADS", `Cancel requested from Finder for: ${item.getFilename()}`);
-              item.cancel();
-            });
-            if (newProgressId) {
-              meta.progressId = newProgressId;
-            }
-          }
-        } else {
-          debugError("DOWNLOADS", `File doesn't exist at new path after move: ${result.newPath}`);
+      void (async () => {
+        if (!(await pathExists(meta.crdownloadPath))) {
+          meta.mirrorSetup = false;
+          return;
         }
-      } else if (result.kind === "hardlink" || result.kind === "symlink") {
-        // Keep tracking original file, but user sees progress on the link in final directory
-        debugPrint("DOWNLOADS", `Keeping macOS progress on original file: ${meta.crdownloadPath}`);
-      }
+        const finalDir = path.dirname(meta.finalPath!);
+        const originalPath = meta.crdownloadPath;
+        const result = await moveCrdownloadToFinalDir(meta.crdownloadPath, finalDir, crdownloadBasename);
+        meta.mirrorKind = result.kind;
+
+        debugPrint("DOWNLOADS", `In-progress .crdownload (${result.kind}): ${result.newPath}`);
+
+        // Only update macOS progress path if we successfully MOVED the file (not hardlink/symlink/placeholder)
+        if (result.kind === "moved") {
+          meta.crdownloadPath = result.newPath;
+
+          // Verify file exists at new location before updating progress
+          if (await pathExists(result.newPath)) {
+            if (macosProgress && meta.progressId) {
+              debugPrint("DOWNLOADS", `Recreating macOS progress from ${originalPath} to ${result.newPath}`);
+              // Recreate progress at new location (more reliable than updating path)
+              const newProgressId = macosProgress.recreateFileProgressAtPath(meta.progressId, result.newPath, () => {
+                debugPrint("DOWNLOADS", `Cancel requested from Finder for: ${item.getFilename()}`);
+                item.cancel();
+              });
+              if (newProgressId) {
+                meta.progressId = newProgressId;
+              }
+            }
+          } else {
+            debugError("DOWNLOADS", `File doesn't exist at new path after move: ${result.newPath}`);
+          }
+        } else if (result.kind === "hardlink" || result.kind === "symlink") {
+          // Keep tracking original file, but user sees progress on the link in final directory
+          debugPrint("DOWNLOADS", `Keeping macOS progress on original file: ${meta.crdownloadPath}`);
+        }
+      })();
     }
 
     if (state === "progressing") {
@@ -437,7 +446,7 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     // Save confirmed, handle immediately
     activeDownloads.delete(item);
     const mp = await ensureMacosProgressModule();
-    handleDownloadCompletion(item, meta, state, mp, crdownloadBasename);
+    await handleDownloadCompletion(item, meta, state, mp, crdownloadBasename);
   });
 }
 
