@@ -3,18 +3,19 @@
  *
  * Paths (same random id for one download):
  * - **Hidden temp** — `Downloads/.Unconfirmed {id}.crdownload` (leading dot = hidden in Finder).
- *   Electron must get this path synchronously in `will-download`; we pause until the user picks
- *   a final location, then resume.
+ *   Electron must get this path synchronously in `will-download`; the user picks a final location
+ *   via save dialog.
  * - **Visible in-progress** — `dirname(final) / Unconfirmed {id}.crdownload` (no leading dot).
  *   Once the temp file exists, we move or mirror it here so the user sees progress next to their
  *   chosen save name.
  * - **Final** — path from the save dialog; we rename the completed `.crdownload` here.
  *
  * Flow:
- * 1. `setSavePath` (hidden) + `pause` so no bytes run before metadata exists.
- * 2. macOS: `NSProgress` on the hidden path, then save dialog.
- * 3. On confirm: `resume`; on first `progressing` event with a real file, move/mirror to visible.
- * 4. On `done`: tear down mirror if needed, then rename (or copy+delete) to the final name.
+ * 1. `setSavePath` (hidden) and show save dialog.
+ * 2. macOS: `NSProgress` on the hidden path.
+ * 3. On confirm: metadata is populated; event handlers begin processing.
+ * 4. On first `progressing` event with a real file, move/mirror to visible.
+ * 5. On `done`: tear down mirror if needed, then rename (or copy+delete) to the final name.
  */
 
 import { app, dialog, type DownloadItem, type Session, type WebContents } from "electron";
@@ -53,8 +54,8 @@ type MirrorKind = "moved" | "hardlink" | "symlink" | "placeholder" | "failed";
 interface DownloadMetadata {
   /** Where the bytes live *right now* (hidden temp until a successful `moved`, then visible). */
   crdownloadPath: string;
-  finalPath: string;
-  visibleCrdownloadPath: string;
+  finalPath: string | null; // null until user confirms save dialog
+  visibleCrdownloadPath: string | null; // null until user confirms save dialog
   progressId: string | null;
   lastUpdate: number;
   lastBytes: number;
@@ -62,6 +63,10 @@ interface DownloadMetadata {
   /** Ensures move/mirror runs once, on first `progressing` tick after the temp file exists. */
   mirrorSetup: boolean;
   mirrorKind?: MirrorKind;
+  /** True once the user confirms the save dialog. Events before this are handled immediately. */
+  saveConfirmed: boolean;
+  /** Download finished/cancelled before user confirmed save dialog. */
+  earlyCompletion?: { state: "completed" | "cancelled" | "interrupted" };
 }
 
 const activeDownloads = new Map<DownloadItem, DownloadMetadata>();
@@ -130,6 +135,7 @@ function mirrorCrdownloadToVisible(hiddenPath: string, visiblePath: string): Mir
 
 /** Drops the extra visible path when it is not the sole copy (`moved`). Skips directories. */
 function removeMirrorIfNeeded(meta: DownloadMetadata): void {
+  if (!meta.visibleCrdownloadPath) return;
   try {
     if (fs.existsSync(meta.visibleCrdownloadPath)) {
       const st = fs.lstatSync(meta.visibleCrdownloadPath);
@@ -139,6 +145,86 @@ function removeMirrorIfNeeded(meta: DownloadMetadata): void {
     }
   } catch (err) {
     debugError("DOWNLOADS", "Failed to remove visible .crdownload mirror:", err);
+  }
+}
+
+/**
+ * Handles download completion/cancellation logic.
+ * Separated so it can be called both immediately (if user confirmed) or deferred (if not).
+ */
+function handleDownloadCompletion(
+  _item: DownloadItem,
+  meta: DownloadMetadata,
+  state: "completed" | "cancelled" | "interrupted",
+  mp: MacOSProgress | null
+): void {
+  if (state === "completed") {
+    debugPrint("DOWNLOADS", `Download completed: ${meta.crdownloadPath}`);
+
+    if (mp && meta.progressId) {
+      mp.completeFileProgress(meta.progressId);
+    }
+
+    // Only move to final path if user confirmed save dialog
+    if (meta.saveConfirmed && meta.finalPath) {
+      // `moved`: visible path *is* the download; unlinking it would delete the file. For links /
+      // placeholder, remove the extra visible entry first, then rename the real temp to `finalPath`.
+      if (meta.mirrorKind && meta.mirrorKind !== "moved") {
+        removeMirrorIfNeeded(meta);
+      }
+
+      try {
+        if (fs.existsSync(meta.finalPath)) {
+          fs.unlinkSync(meta.finalPath);
+        }
+
+        fs.renameSync(meta.crdownloadPath, meta.finalPath);
+        debugPrint("DOWNLOADS", `Moved to final path: ${meta.finalPath}`);
+      } catch {
+        // e.g. cross-device rename
+        try {
+          fs.copyFileSync(meta.crdownloadPath, meta.finalPath);
+          fs.unlinkSync(meta.crdownloadPath);
+          debugPrint("DOWNLOADS", `Copied to final path: ${meta.finalPath}`);
+        } catch (copyErr) {
+          debugError("DOWNLOADS", `Failed to move download:`, copyErr);
+        }
+      }
+    } else {
+      // Download completed before user chose save location; leave temp file
+      debugPrint("DOWNLOADS", `Download completed but no save location chosen: ${meta.crdownloadPath}`);
+    }
+  } else if (state === "cancelled") {
+    debugPrint("DOWNLOADS", `Download cancelled: ${meta.crdownloadPath}`);
+
+    if (mp && meta.progressId) {
+      mp.cancelFileProgress(meta.progressId);
+    }
+
+    // Same rule as completed: only strip a second path; `moved` means delete via `crdownloadPath` only.
+    if (meta.mirrorKind && meta.mirrorKind !== "moved") {
+      removeMirrorIfNeeded(meta);
+    }
+
+    try {
+      if (fs.existsSync(meta.crdownloadPath)) {
+        fs.unlinkSync(meta.crdownloadPath);
+        debugPrint("DOWNLOADS", `Cleaned up partial download: ${meta.crdownloadPath}`);
+      }
+    } catch (err) {
+      debugError("DOWNLOADS", `Failed to clean up partial download:`, err);
+    }
+  } else if (state === "interrupted") {
+    debugPrint("DOWNLOADS", `Download interrupted (final): ${meta.crdownloadPath}`);
+
+    if (mp && meta.progressId) {
+      mp.cancelFileProgress(meta.progressId);
+    }
+
+    // Leave partial files on disk for recovery; only remove an extra visible mirror if present.
+    if (meta.mirrorKind && meta.mirrorKind !== "moved") {
+      removeMirrorIfNeeded(meta);
+    }
   }
 }
 
@@ -154,10 +240,8 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
   debugPrint("DOWNLOADS", `Download requested: ${suggestedFilename}`);
   debugPrint("DOWNLOADS", `  hidden temp: ${crdownloadPath}`);
 
-  // Electron requires `setSavePath` before this handler returns; `pause` avoids racing `updated`
-  // before `activeDownloads` is populated when the dialog resolves.
+  // Electron requires `setSavePath` before this handler returns.
   item.setSavePath(crdownloadPath);
-  item.pause();
 
   const window = browserWindowsController.getWindowFromWebContents(_webContents);
   if (!window) {
@@ -165,18 +249,33 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     return;
   }
 
+  // Create metadata IMMEDIATELY so events can be processed even before save dialog completes.
+  const totalBytes = item.getTotalBytes();
+  const metadata: DownloadMetadata = {
+    crdownloadPath,
+    finalPath: null, // Will be set after save dialog
+    visibleCrdownloadPath: null, // Will be set after save dialog
+    progressId: null, // Will be set after macOS progress loads
+    lastUpdate: Date.now(),
+    lastBytes: 0,
+    initialTotalBytes: totalBytes,
+    mirrorSetup: false,
+    saveConfirmed: false
+  };
+  activeDownloads.set(item, metadata);
+
   // Dialog + NSProgress cannot block the synchronous `will-download` return path.
   void (async () => {
     const mp = await ensureMacosProgressModule();
 
     let progressId: string | null = null;
-    const totalBytes = item.getTotalBytes();
     if (mp) {
       progressId = mp.createFileProgress(crdownloadPath, totalBytes > 0 ? totalBytes : 0, () => {
         debugPrint("DOWNLOADS", `Cancel requested from Finder for: ${suggestedFilename}`);
         item.cancel();
       });
       debugPrint("DOWNLOADS", `macOS progress created: ${progressId}`);
+      metadata.progressId = progressId;
     }
 
     const { filePath: chosenPath, canceled } = await dialog.showSaveDialog(window.browserWindow, {
@@ -200,28 +299,31 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     debugPrint("DOWNLOADS", `User chose final path: ${finalPath}`);
     debugPrint("DOWNLOADS", `  visible in-progress name: ${visibleCrdownloadPath}`);
 
-    const metadata: DownloadMetadata = {
-      crdownloadPath,
-      finalPath,
-      visibleCrdownloadPath,
-      progressId,
-      lastUpdate: Date.now(),
-      lastBytes: 0,
-      initialTotalBytes: totalBytes,
-      mirrorSetup: false
-    };
-    activeDownloads.set(item, metadata);
+    // Update metadata with final paths and mark as confirmed
+    metadata.finalPath = finalPath;
+    metadata.visibleCrdownloadPath = visibleCrdownloadPath;
+    metadata.saveConfirmed = true;
 
-    item.resume();
+    // If download already completed/cancelled before dialog finished, handle it now
+    if (metadata.earlyCompletion) {
+      debugPrint("DOWNLOADS", `Handling early completion (${metadata.earlyCompletion.state})`);
+      handleDownloadCompletion(item, metadata, metadata.earlyCompletion.state, mp);
+      activeDownloads.delete(item);
+    }
   })();
 
   item.on("updated", (_event, state) => {
     const meta = activeDownloads.get(item);
-    // No meta until the user confirms the save dialog; ignore early events while paused.
     if (!meta) return;
 
-    // First moment the temp file exists: relocate or mirror so Finder shows something sensible.
-    if (state === "progressing" && !meta.mirrorSetup && fs.existsSync(meta.crdownloadPath)) {
+    // Only set up visible mirror if user has confirmed save location
+    if (
+      state === "progressing" &&
+      !meta.mirrorSetup &&
+      meta.saveConfirmed &&
+      meta.visibleCrdownloadPath &&
+      fs.existsSync(meta.crdownloadPath)
+    ) {
       meta.mirrorSetup = true;
       const kind = mirrorCrdownloadToVisible(meta.crdownloadPath, meta.visibleCrdownloadPath);
       meta.mirrorKind = kind;
@@ -275,74 +377,22 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     }
   });
 
-  item.once("done", (_event, state) => {
+  item.once("done", async (_event, state) => {
     const meta = activeDownloads.get(item);
     if (!meta) return;
 
-    activeDownloads.delete(item);
-
-    if (state === "completed") {
-      debugPrint("DOWNLOADS", `Download completed: ${meta.crdownloadPath}`);
-
-      if (macosProgress && meta.progressId) {
-        macosProgress.completeFileProgress(meta.progressId);
-      }
-
-      // `moved`: visible path *is* the download; unlinking it would delete the file. For links /
-      // placeholder, remove the extra visible entry first, then rename the real temp to `finalPath`.
-      if (meta.mirrorKind && meta.mirrorKind !== "moved") {
-        removeMirrorIfNeeded(meta);
-      }
-
-      try {
-        if (fs.existsSync(meta.finalPath)) {
-          fs.unlinkSync(meta.finalPath);
-        }
-
-        fs.renameSync(meta.crdownloadPath, meta.finalPath);
-        debugPrint("DOWNLOADS", `Moved to final path: ${meta.finalPath}`);
-      } catch {
-        // e.g. cross-device rename
-        try {
-          fs.copyFileSync(meta.crdownloadPath, meta.finalPath);
-          fs.unlinkSync(meta.crdownloadPath);
-          debugPrint("DOWNLOADS", `Copied to final path: ${meta.finalPath}`);
-        } catch (copyErr) {
-          debugError("DOWNLOADS", `Failed to move download:`, copyErr);
-        }
-      }
-    } else if (state === "cancelled") {
-      debugPrint("DOWNLOADS", `Download cancelled: ${meta.crdownloadPath}`);
-
-      if (macosProgress && meta.progressId) {
-        macosProgress.cancelFileProgress(meta.progressId);
-      }
-
-      // Same rule as completed: only strip a second path; `moved` means delete via `crdownloadPath` only.
-      if (meta.mirrorKind && meta.mirrorKind !== "moved") {
-        removeMirrorIfNeeded(meta);
-      }
-
-      try {
-        if (fs.existsSync(meta.crdownloadPath)) {
-          fs.unlinkSync(meta.crdownloadPath);
-          debugPrint("DOWNLOADS", `Cleaned up partial download: ${meta.crdownloadPath}`);
-        }
-      } catch (err) {
-        debugError("DOWNLOADS", `Failed to clean up partial download:`, err);
-      }
-    } else if (state === "interrupted") {
-      debugPrint("DOWNLOADS", `Download interrupted (final): ${meta.crdownloadPath}`);
-
-      if (macosProgress && meta.progressId) {
-        macosProgress.cancelFileProgress(meta.progressId);
-      }
-
-      // Leave partial files on disk for recovery; only remove an extra visible mirror if present.
-      if (meta.mirrorKind && meta.mirrorKind !== "moved") {
-        removeMirrorIfNeeded(meta);
-      }
+    // If save dialog hasn't been confirmed yet, mark as early completion
+    // The async dialog handler will process it when ready
+    if (!meta.saveConfirmed) {
+      debugPrint("DOWNLOADS", `Download finished (${state}) before save dialog confirmed, deferring cleanup`);
+      meta.earlyCompletion = { state };
+      return;
     }
+
+    // Save confirmed, handle immediately
+    activeDownloads.delete(item);
+    const mp = await ensureMacosProgressModule();
+    handleDownloadCompletion(item, meta, state, mp);
   });
 }
 
