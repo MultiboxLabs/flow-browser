@@ -145,6 +145,102 @@ function removeSecondaryPath(primaryPath: string, secondaryPath: string): void {
   }
 }
 
+/** Helper to check if mirrorKind requires secondary path cleanup. */
+function needsSecondaryCleanup(kind?: MirrorKind): boolean {
+  return !!(kind && kind !== "same-dir" && kind !== "moved" && kind !== "failed");
+}
+
+/** Clean up secondary path if one was created (hardlink/symlink/placeholder). */
+function cleanupSecondaryPath(meta: DownloadMetadata, crdownloadBasename: string): void {
+  if (needsSecondaryCleanup(meta.mirrorKind) && meta.finalPath) {
+    const secondaryPath = path.join(path.dirname(meta.finalPath), crdownloadBasename);
+    removeSecondaryPath(meta.crdownloadPath, secondaryPath);
+  }
+}
+
+/** Complete or cancel macOS progress indicator. */
+function finalizeMacProgress(mp: MacOSProgress | null, progressId: string | null, completed: boolean): void {
+  if (!mp || !progressId) return;
+  if (completed) {
+    mp.completeFileProgress(progressId);
+  } else {
+    mp.cancelFileProgress(progressId);
+  }
+}
+
+/** Delete a file safely with error logging. */
+function deleteFile(filePath: string, description: string): void {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      debugPrint("DOWNLOADS", `Deleted ${description}: ${filePath}`);
+    }
+  } catch (err) {
+    debugError("DOWNLOADS", `Failed to delete ${description}:`, err);
+  }
+}
+
+/** Move .crdownload to final path (rename or copy+delete). */
+function moveTempToFinal(crdownloadPath: string, finalPath: string): boolean {
+  // Remove existing final file if present
+  if (fs.existsSync(finalPath)) {
+    try {
+      fs.unlinkSync(finalPath);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Try rename first (fastest)
+  try {
+    fs.renameSync(crdownloadPath, finalPath);
+    debugPrint("DOWNLOADS", `Moved to final path: ${finalPath}`);
+    return true;
+  } catch {
+    // Fall back to copy+delete for cross-device moves
+    try {
+      fs.copyFileSync(crdownloadPath, finalPath);
+      fs.unlinkSync(crdownloadPath);
+      debugPrint("DOWNLOADS", `Copied to final path: ${finalPath}`);
+      return true;
+    } catch (copyErr) {
+      debugError("DOWNLOADS", `Failed to move download:`, copyErr);
+      return false;
+    }
+  }
+}
+
+/** Update macOS progress with current download stats. */
+function updateMacProgress(meta: DownloadMetadata, receivedBytes: number, totalBytes: number): void {
+  if (!macosProgress || !meta.progressId) return;
+
+  macosProgress.updateFileProgress(meta.progressId, receivedBytes);
+
+  // Update total if we didn't have it initially
+  if (totalBytes > 0 && meta.initialTotalBytes === 0) {
+    macosProgress.updateFileProgressTotal(meta.progressId, totalBytes);
+    meta.initialTotalBytes = totalBytes;
+  }
+
+  // Throttle derived stats (speed/ETA) to avoid hammering AppKit
+  const now = Date.now();
+  const timeDelta = (now - meta.lastUpdate) / 1000;
+  if (timeDelta > 0.5) {
+    const bytesDelta = receivedBytes - meta.lastBytes;
+    const bytesPerSecond = bytesDelta / timeDelta;
+    macosProgress.updateFileProgressThroughput(meta.progressId, bytesPerSecond);
+
+    if (bytesPerSecond > 0 && totalBytes > 0) {
+      const remainingBytes = totalBytes - receivedBytes;
+      const secondsRemaining = remainingBytes / bytesPerSecond;
+      macosProgress.updateFileProgressEstimatedTime(meta.progressId, secondsRemaining);
+    }
+
+    meta.lastUpdate = now;
+    meta.lastBytes = receivedBytes;
+  }
+}
+
 /**
  * Handles download completion/cancellation logic.
  * Separated so it can be called both immediately (if user confirmed) or deferred (if not).
@@ -156,92 +252,27 @@ function handleDownloadCompletion(
   mp: MacOSProgress | null,
   crdownloadBasename: string
 ): void {
-  if (state === "completed") {
-    debugPrint("DOWNLOADS", `Download completed: ${meta.crdownloadPath}`);
+  debugPrint("DOWNLOADS", `Download ${state}: ${meta.crdownloadPath}`);
 
-    if (mp && meta.progressId) {
-      mp.completeFileProgress(meta.progressId);
-    }
+  if (state === "completed") {
+    finalizeMacProgress(mp, meta.progressId, true);
 
     // Only move to final path if user confirmed save dialog
     if (meta.saveConfirmed && meta.finalPath) {
-      // Clean up secondary path if we created a link/symlink
-      if (
-        meta.mirrorKind &&
-        meta.mirrorKind !== "same-dir" &&
-        meta.mirrorKind !== "moved" &&
-        meta.mirrorKind !== "failed"
-      ) {
-        const secondaryPath = path.join(path.dirname(meta.finalPath), crdownloadBasename);
-        removeSecondaryPath(meta.crdownloadPath, secondaryPath);
-      }
-
-      try {
-        if (fs.existsSync(meta.finalPath)) {
-          fs.unlinkSync(meta.finalPath);
-        }
-
-        fs.renameSync(meta.crdownloadPath, meta.finalPath);
-        debugPrint("DOWNLOADS", `Moved to final path: ${meta.finalPath}`);
-      } catch {
-        // e.g. cross-device rename
-        try {
-          fs.copyFileSync(meta.crdownloadPath, meta.finalPath);
-          fs.unlinkSync(meta.crdownloadPath);
-          debugPrint("DOWNLOADS", `Copied to final path: ${meta.finalPath}`);
-        } catch (copyErr) {
-          debugError("DOWNLOADS", `Failed to move download:`, copyErr);
-        }
-      }
+      cleanupSecondaryPath(meta, crdownloadBasename);
+      moveTempToFinal(meta.crdownloadPath, meta.finalPath);
     } else {
       // Download completed before user chose save location; leave temp file
-      debugPrint("DOWNLOADS", `Download completed but no save location chosen: ${meta.crdownloadPath}`);
+      debugPrint("DOWNLOADS", `No save location chosen yet`);
     }
   } else if (state === "cancelled") {
-    debugPrint("DOWNLOADS", `Download cancelled: ${meta.crdownloadPath}`);
-
-    if (mp && meta.progressId) {
-      mp.cancelFileProgress(meta.progressId);
-    }
-
-    // Clean up secondary path if we created one
-    if (
-      meta.mirrorKind &&
-      meta.finalPath &&
-      meta.mirrorKind !== "same-dir" &&
-      meta.mirrorKind !== "moved" &&
-      meta.mirrorKind !== "failed"
-    ) {
-      const secondaryPath = path.join(path.dirname(meta.finalPath), crdownloadBasename);
-      removeSecondaryPath(meta.crdownloadPath, secondaryPath);
-    }
-
-    try {
-      if (fs.existsSync(meta.crdownloadPath)) {
-        fs.unlinkSync(meta.crdownloadPath);
-        debugPrint("DOWNLOADS", `Cleaned up partial download: ${meta.crdownloadPath}`);
-      }
-    } catch (err) {
-      debugError("DOWNLOADS", `Failed to clean up partial download:`, err);
-    }
+    finalizeMacProgress(mp, meta.progressId, false);
+    cleanupSecondaryPath(meta, crdownloadBasename);
+    deleteFile(meta.crdownloadPath, "partial download");
   } else if (state === "interrupted") {
-    debugPrint("DOWNLOADS", `Download interrupted (final): ${meta.crdownloadPath}`);
-
-    if (mp && meta.progressId) {
-      mp.cancelFileProgress(meta.progressId);
-    }
-
+    finalizeMacProgress(mp, meta.progressId, false);
     // Leave partial files on disk for recovery; only remove secondary path if present
-    if (
-      meta.mirrorKind &&
-      meta.finalPath &&
-      meta.mirrorKind !== "same-dir" &&
-      meta.mirrorKind !== "moved" &&
-      meta.mirrorKind !== "failed"
-    ) {
-      const secondaryPath = path.join(path.dirname(meta.finalPath), crdownloadBasename);
-      removeSecondaryPath(meta.crdownloadPath, secondaryPath);
-    }
+    cleanupSecondaryPath(meta, crdownloadBasename);
   }
 }
 
@@ -302,21 +333,11 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
 
     if (canceled || !chosenPath) {
       debugPrint("DOWNLOADS", `Download cancelled by user: ${suggestedFilename}`);
-      if (mp && progressId) {
-        mp.cancelFileProgress(progressId);
-      }
+      finalizeMacProgress(mp, progressId, false);
 
       // If download already completed before user cancelled, manually clean up the file
       if (metadata.earlyCompletion?.state === "completed") {
-        debugPrint("DOWNLOADS", `Cleaning up completed download after user cancelled`);
-        try {
-          if (fs.existsSync(metadata.crdownloadPath)) {
-            fs.unlinkSync(metadata.crdownloadPath);
-            debugPrint("DOWNLOADS", `Deleted completed download: ${metadata.crdownloadPath}`);
-          }
-        } catch (err) {
-          debugError("DOWNLOADS", `Failed to clean up completed download:`, err);
-        }
+        deleteFile(metadata.crdownloadPath, "completed download after user cancelled");
         activeDownloads.delete(item);
       } else {
         // Download still in progress, cancel it normally
@@ -369,33 +390,8 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     if (state === "progressing") {
       const receivedBytes = item.getReceivedBytes();
       const total = item.getTotalBytes();
-      const now = Date.now();
 
-      if (macosProgress && meta.progressId) {
-        macosProgress.updateFileProgress(meta.progressId, receivedBytes);
-
-        if (total > 0 && meta.initialTotalBytes === 0) {
-          macosProgress.updateFileProgressTotal(meta.progressId, total);
-          meta.initialTotalBytes = total;
-        }
-
-        // Throttle derived stats so we do not hammer AppKit every progress tick.
-        const timeDelta = (now - meta.lastUpdate) / 1000;
-        if (timeDelta > 0.5) {
-          const bytesDelta = receivedBytes - meta.lastBytes;
-          const bytesPerSecond = bytesDelta / timeDelta;
-          macosProgress.updateFileProgressThroughput(meta.progressId, bytesPerSecond);
-
-          if (bytesPerSecond > 0 && total > 0) {
-            const remainingBytes = total - receivedBytes;
-            const secondsRemaining = remainingBytes / bytesPerSecond;
-            macosProgress.updateFileProgressEstimatedTime(meta.progressId, secondsRemaining);
-          }
-
-          meta.lastUpdate = now;
-          meta.lastBytes = receivedBytes;
-        }
-      }
+      updateMacProgress(meta, receivedBytes, total);
 
       if (total > 0) {
         const percent = Math.round((receivedBytes / total) * 100);
