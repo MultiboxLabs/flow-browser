@@ -1,13 +1,20 @@
 /**
  * Chrome-like download handler with .crdownload temporary files.
  *
- * Intercepts downloads and:
- * 1. Pauses download and sets a hidden temp path: `.Unconfirmed {id}.crdownload` in Downloads
- * 2. Publishes macOS NSProgress on that path, then shows the save dialog
- * 3. On confirm, resumes and places the in-progress file beside the chosen save path as
- *    `Unconfirmed {id}.crdownload` (visible — no leading dot): try rename (move) first, then
- *    hard link, symlink, or placeholder
- * 4. On completion, removes any extra mirror entry, renames/moves to the user-chosen filename
+ * Paths (same random id for one download):
+ * - **Hidden temp** — `Downloads/.Unconfirmed {id}.crdownload` (leading dot = hidden in Finder).
+ *   Electron must get this path synchronously in `will-download`; we pause until the user picks
+ *   a final location, then resume.
+ * - **Visible in-progress** — `dirname(final) / Unconfirmed {id}.crdownload` (no leading dot).
+ *   Once the temp file exists, we move or mirror it here so the user sees progress next to their
+ *   chosen save name.
+ * - **Final** — path from the save dialog; we rename the completed `.crdownload` here.
+ *
+ * Flow:
+ * 1. `setSavePath` (hidden) + `pause` so no bytes run before metadata exists.
+ * 2. macOS: `NSProgress` on the hidden path, then save dialog.
+ * 3. On confirm: `resume`; on first `progressing` event with a real file, move/mirror to visible.
+ * 4. On `done`: tear down mirror if needed, then rename (or copy+delete) to the final name.
  */
 
 import { app, dialog, type DownloadItem, type Session, type WebContents } from "electron";
@@ -28,21 +35,27 @@ if (process.platform === "darwin") {
     });
 }
 
+/**
+ * How we got the visible `.crdownload` beside the user’s save location.
+ * - `moved` — single file on disk; `crdownloadPath` is updated to match `visibleCrdownloadPath`.
+ * - `hardlink` / `symlink` — two paths point at the same bytes (or symlink target); we unlink
+ *   `visibleCrdownloadPath` before renaming the hidden file to the final name.
+ * - `placeholder` — decoy empty file only; real data stays under `crdownloadPath` (hidden).
+ * - `failed` — could not create anything visible; download may still complete to hidden path.
+ */
 type MirrorKind = "moved" | "hardlink" | "symlink" | "placeholder" | "failed";
 
 interface DownloadMetadata {
-  /** Hidden temp file Electron writes to (e.g. ~/.Unconfirmed 123.crdownload in Downloads). */
+  /** Where the bytes live *right now* (hidden temp until a successful `moved`, then visible). */
   crdownloadPath: string;
-  /** User-chosen final path from the save dialog. */
   finalPath: string;
-  /** Visible in-progress name next to final path (no leading dot). */
   visibleCrdownloadPath: string;
   progressId: string | null;
   lastUpdate: number;
   lastBytes: number;
   initialTotalBytes: number;
+  /** Ensures move/mirror runs once, on first `progressing` tick after the temp file exists. */
   mirrorSetup: boolean;
-  /** How the visible-path .crdownload was created; `moved` means the file only exists at `visibleCrdownloadPath`. */
   mirrorKind?: MirrorKind;
 }
 
@@ -76,10 +89,11 @@ async function ensureMacosProgressModule(): Promise<typeof import("@/modules/mac
 }
 
 /**
- * Prefer moving the temp file to the visible path (same inode; Electron keeps writing).
- * Otherwise hard link, absolute symlink, then empty placeholder.
+ * Put the in-progress download next to the user’s chosen file as a visible `Unconfirmed ….crdownload`.
+ * Tries cheapest/best first; `rename` fails across volumes (`EXDEV`), so we fall back to links.
  */
 function mirrorCrdownloadToVisible(hiddenPath: string, visiblePath: string): MirrorKind {
+  // Collision: we need this exact name; existing file is removed (same as Chrome-style temp behavior).
   if (fs.existsSync(visiblePath)) {
     try {
       fs.unlinkSync(visiblePath);
@@ -88,6 +102,7 @@ function mirrorCrdownloadToVisible(hiddenPath: string, visiblePath: string): Mir
     }
   }
 
+  // Same volume: one inode moves to `visiblePath`; open FD from Chromium keeps working.
   try {
     fs.renameSync(hiddenPath, visiblePath);
     return "moved";
@@ -95,6 +110,7 @@ function mirrorCrdownloadToVisible(hiddenPath: string, visiblePath: string): Mir
     /* continue */
   }
 
+  // Same volume, second name for the same inode (Finder shows growing size on both).
   try {
     fs.linkSync(hiddenPath, visiblePath);
     return "hardlink";
@@ -102,6 +118,7 @@ function mirrorCrdownloadToVisible(hiddenPath: string, visiblePath: string): Mir
     /* continue */
   }
 
+  // Cross-volume: symlink to absolute hidden path so Finder can still open the real file.
   try {
     fs.symlinkSync(hiddenPath, visiblePath);
     return "symlink";
@@ -109,6 +126,7 @@ function mirrorCrdownloadToVisible(hiddenPath: string, visiblePath: string): Mir
     /* continue */
   }
 
+  // Last resort: empty decoy at visible path; NSProgress still tracks the real file under hidden.
   try {
     fs.writeFileSync(visiblePath, "");
     return "placeholder";
@@ -118,6 +136,7 @@ function mirrorCrdownloadToVisible(hiddenPath: string, visiblePath: string): Mir
   }
 }
 
+/** Drops the extra visible path when it is not the sole copy (`moved`). Skips directories. */
 function removeMirrorIfNeeded(meta: DownloadMetadata): void {
   try {
     if (fs.existsSync(meta.visibleCrdownloadPath)) {
@@ -131,16 +150,7 @@ function removeMirrorIfNeeded(meta: DownloadMetadata): void {
   }
 }
 
-/**
- * Handles the will-download event for a session.
- *
- * Strategy:
- * 1. Set save path to hidden `.crdownload` in Downloads (sync)
- * 2. Pause so no bytes flow until the user confirms
- * 3. macOS: NSProgress on hidden path, then save dialog
- * 4. Resume; on first progress, move or mirror to visible path beside chosen filename
- * 5. On done: strip extra mirror if any, move temp file to final name
- */
+/** Main `will-download` handler: sync setup, async dialog, then event-driven move + completion. */
 export function handleDownload(_webContents: WebContents, item: DownloadItem): void {
   const suggestedFilename = item.getFilename();
   const downloadsDir = app.getPath("downloads");
@@ -152,6 +162,8 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
   debugPrint("DOWNLOADS", `Download requested: ${suggestedFilename}`);
   debugPrint("DOWNLOADS", `  hidden temp: ${crdownloadPath}`);
 
+  // Electron requires `setSavePath` before this handler returns; `pause` avoids racing `updated`
+  // before `activeDownloads` is populated when the dialog resolves.
   item.setSavePath(crdownloadPath);
   item.pause();
 
@@ -161,6 +173,7 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     return;
   }
 
+  // Dialog + NSProgress cannot block the synchronous `will-download` return path.
   void (async () => {
     const mp = await ensureMacosProgressModule();
 
@@ -189,6 +202,7 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     }
 
     const finalPath = chosenPath;
+    // Same folder as the eventual save, Chrome-style visible name (not the hidden dotfile in Downloads).
     const visibleCrdownloadPath = path.join(path.dirname(finalPath), crdownloadBasename);
 
     debugPrint("DOWNLOADS", `User chose final path: ${finalPath}`);
@@ -211,8 +225,10 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
 
   item.on("updated", (_event, state) => {
     const meta = activeDownloads.get(item);
+    // No meta until the user confirms the save dialog; ignore early events while paused.
     if (!meta) return;
 
+    // First moment the temp file exists: relocate or mirror so Finder shows something sensible.
     if (state === "progressing" && !meta.mirrorSetup && fs.existsSync(meta.crdownloadPath)) {
       meta.mirrorSetup = true;
       const kind = mirrorCrdownloadToVisible(meta.crdownloadPath, meta.visibleCrdownloadPath);
@@ -240,6 +256,7 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
           meta.initialTotalBytes = total;
         }
 
+        // Throttle derived stats so we do not hammer AppKit every progress tick.
         const timeDelta = (now - meta.lastUpdate) / 1000;
         if (timeDelta > 0.5) {
           const bytesDelta = receivedBytes - meta.lastBytes;
@@ -279,6 +296,8 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
         macosProgress.completeFileProgress(meta.progressId);
       }
 
+      // `moved`: visible path *is* the download; unlinking it would delete the file. For links /
+      // placeholder, remove the extra visible entry first, then rename the real temp to `finalPath`.
       if (meta.mirrorKind && meta.mirrorKind !== "moved") {
         removeMirrorIfNeeded(meta);
       }
@@ -291,6 +310,7 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
         fs.renameSync(meta.crdownloadPath, meta.finalPath);
         debugPrint("DOWNLOADS", `Moved to final path: ${meta.finalPath}`);
       } catch {
+        // e.g. cross-device rename
         try {
           fs.copyFileSync(meta.crdownloadPath, meta.finalPath);
           fs.unlinkSync(meta.crdownloadPath);
@@ -306,6 +326,7 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
         macosProgress.cancelFileProgress(meta.progressId);
       }
 
+      // Same rule as completed: only strip a second path; `moved` means delete via `crdownloadPath` only.
       if (meta.mirrorKind && meta.mirrorKind !== "moved") {
         removeMirrorIfNeeded(meta);
       }
@@ -325,6 +346,7 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
         macosProgress.cancelFileProgress(meta.progressId);
       }
 
+      // Leave partial files on disk for recovery; only remove an extra visible mirror if present.
       if (meta.mirrorKind && meta.mirrorKind !== "moved") {
         removeMirrorIfNeeded(meta);
       }
@@ -334,6 +356,7 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
 
 export function registerDownloadHandler(session: Session): void {
   session.on("will-download", (_event, item, webContents) => {
+    // Register per item inside `handleDownload` (`on` / `once` on `DownloadItem`).
     handleDownload(webContents, item);
   });
 
