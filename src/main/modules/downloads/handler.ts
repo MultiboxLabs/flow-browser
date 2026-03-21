@@ -1,21 +1,13 @@
 /**
  * Chrome-like download handler with .crdownload temporary files.
  *
- * Paths (same random id for one download):
- * - **Hidden temp** — `Downloads/.Unconfirmed {id}.crdownload` (leading dot = hidden in Finder).
- *   Electron must get this path synchronously in `will-download`; the user picks a final location
- *   via save dialog.
- * - **Visible in-progress** — `dirname(final) / Unconfirmed {id}.crdownload` (no leading dot).
- *   Once the temp file exists, we move or mirror it here so the user sees progress next to their
- *   chosen save name.
- * - **Final** — path from the save dialog; we rename the completed `.crdownload` here.
- *
  * Flow:
- * 1. `setSavePath` (hidden) and show save dialog.
- * 2. macOS: `NSProgress` on the hidden path.
- * 3. On confirm: metadata is populated; event handlers begin processing.
- * 4. On first `progressing` event with a real file, move/mirror to visible.
- * 5. On `done`: tear down mirror if needed, then rename (or copy+delete) to the final name.
+ * 1. Start download to `Downloads/Unconfirmed {id}.crdownload` (visible temp file).
+ * 2. Show save dialog to user (async, doesn't block download).
+ * 3. When user confirms:
+ *    - If final location is in Downloads folder → keep using same file
+ *    - If final location is different folder → move temp file there
+ * 4. On completion: rename `.crdownload` to final filename.
  */
 
 import { app, dialog, type DownloadItem, type Session, type WebContents } from "electron";
@@ -42,25 +34,24 @@ async function ensureMacosProgressModule(): Promise<MacOSProgress | null> {
 ensureMacosProgressModule();
 
 /**
- * How we got the visible `.crdownload` beside the user’s save location.
- * - `moved` — single file on disk; `crdownloadPath` is updated to match `visibleCrdownloadPath`.
- * - `hardlink` / `symlink` — two paths point at the same bytes (or symlink target); we unlink
- *   `visibleCrdownloadPath` before renaming the hidden file to the final name.
- * - `placeholder` — decoy empty file only; real data stays under `crdownloadPath` (hidden).
- * - `failed` — could not create anything visible; download may still complete to hidden path.
+ * How we moved the .crdownload file to the user's chosen directory.
+ * - `same-dir` — final location is same directory, no move needed
+ * - `moved` — file renamed to new directory successfully
+ * - `hardlink` / `symlink` — two paths point at same bytes (fallback for cross-device)
+ * - `placeholder` — decoy empty file only (last resort)
+ * - `failed` — could not move; download stays in original location
  */
-type MirrorKind = "moved" | "hardlink" | "symlink" | "placeholder" | "failed";
+type MirrorKind = "same-dir" | "moved" | "hardlink" | "symlink" | "placeholder" | "failed";
 
 interface DownloadMetadata {
-  /** Where the bytes live *right now* (hidden temp until a successful `moved`, then visible). */
+  /** Where the bytes live *right now* (Downloads temp, or moved to final dir). */
   crdownloadPath: string;
   finalPath: string | null; // null until user confirms save dialog
-  visibleCrdownloadPath: string | null; // null until user confirms save dialog
   progressId: string | null;
   lastUpdate: number;
   lastBytes: number;
   initialTotalBytes: number;
-  /** Ensures move/mirror runs once, on first `progressing` tick after the temp file exists. */
+  /** Ensures move runs once, on first `progressing` tick after user confirms. */
   mirrorSetup: boolean;
   mirrorKind?: MirrorKind;
   /** True once the user confirms the save dialog. Events before this are handled immediately. */
@@ -80,71 +71,77 @@ function generateCrdownloadBasename(): string {
   return `Unconfirmed ${generateCrdownloadNumber()}.crdownload`;
 }
 
-/** Hidden path in Downloads: `.Unconfirmed 685304.crdownload`. */
-function hiddenCrdownloadPathInDownloads(downloadsDir: string, crdownloadBasename: string): string {
-  return path.join(downloadsDir, `.${crdownloadBasename}`);
-}
-
 /**
- * Put the in-progress download next to the user’s chosen file as a visible `Unconfirmed ….crdownload`.
+ * Move the in-progress download to the user's chosen directory.
  * Tries cheapest/best first; `rename` fails across volumes (`EXDEV`), so we fall back to links.
  */
-function mirrorCrdownloadToVisible(hiddenPath: string, visiblePath: string): MirrorKind {
-  // Collision: we need this exact name; existing file is removed (same as Chrome-style temp behavior).
-  if (fs.existsSync(visiblePath)) {
+function moveCrdownloadToFinalDir(
+  currentPath: string,
+  finalDir: string,
+  crdownloadBasename: string
+): { kind: MirrorKind; newPath: string } {
+  const targetPath = path.join(finalDir, crdownloadBasename);
+
+  // Same directory - no move needed
+  if (path.dirname(currentPath) === finalDir) {
+    return { kind: "same-dir", newPath: currentPath };
+  }
+
+  // Remove existing file at target if it exists
+  if (fs.existsSync(targetPath)) {
     try {
-      fs.unlinkSync(visiblePath);
+      fs.unlinkSync(targetPath);
     } catch {
       /* ignore */
     }
   }
 
-  // Same volume: one inode moves to `visiblePath`; open FD from Chromium keeps working.
+  // Same volume: one inode moves to target; open FD from Chromium keeps working.
   try {
-    fs.renameSync(hiddenPath, visiblePath);
-    return "moved";
+    fs.renameSync(currentPath, targetPath);
+    return { kind: "moved", newPath: targetPath };
   } catch {
     /* continue */
   }
 
-  // Same volume, second name for the same inode (Finder shows growing size on both).
+  // Same volume, second name for the same inode.
   try {
-    fs.linkSync(hiddenPath, visiblePath);
-    return "hardlink";
+    fs.linkSync(currentPath, targetPath);
+    return { kind: "hardlink", newPath: targetPath };
   } catch {
     /* continue */
   }
 
-  // Cross-volume: symlink to absolute hidden path so Finder can still open the real file.
+  // Cross-volume: symlink to absolute path.
   try {
-    fs.symlinkSync(hiddenPath, visiblePath);
-    return "symlink";
+    fs.symlinkSync(currentPath, targetPath);
+    return { kind: "symlink", newPath: targetPath };
   } catch {
     /* continue */
   }
 
-  // Last resort: empty decoy at visible path; NSProgress still tracks the real file under hidden.
+  // Last resort: empty decoy at target path.
   try {
-    fs.writeFileSync(visiblePath, "");
-    return "placeholder";
+    fs.writeFileSync(targetPath, "");
+    return { kind: "placeholder", newPath: currentPath };
   } catch (err) {
-    debugError("DOWNLOADS", "Could not mirror .crdownload to user path:", err);
-    return "failed";
+    debugError("DOWNLOADS", "Could not move .crdownload to user path:", err);
+    return { kind: "failed", newPath: currentPath };
   }
 }
 
-/** Drops the extra visible path when it is not the sole copy (`moved`). Skips directories. */
-function removeMirrorIfNeeded(meta: DownloadMetadata): void {
-  if (!meta.visibleCrdownloadPath) return;
+/** Removes the symlink/hardlink/placeholder if one was created. */
+function removeSecondaryPath(primaryPath: string, secondaryPath: string): void {
+  if (primaryPath === secondaryPath) return;
   try {
-    if (fs.existsSync(meta.visibleCrdownloadPath)) {
-      const st = fs.lstatSync(meta.visibleCrdownloadPath);
+    if (fs.existsSync(secondaryPath)) {
+      const st = fs.lstatSync(secondaryPath);
       if (st.isSymbolicLink() || st.isFile()) {
-        fs.unlinkSync(meta.visibleCrdownloadPath);
+        fs.unlinkSync(secondaryPath);
       }
     }
   } catch (err) {
-    debugError("DOWNLOADS", "Failed to remove visible .crdownload mirror:", err);
+    debugError("DOWNLOADS", "Failed to remove secondary .crdownload path:", err);
   }
 }
 
@@ -156,7 +153,8 @@ function handleDownloadCompletion(
   _item: DownloadItem,
   meta: DownloadMetadata,
   state: "completed" | "cancelled" | "interrupted",
-  mp: MacOSProgress | null
+  mp: MacOSProgress | null,
+  crdownloadBasename: string
 ): void {
   if (state === "completed") {
     debugPrint("DOWNLOADS", `Download completed: ${meta.crdownloadPath}`);
@@ -167,10 +165,15 @@ function handleDownloadCompletion(
 
     // Only move to final path if user confirmed save dialog
     if (meta.saveConfirmed && meta.finalPath) {
-      // `moved`: visible path *is* the download; unlinking it would delete the file. For links /
-      // placeholder, remove the extra visible entry first, then rename the real temp to `finalPath`.
-      if (meta.mirrorKind && meta.mirrorKind !== "moved") {
-        removeMirrorIfNeeded(meta);
+      // Clean up secondary path if we created a link/symlink
+      if (
+        meta.mirrorKind &&
+        meta.mirrorKind !== "same-dir" &&
+        meta.mirrorKind !== "moved" &&
+        meta.mirrorKind !== "failed"
+      ) {
+        const secondaryPath = path.join(path.dirname(meta.finalPath), crdownloadBasename);
+        removeSecondaryPath(meta.crdownloadPath, secondaryPath);
       }
 
       try {
@@ -201,9 +204,16 @@ function handleDownloadCompletion(
       mp.cancelFileProgress(meta.progressId);
     }
 
-    // Same rule as completed: only strip a second path; `moved` means delete via `crdownloadPath` only.
-    if (meta.mirrorKind && meta.mirrorKind !== "moved") {
-      removeMirrorIfNeeded(meta);
+    // Clean up secondary path if we created one
+    if (
+      meta.mirrorKind &&
+      meta.finalPath &&
+      meta.mirrorKind !== "same-dir" &&
+      meta.mirrorKind !== "moved" &&
+      meta.mirrorKind !== "failed"
+    ) {
+      const secondaryPath = path.join(path.dirname(meta.finalPath), crdownloadBasename);
+      removeSecondaryPath(meta.crdownloadPath, secondaryPath);
     }
 
     try {
@@ -221,9 +231,16 @@ function handleDownloadCompletion(
       mp.cancelFileProgress(meta.progressId);
     }
 
-    // Leave partial files on disk for recovery; only remove an extra visible mirror if present.
-    if (meta.mirrorKind && meta.mirrorKind !== "moved") {
-      removeMirrorIfNeeded(meta);
+    // Leave partial files on disk for recovery; only remove secondary path if present
+    if (
+      meta.mirrorKind &&
+      meta.finalPath &&
+      meta.mirrorKind !== "same-dir" &&
+      meta.mirrorKind !== "moved" &&
+      meta.mirrorKind !== "failed"
+    ) {
+      const secondaryPath = path.join(path.dirname(meta.finalPath), crdownloadBasename);
+      removeSecondaryPath(meta.crdownloadPath, secondaryPath);
     }
   }
 }
@@ -235,10 +252,11 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
   const defaultPath = path.join(downloadsDir, suggestedFilename);
 
   const crdownloadBasename = generateCrdownloadBasename();
-  const crdownloadPath = hiddenCrdownloadPathInDownloads(downloadsDir, crdownloadBasename);
+  // Start with visible file in Downloads (NO dot prefix)
+  const crdownloadPath = path.join(downloadsDir, crdownloadBasename);
 
   debugPrint("DOWNLOADS", `Download requested: ${suggestedFilename}`);
-  debugPrint("DOWNLOADS", `  hidden temp: ${crdownloadPath}`);
+  debugPrint("DOWNLOADS", `  temp file: ${crdownloadPath}`);
 
   // Electron requires `setSavePath` before this handler returns.
   item.setSavePath(crdownloadPath);
@@ -254,7 +272,6 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
   const metadata: DownloadMetadata = {
     crdownloadPath,
     finalPath: null, // Will be set after save dialog
-    visibleCrdownloadPath: null, // Will be set after save dialog
     progressId: null, // Will be set after macOS progress loads
     lastUpdate: Date.now(),
     lastBytes: 0,
@@ -293,21 +310,16 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     }
 
     const finalPath = chosenPath;
-    // Same folder as the eventual save, Chrome-style visible name (not the hidden dotfile in Downloads).
-    const visibleCrdownloadPath = path.join(path.dirname(finalPath), crdownloadBasename);
-
     debugPrint("DOWNLOADS", `User chose final path: ${finalPath}`);
-    debugPrint("DOWNLOADS", `  visible in-progress name: ${visibleCrdownloadPath}`);
 
-    // Update metadata with final paths and mark as confirmed
+    // Update metadata with final path and mark as confirmed
     metadata.finalPath = finalPath;
-    metadata.visibleCrdownloadPath = visibleCrdownloadPath;
     metadata.saveConfirmed = true;
 
     // If download already completed/cancelled before dialog finished, handle it now
     if (metadata.earlyCompletion) {
       debugPrint("DOWNLOADS", `Handling early completion (${metadata.earlyCompletion.state})`);
-      handleDownloadCompletion(item, metadata, metadata.earlyCompletion.state, mp);
+      handleDownloadCompletion(item, metadata, metadata.earlyCompletion.state, mp, crdownloadBasename);
       activeDownloads.delete(item);
     }
   })();
@@ -316,24 +328,25 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     const meta = activeDownloads.get(item);
     if (!meta) return;
 
-    // Only set up visible mirror if user has confirmed save location
+    // Only move file if user has confirmed save location and file exists
     if (
       state === "progressing" &&
       !meta.mirrorSetup &&
       meta.saveConfirmed &&
-      meta.visibleCrdownloadPath &&
+      meta.finalPath &&
       fs.existsSync(meta.crdownloadPath)
     ) {
       meta.mirrorSetup = true;
-      const kind = mirrorCrdownloadToVisible(meta.crdownloadPath, meta.visibleCrdownloadPath);
-      meta.mirrorKind = kind;
-      if (kind === "moved") {
-        meta.crdownloadPath = meta.visibleCrdownloadPath;
-      }
-      debugPrint("DOWNLOADS", `In-progress .crdownload at user path (${kind}): ${meta.visibleCrdownloadPath}`);
+      const finalDir = path.dirname(meta.finalPath);
+      const result = moveCrdownloadToFinalDir(meta.crdownloadPath, finalDir, crdownloadBasename);
+      meta.mirrorKind = result.kind;
+      meta.crdownloadPath = result.newPath;
 
-      if (macosProgress && meta.progressId && fs.existsSync(meta.visibleCrdownloadPath)) {
-        macosProgress.updateFileProgressPath(meta.progressId, meta.visibleCrdownloadPath);
+      debugPrint("DOWNLOADS", `In-progress .crdownload (${result.kind}): ${result.newPath}`);
+
+      // Update macOS progress to track the new path
+      if (macosProgress && meta.progressId && result.newPath && fs.existsSync(result.newPath)) {
+        macosProgress.updateFileProgressPath(meta.progressId, result.newPath);
       }
     }
 
@@ -392,7 +405,7 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     // Save confirmed, handle immediately
     activeDownloads.delete(item);
     const mp = await ensureMacosProgressModule();
-    handleDownloadCompletion(item, meta, state, mp);
+    handleDownloadCompletion(item, meta, state, mp, crdownloadBasename);
   });
 }
 
