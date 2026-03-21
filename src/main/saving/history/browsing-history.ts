@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
+import { and, desc, eq, lt, or, sql } from "drizzle-orm";
 import { getDb } from "@/saving/db";
 import { historyUrls, historyVisits } from "@/saving/db/schema";
 import type {
@@ -275,14 +275,6 @@ export function deleteBrowsingUrlRowForProfile(profileId: string, urlRowId: numb
 
 export function clearBrowsingHistoryForProfile(profileId: string): void {
   const db = getDb();
-  const ids = db
-    .select({ id: historyUrls.id })
-    .from(historyUrls)
-    .where(eq(historyUrls.profileId, profileId))
-    .all()
-    .map((r) => r.id);
-  if (ids.length === 0) return;
-  db.delete(historyVisits).where(inArray(historyVisits.urlId, ids)).run();
   db.delete(historyUrls).where(eq(historyUrls.profileId, profileId)).run();
 }
 
@@ -290,14 +282,16 @@ export function clearBrowsingHistoryForProfile(profileId: string): void {
 export function pruneBrowsingHistory(): void {
   const db = getDb();
   const cutoff = Date.now() - RETENTION_MS;
-  db.delete(historyVisits).where(lt(historyVisits.visitTime, cutoff)).run();
-  db.delete(historyUrls)
-    .where(sql`id NOT IN (SELECT DISTINCT url_id FROM history_visits)`)
-    .run();
-  db.run(
-    sql`UPDATE history_urls SET
-      visit_count = (SELECT COUNT(*) FROM history_visits WHERE history_visits.url_id = history_urls.id),
-      typed_count = COALESCE((SELECT SUM(typed) FROM history_visits WHERE history_visits.url_id = history_urls.id), 0),
-      last_visit_time = COALESCE((SELECT MAX(visit_time) FROM history_visits WHERE history_visits.url_id = history_urls.id), last_visit_time)`
-  );
+  db.transaction((tx) => {
+    tx.delete(historyVisits).where(lt(historyVisits.visitTime, cutoff)).run();
+    tx.delete(historyUrls)
+      .where(sql`id NOT IN (SELECT DISTINCT url_id FROM history_visits)`)
+      .run();
+    tx.run(
+      sql`UPDATE history_urls SET
+        visit_count = (SELECT COUNT(*) FROM history_visits WHERE history_visits.url_id = history_urls.id),
+        typed_count = COALESCE((SELECT SUM(typed) FROM history_visits WHERE history_visits.url_id = history_urls.id), 0),
+        last_visit_time = COALESCE((SELECT MAX(visit_time) FROM history_visits WHERE history_visits.url_id = history_urls.id), last_visit_time)`
+    );
+  });
 }

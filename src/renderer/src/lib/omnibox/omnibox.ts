@@ -88,7 +88,7 @@ export class Omnibox {
       } else if (pedalAction === "open_extensions") {
         flow.tabs.newTab("flow://extensions", true);
       } else if (pedalAction === "open_history") {
-        flow.navigation.goTo("flow://history");
+        flow.tabs.newTab("flow://history", true);
       }
     } else {
       const url = autocompleteMatch.destinationUrl;
