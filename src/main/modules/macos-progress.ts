@@ -35,11 +35,8 @@ export function createFileProgress(filePath: string, totalBytes: number, onCance
     const progress = NSProgress.discreteProgressWithTotalUnitCount$(totalBytes);
 
     // Configure as a file download
-    // Note: objc-js requires NSString at runtime, but types expect string literals
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    progress.setKind$(NSStringFromString(NSProgressKind.File) as any);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    progress.setFileOperationKind$(NSStringFromString(NSProgressFileOperationKind.Downloading) as any);
+    progress.setKind$(NSStringFromString(NSProgressKind.File));
+    progress.setFileOperationKind$(NSStringFromString(NSProgressFileOperationKind.Downloading));
 
     // Set the file URL
     const nsPath = NSStringFromString(filePath);
