@@ -47,6 +47,8 @@ interface DownloadMetadata {
   /** Where the bytes live *right now* (Downloads temp, or moved to final dir). */
   crdownloadPath: string;
   finalPath: string | null; // null until user confirms save dialog
+  /** True when the chosen path existed at dialog-confirm time and the user approved replacing it. */
+  overwriteApproved: boolean;
   progressId: string | null;
   lastUpdate: number;
   lastBytes: number;
@@ -56,6 +58,8 @@ interface DownloadMetadata {
   mirrorKind?: MirrorKind;
   /** True once the user confirms the save dialog. Events before this are handled immediately. */
   saveConfirmed: boolean;
+  /** True once the user dismisses the save dialog without choosing a destination. */
+  saveRejected: boolean;
   /** Download finished/cancelled before user confirmed save dialog. */
   earlyCompletion?: { state: "completed" | "cancelled" | "interrupted" };
 }
@@ -189,34 +193,74 @@ async function deleteFile(filePath: string, description: string): Promise<void> 
   }
 }
 
+function getPathParts(filePath: string): { dir: string; ext: string; base: string } {
+  const parsed = path.parse(filePath);
+  return { dir: parsed.dir, ext: parsed.ext, base: parsed.name };
+}
+
+async function getAvailableFinalPath(filePath: string): Promise<string> {
+  const { dir, ext, base } = getPathParts(filePath);
+
+  let index = 1;
+  let candidatePath = path.join(dir, `${base} (${index})${ext}`);
+  while (await pathExists(candidatePath)) {
+    index += 1;
+    candidatePath = path.join(dir, `${base} (${index})${ext}`);
+  }
+
+  return candidatePath;
+}
+
 /** Move .crdownload to final path (rename or copy+delete). */
-async function moveTempToFinal(crdownloadPath: string, finalPath: string): Promise<boolean> {
-  // Remove existing final file if present
-  if (await pathExists(finalPath)) {
+async function moveTempToFinal(
+  crdownloadPath: string,
+  finalPath: string,
+  overwriteApproved: boolean
+): Promise<{ success: boolean; finalPath: string }> {
+  let targetPath = finalPath;
+  const targetExists = await pathExists(finalPath);
+
+  if (targetExists && overwriteApproved) {
     try {
       await fs.unlink(finalPath);
     } catch {
       /* ignore */
     }
+  } else if (targetExists) {
+    targetPath = await getAvailableFinalPath(finalPath);
+    debugPrint("DOWNLOADS", `Final path became occupied, using alternate path: ${targetPath}`);
   }
 
   // Try rename first (fastest)
   try {
-    await fs.rename(crdownloadPath, finalPath);
-    debugPrint("DOWNLOADS", `Moved to final path: ${finalPath}`);
-    return true;
+    await fs.rename(crdownloadPath, targetPath);
+    debugPrint("DOWNLOADS", `Moved to final path: ${targetPath}`);
+    return { success: true, finalPath: targetPath };
   } catch {
     // Fall back to copy+delete for cross-device moves
     try {
-      await fs.copyFile(crdownloadPath, finalPath);
+      await fs.copyFile(crdownloadPath, targetPath);
       await fs.unlink(crdownloadPath);
-      debugPrint("DOWNLOADS", `Copied to final path: ${finalPath}`);
-      return true;
+      debugPrint("DOWNLOADS", `Copied to final path: ${targetPath}`);
+      return { success: true, finalPath: targetPath };
     } catch (copyErr) {
       debugError("DOWNLOADS", `Failed to move download:`, copyErr);
-      return false;
+      return { success: false, finalPath: targetPath };
     }
   }
+}
+
+async function cleanupRejectedDownload(
+  meta: DownloadMetadata,
+  mp: MacOSProgress | null,
+  crdownloadBasename: string,
+  state: "completed" | "cancelled" | "interrupted"
+): Promise<void> {
+  finalizeMacProgress(mp, meta.progressId, false);
+  await cleanupSecondaryPath(meta, crdownloadBasename);
+
+  const description = state === "completed" ? "completed download after user cancelled" : "partial download";
+  await deleteFile(meta.crdownloadPath, description);
 }
 
 /** Update macOS progress with current download stats. */
@@ -269,7 +313,10 @@ async function handleDownloadCompletion(
     // Only move to final path if user confirmed save dialog
     if (meta.saveConfirmed && meta.finalPath) {
       await cleanupSecondaryPath(meta, crdownloadBasename);
-      await moveTempToFinal(meta.crdownloadPath, meta.finalPath);
+      const result = await moveTempToFinal(meta.crdownloadPath, meta.finalPath, meta.overwriteApproved);
+      if (result.success) {
+        meta.finalPath = result.finalPath;
+      }
     } else {
       // Download completed before user chose save location; leave temp file
       debugPrint("DOWNLOADS", `No save location chosen yet`);
@@ -312,12 +359,14 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
   const metadata: DownloadMetadata = {
     crdownloadPath,
     finalPath: null, // Will be set after save dialog
+    overwriteApproved: false,
     progressId: null, // Will be set after macOS progress loads
     lastUpdate: Date.now(),
     lastBytes: 0,
     initialTotalBytes: totalBytes,
     mirrorSetup: false,
-    saveConfirmed: false
+    saveConfirmed: false,
+    saveRejected: false
   };
   activeDownloads.set(item, metadata);
 
@@ -342,14 +391,13 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
 
     if (canceled || !chosenPath) {
       debugPrint("DOWNLOADS", `Download cancelled by user: ${suggestedFilename}`);
-      finalizeMacProgress(mp, progressId, false);
+      metadata.saveRejected = true;
 
-      // If download already completed before user cancelled, manually clean up the file
-      if (metadata.earlyCompletion?.state === "completed") {
-        await deleteFile(metadata.crdownloadPath, "completed download after user cancelled");
+      // If the download already finished before the dialog was dismissed, clean it up now.
+      if (metadata.earlyCompletion) {
+        await cleanupRejectedDownload(metadata, mp, crdownloadBasename, metadata.earlyCompletion.state);
         activeDownloads.delete(item);
       } else {
-        // Download still in progress, cancel it normally
         item.cancel();
       }
       return;
@@ -360,6 +408,7 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
 
     // Update metadata with final path and mark as confirmed
     metadata.finalPath = finalPath;
+    metadata.overwriteApproved = await pathExists(finalPath);
     metadata.saveConfirmed = true;
 
     // If download already completed/cancelled before dialog finished, handle it now
@@ -434,6 +483,14 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
   item.once("done", async (_event, state) => {
     const meta = activeDownloads.get(item);
     if (!meta) return;
+
+    if (meta.saveRejected) {
+      debugPrint("DOWNLOADS", `Download finished (${state}) after save dialog rejection, cleaning up`);
+      activeDownloads.delete(item);
+      const mp = await ensureMacosProgressModule();
+      await cleanupRejectedDownload(meta, mp, crdownloadBasename, state);
+      return;
+    }
 
     // If save dialog hasn't been confirmed yet, mark as early completion
     // The async dialog handler will process it when ready
