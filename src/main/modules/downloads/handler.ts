@@ -375,19 +375,28 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     ) {
       meta.mirrorSetup = true;
       const finalDir = path.dirname(meta.finalPath);
+      const originalPath = meta.crdownloadPath;
       const result = moveCrdownloadToFinalDir(meta.crdownloadPath, finalDir, crdownloadBasename);
       meta.mirrorKind = result.kind;
 
       debugPrint("DOWNLOADS", `In-progress .crdownload (${result.kind}): ${result.newPath}`);
 
-      // Only update path if we actually moved the file to a different location
-      if (result.kind !== "same-dir") {
+      // Only update macOS progress path if we successfully MOVED the file (not hardlink/symlink/placeholder)
+      if (result.kind === "moved") {
         meta.crdownloadPath = result.newPath;
 
-        // Update macOS progress to track the new path
-        if (macosProgress && meta.progressId && fs.existsSync(result.newPath)) {
-          macosProgress.updateFileProgressPath(meta.progressId, result.newPath);
+        // Verify file exists at new location before updating progress
+        if (fs.existsSync(result.newPath)) {
+          if (macosProgress && meta.progressId) {
+            debugPrint("DOWNLOADS", `Updating macOS progress from ${originalPath} to ${result.newPath}`);
+            macosProgress.updateFileProgressPath(meta.progressId, result.newPath);
+          }
+        } else {
+          debugError("DOWNLOADS", `File doesn't exist at new path after move: ${result.newPath}`);
         }
+      } else if (result.kind === "hardlink" || result.kind === "symlink") {
+        // Keep tracking original file, but user sees progress on the link in final directory
+        debugPrint("DOWNLOADS", `Keeping macOS progress on original file: ${meta.crdownloadPath}`);
       }
     }
 
