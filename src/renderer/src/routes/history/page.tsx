@@ -33,7 +33,7 @@ import type { BrowsingHistoryVisit, HistoryVisitsPageCursor } from "~/types/hist
 import { Clock, MoreHorizontal, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-const HISTORY_PAGE_SIZE = 80;
+const HISTORY_PAGE_SIZE = 150;
 
 function historyVisitsQueryKey(search: string) {
   return ["history", "visits", search] as const;
@@ -86,15 +86,7 @@ function HistoryPage() {
     return () => window.clearTimeout(t);
   }, [search]);
 
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isError,
-    isFetchingNextPage,
-    isPending,
-    refetch
-  } = useInfiniteQuery({
+  const { data, fetchNextPage, hasNextPage, isError, isFetchingNextPage, isPending, refetch } = useInfiniteQuery({
     queryKey: historyVisitsQueryKey(debouncedSearch),
     queryFn: async ({ pageParam }: { pageParam: HistoryVisitsPageCursor | undefined }) => {
       return flow.history.listVisitsPage({
@@ -197,7 +189,7 @@ function HistoryPage() {
                 variant="ghost"
                 size="sm"
                 className="gap-2 text-muted-foreground hover:text-foreground border shrink-0"
-                disabled={visits.length === 0 && !isPending}
+                disabled={!debouncedSearch && visits.length === 0 && !isPending}
               >
                 <Trash2 className="size-4" />
                 Clear data
