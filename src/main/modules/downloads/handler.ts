@@ -282,8 +282,8 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
   const downloadsDir = app.getPath("downloads");
   const defaultPath = path.join(downloadsDir, suggestedFilename);
 
+  // Generate a temporary crdownload file like how Chromium does it.
   const crdownloadBasename = generateCrdownloadBasename();
-  // Start with visible file in Downloads (NO dot prefix)
   const crdownloadPath = path.join(downloadsDir, crdownloadBasename);
 
   debugPrint("DOWNLOADS", `Download requested: ${suggestedFilename}`);
@@ -377,13 +377,17 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
       const finalDir = path.dirname(meta.finalPath);
       const result = moveCrdownloadToFinalDir(meta.crdownloadPath, finalDir, crdownloadBasename);
       meta.mirrorKind = result.kind;
-      meta.crdownloadPath = result.newPath;
 
       debugPrint("DOWNLOADS", `In-progress .crdownload (${result.kind}): ${result.newPath}`);
 
-      // Update macOS progress to track the new path
-      if (macosProgress && meta.progressId && result.newPath && fs.existsSync(result.newPath)) {
-        macosProgress.updateFileProgressPath(meta.progressId, result.newPath);
+      // Only update path if we actually moved the file to a different location
+      if (result.kind !== "same-dir") {
+        meta.crdownloadPath = result.newPath;
+
+        // Update macOS progress to track the new path
+        if (macosProgress && meta.progressId && fs.existsSync(result.newPath)) {
+          macosProgress.updateFileProgressPath(meta.progressId, result.newPath);
+        }
       }
     }
 
