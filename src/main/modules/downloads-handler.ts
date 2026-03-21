@@ -2,10 +2,12 @@
  * Chrome-like download handler with .crdownload temporary files.
  *
  * Intercepts downloads and:
- * 1. Pauses download and shows a save dialog for the user to choose location
- * 2. Saves as `Unconfirmed {6-digit-number}.crdownload` during download
- * 3. Shows macOS native progress bar on the file in Finder
- * 4. Renames/moves to the final filename when complete
+ * 1. Pauses download and sets a hidden temp path: `.Unconfirmed {id}.crdownload` in Downloads
+ * 2. Publishes macOS NSProgress on that path, then shows the save dialog
+ * 3. On confirm, resumes and places the in-progress file beside the chosen save path as
+ *    `Unconfirmed {id}.crdownload` (visible — no leading dot): try rename (move) first, then
+ *    hard link, symlink, or placeholder
+ * 4. On completion, removes any extra mirror entry, renames/moves to the user-chosen filename
  */
 
 import { app, dialog, type DownloadItem, type Session, type WebContents } from "electron";
@@ -26,145 +28,224 @@ if (process.platform === "darwin") {
     });
 }
 
-// Track active downloads with their metadata
+type MirrorKind = "moved" | "hardlink" | "symlink" | "placeholder" | "failed";
+
 interface DownloadMetadata {
+  /** Hidden temp file Electron writes to (e.g. ~/.Unconfirmed 123.crdownload in Downloads). */
   crdownloadPath: string;
+  /** User-chosen final path from the save dialog. */
   finalPath: string;
+  /** Visible in-progress name next to final path (no leading dot). */
+  visibleCrdownloadPath: string;
   progressId: string | null;
   lastUpdate: number;
   lastBytes: number;
   initialTotalBytes: number;
+  mirrorSetup: boolean;
+  /** How the visible-path .crdownload was created; `moved` means the file only exists at `visibleCrdownloadPath`. */
+  mirrorKind?: MirrorKind;
 }
 
 const activeDownloads = new Map<DownloadItem, DownloadMetadata>();
 
-/**
- * Generate a random 6-digit number for the .crdownload filename.
- */
 function generateCrdownloadNumber(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-/**
- * Generate the .crdownload filename for a download.
- * Format: "Unconfirmed {6-digit-number}.crdownload"
- */
-function generateCrdownloadFilename(): string {
+/** Visible basename only, e.g. `Unconfirmed 685304.crdownload`. */
+function generateCrdownloadBasename(): string {
   return `Unconfirmed ${generateCrdownloadNumber()}.crdownload`;
+}
+
+/** Hidden path in Downloads: `.Unconfirmed 685304.crdownload`. */
+function hiddenCrdownloadPathInDownloads(downloadsDir: string, crdownloadBasename: string): string {
+  return path.join(downloadsDir, `.${crdownloadBasename}`);
+}
+
+async function ensureMacosProgressModule(): Promise<typeof import("@/modules/macos-progress") | null> {
+  if (process.platform !== "darwin") return null;
+  if (macosProgress) return macosProgress;
+  try {
+    const mod = await import("@/modules/macos-progress");
+    macosProgress = mod;
+    return mod;
+  } catch (err) {
+    debugError("DOWNLOADS", "Failed to load macOS progress module:", err);
+    return null;
+  }
+}
+
+/**
+ * Prefer moving the temp file to the visible path (same inode; Electron keeps writing).
+ * Otherwise hard link, absolute symlink, then empty placeholder.
+ */
+function mirrorCrdownloadToVisible(hiddenPath: string, visiblePath: string): MirrorKind {
+  if (fs.existsSync(visiblePath)) {
+    try {
+      fs.unlinkSync(visiblePath);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  try {
+    fs.renameSync(hiddenPath, visiblePath);
+    return "moved";
+  } catch {
+    /* continue */
+  }
+
+  try {
+    fs.linkSync(hiddenPath, visiblePath);
+    return "hardlink";
+  } catch {
+    /* continue */
+  }
+
+  try {
+    fs.symlinkSync(hiddenPath, visiblePath);
+    return "symlink";
+  } catch {
+    /* continue */
+  }
+
+  try {
+    fs.writeFileSync(visiblePath, "");
+    return "placeholder";
+  } catch (err) {
+    debugError("DOWNLOADS", "Could not mirror .crdownload to user path:", err);
+    return "failed";
+  }
+}
+
+function removeMirrorIfNeeded(meta: DownloadMetadata): void {
+  try {
+    if (fs.existsSync(meta.visibleCrdownloadPath)) {
+      const st = fs.lstatSync(meta.visibleCrdownloadPath);
+      if (st.isSymbolicLink() || st.isFile()) {
+        fs.unlinkSync(meta.visibleCrdownloadPath);
+      }
+    }
+  } catch (err) {
+    debugError("DOWNLOADS", "Failed to remove visible .crdownload mirror:", err);
+  }
 }
 
 /**
  * Handles the will-download event for a session.
- * This is the main entry point for intercepting downloads.
  *
  * Strategy:
- * 1. Set save path synchronously (required by Electron)
- * 2. Pause immediately so no data transfers
- * 3. Show save dialog
- * 4. Resume after user confirms, or cancel if they decline
- * 5. Move file to chosen location on completion
+ * 1. Set save path to hidden `.crdownload` in Downloads (sync)
+ * 2. Pause so no bytes flow until the user confirms
+ * 3. macOS: NSProgress on hidden path, then save dialog
+ * 4. Resume; on first progress, move or mirror to visible path beside chosen filename
+ * 5. On done: strip extra mirror if any, move temp file to final name
  */
 export function handleDownload(_webContents: WebContents, item: DownloadItem): void {
   const suggestedFilename = item.getFilename();
   const downloadsDir = app.getPath("downloads");
   const defaultPath = path.join(downloadsDir, suggestedFilename);
 
+  const crdownloadBasename = generateCrdownloadBasename();
+  const crdownloadPath = hiddenCrdownloadPathInDownloads(downloadsDir, crdownloadBasename);
+
   debugPrint("DOWNLOADS", `Download requested: ${suggestedFilename}`);
+  debugPrint("DOWNLOADS", `  hidden temp: ${crdownloadPath}`);
 
-  // Generate .crdownload path in downloads directory (must be set synchronously)
-  const crdownloadFilename = generateCrdownloadFilename();
-  const crdownloadPath = path.join(downloadsDir, crdownloadFilename);
-
-  // MUST set save path synchronously before handler returns
   item.setSavePath(crdownloadPath);
-
-  // Pause immediately - no data will transfer until we resume
   item.pause();
 
-  debugPrint("DOWNLOADS", `Download paused, showing save dialog: ${suggestedFilename}`);
-  debugPrint("DOWNLOADS", `  temp crdownload: ${crdownloadPath}`);
-
-  // Show save dialog while download is paused
   const window = browserWindowsController.getWindowFromWebContents(_webContents);
   if (!window) {
     item.cancel();
     return;
   }
-  dialog
-    .showSaveDialog(window.browserWindow, {
+
+  void (async () => {
+    const mp = await ensureMacosProgressModule();
+
+    let progressId: string | null = null;
+    const totalBytes = item.getTotalBytes();
+    if (mp) {
+      progressId = mp.createFileProgress(crdownloadPath, totalBytes > 0 ? totalBytes : 0, () => {
+        debugPrint("DOWNLOADS", `Cancel requested from Finder for: ${suggestedFilename}`);
+        item.cancel();
+      });
+      debugPrint("DOWNLOADS", `macOS progress created: ${progressId}`);
+    }
+
+    const { filePath: chosenPath, canceled } = await dialog.showSaveDialog(window.browserWindow, {
       defaultPath,
       properties: ["createDirectory", "showOverwriteConfirmation"]
-    })
-    .then(({ filePath: chosenPath, canceled }) => {
-      if (canceled || !chosenPath) {
-        debugPrint("DOWNLOADS", `Download cancelled by user: ${suggestedFilename}`);
-        item.cancel();
-        return;
-      }
-
-      const finalPath = chosenPath;
-      debugPrint("DOWNLOADS", `User chose: ${finalPath}`);
-
-      // Get total bytes for progress
-      const totalBytes = item.getTotalBytes();
-
-      // Create macOS progress indicator
-      let progressId: string | null = null;
-      if (macosProgress) {
-        progressId = macosProgress.createFileProgress(crdownloadPath, totalBytes > 0 ? totalBytes : 0, () => {
-          debugPrint("DOWNLOADS", `Cancel requested from Finder for: ${suggestedFilename}`);
-          item.cancel();
-        });
-        debugPrint("DOWNLOADS", `macOS progress created: ${progressId}`);
-      }
-
-      // Store metadata for this download
-      const metadata: DownloadMetadata = {
-        crdownloadPath,
-        finalPath,
-        progressId,
-        lastUpdate: Date.now(),
-        lastBytes: 0,
-        initialTotalBytes: totalBytes
-      };
-      activeDownloads.set(item, metadata);
-
-      // Resume the download - now data will start transferring
-      item.resume();
-      debugPrint("DOWNLOADS", `Download resumed: ${suggestedFilename}`);
     });
 
-  // Track download progress
+    if (canceled || !chosenPath) {
+      debugPrint("DOWNLOADS", `Download cancelled by user: ${suggestedFilename}`);
+      if (mp && progressId) {
+        mp.cancelFileProgress(progressId);
+      }
+      item.cancel();
+      return;
+    }
+
+    const finalPath = chosenPath;
+    const visibleCrdownloadPath = path.join(path.dirname(finalPath), crdownloadBasename);
+
+    debugPrint("DOWNLOADS", `User chose final path: ${finalPath}`);
+    debugPrint("DOWNLOADS", `  visible in-progress name: ${visibleCrdownloadPath}`);
+
+    const metadata: DownloadMetadata = {
+      crdownloadPath,
+      finalPath,
+      visibleCrdownloadPath,
+      progressId,
+      lastUpdate: Date.now(),
+      lastBytes: 0,
+      initialTotalBytes: totalBytes,
+      mirrorSetup: false
+    };
+    activeDownloads.set(item, metadata);
+
+    item.resume();
+  })();
+
   item.on("updated", (_event, state) => {
     const meta = activeDownloads.get(item);
-    debugPrint("DOWNLOADS", `Download updated: ${state}`);
     if (!meta) return;
+
+    if (state === "progressing" && !meta.mirrorSetup && fs.existsSync(meta.crdownloadPath)) {
+      meta.mirrorSetup = true;
+      const kind = mirrorCrdownloadToVisible(meta.crdownloadPath, meta.visibleCrdownloadPath);
+      meta.mirrorKind = kind;
+      if (kind === "moved") {
+        meta.crdownloadPath = meta.visibleCrdownloadPath;
+      }
+      debugPrint("DOWNLOADS", `In-progress .crdownload at user path (${kind}): ${meta.visibleCrdownloadPath}`);
+
+      if (macosProgress && meta.progressId && fs.existsSync(meta.visibleCrdownloadPath)) {
+        macosProgress.updateFileProgressPath(meta.progressId, meta.visibleCrdownloadPath);
+      }
+    }
 
     if (state === "progressing") {
       const receivedBytes = item.getReceivedBytes();
       const total = item.getTotalBytes();
       const now = Date.now();
 
-      // Update macOS progress
       if (macosProgress && meta.progressId) {
         macosProgress.updateFileProgress(meta.progressId, receivedBytes);
 
-        // Update total if it wasn't known initially
         if (total > 0 && meta.initialTotalBytes === 0) {
           macosProgress.updateFileProgressTotal(meta.progressId, total);
           meta.initialTotalBytes = total;
         }
 
-        // Calculate and update throughput (bytes per second)
-        const timeDelta = (now - meta.lastUpdate) / 1000; // seconds
+        const timeDelta = (now - meta.lastUpdate) / 1000;
         if (timeDelta > 0.5) {
-          // Update every 500ms
           const bytesDelta = receivedBytes - meta.lastBytes;
           const bytesPerSecond = bytesDelta / timeDelta;
-
           macosProgress.updateFileProgressThroughput(meta.progressId, bytesPerSecond);
 
-          // Estimate time remaining
           if (bytesPerSecond > 0 && total > 0) {
             const remainingBytes = total - receivedBytes;
             const secondsRemaining = remainingBytes / bytesPerSecond;
@@ -176,7 +257,6 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
         }
       }
 
-      // Log progress periodically
       if (total > 0) {
         const percent = Math.round((receivedBytes / total) * 100);
         debugPrint("DOWNLOADS", `Progress: ${percent}% (${receivedBytes}/${total} bytes)`);
@@ -186,7 +266,6 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     }
   });
 
-  // Handle download completion
   item.once("done", (_event, state) => {
     const meta = activeDownloads.get(item);
     if (!meta) return;
@@ -196,41 +275,41 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     if (state === "completed") {
       debugPrint("DOWNLOADS", `Download completed: ${meta.crdownloadPath}`);
 
-      // Complete macOS progress
       if (macosProgress && meta.progressId) {
         macosProgress.completeFileProgress(meta.progressId);
       }
 
-      // Move/rename from .crdownload to final filename
+      if (meta.mirrorKind && meta.mirrorKind !== "moved") {
+        removeMirrorIfNeeded(meta);
+      }
+
       try {
-        // If final path exists (shouldn't happen with overwrite confirmation), remove it
         if (fs.existsSync(meta.finalPath)) {
           fs.unlinkSync(meta.finalPath);
         }
 
-        // Move the file (works across different directories)
         fs.renameSync(meta.crdownloadPath, meta.finalPath);
         debugPrint("DOWNLOADS", `Moved to final path: ${meta.finalPath}`);
       } catch {
-        // If rename fails (cross-device), try copy + delete
         try {
           fs.copyFileSync(meta.crdownloadPath, meta.finalPath);
           fs.unlinkSync(meta.crdownloadPath);
           debugPrint("DOWNLOADS", `Copied to final path: ${meta.finalPath}`);
         } catch (copyErr) {
           debugError("DOWNLOADS", `Failed to move download:`, copyErr);
-          // File remains as .crdownload if move fails
         }
       }
     } else if (state === "cancelled") {
       debugPrint("DOWNLOADS", `Download cancelled: ${meta.crdownloadPath}`);
 
-      // Cancel macOS progress
       if (macosProgress && meta.progressId) {
         macosProgress.cancelFileProgress(meta.progressId);
       }
 
-      // Clean up partial .crdownload file
+      if (meta.mirrorKind && meta.mirrorKind !== "moved") {
+        removeMirrorIfNeeded(meta);
+      }
+
       try {
         if (fs.existsSync(meta.crdownloadPath)) {
           fs.unlinkSync(meta.crdownloadPath);
@@ -242,18 +321,17 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
     } else if (state === "interrupted") {
       debugPrint("DOWNLOADS", `Download interrupted (final): ${meta.crdownloadPath}`);
 
-      // Cancel macOS progress on interruption
       if (macosProgress && meta.progressId) {
         macosProgress.cancelFileProgress(meta.progressId);
+      }
+
+      if (meta.mirrorKind && meta.mirrorKind !== "moved") {
+        removeMirrorIfNeeded(meta);
       }
     }
   });
 }
 
-/**
- * Register the download handler with a session.
- * Call this function for each session where you want to intercept downloads.
- */
 export function registerDownloadHandler(session: Session): void {
   session.on("will-download", (_event, item, webContents) => {
     handleDownload(webContents, item);
