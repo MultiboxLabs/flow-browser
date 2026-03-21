@@ -388,8 +388,15 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
         // Verify file exists at new location before updating progress
         if (fs.existsSync(result.newPath)) {
           if (macosProgress && meta.progressId) {
-            debugPrint("DOWNLOADS", `Updating macOS progress from ${originalPath} to ${result.newPath}`);
-            macosProgress.updateFileProgressPath(meta.progressId, result.newPath);
+            debugPrint("DOWNLOADS", `Recreating macOS progress from ${originalPath} to ${result.newPath}`);
+            // Recreate progress at new location (more reliable than updating path)
+            const newProgressId = macosProgress.recreateFileProgressAtPath(meta.progressId, result.newPath, () => {
+              debugPrint("DOWNLOADS", `Cancel requested from Finder for: ${item.getFilename()}`);
+              item.cancel();
+            });
+            if (newProgressId) {
+              meta.progressId = newProgressId;
+            }
           }
         } else {
           debugError("DOWNLOADS", `File doesn't exist at new path after move: ${result.newPath}`);

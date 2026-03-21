@@ -238,3 +238,59 @@ export function updateFileProgressPath(progressId: string, newFilePath: string):
     debugError("DOWNLOADS", "macOS: updateFileProgressPath failed:", err);
   }
 }
+
+/**
+ * Recreate progress at a new location (more reliable than updateFileProgressPath).
+ * Cancels old progress and creates new one at new path with current progress state.
+ *
+ * @param progressId - The ID returned from createFileProgress
+ * @param newFilePath - The new absolute path to the file
+ * @param onCancel - Callback invoked when user clicks cancel in Finder
+ * @returns New progress ID, or null on failure
+ */
+export function recreateFileProgressAtPath(
+  progressId: string,
+  newFilePath: string,
+  onCancel?: () => void
+): string | null {
+  try {
+    const oldProgress = activeProgressMap.get(progressId);
+    if (!oldProgress) {
+      debugError("DOWNLOADS", `macOS: no progress found for ID ${progressId}`);
+      return null;
+    }
+
+    // Capture current state before cancelling
+    const completedBytes = oldProgress.completedUnitCount();
+    const totalBytes = oldProgress.totalUnitCount();
+    const throughput = oldProgress.throughput();
+    const estimatedTime = oldProgress.estimatedTimeRemaining();
+
+    // Cancel old progress (unpublishes it)
+    cancelFileProgress(progressId);
+
+    // Create new progress at new location
+    const newProgressId = createFileProgress(newFilePath, totalBytes, onCancel);
+    if (!newProgressId) {
+      return null;
+    }
+
+    // Restore state
+    const newProgress = activeProgressMap.get(newProgressId);
+    if (newProgress) {
+      newProgress.setCompletedUnitCount$(completedBytes);
+      if (throughput) {
+        newProgress.setThroughput$(throughput);
+      }
+      if (estimatedTime) {
+        newProgress.setEstimatedTimeRemaining$(estimatedTime);
+      }
+    }
+
+    debugPrint("DOWNLOADS", `macOS: recreated progress at ${newFilePath}`);
+    return newProgressId;
+  } catch (err) {
+    debugError("DOWNLOADS", "macOS: recreateFileProgressAtPath failed:", err);
+    return null;
+  }
+}
