@@ -5,7 +5,6 @@
  * indicators on files in Finder (e.g., the progress bar on .crdownload files).
  */
 
-// @ts-ignore This package is only available on macOS.
 import { NSProgress, NSURL, NSNumber, type _NSProgress } from "objcjs-types/Foundation";
 import { NSProgressFileOperationKind, NSProgressKind } from "objcjs-types/Foundation";
 import { NSStringFromString } from "objcjs-types/helpers";

@@ -24,16 +24,21 @@ import { debugError, debugPrint } from "@/modules/output";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 
 // Conditionally import macOS progress module
-let macosProgress: typeof import("@/modules/downloads/macos-progress") | null = null;
-if (process.platform === "darwin") {
-  import("@/modules/downloads/macos-progress")
-    .then((module) => {
-      macosProgress = module;
-    })
-    .catch((err) => {
-      debugError("DOWNLOADS", "Failed to load macOS progress module:", err);
-    });
+type MacOSProgress = typeof import("./macos-progress");
+let macosProgress: MacOSProgress | null = null;
+async function ensureMacosProgressModule(): Promise<MacOSProgress | null> {
+  if (process.platform !== "darwin") return null;
+  if (macosProgress) return macosProgress;
+  try {
+    const mod = await import("./macos-progress");
+    macosProgress = mod;
+    return mod;
+  } catch (err) {
+    debugError("DOWNLOADS", "Failed to load macOS progress module:", err);
+    return null;
+  }
 }
+ensureMacosProgressModule();
 
 /**
  * How we got the visible `.crdownload` beside the user’s save location.
@@ -73,19 +78,6 @@ function generateCrdownloadBasename(): string {
 /** Hidden path in Downloads: `.Unconfirmed 685304.crdownload`. */
 function hiddenCrdownloadPathInDownloads(downloadsDir: string, crdownloadBasename: string): string {
   return path.join(downloadsDir, `.${crdownloadBasename}`);
-}
-
-async function ensureMacosProgressModule(): Promise<typeof import("@/modules/downloads/macos-progress") | null> {
-  if (process.platform !== "darwin") return null;
-  if (macosProgress) return macosProgress;
-  try {
-    const mod = await import("@/modules/downloads/macos-progress");
-    macosProgress = mod;
-    return mod;
-  } catch (err) {
-    debugError("DOWNLOADS", "Failed to load macOS progress module:", err);
-    return null;
-  }
 }
 
 /**
