@@ -1,15 +1,10 @@
-interface HistoryEntry {
-  id: number;
-  url: string;
-  title: string;
-  visitCount: number;
-  typedCount: number; // How often typed directly
-  lastVisitTime: number; // Timestamp
-}
+import type { BrowsingHistoryEntry } from "~/types/history";
+
+export type { BrowsingHistoryEntry };
 
 const MOCK_HISTORY_ENABLED = false;
 
-const MOCK_HISTORY: HistoryEntry[] = [
+const MOCK_HISTORY: BrowsingHistoryEntry[] = [
   {
     id: 1,
     url: "https://www.google.com/",
@@ -60,9 +55,9 @@ const MOCK_HISTORY: HistoryEntry[] = [
   }
 ];
 
-export async function getHistory() {
+export async function getHistory(): Promise<BrowsingHistoryEntry[]> {
   if (MOCK_HISTORY_ENABLED) {
     return MOCK_HISTORY;
   }
-  return [];
+  return flow.history.list();
 }

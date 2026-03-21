@@ -90,7 +90,7 @@ export function PinnedBrowserActions() {
   }
 
   return (
-    <div className="ml-auto flex items-center gap-0.5 shrink-0">
+    <>
       {pinnedActions.map((action) => (
         <PinnedAction
           key={action.id}
@@ -100,6 +100,6 @@ export function PinnedBrowserActions() {
           activate={activate}
         />
       ))}
-    </div>
+    </>
   );
 }

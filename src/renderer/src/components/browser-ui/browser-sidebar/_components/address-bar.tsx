@@ -1,9 +1,10 @@
 import { cn } from "@/lib/utils";
 import { SearchIcon } from "lucide-react";
-import { memo, useCallback, useRef } from "react";
+import { memo, useCallback, useRef, type MouseEvent } from "react";
 import { useAddressUrl, useFocusedTabId } from "@/components/providers/tabs-provider";
 import { simplifyUrl } from "@/lib/url";
 import { PinnedBrowserActions } from "./pinned-browser-actions";
+import { BrowserActionList } from "@/components/browser-ui/browser-sidebar/_components/browser-action-list";
 
 export const AddressBar = memo(function AddressBar() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -13,25 +14,33 @@ export const AddressBar = memo(function AddressBar() {
   const simplifiedUrl = simplifyUrl(addressUrl);
   const isPlaceholder = !simplifiedUrl;
 
-  const handleClick = useCallback(() => {
-    const el = containerRef.current;
-    if (!el) return;
+  const handleClick = useCallback(
+    (event: MouseEvent<HTMLDivElement>) => {
+      const el = containerRef.current;
+      if (!el) return;
 
-    const rect = el.getBoundingClientRect();
-
-    flow.omnibox.show(
-      {
-        x: rect.x,
-        y: rect.y,
-        width: rect.width * 2,
-        height: rect.height * 8
-      },
-      {
-        currentInput: addressUrl,
-        openIn: focusedTabId ? "current" : "new_tab"
+      const path = event.nativeEvent.composedPath();
+      if (!path.includes(el)) {
+        return;
       }
-    );
-  }, [addressUrl, focusedTabId]);
+
+      const rect = el.getBoundingClientRect();
+
+      flow.omnibox.show(
+        {
+          x: rect.x,
+          y: rect.y,
+          width: rect.width * 2,
+          height: rect.height * 8
+        },
+        {
+          currentInput: addressUrl,
+          openIn: focusedTabId ? "current" : "new_tab"
+        }
+      );
+    },
+    [addressUrl, focusedTabId]
+  );
 
   return (
     <div
@@ -50,7 +59,12 @@ export const AddressBar = memo(function AddressBar() {
       <p className={cn("font-[inter] text-sm font-medium truncate min-w-0")}>
         {isPlaceholder ? "Search or Enter URL..." : simplifiedUrl}
       </p>
-      <PinnedBrowserActions />
+      <div className="ml-auto flex items-center gap-0.5 shrink-0">
+        <PinnedBrowserActions />
+        <div>
+          <BrowserActionList />
+        </div>
+      </div>
     </div>
   );
 });

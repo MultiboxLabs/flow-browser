@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { NavigationEntry, PersistedTabData, PersistedTabGroupData, TabGroupMode } from "~/types/tabs";
 
 // --- Tabs Table ---
@@ -88,3 +88,38 @@ export const pinnedTabs = sqliteTable(
 
 export type PinnedTabRow = typeof pinnedTabs.$inferSelect;
 export type PinnedTabInsert = typeof pinnedTabs.$inferInsert;
+
+// --- Browsing history (Chromium-inspired urls + visits; see design/chromium-inspired-browsing-history.md) ---
+
+export const historyUrls = sqliteTable(
+  "history_urls",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    profileId: text("profile_id").notNull(),
+    url: text("url").notNull(),
+    title: text("title").notNull(),
+    visitCount: integer("visit_count").notNull().default(0),
+    typedCount: integer("typed_count").notNull().default(0),
+    lastVisitTime: integer("last_visit_time").notNull()
+  },
+  (table) => [uniqueIndex("idx_history_urls_profile_url").on(table.profileId, table.url)]
+);
+
+export const historyVisits = sqliteTable(
+  "history_visits",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    urlId: integer("url_id")
+      .notNull()
+      .references(() => historyUrls.id, { onDelete: "cascade" }),
+    visitTime: integer("visit_time").notNull(),
+    typed: integer("typed", { mode: "boolean" }).notNull().default(false)
+  },
+  (table) => [
+    index("idx_history_visits_url_id").on(table.urlId),
+    index("idx_history_visits_visit_time").on(table.visitTime)
+  ]
+);
+
+export type HistoryUrlRow = typeof historyUrls.$inferSelect;
+export type HistoryVisitRow = typeof historyVisits.$inferSelect;

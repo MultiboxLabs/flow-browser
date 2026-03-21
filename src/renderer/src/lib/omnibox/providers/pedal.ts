@@ -30,6 +30,11 @@ const PEDALS = [
     triggers: ["extensions", "extension", "extension manager"],
     action: "open_extensions",
     description: "Extensions Manager"
+  },
+  {
+    triggers: ["history", "browse history", "browsing history"],
+    action: "open_history",
+    description: "History"
   }
 ] satisfies Pedal[];
 

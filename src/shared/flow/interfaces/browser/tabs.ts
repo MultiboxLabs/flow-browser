@@ -46,7 +46,7 @@ export interface FlowTabsAPI {
    * @param isForeground Whether to make the tab the foreground tab
    * @param spaceId The id of the space to create the tab in
    */
-  newTab: (url?: string, isForeground?: boolean, spaceId?: string) => Promise<boolean>;
+  newTab: (url?: string, isForeground?: boolean, spaceId?: string, typedFromAddressBar?: boolean) => Promise<boolean>;
 
   /**
    * Close a tab

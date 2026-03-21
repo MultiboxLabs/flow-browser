@@ -408,6 +408,9 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     // rather than the other way around.
     if (tab._needsInitialLoad && tabCreationOptions.noLoadURL !== true) {
       const initialURL = tabCreationOptions.url || tab.loadedProfile.newTabUrl || NEW_TAB_URL;
+      if (tabCreationOptions.typedNavigation) {
+        tab.markTypedNavigationForNextHistoryVisit(initialURL);
+      }
       tab.loadURL(initialURL);
     }
 
@@ -605,7 +608,19 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       this.removeFocusedTab(windowId, spaceId);
     }
 
+    this.flushBrowsingHistoryForActivatedTabOrGroup(tabOrGroup);
+
     this.emit("active-tab-changed", windowId, spaceId);
+  }
+
+  private flushBrowsingHistoryForActivatedTabOrGroup(tabOrGroup: Tab | TabGroup): void {
+    if (tabOrGroup instanceof Tab) {
+      tabOrGroup.recordBrowsingHistoryOnActivationIfNeeded();
+    } else {
+      for (const t of tabOrGroup.tabs) {
+        t.recordBrowsingHistoryOnActivationIfNeeded();
+      }
+    }
   }
 
   /**
@@ -896,6 +911,16 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       }
     }
     return result;
+  }
+
+  /**
+   * Clear per-tab in-memory history deduping after history rows are deleted.
+   * This keeps the next same-URL navigation recordable without touching unrelated profiles.
+   */
+  public clearBrowsingHistoryDedupingForProfile(profileId: string, url?: string): void {
+    for (const tab of this.getTabsInProfile(profileId)) {
+      tab.clearBrowsingHistoryDeduping(url);
+    }
   }
 
   /**

@@ -78,6 +78,7 @@ These dependencies are either used in the build process, or they are only used i
 - sonner - Toast Notifications for the frontend.
 - react-use - React Hooks.
 - nuqs - Use for managing query parameters in the URL.
+- @tanstack/react-query - React Query for the frontend.
 
 ## Tailwind CSS Dependencies for the Frontend
 

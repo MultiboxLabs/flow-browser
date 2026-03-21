@@ -1,3 +1,8 @@
+import {
+  isHistoryRecordableUrl,
+  recordBrowsingHistoryVisit,
+  updateBrowsingHistoryTitleForOpenPage
+} from "@/saving/history/browsing-history";
 import { cacheFavicon } from "@/modules/favicons";
 import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
@@ -88,6 +93,11 @@ export interface TabCreationOptions {
 
   // Others
   noLoadURL?: boolean;
+  /**
+   * When true, `TabsController` applies typed intent for the initial `loadURL(initialURL)` using that
+   * same URL string (see `markTypedNavigationForNextHistoryVisit`).
+   */
+  typedNavigation?: boolean;
 }
 
 function createWebContentsView(
@@ -162,6 +172,17 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public position: number;
   /** When true, this tab is not saved to the database and will not survive app restart. */
   public ephemeral: boolean;
+
+  /**
+   * When set, the next recorded http(s) visit counts as typed only if it commits to this exact URL
+   * (avoids crediting a later navigation after a cancelled load).
+   */
+  private pendingHistoryTypedUrl: string | null = null;
+  /**
+   * Canonical key of the last http(s) visit we stored for this tab in this WebContents
+   * lifetime. If a new visit matches this key, it is skipped (refresh, SPA re-fires, etc.).
+   */
+  private lastRecordedHistoryKey: string = "";
 
   // Content properties (from WebContents)
   public title: string = "New Tab";
@@ -319,6 +340,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   public initializeView(): void {
     if (this.view) return; // Already initialized
 
+    this.lastRecordedHistoryKey = "";
+    this.pendingHistoryTypedUrl = null;
+
     const webContentsView = createWebContentsView(this.session, this._webContentsViewOptions);
     const webContents = webContentsView.webContents;
 
@@ -427,9 +451,27 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   private setupWebContentsListeners() {
     const webContents = this.webContents!;
 
+    webContents.on("page-title-updated", (_event, title) => {
+      if (this.loadedProfile.profileData.ephemeral) return;
+      if (!this.tabsController.isTabActive(this)) return;
+      const url = webContents.getURL();
+      if (!isHistoryRecordableUrl(url)) return;
+      updateBrowsingHistoryTitleForOpenPage({
+        profileId: this.profileId,
+        url,
+        title
+      });
+    });
+
     // Set zoom level limits when webContents is ready
     webContents.on("did-finish-load", () => {
       webContents.setVisualZoomLevelLimits(1, 5);
+      this.recordBrowsingHistoryFromWebContents(webContents);
+    });
+
+    webContents.on("did-navigate-in-page", (_event, url, isMainFrame) => {
+      if (!isMainFrame) return;
+      this.recordBrowsingHistoryFromWebContents(webContents, url);
     });
 
     // Note: Fullscreen listeners are set up by TabLifecycleManager
@@ -711,8 +753,126 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   // --- Navigation ---
 
   /**
+   * Canonical key for “same page” in history (strip hash; YouTube shorts/watch ignore tracking params).
+   */
+  private static historyUrlSessionKey(urlString: string): string {
+    try {
+      const u = new URL(urlString);
+      u.hash = "";
+      const host = u.hostname.toLowerCase().replace(/^www\./, "");
+
+      if (host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com") {
+        const parts = u.pathname.split("/").filter(Boolean);
+        if (parts[0] === "shorts" && parts[1]) {
+          return `yt/shorts/${parts[1]}`;
+        }
+        if (u.pathname === "/watch" || u.pathname.startsWith("/watch/")) {
+          const v = u.searchParams.get("v");
+          if (v) return `yt/watch/${v}`;
+        }
+      }
+
+      if (host === "youtu.be") {
+        const id = u.pathname.replace(/^\//, "").split("/")[0];
+        if (id) return `yt/watch/${id}`;
+      }
+
+      return u.href;
+    } catch {
+      return urlString;
+    }
+  }
+
+  /** Canonical form used when matching typed intent to a committed URL. */
+  private static canonicalHistoryTypedUrl(urlString: string): string {
+    try {
+      return new URL(urlString).toString();
+    } catch {
+      return urlString;
+    }
+  }
+
+  /**
+   * Next successful http(s) history recording increments `typed_count` only if the committed URL
+   * matches `url` after simple URL canonicalization (for example, origin-only trailing slashes).
+   */
+  public markTypedNavigationForNextHistoryVisit(url: string): void {
+    this.pendingHistoryTypedUrl = Tab.canonicalHistoryTypedUrl(url);
+  }
+
+  private clearPendingHistoryTypedNavigation(): void {
+    this.pendingHistoryTypedUrl = null;
+  }
+
+  /** Clears pending typed intent; returns whether it applied to this recorded URL. */
+  private consumeHistoryTypedPendingForRecordedUrl(recordedUrl: string): boolean {
+    const pending = this.pendingHistoryTypedUrl;
+    this.pendingHistoryTypedUrl = null;
+    if (pending === null) return false;
+    return pending === Tab.canonicalHistoryTypedUrl(recordedUrl);
+  }
+
+  /**
+   * Clear in-memory duplicate suppression after history rows are removed so the same page can be
+   * recorded again without forcing the tab through another URL first.
+   */
+  public clearBrowsingHistoryDeduping(url?: string): void {
+    if (!url) {
+      this.lastRecordedHistoryKey = "";
+      return;
+    }
+
+    const clearedKey = Tab.historyUrlSessionKey(url);
+    if (this.lastRecordedHistoryKey === clearedKey) {
+      this.lastRecordedHistoryKey = "";
+    }
+  }
+
+  /**
+   * When the tab becomes selected (or is part of the active tab group), record the
+   * current page if needed. Background/restored tabs do not write history until then.
+   */
+  public recordBrowsingHistoryOnActivationIfNeeded(): void {
+    if (this.isDestroyed || !this.webContents) return;
+    if (!this.tabsController.isTabActive(this)) return;
+    this.recordBrowsingHistoryFromWebContents(this.webContents);
+  }
+
+  private recordBrowsingHistoryFromWebContents(webContents: WebContents, urlOverride?: string): void {
+    const url = urlOverride ?? webContents.getURL();
+
+    if (!this.tabsController.isTabActive(this)) return;
+
+    // A freshly activated tab can still be sitting on the transient blank page while its first
+    // real navigation is in flight. Let the committed navigation handle history/typed intent.
+    if ((url === "" || url === "about:blank") && webContents.isLoading()) return;
+
+    if (!isHistoryRecordableUrl(url) || this.loadedProfile.profileData.ephemeral) {
+      this.clearPendingHistoryTypedNavigation();
+      return;
+    }
+
+    const sessionKey = Tab.historyUrlSessionKey(url);
+    if (sessionKey === this.lastRecordedHistoryKey && this.lastRecordedHistoryKey !== "") {
+      this.consumeHistoryTypedPendingForRecordedUrl(url);
+      return;
+    }
+
+    const incrementTyped = this.consumeHistoryTypedPendingForRecordedUrl(url);
+    this.lastRecordedHistoryKey = sessionKey;
+
+    recordBrowsingHistoryVisit({
+      profileId: this.profileId,
+      url,
+      title: webContents.getTitle(),
+      incrementTyped
+    });
+  }
+
+  /**
    * Loads a URL in the tab.
    */
+
   public loadURL(url: string, replace?: boolean) {
     if (!this.webContents) return;
 

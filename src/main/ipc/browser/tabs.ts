@@ -327,33 +327,37 @@ ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {
   return true;
 });
 
-ipcMain.handle("tabs:new-tab", async (event, url?: string, isForeground?: boolean, spaceId?: string) => {
-  const webContents = event.sender;
-  const window =
-    browserWindowsController.getWindowFromWebContents(webContents) || browserWindowsController.getWindows()[0];
-  if (!window) return;
+ipcMain.handle(
+  "tabs:new-tab",
+  async (event, url?: string, isForeground?: boolean, spaceId?: string, typedFromAddressBar?: boolean) => {
+    const webContents = event.sender;
+    const window =
+      browserWindowsController.getWindowFromWebContents(webContents) || browserWindowsController.getWindows()[0];
+    if (!window) return;
 
-  if (!spaceId) {
-    const currentSpace = window.currentSpaceId;
-    if (!currentSpace) return;
+    if (!spaceId) {
+      const currentSpace = window.currentSpaceId;
+      if (!currentSpace) return;
 
-    spaceId = currentSpace;
+      spaceId = currentSpace;
+    }
+
+    if (!spaceId) return;
+
+    const space = await spacesController.get(spaceId);
+    if (!space) return;
+
+    const tab = await tabsController.createTab(window.id, space.profileId, spaceId, undefined, {
+      url: url || undefined,
+      typedNavigation: typedFromAddressBar === true
+    });
+
+    if (isForeground) {
+      tabsController.setActiveTab(tab);
+    }
+    return true;
   }
-
-  if (!spaceId) return;
-
-  const space = await spacesController.get(spaceId);
-  if (!space) return;
-
-  const tab = await tabsController.createTab(window.id, space.profileId, spaceId, undefined, {
-    url: url || undefined
-  });
-
-  if (isForeground) {
-    tabsController.setActiveTab(tab);
-  }
-  return true;
-});
+);
 
 ipcMain.handle("tabs:close-tab", async (event, tabId: number) => {
   const webContents = event.sender;
