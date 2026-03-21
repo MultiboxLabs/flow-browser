@@ -783,12 +783,21 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     }
   }
 
+  /** Canonical form used when matching typed intent to a committed URL. */
+  private static canonicalHistoryTypedUrl(urlString: string): string {
+    try {
+      return new URL(urlString).toString();
+    } catch {
+      return urlString;
+    }
+  }
+
   /**
    * Next successful http(s) history recording increments `typed_count` only if the committed URL
-   * matches `url` (same string as passed to loadURL).
+   * matches `url` after simple URL canonicalization (for example, origin-only trailing slashes).
    */
   public markTypedNavigationForNextHistoryVisit(url: string): void {
-    this.pendingHistoryTypedUrl = url;
+    this.pendingHistoryTypedUrl = Tab.canonicalHistoryTypedUrl(url);
   }
 
   private clearPendingHistoryTypedNavigation(): void {
@@ -800,7 +809,23 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     const pending = this.pendingHistoryTypedUrl;
     this.pendingHistoryTypedUrl = null;
     if (pending === null) return false;
-    return pending === recordedUrl;
+    return pending === Tab.canonicalHistoryTypedUrl(recordedUrl);
+  }
+
+  /**
+   * Clear in-memory duplicate suppression after history rows are removed so the same page can be
+   * recorded again without forcing the tab through another URL first.
+   */
+  public clearBrowsingHistoryDeduping(url?: string): void {
+    if (!url) {
+      this.lastRecordedHistoryKey = "";
+      return;
+    }
+
+    const clearedKey = Tab.historyUrlSessionKey(url);
+    if (this.lastRecordedHistoryKey === clearedKey) {
+      this.lastRecordedHistoryKey = "";
+    }
   }
 
   /**
@@ -817,6 +842,10 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     const url = urlOverride ?? webContents.getURL();
 
     if (!this.tabsController.isTabActive(this)) return;
+
+    // A freshly activated tab can still be sitting on the transient blank page while its first
+    // real navigation is in flight. Let the committed navigation handle history/typed intent.
+    if ((url === "" || url === "about:blank") && webContents.isLoading()) return;
 
     if (!isHistoryRecordableUrl(url) || this.loadedProfile.profileData.ephemeral) {
       this.clearPendingHistoryTypedNavigation();

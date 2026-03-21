@@ -914,6 +914,16 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   }
 
   /**
+   * Clear per-tab in-memory history deduping after history rows are deleted.
+   * This keeps the next same-URL navigation recordable without touching unrelated profiles.
+   */
+  public clearBrowsingHistoryDedupingForProfile(profileId: string, url?: string): void {
+    for (const tab of this.getTabsInProfile(profileId)) {
+      tab.clearBrowsingHistoryDeduping(url);
+    }
+  }
+
+  /**
    * Get all tabs in a space
    */
   public getTabsInSpace(spaceId: string): Tab[] {

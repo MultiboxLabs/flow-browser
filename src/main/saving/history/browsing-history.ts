@@ -259,6 +259,29 @@ export function deleteBrowsingVisitForProfile(profileId: string, visitId: number
   return true;
 }
 
+export function getBrowsingVisitUrlForProfile(profileId: string, visitId: number): string | null {
+  const row = getDb()
+    .select({ url: historyUrls.url })
+    .from(historyVisits)
+    .innerJoin(historyUrls, eq(historyVisits.urlId, historyUrls.id))
+    .where(and(eq(historyVisits.id, visitId), eq(historyUrls.profileId, profileId)))
+    .limit(1)
+    .get();
+
+  return row?.url ?? null;
+}
+
+export function getBrowsingUrlValueForProfile(profileId: string, urlRowId: number): string | null {
+  const row = getDb()
+    .select({ url: historyUrls.url })
+    .from(historyUrls)
+    .where(and(eq(historyUrls.id, urlRowId), eq(historyUrls.profileId, profileId)))
+    .limit(1)
+    .get();
+
+  return row?.url ?? null;
+}
+
 export function deleteBrowsingUrlRowForProfile(profileId: string, urlRowId: number): boolean {
   const db = getDb();
   const exists = db
