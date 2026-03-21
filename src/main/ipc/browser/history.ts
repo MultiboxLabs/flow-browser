@@ -34,10 +34,7 @@ ipcMain.handle("history:list-visits", async (event, search?: string) => {
 
 ipcMain.handle(
   "history:list-visits-page",
-  async (
-    event,
-    args: { search?: string; limit: number; cursor?: HistoryVisitsPageCursor }
-  ) => {
+  async (event, args: { search?: string; limit: number; cursor?: HistoryVisitsPageCursor }) => {
     const profileId = await profileIdFromSender(event.sender);
     if (!profileId) return { visits: [], nextCursor: null };
     return listBrowsingVisitsPageForProfile(profileId, args);
