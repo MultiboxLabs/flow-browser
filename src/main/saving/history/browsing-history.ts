@@ -8,7 +8,7 @@ import type {
   HistoryVisitsPageCursor
 } from "~/types/history";
 
-const RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+const RETENTION_MS = 180 * 24 * 60 * 60 * 1000;
 
 export function isHistoryRecordableUrl(urlString: string): boolean {
   try {
@@ -302,7 +302,7 @@ export function clearBrowsingHistoryForProfile(profileId: string): void {
   db.delete(historyUrls).where(eq(historyUrls.profileId, profileId)).run();
 }
 
-/** Drop visits older than 90 days and reconcile URL aggregates. */
+/** Drop visits older than configured retention period and reconcile URL aggregates. */
 export function pruneBrowsingHistory(): void {
   const db = getDb();
   const cutoff = Date.now() - RETENTION_MS;
