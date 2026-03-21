@@ -96,6 +96,7 @@ export function listBrowsingHistoryForProfile(profileId: string): BrowsingHistor
     .from(historyUrls)
     .where(eq(historyUrls.profileId, profileId))
     .orderBy(desc(historyUrls.lastVisitTime))
+    .limit(200)
     .all();
 
   return rows.map((row) => ({
