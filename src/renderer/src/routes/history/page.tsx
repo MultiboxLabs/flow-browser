@@ -278,7 +278,7 @@ function HistoryPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="size-7 shrink-0 opacity-0 group-hover:opacity-60 hover:opacity-100! transition-opacity"
+                                className="size-7 shrink-0 opacity-0 group-hover:opacity-60 group-focus-within:opacity-60 hover:opacity-100! focus-visible:opacity-100! transition-opacity"
                                 aria-label="More actions"
                               >
                                 <MoreHorizontal className="size-3.5" />
