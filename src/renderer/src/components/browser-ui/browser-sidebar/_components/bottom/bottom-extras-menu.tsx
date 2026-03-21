@@ -6,14 +6,25 @@ import { cn } from "@/lib/utils";
 import { EllipsisVerticalIcon, HistoryIcon } from "lucide-react";
 import { useState } from "react";
 
-function BottomExtraItem({ setOpen, children }: { setOpen: (open: boolean) => void; children: React.ReactNode }) {
+function BottomExtraItem({
+  target,
+  setOpen,
+  children,
+  className,
+  ...props
+}: {
+  target: string;
+  setOpen: (open: boolean) => void;
+  children: React.ReactNode;
+} & React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       onClick={() => {
-        flow.tabs.newTab("flow://history", true);
+        flow.tabs.newTab(target, true);
         setOpen(false);
       }}
-      className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm hover:bg-accent"
+      className={cn("flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm hover:bg-accent", className)}
+      {...props}
     >
       {children}
     </div>
@@ -34,7 +45,7 @@ export function BottomExtrasMenu() {
         </Button>
       </PopoverTrigger>
       <PortalPopover.Content className={cn("w-56 p-2 select-none", spaceInjectedClasses)}>
-        <BottomExtraItem setOpen={setOpen}>
+        <BottomExtraItem target="flow://history" setOpen={setOpen}>
           <HistoryIcon className="w-4 h-4" />
           <span>History</span>
         </BottomExtraItem>
