@@ -305,7 +305,23 @@ export function handleDownload(_webContents: WebContents, item: DownloadItem): v
       if (mp && progressId) {
         mp.cancelFileProgress(progressId);
       }
-      item.cancel();
+
+      // If download already completed before user cancelled, manually clean up the file
+      if (metadata.earlyCompletion?.state === "completed") {
+        debugPrint("DOWNLOADS", `Cleaning up completed download after user cancelled`);
+        try {
+          if (fs.existsSync(metadata.crdownloadPath)) {
+            fs.unlinkSync(metadata.crdownloadPath);
+            debugPrint("DOWNLOADS", `Deleted completed download: ${metadata.crdownloadPath}`);
+          }
+        } catch (err) {
+          debugError("DOWNLOADS", `Failed to clean up completed download:`, err);
+        }
+        activeDownloads.delete(item);
+      } else {
+        // Download still in progress, cancel it normally
+        item.cancel();
+      }
       return;
     }
 
