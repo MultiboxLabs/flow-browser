@@ -9,6 +9,9 @@ import type {
 } from "~/types/history";
 
 const RETENTION_MS = 180 * 24 * 60 * 60 * 1000;
+type HistoryDb = ReturnType<typeof getDb>;
+type HistoryTx = Parameters<Parameters<HistoryDb["transaction"]>[0]>[0];
+type HistoryDbExecutor = HistoryDb | HistoryTx;
 
 export function isHistoryRecordableUrl(urlString: string): boolean {
   try {
@@ -214,8 +217,7 @@ export function listBrowsingVisitsPageForProfile(
 }
 
 /** After deleting one or more visits for a URL, refresh aggregates or drop the URL row. */
-export function reconcileUrlAggregatesAfterVisitChange(urlId: number): void {
-  const db = getDb();
+function reconcileUrlAggregatesAfterVisitChangeInDb(db: HistoryDbExecutor, urlId: number): void {
   const stats = db
     .select({
       cnt: sql<number>`count(*)`,
@@ -242,20 +244,31 @@ export function reconcileUrlAggregatesAfterVisitChange(urlId: number): void {
     .run();
 }
 
+export function reconcileUrlAggregatesAfterVisitChange(urlId: number): void {
+  reconcileUrlAggregatesAfterVisitChangeInDb(getDb(), urlId);
+}
+
 export function deleteBrowsingVisitForProfile(profileId: string, visitId: number): boolean {
   const db = getDb();
-  const hit = db
-    .select({ urlId: historyVisits.urlId })
-    .from(historyVisits)
-    .innerJoin(historyUrls, eq(historyVisits.urlId, historyUrls.id))
-    .where(and(eq(historyVisits.id, visitId), eq(historyUrls.profileId, profileId)))
-    .limit(1)
-    .all();
+  let deleted = false;
 
-  if (!hit[0]) return false;
-  const urlId = hit[0].urlId;
-  db.delete(historyVisits).where(eq(historyVisits.id, visitId)).run();
-  reconcileUrlAggregatesAfterVisitChange(urlId);
+  db.transaction((tx) => {
+    const hit = tx
+      .select({ urlId: historyVisits.urlId })
+      .from(historyVisits)
+      .innerJoin(historyUrls, eq(historyVisits.urlId, historyUrls.id))
+      .where(and(eq(historyVisits.id, visitId), eq(historyUrls.profileId, profileId)))
+      .limit(1)
+      .get();
+
+    if (!hit) return;
+
+    tx.delete(historyVisits).where(eq(historyVisits.id, visitId)).run();
+    reconcileUrlAggregatesAfterVisitChangeInDb(tx, hit.urlId);
+    deleted = true;
+  });
+
+  if (!deleted) return false;
   return true;
 }
 
@@ -292,7 +305,6 @@ export function deleteBrowsingUrlRowForProfile(profileId: string, urlRowId: numb
     .all();
   if (!exists[0]) return false;
 
-  db.delete(historyVisits).where(eq(historyVisits.urlId, urlRowId)).run();
   db.delete(historyUrls).where(eq(historyUrls.id, urlRowId)).run();
   return true;
 }

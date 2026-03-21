@@ -87,7 +87,7 @@ function hasPermission(permission: Permission) {
     case "app":
       return isInternalProtocols || isExtensions;
     case "browser":
-      return isBrowserUI || isOmnibox || isExtensions || isHistoryPage;
+      return isBrowserUI || isOmnibox || isHistoryPage;
     case "session":
       return isFlowInternalProtocol || isOmnibox || isBrowserUI;
     case "settings":
