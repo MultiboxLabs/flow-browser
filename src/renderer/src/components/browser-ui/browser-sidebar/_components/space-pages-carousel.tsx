@@ -20,9 +20,15 @@ interface SpaceContentPageProps {
   space: Space;
   moveTab: (tabId: number, newPosition: number) => void;
   slotMachineEnabled: boolean;
+  withinCarousel?: boolean;
 }
 
-const SpaceContentPage = memo(function SpaceContentPage({ space, moveTab, slotMachineEnabled }: SpaceContentPageProps) {
+const SpaceContentPage = memo(function SpaceContentPage({
+  space,
+  moveTab,
+  slotMachineEnabled,
+  withinCarousel = true
+}: SpaceContentPageProps) {
   const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabsGroups();
   const { unpinToTabList } = usePinnedTabs();
   const { isProfileEphemeral } = useSpaces();
@@ -36,7 +42,12 @@ const SpaceContentPage = memo(function SpaceContentPage({ space, moveTab, slotMa
   const focusedTab = useMemo(() => getFocusedTab(space.id), [getFocusedTab, space.id]);
 
   return (
-    <div className="min-w-full w-full shrink-0 snap-start snap-always flex flex-col min-h-0 h-full mx-1">
+    <div
+      className={cn(
+        "w-full flex flex-col min-h-0 h-full",
+        withinCarousel && "min-w-full shrink-0 snap-start snap-always mx-1"
+      )}
+    >
       {!slotMachineEnabled && shouldShowPinnedTabs && <PinGrid profileId={space.profileId} />}
       <SpaceTitle space={space} />
       <SidebarScrollArea className="flex-1 min-h-0">
@@ -204,7 +215,12 @@ export function SpacePagesCarousel() {
   if (isCurrentSpaceInternal && currentSpace) {
     return (
       <div className="flex-1 min-h-0 flex flex-col">
-        <SpaceContentPage space={currentSpace} moveTab={moveTab} slotMachineEnabled={slotMachineEnabled} />
+        <SpaceContentPage
+          space={currentSpace}
+          moveTab={moveTab}
+          slotMachineEnabled={slotMachineEnabled}
+          withinCarousel={false}
+        />
       </div>
     );
   }
