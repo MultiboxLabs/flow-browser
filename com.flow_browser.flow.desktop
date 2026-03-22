@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Flow
-Comment=A modern privacy-focused browser with a minimalistic design
+Comment=Cleaner browsing, sharper focus
 GenericName=Web Browser
 Exec=run.sh %u
 Icon=com.flow_browser.flow
@@ -9,7 +9,7 @@ StartupNotify=true
 StartupWMClass=Flow
 Categories=Network;WebBrowser;
 MimeType=text/html;text/xml;application/xhtml+xml;application/pdf;x-scheme-handler/http;x-scheme-handler/https;
-Actions=new-window;
+Actions=new-window;new-incognito-window;
 
 [Desktop Action new-window]
 Name=New Window

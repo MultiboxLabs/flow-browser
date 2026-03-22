@@ -4,22 +4,18 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
   <name>Flow</name>
-  <summary>An opinionated web browser designed for improved productivity and better organization.</summary>
+  <summary>Cleaner browsing, sharper focus</summary>
 
   <description>
     <p>
-      Flow is a modern, privacy-focused web browser built on Chromium with a clean,
-      minimalistic design. It aims to provide a fast, secure, and intuitive browsing
-      experience while respecting user privacy.
+      Flow is an opinionated modern browser focused on productivity and privacy. With a clean, minimalistic user interface, it helps you focus on your work and get things done quickly.
     </p>
-    <p>Features include:</p>
+    <p>Features that make it stand out:</p>
     <ul>
-      <li>Privacy-focused browsing with built-in protections</li>
-      <li>Clean, minimalistic user interface</li>
-      <li>Support for Chrome extensions</li>
-      <li>Multiple profile support</li>
-      <li>Wayland and X11 support</li>
-      <li>PDF viewing</li>
+      <li>Clean, collapsible sidebar</li>
+      <li>Spaces to organise your work</li>
+      <li>Command palette to quickly open a new tab, bookmark, or history</li>
+      <li>Supports most streaming services via Widevine</li>
     </ul>
   </description>
 
@@ -28,7 +24,7 @@
   <url type="homepage">https://www.flow-browser.com</url>
   <url type="bugtracker">https://github.com/MultiboxLabs/flow-browser/issues</url>
   <url type="vcs-browser">https://github.com/MultiboxLabs/flow-browser</url>
-  <url type="contact">https://flowbrowser.userjot.com/</url>
+  <url type="contact">https://discord.gg/8gjEa4Rt2b</url>
 
   <developer id="dev.multibox">
     <name>Multibox Labs</name>
@@ -36,8 +32,16 @@
 
   <screenshots>
     <screenshot type="default">
-      <caption>Flow Browser main window</caption>
-      <image>https://raw.githubusercontent.com/MultiboxLabs/flow-browser/v0.10.1/docs/assets/screenshots/beta-browser-1.png</image>
+      <caption>Main Browser Window</caption>
+      <image>https://raw.githubusercontent.com/MultiboxLabs/flow-browser/main/docs/assets/screenshots/flathub/beta-browser-1.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Command Palette</caption>
+      <image>https://raw.githubusercontent.com/MultiboxLabs/flow-browser/main/docs/assets/screenshots/flathub/beta-command-1.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Settings</caption>
+      <image>https://raw.githubusercontent.com/MultiboxLabs/flow-browser/main/docs/assets/screenshots/flathub/beta-settings-1.png</image>
     </screenshot>
   </screenshots>
 
