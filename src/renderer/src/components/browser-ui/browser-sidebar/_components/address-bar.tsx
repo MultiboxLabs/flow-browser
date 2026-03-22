@@ -47,16 +47,16 @@ export const AddressBar = memo(function AddressBar() {
       ref={containerRef}
       onClick={handleClick}
       className={cn(
-        "w-full h-9 rounded-xl select-none",
+        "w-full min-w-0 h-9 rounded-xl select-none",
         "bg-black/10 hover:bg-black/15",
         "dark:bg-white/15 dark:hover:bg-white/20",
         "transition-[background-color] duration-100",
-        "flex items-center p-2 px-3 gap-1",
+        "flex items-center p-2 px-3 gap-1 overflow-hidden",
         isPlaceholder ? "text-black/60 dark:text-white/60" : "text-black dark:text-white"
       )}
     >
       {isPlaceholder && <SearchIcon strokeWidth={2} className="h-3.5 shrink-0" />}
-      <p className={cn("font-[inter] text-sm font-medium truncate min-w-0")}>
+      <p className={cn("font-[inter] text-sm font-medium min-w-0 flex-1 truncate")}>
         {isPlaceholder ? "Search or Enter URL..." : simplifiedUrl}
       </p>
       <div className="ml-auto flex items-center gap-0.5 shrink-0">

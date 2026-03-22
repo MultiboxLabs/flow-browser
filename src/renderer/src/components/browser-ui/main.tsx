@@ -192,10 +192,14 @@ function PopupToolbar() {
   }, [setContentTopOffset]);
 
   return (
-    <div ref={ref} className={cn("w-full flex items-center gap-2 px-1 pb-2", !isCurrentSpaceLight && "dark")}>
+    <div ref={ref} className={cn("w-full min-w-0 flex items-center gap-2 px-1 pb-2", !isCurrentSpaceLight && "dark")}>
       {platform === "darwin" && <SidebarWindowControlsMacOS offset={10} />}
-      <NavigationControls />
-      <AddressBar />
+      <div className="shrink-0">
+        <NavigationControls />
+      </div>
+      <div className="min-w-0 flex-1">
+        <AddressBar />
+      </div>
     </div>
   );
 }
@@ -247,7 +251,9 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
             <ResizablePanelGroupWithProvider direction="horizontal" className="flex-1 flex flex-col!">
               <AdaptiveTopbar />
               <div
-                className={cn("w-full h-[calc(100vh-var(--topbar-height))] flex flex-row items-center justify-center")}
+                className={cn(
+                  "w-full min-w-0 h-[calc(100vh-var(--topbar-height))] flex flex-row items-center justify-center"
+                )}
                 style={{ "--topbar-height": `${topbarHeight}px` } as React.CSSProperties}
               >
                 {hasSidebar && (
@@ -261,16 +267,16 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
                 <ResizablePanel
                   id="main"
                   order={2}
-                  className={cn("flex-1 h-full py-3 overflow-visible!", topbarVisible && "pt-0")}
+                  className={cn("min-w-0 flex-1 h-full py-3 overflow-visible!", topbarVisible && "pt-0")}
                 >
-                  <div className="w-full h-full flex items-center justify-center remove-app-drag">
+                  <div className="w-full min-w-0 h-full flex items-center justify-center remove-app-drag">
                     {sidebarMode !== "attached-left" ? (
-                      <div className="w-3" />
+                      <div className="w-3 shrink-0" />
                     ) : (
                       <SidebarResizeHandle key="left-sidebar-resize-handle" />
                     )}
 
-                    <div className="relative w-full h-full flex flex-col">
+                    <div className="relative flex-1 min-w-0 h-full flex flex-col">
                       <LoadingIndicator />
                       <FindInPage />
                       {!hasSidebar && <PopupToolbar />}
@@ -278,7 +284,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
                     </div>
 
                     {sidebarMode !== "attached-right" ? (
-                      <div className="w-3" />
+                      <div className="w-3 shrink-0" />
                     ) : (
                       <SidebarResizeHandle key="right-sidebar-resize-handle" />
                     )}
