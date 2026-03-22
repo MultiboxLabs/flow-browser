@@ -285,11 +285,7 @@ export class InMemoryURLIndex {
 
       for (const entry of snapshot.entries.slice(0, InMemoryURLIndex.MAX_ENTRIES)) {
         // Recompute frecency since time has passed
-        entry.frecency = calculateFrecency(
-          entry.visitCount,
-          entry.typedCount,
-          entry.lastVisitTime
-        );
+        entry.frecency = calculateFrecency(entry.visitCount, entry.typedCount, entry.lastVisitTime);
         this.entries.set(entry.historyId, entry);
         this.addToIndexes(entry);
       }
