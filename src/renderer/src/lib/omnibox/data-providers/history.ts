@@ -1,63 +1,68 @@
 import type { BrowsingHistoryEntry } from "~/types/history";
 
-export type { BrowsingHistoryEntry };
+export type HistoryEntry = BrowsingHistoryEntry;
 
-const MOCK_HISTORY_ENABLED = false;
+const SIGNIFICANT_VISIT_COUNT = 4;
+const SIGNIFICANT_RECENT_MS = 72 * 60 * 60 * 1000;
 
-const MOCK_HISTORY: BrowsingHistoryEntry[] = [
-  {
-    id: 1,
-    url: "https://www.google.com/",
-    title: "Google",
-    visitCount: 100,
-    typedCount: 20,
-    lastVisitTime: Date.now() - 86400000 * 1
-  },
-  {
-    id: 2,
-    url: "https://github.com/",
-    title: "GitHub",
-    visitCount: 50,
-    typedCount: 10,
-    lastVisitTime: Date.now() - 86400000 * 2
-  },
-  {
-    id: 3,
-    url: "https://stackoverflow.com/questions",
-    title: "Stack Overflow - Questions",
-    visitCount: 80,
-    typedCount: 5,
-    lastVisitTime: Date.now() - 3600000 * 5
-  },
-  {
-    id: 4,
-    url: "https://developer.mozilla.org/en-US/",
-    title: "MDN Web Docs",
-    visitCount: 30,
-    typedCount: 2,
-    lastVisitTime: Date.now() - 86400000 * 7
-  },
-  {
-    id: 5,
-    url: "http://localhost:3000/",
-    title: "Local Dev Server",
-    visitCount: 200,
-    typedCount: 50,
-    lastVisitTime: Date.now() - 3600000 * 1
-  },
-  {
-    id: 6,
-    url: "https://news.ycombinator.com/",
-    title: "Hacker News",
-    visitCount: 60,
-    typedCount: 8,
-    lastVisitTime: Date.now() - 86400000 * 3
-  }
-];
-
-export async function getHistory(): Promise<BrowsingHistoryEntry[]> {
-  if (MOCK_HISTORY_ENABLED) {
-    return MOCK_HISTORY;
-  }
+async function getHistory(): Promise<HistoryEntry[]> {
   return flow.history.list();
+}
+
+/**
+ * Omnibox history now builds on top of the app's profile-scoped browsing
+ * history API. The omnibox-specific views are derived in the renderer instead
+ * of going through a second history backend.
+ */
+export async function getSignificantHistory(): Promise<HistoryEntry[]> {
+  try {
+    const now = Date.now();
+    const entries = await getHistory();
+    return entries.filter(
+      (entry) =>
+        entry.typedCount >= 1 ||
+        entry.visitCount >= SIGNIFICANT_VISIT_COUNT ||
+        now - entry.lastVisitTime <= SIGNIFICANT_RECENT_MS
+    );
+  } catch (err) {
+    console.error("[HistoryDataProvider] Failed to get significant history:", err);
+    return [];
+  }
+}
+
+export async function searchHistory(query: string, limit: number = 50): Promise<HistoryEntry[]> {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [];
+
+  try {
+    const entries = await getHistory();
+    return entries
+      .filter((entry) => entry.url.toLowerCase().includes(needle) || entry.title.toLowerCase().includes(needle))
+      .slice(0, limit);
+  } catch (err) {
+    console.error("[HistoryDataProvider] Failed to search history:", err);
+    return [];
+  }
+}
+
+export async function getRecentHistory(limit: number = 10): Promise<HistoryEntry[]> {
+  try {
+    const entries = await getHistory();
+    return entries.slice(0, limit);
+  } catch (err) {
+    console.error("[HistoryDataProvider] Failed to get recent history:", err);
+    return [];
+  }
+}
+
+export async function getMostVisitedHistory(limit: number = 10): Promise<HistoryEntry[]> {
+  try {
+    const entries = await getHistory();
+    return [...entries]
+      .sort((a, b) => b.visitCount - a.visitCount || b.lastVisitTime - a.lastVisitTime)
+      .slice(0, limit);
+  } catch (err) {
+    console.error("[HistoryDataProvider] Failed to get most visited history:", err);
+    return [];
+  }
 }

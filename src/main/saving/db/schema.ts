@@ -123,3 +123,28 @@ export const historyVisits = sqliteTable(
 
 export type HistoryUrlRow = typeof historyUrls.$inferSelect;
 export type HistoryVisitRow = typeof historyVisits.$inferSelect;
+
+// --- Omnibox Shortcuts Table ---
+// Learned input-to-destination mappings (e.g., typing "gi" → github.com).
+// Separate from browsing history: this tracks what users select for specific
+// omnibox input, not every page visit.
+
+export const omniboxShortcuts = sqliteTable(
+  "omnibox_shortcuts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    inputText: text("input_text").notNull(),
+    destinationUrl: text("destination_url").notNull(),
+    destinationTitle: text("destination_title").notNull().default(""),
+    matchType: text("match_type").notNull(),
+    hitCount: integer("hit_count").notNull().default(1),
+    lastAccessTime: integer("last_access_time").notNull()
+  },
+  (table) => [
+    index("idx_omnibox_shortcuts_input").on(table.inputText),
+    index("idx_omnibox_shortcuts_destination").on(table.destinationUrl)
+  ]
+);
+
+export type OmniboxShortcutRow = typeof omniboxShortcuts.$inferSelect;
+export type OmniboxShortcutInsert = typeof omniboxShortcuts.$inferInsert;

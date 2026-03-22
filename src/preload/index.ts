@@ -39,6 +39,7 @@ import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
 import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/find-in-page";
 import { FlowHistoryAPI } from "~/flow/interfaces/browser/history";
+import { FlowOmniboxShortcutsAPI } from "~/flow/interfaces/browser/omnibox-shortcuts";
 import type {
   AssertCredentialErrorCodes,
   AssertCredentialResult,
@@ -780,6 +781,14 @@ const omniboxAPI: FlowOmniboxAPI = {
   },
   hide: () => {
     return ipcRenderer.send("omnibox:hide");
+  },
+  onShow: (callback) => {
+    const cleanup = listenOnIPCChannel("omnibox:do-show", callback);
+    ipcRenderer.send("omnibox:renderer-ready");
+    return cleanup;
+  },
+  onHide: (callback) => {
+    return listenOnIPCChannel("omnibox:do-hide", callback);
   }
 };
 
@@ -919,6 +928,22 @@ const shortcutsAPI: FlowShortcutsAPI = {
   }
 };
 
+// OMNIBOX SHORTCUTS API //
+const omniboxShortcutsAPI: FlowOmniboxShortcutsAPI = {
+  search: async (inputText: string, limit?: number) => {
+    return ipcRenderer.invoke("omnibox-shortcuts:search", inputText, limit);
+  },
+  recordUsage: (inputText: string, destinationUrl: string, destinationTitle: string, matchType: string) => {
+    return ipcRenderer.send("omnibox-shortcuts:record-usage", inputText, destinationUrl, destinationTitle, matchType);
+  },
+  getForUrl: async (destinationUrl: string) => {
+    return ipcRenderer.invoke("omnibox-shortcuts:get-for-url", destinationUrl);
+  },
+  cleanup: async (maxAgeDays?: number) => {
+    return ipcRenderer.invoke("omnibox-shortcuts:cleanup", maxAgeDays);
+  }
+};
+
 // EXPOSE FLOW API //
 const flowAPI: typeof flow = {
   // App APIs
@@ -948,6 +973,7 @@ const flowAPI: typeof flow = {
   omnibox: wrapAPI(omniboxAPI, "browser"),
   newTab: wrapAPI(newTabAPI, "browser"),
   findInPage: wrapAPI(findInPageAPI, "browser"),
+  omniboxShortcuts: wrapAPI(omniboxShortcutsAPI, "browser"),
 
   // Session APIs
   profiles: wrapAPI(profilesAPI, "session", {
