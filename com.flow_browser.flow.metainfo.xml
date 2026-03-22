@@ -55,7 +55,7 @@
   </requires>
 
   <releases>
-    <release version="0.10.2" date="2026-03-01">
+    <release version="0.10.1" date="2026-03-01">
       <description>
         <p>Latest release of Flow Browser.</p>
       </description>
