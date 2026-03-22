@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Flow
-Comment=A modern privacy-focused browser with a minimalistic design
+Comment=Cleaner browsing, sharper focus
 GenericName=Web Browser
 Exec=run.sh %u
 Icon=com.flow_browser.flow
