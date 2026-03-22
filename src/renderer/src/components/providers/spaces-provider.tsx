@@ -58,10 +58,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
   const fetchSpaces = useCallback(async (preferredSpaceId?: string) => {
     if (!flow) return;
     try {
-      const [spaces, profiles] = await Promise.all([
-        flow.spaces.getSpaces(),
-        flow.profiles.getProfiles()
-      ]);
+      const [spaces, profiles] = await Promise.all([flow.spaces.getSpaces(), flow.profiles.getProfiles()]);
       const nextAreProfilesInternal = Object.fromEntries(profiles.map((profile) => [profile.id, profile.internal]));
       const nextAreProfilesEphemeral = Object.fromEntries(profiles.map((profile) => [profile.id, profile.ephemeral]));
       setAllSpaces(spaces);
