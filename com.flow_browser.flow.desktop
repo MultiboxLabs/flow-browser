@@ -9,7 +9,7 @@ StartupNotify=true
 StartupWMClass=Flow
 Categories=Network;WebBrowser;
 MimeType=text/html;text/xml;application/xhtml+xml;application/pdf;x-scheme-handler/http;x-scheme-handler/https;
-Actions=new-window;
+Actions=new-window;new-incognito-window;
 
 [Desktop Action new-window]
 Name=New Window
