@@ -277,7 +277,7 @@ jobs:
       - name: Add workflow summary
         run: printf '%s\n' "$BUILD_ARTIFACTS_MESSAGE" >> "$GITHUB_STEP_SUMMARY"
       - name: Comment PR with artifact links
-        if: github.event_name == 'pull_request' && needs.build.result == 'success' && needs.build-flatpak.result == 'success'
+        if: github.event_name == 'pull_request'
         uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
         continue-on-error: true
         with:
