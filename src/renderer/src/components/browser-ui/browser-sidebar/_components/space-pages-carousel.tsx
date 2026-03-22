@@ -25,7 +25,9 @@ interface SpaceContentPageProps {
 const SpaceContentPage = memo(function SpaceContentPage({ space, moveTab, slotMachineEnabled }: SpaceContentPageProps) {
   const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabsGroups();
   const { unpinToTabList } = usePinnedTabs();
+  const { isProfileEphemeral } = useSpaces();
   const isSpaceLight = useMemo(() => hex_is_light(space.bgStartColor || "#000000"), [space.bgStartColor]);
+  const shouldShowPinnedTabs = !isProfileEphemeral(space.profileId);
 
   // Ephemeral tabs (pinned-tab-associated) are already filtered out by the
   // tabs provider, so getTabGroups returns only visible tab groups.
@@ -35,7 +37,7 @@ const SpaceContentPage = memo(function SpaceContentPage({ space, moveTab, slotMa
 
   return (
     <div className="min-w-full w-full shrink-0 snap-start snap-always flex flex-col min-h-0 h-full mx-1">
-      {!slotMachineEnabled && <PinGrid profileId={space.profileId} />}
+      {!slotMachineEnabled && shouldShowPinnedTabs && <PinGrid profileId={space.profileId} />}
       <SpaceTitle space={space} />
       <SidebarScrollArea className="flex-1 min-h-0">
         <div className="flex flex-col gap-1 flex-1 min-h-full pt-1">

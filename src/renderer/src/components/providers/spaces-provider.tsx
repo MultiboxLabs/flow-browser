@@ -10,6 +10,7 @@ interface SpacesContextValue {
   currentSpace: Space | null;
   isCurrentSpaceLight: boolean;
   isCurrentSpaceInternal: boolean;
+  isProfileEphemeral: (profileId: string) => boolean;
   isLoading: boolean;
   revalidate: () => Promise<void>;
   setCurrentSpace: (spaceId: string) => Promise<void>;
@@ -33,6 +34,7 @@ interface SpacesProviderProps {
 export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) => {
   const [allSpaces, setAllSpaces] = useState<Space[]>([]);
   const [areProfilesInternal, setAreProfilesInternal] = useState<Record<string, boolean>>({});
+  const [areProfilesEphemeral, setAreProfilesEphemeral] = useState<Record<string, boolean>>({});
   const [currentSpace, setCurrentSpace] = useState<Space | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const currentSpaceRef = useRef<Space | null>(null);
@@ -56,12 +58,15 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
   const fetchSpaces = useCallback(async (preferredSpaceId?: string) => {
     if (!flow) return;
     try {
-      const [spaces, nextAreProfilesInternal] = await Promise.all([
+      const [spaces, profiles] = await Promise.all([
         flow.spaces.getSpaces(),
-        flow.profiles.getAreProfilesInternal()
+        flow.profiles.getProfiles()
       ]);
+      const nextAreProfilesInternal = Object.fromEntries(profiles.map((profile) => [profile.id, profile.internal]));
+      const nextAreProfilesEphemeral = Object.fromEntries(profiles.map((profile) => [profile.id, profile.ephemeral]));
       setAllSpaces(spaces);
       setAreProfilesInternal(nextAreProfilesInternal);
+      setAreProfilesEphemeral(nextAreProfilesEphemeral);
 
       if (preferredSpaceId) {
         const preferredSpace = spaces.find((space) => space.id === preferredSpaceId);
@@ -111,6 +116,13 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
     setIsLoading(true);
     await fetchSpaces();
   }, [fetchSpaces]);
+
+  const isProfileEphemeral = useCallback(
+    (profileId: string) => {
+      return Boolean(areProfilesEphemeral[profileId]);
+    },
+    [areProfilesEphemeral]
+  );
 
   const handleSetCurrentSpace = useCallback(
     async (spaceId: string) => {
@@ -195,6 +207,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
         isLoading,
         isCurrentSpaceLight: isSpaceLight,
         isCurrentSpaceInternal,
+        isProfileEphemeral,
         revalidate,
         setCurrentSpace: handleSetCurrentSpace
       }}
