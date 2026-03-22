@@ -1,87 +1,52 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "15bbfb3e-1ded-45e0-b555-7558222fffde",
+  "id": "e470840f-20a9-43ef-82ad-3edd70442b5e",
   "prevId": "e47f48b3-f0f8-4a11-ba10-5b772be42166",
   "tables": {
-    "history": {
-      "name": "history",
+    "pinned_tabs": {
+      "name": "pinned_tabs",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
+        "unique_id": {
+          "name": "unique_id",
+          "type": "text",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": true
+          "autoincrement": false
         },
-        "url": {
-          "name": "url",
+        "profile_id": {
+          "name": "profile_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "title": {
-          "name": "title",
+        "default_url": {
+          "name": "default_url",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
-          "default": "''"
+          "autoincrement": false
         },
-        "visit_count": {
-          "name": "visit_count",
-          "type": "integer",
+        "favicon_url": {
+          "name": "favicon_url",
+          "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 1
+          "notNull": false,
+          "autoincrement": false
         },
-        "typed_count": {
-          "name": "typed_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "last_visit_time": {
-          "name": "last_visit_time",
+        "position": {
+          "name": "position",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "first_visit_time": {
-          "name": "first_visit_time",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "last_visit_type": {
-          "name": "last_visit_type",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
         }
       },
       "indexes": {
-        "idx_history_url": {
-          "name": "idx_history_url",
-          "columns": ["url"],
-          "isUnique": false
-        },
-        "idx_history_last_visit": {
-          "name": "idx_history_last_visit",
-          "columns": ["last_visit_time"],
-          "isUnique": false
-        },
-        "idx_history_typed_count": {
-          "name": "idx_history_typed_count",
-          "columns": ["typed_count"],
+        "idx_pinned_tabs_profile_id": {
+          "name": "idx_pinned_tabs_profile_id",
+          "columns": ["profile_id"],
           "isUnique": false
         }
       },

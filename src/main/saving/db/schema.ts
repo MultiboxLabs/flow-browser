@@ -148,24 +148,3 @@ export const omniboxShortcuts = sqliteTable(
 
 export type OmniboxShortcutRow = typeof omniboxShortcuts.$inferSelect;
 export type OmniboxShortcutInsert = typeof omniboxShortcuts.$inferInsert;
-
-// --- Bookmarks Table ---
-// TODO: Bookmarks are still stubbed in the omnibox. Keep the schema in place so
-// the provider can grow without another schema merge later.
-
-export const bookmarks = sqliteTable(
-  "bookmarks",
-  {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    url: text("url").notNull(),
-    title: text("title").notNull().default(""),
-    parentFolderId: integer("parent_folder_id"),
-    position: integer("position").notNull().default(0),
-    createdAt: integer("created_at").notNull(),
-    isFolder: integer("is_folder", { mode: "boolean" }).notNull().default(false)
-  },
-  (table) => [index("idx_bookmarks_url").on(table.url), index("idx_bookmarks_parent").on(table.parentFolderId)]
-);
-
-export type BookmarkRow = typeof bookmarks.$inferSelect;
-export type BookmarkInsert = typeof bookmarks.$inferInsert;
