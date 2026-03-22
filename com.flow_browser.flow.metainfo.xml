@@ -4,22 +4,18 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
   <name>Flow</name>
-  <summary>A fast, modern web browser</summary>
+  <summary>Cleaner browser, better productivity</summary>
 
   <description>
     <p>
-      Flow is a modern, privacy-focused web browser built on Chromium with a clean,
-      minimalistic design. It aims to provide a fast, secure, and intuitive browsing
-      experience while respecting user privacy.
+      Flow is an opinionated modern browser focused on productivity and privacy. With a clean, minimalistic user interface, it helps you focus on your work and get things done quickly.
     </p>
-    <p>Features include:</p>
+    <p>Features that makes it stand out:</p>
     <ul>
-      <li>Privacy-focused browsing with built-in protections</li>
-      <li>Clean, minimalistic user interface</li>
-      <li>Support for Chrome extensions</li>
-      <li>Multiple profile support</li>
-      <li>Wayland and X11 support</li>
-      <li>PDF viewing</li>
+      <li>Clean, collapsable sidebar</li>
+      <li>Spaces to organise your work</li>
+      <li>Command palette to quickly open a new tab, bookmark, or history</li>
+      <li>Support most streaming services via Widevine</li>
     </ul>
   </description>
 
