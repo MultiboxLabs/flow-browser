@@ -32,8 +32,16 @@
 
   <screenshots>
     <screenshot type="default">
-      <caption>Flow Browser main window</caption>
-      <image>https://raw.githubusercontent.com/MultiboxLabs/flow-browser/v0.10.1/docs/assets/screenshots/flathub/beta-browser-1.png</image>
+      <caption>Main Browser Window</caption>
+      <image>https://raw.githubusercontent.com/MultiboxLabs/flow-browser/main/docs/assets/screenshots/flathub/beta-browser-1.png</image>
+    </screenshot>
+    <screenshot type="default">
+      <caption>Command Palette</caption>
+      <image>https://raw.githubusercontent.com/MultiboxLabs/flow-browser/main/docs/assets/screenshots/flathub/beta-command-1.png</image>
+    </screenshot>
+    <screenshot type="default">
+      <caption>Settings</caption>
+      <image>https://raw.githubusercontent.com/MultiboxLabs/flow-browser/main/docs/assets/screenshots/flathub/beta-settings-1.png</image>
     </screenshot>
   </screenshots>
 
