@@ -22,9 +22,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
-    if: github.event_name == 'pull_request'
     steps:
       - name: Comment PR with build status
+        if: github.event_name == 'pull_request'
         continue-on-error: true
         uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
         with:
@@ -251,31 +251,35 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
-    if: github.event_name == 'pull_request'
+    env:
+      BUILD_ARTIFACTS_MESSAGE: |
+        ### Build artifacts for all platforms are ready! 🚀
+        Download the artifacts for:
+        - [Linux](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/ubuntu-latest.zip)
+        - [Linux (arm64)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/ubuntu-24.04-arm.zip)
+        - [macOS](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/macos-latest.zip)
+        - [macOS (Intel)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/macos-15-intel.zip)
+        - [Windows](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/windows-latest.zip)
+        - [Flatpak (x64)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/flatpak-ubuntu-latest.zip)
+        - [Flatpak (arm64)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/flatpak-ubuntu-24.04-arm.zip)
+
+        <details>
+        <summary>One-line installer (Unstable):</summary>
+
+        ```bash
+        bunx flow-debug-build@1.2.1 --open ${{ github.run_id }}
+        ```
+
+        </details>
+
+        _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
     steps:
+      - name: Add workflow summary
+        run: printf '%s\n' "$BUILD_ARTIFACTS_MESSAGE" >> "$GITHUB_STEP_SUMMARY"
       - name: Comment PR with artifact links
+        if: github.event_name == 'pull_request'
         uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
         continue-on-error: true
         with:
-          message: |
-            ### Build artifacts for all platforms are ready! 🚀
-            Download the artifacts for:
-            - [Linux](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/ubuntu-latest.zip)
-            - [Linux (arm64)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/ubuntu-24.04-arm.zip)
-            - [macOS](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/macos-latest.zip)
-            - [macOS (Intel)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/macos-15-intel.zip)
-            - [Windows](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/windows-latest.zip)
-            - [Flatpak (x64)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/flatpak-ubuntu-latest.zip)
-            - [Flatpak (arm64)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/flatpak-ubuntu-24.04-arm.zip)
-
-            <details>
-            <summary>One-line installer (Unstable):</summary>
-
-            ```bash
-            bunx flow-debug-build@1.2.1 --open ${{ github.run_id }}
-            ```
-
-            </details>
-
-            _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
+          message: ${{ env.BUILD_ARTIFACTS_MESSAGE }}
           comment-tag: build
