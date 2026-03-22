@@ -15,7 +15,7 @@
       <li>Clean, collapsible sidebar</li>
       <li>Spaces to organise your work</li>
       <li>Command palette to quickly open a new tab, bookmark, or history</li>
-      <li>Support most streaming services via Widevine</li>
+      <li>Supports most streaming services via Widevine</li>
     </ul>
   </description>
 
@@ -35,11 +35,11 @@
       <caption>Main Browser Window</caption>
       <image>https://raw.githubusercontent.com/MultiboxLabs/flow-browser/main/docs/assets/screenshots/flathub/beta-browser-1.png</image>
     </screenshot>
-    <screenshot type="default">
+    <screenshot>
       <caption>Command Palette</caption>
       <image>https://raw.githubusercontent.com/MultiboxLabs/flow-browser/main/docs/assets/screenshots/flathub/beta-command-1.png</image>
     </screenshot>
-    <screenshot type="default">
+    <screenshot>
       <caption>Settings</caption>
       <image>https://raw.githubusercontent.com/MultiboxLabs/flow-browser/main/docs/assets/screenshots/flathub/beta-settings-1.png</image>
     </screenshot>
