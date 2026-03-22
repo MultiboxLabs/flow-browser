@@ -13,6 +13,9 @@ import { attachClosestEdge, extractClosestEdge, Edge } from "@atlaskit/pragmatic
 import { DropIndicator } from "@/components/browser-ui/browser-sidebar/_components/drop-indicator";
 import { isPinnedTabSource } from "@/components/browser-ui/browser-sidebar/_components/drag-utils";
 
+/** Greater than 1 speeds up tab-group enter, exit, and layout motion. */
+const TAB_GROUP_MOTION_SPEED_MULTIPLIER = 2;
+
 // --- Types --- //
 
 export type TabGroupSourceData = {
@@ -319,9 +322,17 @@ export const TabGroup = memo(
         }}
         exit={{ opacity: 0, height: 0, overflow: "hidden" }}
         transition={{
-          layout: { type: "spring", stiffness: 500, damping: 35 },
-          height: { type: "tween", duration: 0.2, ease: "easeOut" },
-          opacity: { duration: 0.15 }
+          layout: {
+            type: "spring",
+            stiffness: 500 * TAB_GROUP_MOTION_SPEED_MULTIPLIER,
+            damping: 35 * TAB_GROUP_MOTION_SPEED_MULTIPLIER
+          },
+          height: {
+            type: "tween",
+            duration: 0.2 / TAB_GROUP_MOTION_SPEED_MULTIPLIER,
+            ease: "easeOut"
+          },
+          opacity: { duration: 0.15 / TAB_GROUP_MOTION_SPEED_MULTIPLIER }
         }}
         style={{ overflow: "hidden" }}
         className="relative flex flex-col gap-0.5"

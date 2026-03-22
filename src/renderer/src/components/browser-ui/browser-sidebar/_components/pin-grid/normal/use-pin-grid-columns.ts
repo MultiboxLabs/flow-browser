@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 
 /** Minimum width (px) a single pin should occupy. */
-const MIN_TAB_WIDTH = 60;
+const MIN_TAB_WIDTH = 80;
 /** Tailwind `gap-2` = 8px. */
 const GAP = 8;
 /** Maximum number of columns the grid supports (must match GRID_COL_CLASSES length). */

@@ -212,8 +212,10 @@ export function PinnedTabButton({
         />
       )}
 
-      <div
+      <motion.div
         ref={ref}
+        whileTap={{ scale: 0.99 }}
+        transition={{ scale: { type: "spring", stiffness: 600, damping: 20 } }}
         className={cn(
           "w-full h-12 rounded-xl overflow-hidden",
           "bg-black/10 hover:bg-black/15",
@@ -225,7 +227,7 @@ export function PinnedTabButton({
           isDragging && "opacity-40"
         )}
         style={activeBorderStyle}
-        onClick={handleClick}
+        onMouseDown={handleClick}
         onDoubleClick={onDoubleClick}
         onContextMenu={handleContextMenu}
       >
@@ -242,7 +244,7 @@ export function PinnedTabButton({
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   );
 }
