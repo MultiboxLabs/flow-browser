@@ -33,6 +33,139 @@ jobs:
             Currently building for this pull request!
           comment-tag: build
 
+  # Flatpak using manifest + generated-sources from Flathub (cloned each run to stay in sync)
+  build-flatpak:
+    needs: before-build-comment
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            flatpak_arch: x86_64
+          - os: ubuntu-24.04-arm
+            flatpak_arch: aarch64
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
+      - name: Clone Flathub packaging (com.flow_browser.flow)
+        run: git clone --depth 1 -b master https://github.com/flathub/com.flow_browser.flow.git flatpak-upstream
+
+      - name: Stage app sources for Flatpak build
+        run: |
+          mkdir -p flatpak-upstream/main
+          rsync -a --delete \
+            --exclude='.git/' \
+            --exclude='node_modules/' \
+            --exclude='dist/' \
+            --exclude='out/' \
+            --exclude='flatpak-upstream/' \
+            ./ flatpak-upstream/main/
+
+      - name: Set Flatpak metainfo version (package version + short SHA)
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+          import re
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          sha = os.environ["GITHUB_SHA"]
+          short = sha[:7]
+          root = Path("flatpak-upstream/main")
+
+          pkg = json.loads((root / "package.json").read_text())
+          base = str(pkg["version"]).split("+", 1)[0]
+          version = f"{base}+{short}"
+
+          meta_path = root / "com.flow_browser.flow.metainfo.xml"
+          text = meta_path.read_text()
+          today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+          text, n = re.subn(
+              r'(<release version=")[^"]+(" date=")[^"]+(")',
+              rf"\g<1>{version}\g<2>{today}\g<3>",
+              text,
+              count=1,
+          )
+          if n != 1:
+              raise SystemExit(
+                  "Expected exactly one <release> in com.flow_browser.flow.metainfo.xml; "
+                  "update the regex in build.yml if the file changed."
+              )
+          meta_path.write_text(text)
+          PY
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76 # v2.0.2
+        with:
+          bun-version: 1.3.10
+
+      - name: Generate Flatpak sources from local bun.lock
+        working-directory: flatpak-upstream
+        run: |
+          rm -f ./generated-sources.json
+          bun add -g flatpak-bun-generator@latest
+          SCRIPT_PATH="$(readlink -f "$(bun pm bin -g)/flatpak-bun-generator")"
+          node "$SCRIPT_PATH" ./main/bun.lock --output ./generated-sources.json
+
+      - name: Patch Flathub manifest to build from this checkout
+        run: |
+          python3 <<'PY'
+          import re
+          from pathlib import Path
+
+          path = Path("flatpak-upstream/com.flow_browser.flow.yml")
+          text = path.read_text()
+          pattern = r"      - type: archive\n(?:(?!      - generated-sources).)+\n          is-main-source: true\n"
+          replacement = (
+              "      - type: dir\n"
+              "        path: main\n"
+              "        dest: main\n"
+          )
+          new_text, n = re.subn(pattern, replacement, text, count=1, flags=re.DOTALL)
+          if n != 1:
+              raise SystemExit(
+                  "Expected to replace exactly one Flathub main source archive block; "
+                  "update the regex in build.yml if com.flow_browser.flow.yml changed."
+              )
+          path.write_text(new_text)
+          PY
+
+      - name: Install Flatpak tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+
+      - name: Setup Flathub remote
+        run: flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+      # Single online build: a second phase with --disable-download runs the sandbox without
+      # outbound network, but bun still resolves optional/native deps (e.g. rolldown/lightningcss
+      # bindings) that flatpak-bun-generator may not fully vendor — bun install then fails.
+      - name: Build Flatpak
+        working-directory: flatpak-upstream
+        run: |
+          flatpak-builder --user --install-deps-from=flathub --repo="${{ github.workspace }}/flatpak-repo" \
+            --force-clean build-dir com.flow_browser.flow.yml
+
+      - name: Create Flatpak bundle
+        run: |
+          mkdir -p dist-flatpak
+          flatpak build-bundle --arch=${{ matrix.flatpak_arch }} \
+            "${{ github.workspace }}/flatpak-repo" \
+            "dist-flatpak/com.flow_browser.flow.${{ matrix.flatpak_arch }}.flatpak" \
+            com.flow_browser.flow
+
+      - name: Upload Flatpak bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: flatpak-${{ matrix.os }}
+          path: dist-flatpak/*.flatpak
+
   # Runs the build
   build:
     needs: before-build-comment
@@ -114,7 +247,7 @@ jobs:
 
   # Runs after all builds complete
   after-build-comment:
-    needs: build
+    needs: [build, build-flatpak]
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -132,12 +265,14 @@ jobs:
             - [macOS](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/macos-latest.zip)
             - [macOS (Intel)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/macos-15-intel.zip)
             - [Windows](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/windows-latest.zip)
+            - [Flatpak (x64)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/flatpak-ubuntu-latest.zip)
+            - [Flatpak (arm64)](https://nightly.link/${{ github.repository }}/actions/runs/${{ github.run_id }}/flatpak-ubuntu-24.04-arm.zip)
 
             <details>
             <summary>One-line installer (Unstable):</summary>
 
             ```bash
-            bunx flow-debug-build --open ${{ github.run_id }}
+            bunx flow-debug-build@1.2.1 --open ${{ github.run_id }}
             ```
 
             </details>

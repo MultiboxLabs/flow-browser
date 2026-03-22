@@ -1,6 +1,7 @@
 import { resolve } from "path";
 import { defineConfig } from "electron-vite";
-import react from "@vitejs/plugin-react";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { generateRoutes } from "./scripts/frontend-routes-generator/generator";
 
@@ -33,7 +34,7 @@ export default defineConfig({
     ...commonOptions,
     build: {
       ...commonOptions.build,
-      externalizeDeps: { exclude: ["electron-context-menu", "hono"] }
+      externalizeDeps: { exclude: ["electron-context-menu", "hono", "objcjs-types"], include: ["objc-js"] }
     },
     resolve: {
       alias: {
@@ -72,10 +73,9 @@ export default defineConfig({
       }
     },
     plugins: [
-      react({
-        babel: {
-          plugins: ["babel-plugin-react-compiler"]
-        }
+      react(),
+      babel({
+        presets: [reactCompilerPreset()]
       }),
       tailwindcss()
     ]

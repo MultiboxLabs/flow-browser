@@ -68,5 +68,5 @@ export function SidebarWindowControlsMacOS({
   if (isFullscreen) return null;
 
   // based on accurate measurements
-  return <div ref={titlebarRef} className="w-[60px] h-[14px] remove-app-drag" />;
+  return <div ref={titlebarRef} className="min-w-[60px] w-[60px] h-[14px] remove-app-drag" />;
 }

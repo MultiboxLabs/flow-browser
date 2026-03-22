@@ -121,7 +121,7 @@ export function IconSettings() {
                         <img
                           src={`flow://asset/icons/${icon.imageId}`}
                           alt={icon.name}
-                          className="h-10 w-10 rounded-lg shadow-lg flex items-center justify-center text-xl font-bold text-white"
+                          className="size-10 platform-darwin:size-12 rounded-lg shadow-lg flex items-center justify-center text-xl font-bold text-white"
                         />
                       ) : (
                         "F"

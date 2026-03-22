@@ -66,6 +66,7 @@ export function SettingsLayout() {
       <ShortcutsProvider>
         <SettingsProvider>
           <div className="select-none flex flex-col h-screen bg-background text-gray-600 dark:text-gray-300">
+            <title>Flow Settings</title>
             <SettingsTitlebar />
             <div className="flex flex-1 overflow-hidden">
               <SettingsSidebar activeSection={activeSection} setActiveSection={setActiveSection} sections={sections} />

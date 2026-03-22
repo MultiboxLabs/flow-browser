@@ -58,6 +58,8 @@ export class BaseWindow<
     const webContents: WebContents[] = [];
 
     const browserWindow = this.browserWindow;
+    if (browserWindow.isDestroyed()) return webContents;
+
     const contentView = browserWindow.contentView;
 
     // Find the window's main webContents

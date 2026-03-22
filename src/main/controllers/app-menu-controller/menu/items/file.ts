@@ -4,6 +4,7 @@ import { openNewTab } from "@/ipc/app/new-tab";
 import { getCurrentShortcut } from "@/modules/shortcuts";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { createIncognitoWindow } from "@/modules/incognito/windows";
+import { FLAGS } from "@/modules/flags";
 
 export const createFileMenu = (): MenuItemConstructorOptions => ({
   label: "File",
@@ -27,6 +28,7 @@ export const createFileMenu = (): MenuItemConstructorOptions => ({
     {
       label: "New Incognito Window",
       accelerator: getCurrentShortcut("browser.newIncognitoWindow"),
+      enabled: FLAGS.INCOGNITO_ENABLED,
       click: () => {
         createIncognitoWindow().catch((error) => {
           console.error("Failed to create incognito window:", error);

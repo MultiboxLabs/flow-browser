@@ -40,6 +40,21 @@ export class TabLayoutManager {
   }
 
   /**
+   * Resets cached layout state when a tab moves to a different window.
+   *
+   * The new window likely has different pageBounds. Without this reset the
+   * TabBoundsController's `lastAppliedBounds` still holds the old window's
+   * values, and if the two windows happen to share the same dimensions (or
+   * close enough after rounding) `updateViewBounds()` would skip applying
+   * the new bounds entirely — causing the tab to render with stale bounds
+   * or not appear at all.
+   */
+  onWindowChanged(): void {
+    this.boundsController.resetLastAppliedBounds();
+    this.lastBorderRadius = null;
+  }
+
+  /**
    * Shows the tab (sets visible = true and updates layout).
    */
   show(): void {
@@ -80,7 +95,18 @@ export class TabLayoutManager {
       if (visible) {
         this.lifecycleManager.exitPictureInPicture();
       } else {
-        this.lifecycleManager.enterPictureInPicture();
+        // Only enter PiP if no other tab is already in PiP. Without this guard,
+        // restoring a PiP tab hides the previously-active tab, which then tries
+        // to enter PiP, creating a loop where each tab's PiP exit triggers the
+        // other to enter PiP indefinitely.
+        const windowId = tab.getWindow().id;
+        const anyTabInPiP = this.tabsController
+          .getTabsInWindow(windowId)
+          .some((t) => t.id !== tab.id && t.isPictureInPicture);
+        const isStillVisibleElsewhere = this.tabsController.isTabVisibleInAnotherWindow(tab);
+        if (!anyTabInPiP && !isStillVisibleElsewhere) {
+          this.lifecycleManager.enterPictureInPicture();
+        }
       }
     }
 

@@ -1,5 +1,5 @@
 import { IPCListener } from "~/flow/types";
-import { RecentlyClosedTabData, TabData, WindowTabsData } from "~/types/tabs";
+import { RecentlyClosedTabData, TabData, TabPlaceholderUpdate, WindowTabsData } from "~/types/tabs";
 
 // API //
 export interface FlowTabsAPI {
@@ -24,6 +24,17 @@ export interface FlowTabsAPI {
   onTabsContentUpdated: IPCListener<[TabData[]]>;
 
   /**
+   * Add a callback for tab-sync screenshot placeholder updates.
+   * When tab sync is enabled and a tab's view moves to another window,
+   * the old window receives the snapshot ID of the tab's last screenshot.
+   * The renderer resolves it through `flow-internal://tab-snapshot?id=...`.
+   * `snapshotId: null` means clear the placeholder.
+   * `generation` is monotonic per window and lets the renderer ignore stale updates.
+   * @param callback Receives the placeholder payload
+   */
+  onPlaceholderChanged: IPCListener<[TabPlaceholderUpdate]>;
+
+  /**
    * Switch to a tab
    * @param tabId The id of the tab to switch to
    */
@@ -35,7 +46,7 @@ export interface FlowTabsAPI {
    * @param isForeground Whether to make the tab the foreground tab
    * @param spaceId The id of the space to create the tab in
    */
-  newTab: (url?: string, isForeground?: boolean, spaceId?: string) => Promise<boolean>;
+  newTab: (url?: string, isForeground?: boolean, spaceId?: string, typedFromAddressBar?: boolean) => Promise<boolean>;
 
   /**
    * Close a tab

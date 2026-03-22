@@ -19,6 +19,11 @@ export class ViewManager {
   }
 
   addOrUpdateView(view: WebContentsView, zIndex: number): void {
+    if (!this.isViewUsable(view)) {
+      this.removeView(view, true);
+      return;
+    }
+
     const current = this.views.get(view);
 
     // Skip entirely if the view is already registered at the same z-index
@@ -28,7 +33,7 @@ export class ViewManager {
 
     // Only register the destroyed listener once per view (when first added)
     if (current === undefined) {
-      view.webContents.on("destroyed", () => {
+      view.webContents.once("destroyed", () => {
         this.removeView(view, true);
       });
     }
@@ -131,12 +136,17 @@ export class ViewManager {
     const sortedViews = Array.from(this.views.entries()).sort(([, aIndex], [, bIndex]) => aIndex - bIndex);
 
     // Update cached order
-    this.sortedOrder = sortedViews.map(([view]) => view);
+    this.sortedOrder = sortedViews.map(([view]) => view).filter((view) => this.isViewUsable(view));
 
     // Add views back in order. addChildView brings the added view to the top
     // relative to its siblings managed by this parent.
     // Adding lowest zIndex first means highest zIndex will end up visually on top.
     sortedViews.forEach(([view]) => {
+      if (!this.isViewUsable(view)) {
+        this.views.delete(view);
+        return;
+      }
+
       try {
         this.parentView.addChildView(view);
       } catch (error) {
@@ -146,5 +156,10 @@ export class ViewManager {
         this.sortedOrder = this.sortedOrder.filter((v) => v !== view);
       }
     });
+  }
+
+  private isViewUsable(view: WebContentsView): boolean {
+    const webContents = view.webContents;
+    return webContents !== undefined && !webContents.isDestroyed();
   }
 }

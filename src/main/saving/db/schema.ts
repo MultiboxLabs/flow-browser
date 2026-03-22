@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { NavigationEntry, PersistedTabData, PersistedTabGroupData, TabGroupMode } from "~/types/tabs";
 
 // --- Tabs Table ---
@@ -72,46 +72,73 @@ export const recentlyClosed = sqliteTable(
 export type RecentlyClosedRow = typeof recentlyClosed.$inferSelect;
 export type RecentlyClosedInsert = typeof recentlyClosed.$inferInsert;
 
-// --- History Table ---
+// --- Pinned Tabs Table ---
 
-export const history = sqliteTable(
-  "history",
+export const pinnedTabs = sqliteTable(
+  "pinned_tabs",
+  {
+    uniqueId: text("unique_id").primaryKey(),
+    profileId: text("profile_id").notNull(),
+    defaultUrl: text("default_url").notNull(),
+    faviconUrl: text("favicon_url"),
+    position: integer("position").notNull()
+  },
+  (table) => [index("idx_pinned_tabs_profile_id").on(table.profileId)]
+);
+
+export type PinnedTabRow = typeof pinnedTabs.$inferSelect;
+export type PinnedTabInsert = typeof pinnedTabs.$inferInsert;
+
+// --- Browsing history (Chromium-inspired urls + visits; see design/chromium-inspired-browsing-history.md) ---
+
+export const historyUrls = sqliteTable(
+  "history_urls",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
+    profileId: text("profile_id").notNull(),
     url: text("url").notNull(),
-    title: text("title").notNull().default(""),
-    visitCount: integer("visit_count").notNull().default(1),
+    title: text("title").notNull(),
+    visitCount: integer("visit_count").notNull().default(0),
     typedCount: integer("typed_count").notNull().default(0),
-    lastVisitTime: integer("last_visit_time").notNull(), // epoch ms
-    firstVisitTime: integer("first_visit_time").notNull(), // epoch ms
-    // Bitfield: 0=link, 1=typed, 2=bookmark, 3=redirect, 4=reload
-    lastVisitType: integer("last_visit_type").notNull().default(0)
+    lastVisitTime: integer("last_visit_time").notNull()
+  },
+  (table) => [uniqueIndex("idx_history_urls_profile_url").on(table.profileId, table.url)]
+);
+
+export const historyVisits = sqliteTable(
+  "history_visits",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    urlId: integer("url_id")
+      .notNull()
+      .references(() => historyUrls.id, { onDelete: "cascade" }),
+    visitTime: integer("visit_time").notNull(),
+    typed: integer("typed", { mode: "boolean" }).notNull().default(false)
   },
   (table) => [
-    index("idx_history_url").on(table.url),
-    index("idx_history_last_visit").on(table.lastVisitTime),
-    index("idx_history_typed_count").on(table.typedCount)
+    index("idx_history_visits_url_id").on(table.urlId),
+    index("idx_history_visits_visit_time").on(table.visitTime)
   ]
 );
 
-export type HistoryRow = typeof history.$inferSelect;
-export type HistoryInsert = typeof history.$inferInsert;
+export type HistoryUrlRow = typeof historyUrls.$inferSelect;
+export type HistoryVisitRow = typeof historyVisits.$inferSelect;
 
 // --- Omnibox Shortcuts Table ---
 // Learned input-to-destination mappings (e.g., typing "gi" → github.com).
-// Separate from history: history records *what* was visited, shortcuts record
-// *what the user selected in the omnibox given specific input text*.
+// Separate from browsing history: this tracks what users select for specific
+// omnibox input, not every page visit.
 
 export const omniboxShortcuts = sqliteTable(
   "omnibox_shortcuts",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    inputText: text("input_text").notNull(), // what the user typed
+    inputText: text("input_text").notNull(),
     destinationUrl: text("destination_url").notNull(),
     destinationTitle: text("destination_title").notNull().default(""),
-    matchType: text("match_type").notNull(), // "history-url", "search-query", etc.
+    matchType: text("match_type").notNull(),
     hitCount: integer("hit_count").notNull().default(1),
-    lastAccessTime: integer("last_access_time").notNull() // epoch ms
+    lastAccessTime: integer("last_access_time").notNull()
   },
   (table) => [
     index("idx_omnibox_shortcuts_input").on(table.inputText),
@@ -123,9 +150,8 @@ export type OmniboxShortcutRow = typeof omniboxShortcuts.$inferSelect;
 export type OmniboxShortcutInsert = typeof omniboxShortcuts.$inferInsert;
 
 // --- Bookmarks Table ---
-// TODO: Bookmarks system not yet implemented in the app.
-// This schema is defined per the design doc for future use.
-// Phase 4 creates the BookmarkProvider as a stub pending a full bookmarks system.
+// TODO: Bookmarks are still stubbed in the omnibox. Keep the schema in place so
+// the provider can grow without another schema merge later.
 
 export const bookmarks = sqliteTable(
   "bookmarks",

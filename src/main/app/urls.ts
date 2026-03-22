@@ -2,6 +2,8 @@ import { tabsController } from "@/controllers/tabs-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { hasCompletedOnboarding } from "@/saving/onboarding";
 import { debugPrint } from "@/modules/output";
+import { createIncognitoWindow } from "@/modules/incognito/windows";
+import { FLAGS } from "@/modules/flags";
 
 /**
  * During cold start, URLs are queued until the initial window (session restore
@@ -85,6 +87,15 @@ export function discardPendingUrls() {
 
 export function processInitialUrl() {
   const commandLine = process.argv.slice(1);
+
+  if (commandLine.includes("--new-incognito-window") && FLAGS.INCOGNITO_ENABLED) {
+    createIncognitoWindow().catch((error) => {
+      console.error("[URLs] Failed to create incognito window from initial args:", error);
+    });
+    debugPrint("INITIALIZATION", "initial incognito window requested");
+    return;
+  }
+
   const targetUrl = commandLine.pop();
   if (targetUrl && isValidOpenerUrl(targetUrl)) {
     handleOpenUrl(false, targetUrl);

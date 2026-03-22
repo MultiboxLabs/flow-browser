@@ -30,8 +30,6 @@ export interface IMUIEntry {
   visitCount: number;
   typedCount: number;
   lastVisitTime: number;
-  lastVisitType: number;
-  firstVisitTime: number;
   /** Pre-computed frecency score (refreshed on load/update). */
   frecency: number;
   /** Tokenized URL parts (lowercased). */
@@ -290,8 +288,7 @@ export class InMemoryURLIndex {
         entry.frecency = calculateFrecency(
           entry.visitCount,
           entry.typedCount,
-          entry.lastVisitTime,
-          entry.lastVisitType
+          entry.lastVisitTime
         );
         this.entries.set(entry.historyId, entry);
         this.addToIndexes(entry);
@@ -353,7 +350,7 @@ export class InMemoryURLIndex {
   private buildEntry(entry: HistoryEntry): IMUIEntry {
     const urlTokens = tokenize(entry.url);
     const titleTokens = tokenize(entry.title);
-    const frecency = calculateFrecency(entry.visitCount, entry.typedCount, entry.lastVisitTime, entry.lastVisitType);
+    const frecency = calculateFrecency(entry.visitCount, entry.typedCount, entry.lastVisitTime);
 
     return {
       historyId: entry.id,
@@ -362,8 +359,6 @@ export class InMemoryURLIndex {
       visitCount: entry.visitCount,
       typedCount: entry.typedCount,
       lastVisitTime: entry.lastVisitTime,
-      lastVisitType: entry.lastVisitType,
-      firstVisitTime: entry.firstVisitTime,
       frecency,
       urlTokens,
       titleTokens

@@ -55,6 +55,9 @@ function getIconForType(type: AutocompleteMatch["type"], match: AutocompleteMatc
       if (match.destinationUrl === "open_extensions") {
         return <PuzzleIcon className="h-5 w-5 text-purple-500" />;
       }
+      if (match.destinationUrl === "open_history") {
+        return <History className="h-5 w-5 text-amber-500" />;
+      }
       return <Zap className="h-5 w-5 text-purple-500" />;
     case "open-tab":
       return <Terminal className="h-5 w-5 text-teal-600 dark:text-teal-500" />;

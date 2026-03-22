@@ -8,8 +8,10 @@ import "@/ipc/app/window-controls";
 // Browser APIs
 import "@/ipc/browser/browser";
 import "@/ipc/browser/tabs";
+import "@/ipc/browser/pinned-tabs";
 import "@/ipc/browser/page";
 import "@/ipc/browser/navigation";
+import "@/ipc/browser/history";
 import "@/ipc/browser/interface";
 import "@/ipc/browser/find-in-page";
 import "@/ipc/window/omnibox";
@@ -26,7 +28,6 @@ import "@/ipc/app/open-external";
 import "@/ipc/app/onboarding";
 
 // Data APIs
-import "@/ipc/data/history";
 import "@/ipc/data/omnibox-shortcuts";
 
 // Special

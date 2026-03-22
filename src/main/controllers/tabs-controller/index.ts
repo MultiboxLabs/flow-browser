@@ -18,6 +18,7 @@ import { WebContents } from "electron";
 import { TabGroupMode } from "~/types/tabs";
 import { FLAGS } from "@/modules/flags";
 import { quitController } from "@/controllers/quit-controller";
+import { clearPlaceholdersForTab, isSyncExcludedTab, isTabSyncEnabled, registerTabsController } from "./tab-sync";
 
 export const NEW_TAB_URL = "flow://new-tab";
 const ARCHIVE_CHECK_INTERVAL_MS = 10 * 1000;
@@ -33,6 +34,7 @@ type TabsControllerEvents = {
 type WindowSpaceReference = `${number}-${string}`;
 
 function shouldPersistTab(tab: Tab): boolean {
+  if (tab.ephemeral) return false;
   if (tab.loadedProfile.profileData.ephemeral) return false;
   return true;
 }
@@ -56,7 +58,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
   // Window Space Maps
   public windowActiveSpaceMap: Map<number, string>;
-  public spaceActiveTabMap: Map<WindowSpaceReference, Tab | TabGroup>;
+  private spaceActiveTabMap: Map<WindowSpaceReference, Tab | TabGroup>;
   public spaceFocusedTabMap: Map<WindowSpaceReference, Tab>;
   /** Activation history stores both tab IDs (number) and group IDs (string) */
   public spaceActivationHistory: Map<WindowSpaceReference, (number | string)[]>;
@@ -101,9 +103,21 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       windowTabsChanged(tab.getWindow().id);
     });
 
+    // When a space is deleted, destroy every tab that still references it.
+    // Without this, standalone space deletion (e.g. from Settings) leaves
+    // orphaned tabs with stale spaceId references.
+    spacesController.on("space-deleted", (_profileId, spaceId) => {
+      if (quitController.isQuitting) return;
+      const tabs = this.getTabsInSpace(spaceId);
+      for (const tab of tabs) {
+        tab.destroy();
+      }
+    });
+
     // Archive/sleep check interval
     const interval = setInterval(() => {
       for (const tab of this.tabs.values()) {
+        if (tab.ephemeral) continue;
         if (!tab.visible && shouldArchiveTab(tab.lastActiveAt)) {
           tab.destroy();
           continue;
@@ -118,6 +132,21 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     this.on("destroyed", () => {
       clearInterval(interval);
     });
+  }
+
+  // --- Persistence helper ---
+
+  /**
+   * Serialize a tab and mark it dirty for persistence.
+   * Centralises the `serializeTab` + `markDirty` pattern that was previously
+   * repeated across multiple event handlers.
+   */
+  private persistTab(tab: Tab): void {
+    if (!shouldPersistTab(tab)) return;
+    const lifecycleManager = this.tabManagers.get(tab.id)?.lifecycle;
+    const windowGroupId = `w-${tab.getWindow().id}`;
+    const serialized = serializeTab(tab, windowGroupId, lifecycleManager?.preSleepState);
+    tabPersistenceManager.markDirty(tab.uniqueId, serialized);
   }
 
   // --- Manager access ---
@@ -272,14 +301,6 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       }
     }
 
-    // Handle initial URL load (only if not restoring from nav history)
-    if (tab._needsInitialLoad) {
-      const initialURL = tabCreationOptions.url || tab.loadedProfile.newTabUrl || NEW_TAB_URL;
-      setImmediate(() => {
-        tab.loadURL(initialURL);
-      });
-    }
-
     // --- Setup event listeners ---
     tab.on("updated", (properties) => {
       // During quit, the database is already closed — skip all persistence
@@ -299,11 +320,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       windowTabContentChanged(tab.getWindow().id, tab.id);
 
       // Mark tab dirty for persistence
-      if (shouldPersistTab(tab)) {
-        const windowGroupId = `w-${tab.getWindow().id}`;
-        const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-        tabPersistenceManager.markDirty(tab.uniqueId, serialized);
-      }
+      this.persistTab(tab);
     });
     tab.on("space-changed", () => {
       if (quitController.isQuitting) return;
@@ -312,27 +329,20 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       windowTabsChanged(tab.getWindow().id);
 
       // Mark tab dirty for persistence
-      if (shouldPersistTab(tab)) {
-        const windowGroupId = `w-${tab.getWindow().id}`;
-        const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-        tabPersistenceManager.markDirty(tab.uniqueId, serialized);
-      }
+      this.persistTab(tab);
     });
     tab.on("window-changed", (oldWindowId) => {
       if (quitController.isQuitting) return;
 
       // Structural change — refresh both old window (tab removed) and new window (tab added)
-      windowTabsChanged(tab.getWindow().id);
-      if (oldWindowId !== tab.getWindow().id) {
+      const newWindowId = tab.getWindow().id;
+      windowTabsChanged(newWindowId);
+      if (oldWindowId !== newWindowId) {
         windowTabsChanged(oldWindowId);
       }
 
       // Mark tab dirty for persistence
-      if (shouldPersistTab(tab)) {
-        const windowGroupId = `w-${tab.getWindow().id}`;
-        const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-        tabPersistenceManager.markDirty(tab.uniqueId, serialized);
-      }
+      this.persistTab(tab);
     });
     tab.on("focused", () => {
       if (this.isTabActive(tab)) {
@@ -346,14 +356,15 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     });
 
     // Handle new-tab-requested — replaces old Tab.createNewTab()
-    tab.on("new-tab-requested", (url, disposition, constructorOptions, handlerDetails) => {
-      this.handleNewTabRequested(tab, url, disposition, constructorOptions, handlerDetails);
+    tab.on("new-tab-requested", (url, disposition, constructorOptions, handlerDetails, options) => {
+      this.handleNewTabRequested(tab, url, disposition, constructorOptions, handlerDetails, options);
     });
 
     tab.on("destroyed", () => {
       // Cleanup lifecycle
       lifecycleManager.onDestroy();
       boundsController.destroy();
+      clearPlaceholdersForTab(tab.id);
 
       // During quit, skip all persistence and tab management — the database
       // is closed and windows are being torn down. Accessing them would crash.
@@ -363,7 +374,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
         return;
       }
 
-      // Add to recently closed (user-initiated close only)
+      // Add to recently closed and remove from persistence (skip for ephemeral tabs/profiles)
       if (shouldPersistTab(tab)) {
         const windowGroupId = `w-${tab.getWindow().id}`;
         const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
@@ -372,10 +383,8 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
         recentlyClosedManager
           .add(serialized, groupData)
           .catch((err) => console.error("[TabsController] Failed to save recently closed tab:", err));
-      }
 
-      // Remove from persistence
-      if (shouldPersistTab(tab)) {
+        // Remove from persistence
         tabPersistenceManager.markRemoved(tab.uniqueId);
       }
 
@@ -387,10 +396,22 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     });
 
     // --- Initial persistence ---
-    if (shouldPersistTab(tab)) {
-      const windowGroupId = `w-${windowId}`;
-      const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
-      tabPersistenceManager.markDirty(tab.uniqueId, serialized);
+    this.persistTab(tab);
+
+    // --- Initial URL load ---
+    // Called synchronously after all listeners are wired, so navigation events
+    // are never missed. No setImmediate needed — webContents.loadURL() is async
+    // and its events fire in future turns. Placing this call here (before
+    // createWindow returns for window.open tabs) also ensures the navigation is
+    // already in flight when the opener calls popup.document.write(): the
+    // implicit document.open() in document.write cancels the pending navigation
+    // rather than the other way around.
+    if (tab._needsInitialLoad && tabCreationOptions.noLoadURL !== true) {
+      const initialURL = tabCreationOptions.url || tab.loadedProfile.newTabUrl || NEW_TAB_URL;
+      if (tabCreationOptions.typedNavigation) {
+        tab.markTypedNavigationForNextHistoryVisit(initialURL);
+      }
+      tab.loadURL(initialURL);
     }
 
     // Return tab
@@ -407,7 +428,8 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     url: string,
     disposition: "new-window" | "foreground-tab" | "background-tab" | "default" | "other",
     constructorOptions: Electron.WebContentsViewConstructorOptions | undefined,
-    handlerDetails: Electron.HandlerDetails | undefined
+    handlerDetails: Electron.HandlerDetails | undefined,
+    options: { noLoadURL?: boolean }
   ) {
     let windowId = sourceTab.getWindow().id;
 
@@ -436,7 +458,8 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     }
 
     const newTab = this.internalCreateTab(windowId, sourceTab.profileId, sourceTab.spaceId, constructorOptions, {
-      url
+      url,
+      noLoadURL: options.noLoadURL
     });
 
     // Set the webContents reference so the createWindow callback can return it
@@ -585,7 +608,19 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       this.removeFocusedTab(windowId, spaceId);
     }
 
+    this.flushBrowsingHistoryForActivatedTabOrGroup(tabOrGroup);
+
     this.emit("active-tab-changed", windowId, spaceId);
+  }
+
+  private flushBrowsingHistoryForActivatedTabOrGroup(tabOrGroup: Tab | TabGroup): void {
+    if (tabOrGroup instanceof Tab) {
+      tabOrGroup.recordBrowsingHistoryOnActivationIfNeeded();
+    } else {
+      for (const t of tabOrGroup.tabs) {
+        t.recordBrowsingHistoryOnActivationIfNeeded();
+      }
+    }
   }
 
   /**
@@ -655,9 +690,23 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
    * Set the focused tab for a space
    */
   private setFocusedTab(tab: Tab) {
+    for (const [key, focusedTab] of this.spaceFocusedTabMap.entries()) {
+      if (focusedTab.id === tab.id) {
+        this.spaceFocusedTabMap.delete(key);
+      }
+    }
+
     const windowSpaceReference = `${tab.getWindow().id}-${tab.spaceId}` as WindowSpaceReference;
     this.spaceFocusedTabMap.set(windowSpaceReference, tab);
-    tab.webContents?.focus();
+    // Only focus the webContents if the tab's window is the currently active OS
+    // window. Calling webContents.focus() on a background window steals OS
+    // focus and brings that window to the front — which is the root cause of
+    // Window A unexpectedly gaining focus when the user switches tabs in
+    // Window B (the tab relocation makes a background tab visible, Chromium
+    // emits a focus event, and this call would then pull the OS focus).
+    if (tab.getWindow().browserWindow.isFocused()) {
+      tab.webContents?.focus();
+    }
   }
 
   /**
@@ -674,6 +723,67 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   public getFocusedTab(windowId: number, spaceId: string): Tab | undefined {
     const windowSpaceReference = `${windowId}-${spaceId}` as WindowSpaceReference;
     return this.spaceFocusedTabMap.get(windowSpaceReference);
+  }
+
+  /**
+   * Returns true when the tab is the active tab (or part of the active group)
+   * in another browser window whose currently visible space matches the tab's
+   * space. In that case the tab is still effectively on-screen, so auto-PiP
+   * should not trigger just because this window hid it.
+   */
+  public isTabVisibleInAnotherWindow(tab: Tab): boolean {
+    for (const window of browserWindowsController.getWindows()) {
+      if (window.browserWindowType !== "normal" || window.destroyed) continue;
+      if (window.id === tab.getWindow().id) continue;
+      if (window.currentSpaceId !== tab.spaceId) continue;
+
+      const activeTabOrGroup = this.getActiveTab(window.id, tab.spaceId);
+      if (!activeTabOrGroup) continue;
+
+      if (activeTabOrGroup instanceof Tab) {
+        if (activeTabOrGroup.id === tab.id) {
+          return true;
+        }
+        continue;
+      }
+
+      if (activeTabOrGroup.hasTab(tab.id)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Ensure the current active tab/group in a window-space has an actual focused tab.
+   * Used after sync-driven window moves where the tab view changes windows without
+   * producing a fresh webContents focus event on its own.
+   */
+  public focusActiveTab(windowId: number, spaceId: string): void {
+    const activeTabOrGroup = this.getActiveTab(windowId, spaceId);
+    if (!activeTabOrGroup) {
+      this.removeFocusedTab(windowId, spaceId);
+      return;
+    }
+
+    if (activeTabOrGroup instanceof Tab) {
+      this.setFocusedTab(activeTabOrGroup);
+      return;
+    }
+
+    const currentFocusedTab = this.getFocusedTab(windowId, spaceId);
+    if (currentFocusedTab && activeTabOrGroup.hasTab(currentFocusedTab.id)) {
+      this.setFocusedTab(currentFocusedTab);
+      return;
+    }
+
+    const nextFocusedTab = activeTabOrGroup.tabs[0];
+    if (nextFocusedTab) {
+      this.setFocusedTab(nextFocusedTab);
+    } else {
+      this.removeFocusedTab(windowId, spaceId);
+    }
   }
 
   // --- Tab Removal ---
@@ -736,6 +846,49 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   }
 
   /**
+   * Mark a tab as ephemeral so it will no longer be persisted to the database.
+   * Also removes any existing persisted data for this tab and notifies the
+   * renderer to refresh the tab list (so the tab disappears from the sidebar).
+   */
+  public makeTabEphemeral(tabId: number): void {
+    const tab = this.tabs.get(tabId);
+    if (!tab || tab.ephemeral) return;
+
+    // Remove from any tab group before marking ephemeral — the pinned tab
+    // appears in the pin grid, so keeping it in the sidebar group as well
+    // would show a confusing duplicate.
+    const group = this.getTabGroupByTabId(tabId);
+    if (group) {
+      group.removeTab(tabId);
+      // Dissolve degenerate groups (e.g. a 2-tab glance loses a member)
+      if (group.tabs.length < 2) {
+        this.destroyTabGroup(group.groupId);
+      }
+    }
+
+    tab.ephemeral = true;
+    tabPersistenceManager.markRemoved(tab.uniqueId);
+    // Trigger a structural change so the renderer drops this tab from the list
+    windowTabsChanged(tab.getWindow().id);
+  }
+
+  /**
+   * Reverse of makeTabEphemeral: mark a tab as persistent so it will be
+   * persisted to the database again and reappear in the sidebar tab list.
+   */
+  public makeTabPersistent(tabId: number): void {
+    const tab = this.tabs.get(tabId);
+    if (!tab || !tab.ephemeral) return;
+    tab.ephemeral = false;
+
+    // Immediately serialize and mark dirty so it gets persisted on the next flush
+    this.persistTab(tab);
+
+    // Trigger a structural change so the renderer adds this tab back to the list
+    windowTabsChanged(tab.getWindow().id);
+  }
+
+  /**
    * Get a tab by webContents
    */
   public getTabByWebContents(webContents: WebContents): Tab | undefined {
@@ -758,6 +911,16 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       }
     }
     return result;
+  }
+
+  /**
+   * Clear per-tab in-memory history deduping after history rows are deleted.
+   * This keeps the next same-URL navigation recordable without touching unrelated profiles.
+   */
+  public clearBrowsingHistoryDedupingForProfile(profileId: string, url?: string): void {
+    for (const tab of this.getTabsInProfile(profileId)) {
+      tab.clearBrowsingHistoryDeduping(url);
+    }
   }
 
   /**
@@ -988,6 +1151,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
    */
   public setCurrentWindowSpace(windowId: number, spaceId: string) {
     this.windowActiveSpaceMap.set(windowId, spaceId);
+
     this.emit("current-space-changed", windowId, spaceId);
   }
 
@@ -1022,14 +1186,44 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     }
   }
 
+  /**
+   * Purge all map entries associated with a given window.
+   * Called when a window is closed to prevent stale references from
+   * accumulating in the internal tracking maps.
+   */
+  public cleanupWindowEntries(windowId: number): void {
+    this.windowActiveSpaceMap.delete(windowId);
+
+    const prefix = `${windowId}-`;
+    for (const key of this.spaceActiveTabMap.keys()) {
+      if (key.startsWith(prefix)) this.spaceActiveTabMap.delete(key);
+    }
+    for (const key of this.spaceFocusedTabMap.keys()) {
+      if (key.startsWith(prefix)) this.spaceFocusedTabMap.delete(key);
+    }
+    for (const key of this.spaceActivationHistory.keys()) {
+      if (key.startsWith(prefix)) this.spaceActivationHistory.delete(key);
+    }
+  }
+
   // --- Position Normalization ---
 
   /**
    * Normalize tab positions to prevent drift to negative infinity.
    * Called periodically or when positions are getting too extreme.
+   *
+   * In sync mode the renderer shows ALL tabs in a space regardless of
+   * which window owns them, so normalization must cover the full set.
    */
   public normalizePositions(windowId: number, spaceId: string) {
-    const tabs = this.getTabsInWindowSpace(windowId, spaceId);
+    let tabs: Tab[];
+    if (isTabSyncEnabled()) {
+      // In sync mode, normalize all tabs in the space but exclude
+      // internal-profile and popup-window tabs from other windows (they are not synced).
+      tabs = this.getTabsInSpace(spaceId).filter((tab) => tab.getWindow().id === windowId || !isSyncExcludedTab(tab));
+    } else {
+      tabs = this.getTabsInWindowSpace(windowId, spaceId);
+    }
     if (tabs.length === 0) return;
 
     // Sort by current position
@@ -1044,3 +1238,4 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
 export { type TabsController };
 export const tabsController = new TabsController();
+registerTabsController(tabsController);

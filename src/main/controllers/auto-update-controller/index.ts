@@ -46,6 +46,9 @@ export class AutoUpdateController extends TypedEventEmitter<AutoUpdateController
   public isAutoUpdateSupported(platform: NodeJS.Platform): boolean {
     if (MOCK_DATA_ENABLED) return MOCK_DATA.isSupported;
 
+    // Flatpak updates are managed by the Flatpak runtime, not electron-updater
+    if (process.env["FLATPAK_ID"]) return false;
+
     return SUPPORTED_PLATFORMS.includes(platform);
   }
 

@@ -1,4 +1,4 @@
-import { BaseTabGroup } from "@/controllers/tabs-controller/tab-groups";
+import { BaseTabGroup, TabGroup } from "@/controllers/tabs-controller/tab-groups";
 import { spacesController } from "@/controllers/spaces-controller";
 import { clipboard, ipcMain, Menu, MenuItem } from "electron";
 import { PersistedTabGroupData, TabData, WindowActiveTabIds, WindowFocusedTabIds } from "~/types/tabs";
@@ -9,6 +9,12 @@ import { tabsController } from "@/controllers/tabs-controller";
 import { serializeTabForRenderer, serializeTabGroupForRenderer } from "@/saving/tabs/serialization";
 import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
 import { GlanceTabGroup } from "@/controllers/tabs-controller/tab-groups/glance";
+import {
+  isTabSyncEnabled,
+  isSyncExcludedTab,
+  moveTabOrGroupToWindow,
+  runTabSyncMutation
+} from "@/controllers/tabs-controller/tab-sync";
 
 /**
  * Attempts to restore a tab's group membership after it has been recreated.
@@ -81,9 +87,28 @@ function restoreTabGroupMembership(restoredTab: Tab, groupData?: PersistedTabGro
 // IPC Handlers //
 function getWindowTabsData(window: BrowserWindow) {
   const windowId = window.id;
+  const syncEnabled = isTabSyncEnabled();
 
-  const tabs = tabsController.getTabsInWindow(windowId);
-  const tabGroups = tabsController.getTabGroupsInWindow(windowId);
+  // When sync is enabled, return all tabs across all windows EXCEPT
+  // internal-profile tabs and popup-window tabs that belong to other windows
+  // (those stay private). Popup windows themselves are not part of sync.
+  let tabs: Tab[];
+  let tabGroups: TabGroup[];
+
+  if (syncEnabled && window.browserWindowType === "normal") {
+    tabs = [...tabsController.tabs.values()].filter((tab) => {
+      if (tab.getWindow().id === windowId) return true;
+      return !isSyncExcludedTab(tab);
+    });
+    // Include tab groups that still have at least one visible tab
+    const visibleTabIds = new Set(tabs.map((t) => t.id));
+    tabGroups = [...tabsController.tabGroups.values()].filter((group) =>
+      group.tabs.some((t) => visibleTabIds.has(t.id))
+    );
+  } else {
+    tabs = tabsController.getTabsInWindow(windowId);
+    tabGroups = tabsController.getTabGroupsInWindow(windowId);
+  }
 
   const tabDatas = tabs.map((tab) => {
     const managers = tabsController.getTabManagers(tab.id);
@@ -212,9 +237,17 @@ function processQueues() {
 /**
  * Enqueue a structural change for a window.
  * The next queue processing will send a full WindowTabsData refresh.
+ * When tab sync is enabled, all browser windows are notified.
  */
 export function windowTabsChanged(windowId: number) {
-  structuralQueue.add(windowId);
+  if (isTabSyncEnabled()) {
+    // Broadcast to every browser window
+    for (const win of browserWindowsController.getWindows()) {
+      structuralQueue.add(win.id);
+    }
+  } else {
+    structuralQueue.add(windowId);
+  }
   scheduleQueueProcessing();
 }
 
@@ -222,18 +255,35 @@ export function windowTabsChanged(windowId: number) {
  * Enqueue a content-only change for a single tab.
  * If no structural change occurs before processing, only the changed tabs'
  * data will be serialized and sent — much cheaper than a full refresh.
+ * When tab sync is enabled, the change is enqueued for all browser windows.
  */
 export function windowTabContentChanged(windowId: number, tabId: number) {
-  // If a structural change is already pending for this window, skip —
-  // the full refresh will include this tab's changes.
-  if (structuralQueue.has(windowId)) return;
+  let targetWindowIds: number[];
 
-  let tabIds = contentQueue.get(windowId);
-  if (!tabIds) {
-    tabIds = new Set();
-    contentQueue.set(windowId, tabIds);
+  if (isTabSyncEnabled()) {
+    // Internal-profile and popup-window tabs are not synced — only notify the owning window
+    const tab = tabsController.getTabById(tabId);
+    if (tab && isSyncExcludedTab(tab)) {
+      targetWindowIds = [windowId];
+    } else {
+      targetWindowIds = browserWindowsController.getWindows().map((w) => w.id);
+    }
+  } else {
+    targetWindowIds = [windowId];
   }
-  tabIds.add(tabId);
+
+  for (const targetId of targetWindowIds) {
+    // If a structural change is already pending for this window, skip —
+    // the full refresh will include this tab's changes.
+    if (structuralQueue.has(targetId)) continue;
+
+    let tabIds = contentQueue.get(targetId);
+    if (!tabIds) {
+      tabIds = new Set();
+      contentQueue.set(targetId, tabIds);
+    }
+    tabIds.add(tabId);
+  }
 
   scheduleQueueProcessing();
 }
@@ -246,37 +296,68 @@ ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {
   const tab = tabsController.getTabById(tabId);
   if (!tab) return false;
 
+  if (isTabSyncEnabled()) {
+    let switched = false;
+    await runTabSyncMutation(async () => {
+      if (window.destroyed) return;
+      const currentTab = tabsController.getTabById(tabId);
+      if (!currentTab || currentTab.isDestroyed) return;
+
+      // In sync mode, the tab may currently live in a different window.
+      // Move it (and its group) to the requesting window before activating.
+      // This also creates a screenshot placeholder in the old window.
+      if (currentTab.getWindow().id !== window.id) {
+        await moveTabOrGroupToWindow(currentTab, window);
+      }
+
+      // Re-validate after the async move: the tab or window may have been
+      // destroyed, or the move may have silently bailed out.
+      const movedTab = tabsController.getTabById(tabId);
+      if (!movedTab || movedTab.isDestroyed) return;
+      if (window.destroyed) return;
+      if (movedTab.getWindow().id !== window.id) return;
+
+      tabsController.setActiveTab(movedTab);
+      switched = true;
+    });
+    return switched;
+  }
+
   tabsController.setActiveTab(tab);
   return true;
 });
 
-ipcMain.handle("tabs:new-tab", async (event, url?: string, isForeground?: boolean, spaceId?: string) => {
-  const webContents = event.sender;
-  const window =
-    browserWindowsController.getWindowFromWebContents(webContents) || browserWindowsController.getWindows()[0];
-  if (!window) return;
+ipcMain.handle(
+  "tabs:new-tab",
+  async (event, url?: string, isForeground?: boolean, spaceId?: string, typedFromAddressBar?: boolean) => {
+    const webContents = event.sender;
+    const window =
+      browserWindowsController.getWindowFromWebContents(webContents) || browserWindowsController.getWindows()[0];
+    if (!window) return;
 
-  if (!spaceId) {
-    const currentSpace = window.currentSpaceId;
-    if (!currentSpace) return;
+    if (!spaceId) {
+      const currentSpace = window.currentSpaceId;
+      if (!currentSpace) return;
 
-    spaceId = currentSpace;
+      spaceId = currentSpace;
+    }
+
+    if (!spaceId) return;
+
+    const space = await spacesController.get(spaceId);
+    if (!space) return;
+
+    const tab = await tabsController.createTab(window.id, space.profileId, spaceId, undefined, {
+      url: url || undefined,
+      typedNavigation: typedFromAddressBar === true
+    });
+
+    if (isForeground) {
+      tabsController.setActiveTab(tab);
+    }
+    return true;
   }
-
-  if (!spaceId) return;
-
-  const space = await spacesController.get(spaceId);
-  if (!space) return;
-
-  const tab = await tabsController.createTab(window.id, space.profileId, spaceId, undefined, {
-    url: url || undefined
-  });
-
-  if (isForeground) {
-    tabsController.setActiveTab(tab);
-  }
-  return true;
-});
+);
 
 ipcMain.handle("tabs:close-tab", async (event, tabId: number) => {
   const webContents = event.sender;

@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { CogIcon, LayersIcon, PackageXIcon, PinIcon, PinOffIcon, PuzzleIcon } from "lucide-react";
 import { MouseEvent, useCallback, useMemo, useRef, useState } from "react";
+import { useFocusedTab } from "@/components/providers/tabs-provider";
 
 interface ExtensionAction {
   color?: string;
@@ -146,6 +147,7 @@ function BrowserAction({
 // Main extensions popover for the new browser UI sidebar
 export function BrowserActionList() {
   const { isCurrentSpaceLight } = useSpaces();
+  const focusedTab = useFocusedTab();
   const { actions, activeTabId, partition } = useBrowserAction();
   const [open, setOpen] = useState(false);
 
@@ -161,15 +163,20 @@ export function BrowserActionList() {
 
   const spaceInjectedClasses = cn(isCurrentSpaceLight ? "" : "dark");
 
+  if (!focusedTab) return null;
   return (
     <PortalPopover.Root open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "size-8 flex items-center justify-center rounded-md",
-            "bg-transparent hover:bg-black/10 dark:hover:bg-white/10",
-            "transition-colors duration-100"
+            "size-6 flex items-center justify-center rounded-md",
+            "hover:bg-black/15 dark:hover:bg-white/20",
+            "transition-colors duration-150",
+            "relative shrink-0"
           )}
+          onClick={(event) => {
+            event.stopPropagation();
+          }}
         >
           <PuzzleIcon strokeWidth={2} className="w-4 h-4 text-black/80 dark:text-white/80" />
         </button>

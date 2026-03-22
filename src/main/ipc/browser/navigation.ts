@@ -1,9 +1,8 @@
 import { tabsController } from "@/controllers/tabs-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
-import { historyService, VisitType } from "@/saving/history/history-service";
 import { ipcMain } from "electron";
 
-ipcMain.on("navigation:go-to", (event, url: string, tabId?: number) => {
+ipcMain.on("navigation:go-to", (event, url: string, tabId?: number, typedFromAddressBar?: boolean) => {
   const webContents = event.sender;
   const window = browserWindowsController.getWindowFromWebContents(webContents);
   if (!window) return false;
@@ -14,9 +13,9 @@ ipcMain.on("navigation:go-to", (event, url: string, tabId?: number) => {
   const tab = tabId ? tabsController.getTabById(tabId) : tabsController.getFocusedTab(window.id, currentSpace);
   if (!tab) return false;
 
-  // Record as typed navigation — the user typed this URL in the omnibox
-  historyService.recordVisit(url, "", VisitType.TYPED);
-
+  if (typedFromAddressBar === true) {
+    tab.markTypedNavigationForNextHistoryVisit(url);
+  }
   tab.loadURL(url);
   return true;
 });

@@ -148,7 +148,7 @@ export class HistoryURLProvider extends BaseProvider {
 
       // Score the match
       const matchQuality = scoreMatchQuality(terms, entry.url, entry.title);
-      const frecency = calculateFrecency(entry.visitCount, entry.typedCount, entry.lastVisitTime, entry.lastVisitType);
+      const frecency = calculateFrecency(entry.visitCount, entry.typedCount, entry.lastVisitTime);
 
       // Compute relevance within the history-url range (900-1400)
       const frecencyNorm = Math.min(Math.log1p(frecency) / Math.log1p(20), 1);
@@ -211,12 +211,7 @@ export class HistoryURLProvider extends BaseProvider {
           if (!allTermsMatch(terms, allTokens)) continue;
 
           const matchQuality = scoreMatchQuality(terms, entry.url, entry.title);
-          const frecency = calculateFrecency(
-            entry.visitCount,
-            entry.typedCount,
-            entry.lastVisitTime,
-            entry.lastVisitType
-          );
+          const frecency = calculateFrecency(entry.visitCount, entry.typedCount, entry.lastVisitTime);
 
           const frecencyNorm = Math.min(Math.log1p(frecency) / Math.log1p(20), 1);
           const combined = frecencyNorm * 0.5 + matchQuality * 0.5;

@@ -27,10 +27,13 @@ import { BrowserActionProvider } from "@/components/providers/browser-action-pro
 import { ExtensionsProviderWithSpaces } from "@/components/providers/extensions-provider";
 import MinimalToastProvider from "@/components/providers/minimal-toast-provider";
 import { ActionsProvider } from "@/components/providers/actions-provider";
+import { PinnedTabsProvider } from "@/components/providers/pinned-tabs-provider";
 import BrowserContent from "@/components/browser-ui/browser-content";
 import { FindInPage } from "@/components/browser-ui/find-in-page";
 import { NavigationControls } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
 import { AddressBar } from "@/components/browser-ui/browser-sidebar/_components/address-bar";
+import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
+import { usePlatform } from "@/components/main/platform";
 
 export type BrowserUIType = "main" | "popup";
 export type SidebarVariant = "attached" | "floating";
@@ -169,6 +172,7 @@ const LoadingIndicator = memo(function LoadingIndicator() {
 function PopupToolbar() {
   const { isCurrentSpaceLight } = useSpaces();
   const { setContentTopOffset } = useAdaptiveTopbar();
+  const { platform } = usePlatform();
   const ref = useRef<HTMLDivElement>(null);
 
   // Measure once on mount + whenever the element resizes.
@@ -189,6 +193,7 @@ function PopupToolbar() {
 
   return (
     <div ref={ref} className={cn("w-full flex items-center gap-2 px-1 pb-2", !isCurrentSpaceLight && "dark")}>
+      {platform === "darwin" && <SidebarWindowControlsMacOS offset={10} />}
       <NavigationControls />
       <AddressBar />
     </div>
@@ -204,15 +209,6 @@ function PopupToolbar() {
 function FullscreenGuard({ children }: { children: React.ReactNode }) {
   const isFullscreen = useFocusedTabFullscreen();
   const { setForceFloating } = useBrowserSidebar();
-  // if (isFullscreen) {
-  //   // Wrap in a full-screen flex container so BrowserContent's flex-1 works
-  //   // and the measured pageBounds correctly fill the entire window.
-  //   return (
-  //     <div className="w-screen h-screen overflow-hidden flex flex-col">
-  //       <BrowserContent />
-  //     </div>
-  //   );
-  // }
   useEffect(() => {
     setForceFloating(isFullscreen);
   }, [isFullscreen, setForceFloating]);
@@ -323,12 +319,14 @@ export function BrowserUI({ type }: { type: BrowserUIType }) {
           <AdaptiveTopbarProvider>
             <SpacesProvider windowType={type}>
               <TabsProvider>
-                <BrowserActionProvider>
-                  <ExtensionsProviderWithSpaces>
-                    <TabDisabler />
-                    <InternalBrowserUI isReady={isReady} type={type} />
-                  </ExtensionsProviderWithSpaces>
-                </BrowserActionProvider>
+                <PinnedTabsProvider>
+                  <BrowserActionProvider>
+                    <ExtensionsProviderWithSpaces>
+                      <TabDisabler />
+                      <InternalBrowserUI isReady={isReady} type={type} />
+                    </ExtensionsProviderWithSpaces>
+                  </BrowserActionProvider>
+                </PinnedTabsProvider>
               </TabsProvider>
             </SpacesProvider>
           </AdaptiveTopbarProvider>

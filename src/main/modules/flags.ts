@@ -11,6 +11,7 @@ type Flags = {
   SHOW_DEBUG_DEVTOOLS: boolean;
   GLANCE_ENABLED: boolean;
   FAVICONS_REMOVE_PATH: boolean;
+  INCOGNITO_ENABLED: boolean;
 };
 
 export const FLAGS: Flags = {
@@ -36,5 +37,8 @@ export const FLAGS: Flags = {
   GLANCE_ENABLED: false,
 
   // Favicons: Remove the path from the favicon URL
-  FAVICONS_REMOVE_PATH: true
+  FAVICONS_REMOVE_PATH: true,
+
+  // Incognito: Enable incognito windows
+  INCOGNITO_ENABLED: true
 };

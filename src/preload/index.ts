@@ -12,6 +12,7 @@ import type { SpaceData } from "@/controllers/spaces-controller";
 // SHARED TYPES //
 import type { SharedExtensionData } from "~/types/extensions";
 import type { TabData, WindowTabsData } from "~/types/tabs";
+import type { PinnedTabData } from "~/types/pinned-tabs";
 import type { UpdateStatus } from "~/types/updates";
 import type { WindowState } from "~/flow/types";
 
@@ -32,11 +33,12 @@ import { FlowSettingsAPI } from "~/flow/interfaces/settings/settings";
 import { FlowWindowsAPI } from "~/flow/interfaces/app/windows";
 import { FlowExtensionsAPI } from "~/flow/interfaces/app/extensions";
 import { FlowTabsAPI } from "~/flow/interfaces/browser/tabs";
+import { FlowPinnedTabsAPI } from "~/flow/interfaces/browser/pinned-tabs";
 import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
 import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/find-in-page";
-import { FlowHistoryAPI, VisitTypeValue } from "~/flow/interfaces/browser/history";
+import { FlowHistoryAPI } from "~/flow/interfaces/browser/history";
 import { FlowOmniboxShortcutsAPI } from "~/flow/interfaces/browser/omnibox-shortcuts";
 import type {
   AssertCredentialErrorCodes,
@@ -78,6 +80,7 @@ function hasPermission(permission: Permission) {
 
   // Extensions
   const isExtensions = isLocation("flow:", "extensions");
+  const isHistoryPage = isLocation("flow:", "history");
 
   switch (permission) {
     case "all":
@@ -85,7 +88,7 @@ function hasPermission(permission: Permission) {
     case "app":
       return isInternalProtocols || isExtensions;
     case "browser":
-      return isBrowserUI || isOmnibox;
+      return isBrowserUI || isOmnibox || isHistoryPage;
     case "session":
       return isFlowInternalProtocol || isOmnibox || isBrowserUI;
     case "settings":
@@ -436,6 +439,9 @@ const tabsAPI: FlowTabsAPI = {
   onTabsContentUpdated: (callback: (tabs: TabData[]) => void) => {
     return listenOnIPCChannel("tabs:on-tabs-content-updated", callback);
   },
+  onPlaceholderChanged: (callback) => {
+    return listenOnIPCChannel("tabs:on-placeholder-changed", callback);
+  },
   switchToTab: async (tabId: number) => {
     return ipcRenderer.invoke("tabs:switch-to-tab", tabId);
   },
@@ -456,8 +462,8 @@ const tabsAPI: FlowTabsAPI = {
   },
 
   // Special Exception: This is allowed for all internal protocols.
-  newTab: async (url?: string, isForeground?: boolean, spaceId?: string) => {
-    return ipcRenderer.invoke("tabs:new-tab", url, isForeground, spaceId);
+  newTab: async (url?: string, isForeground?: boolean, spaceId?: string, typedFromAddressBar?: boolean) => {
+    return ipcRenderer.invoke("tabs:new-tab", url, isForeground, spaceId, typedFromAddressBar);
   },
 
   // Special Exception: This is allowed on every tab, but very tightly secured.
@@ -487,6 +493,37 @@ const tabsAPI: FlowTabsAPI = {
   }
 };
 
+// PINNED TABS API //
+const pinnedTabsAPI: FlowPinnedTabsAPI = {
+  getData: async () => {
+    return ipcRenderer.invoke("pinned-tabs:get-data");
+  },
+  onChanged: (callback: (data: Record<string, PinnedTabData[]>) => void) => {
+    return listenOnIPCChannel("pinned-tabs:on-changed", callback);
+  },
+  createFromTab: async (tabId: number, position?: number) => {
+    return ipcRenderer.invoke("pinned-tabs:create-from-tab", tabId, position);
+  },
+  click: async (pinnedTabId: string) => {
+    return ipcRenderer.invoke("pinned-tabs:click", pinnedTabId);
+  },
+  doubleClick: async (pinnedTabId: string) => {
+    return ipcRenderer.invoke("pinned-tabs:double-click", pinnedTabId);
+  },
+  remove: async (pinnedTabId: string) => {
+    return ipcRenderer.invoke("pinned-tabs:remove", pinnedTabId);
+  },
+  unpinToTabList: async (pinnedTabId: string, position?: number) => {
+    return ipcRenderer.invoke("pinned-tabs:unpin-to-tab-list", pinnedTabId, position);
+  },
+  reorder: async (pinnedTabId: string, newPosition: number) => {
+    return ipcRenderer.invoke("pinned-tabs:reorder", pinnedTabId, newPosition);
+  },
+  showContextMenu: (pinnedTabId: string) => {
+    return ipcRenderer.send("pinned-tabs:show-context-menu", pinnedTabId);
+  }
+};
+
 // PAGE API //
 const pageAPI: FlowPageAPI = {
   setPageBounds: (bounds: { x: number; y: number; width: number; height: number }) => {
@@ -502,8 +539,8 @@ const navigationAPI: FlowNavigationAPI = {
   getTabNavigationStatus: (tabId: number) => {
     return ipcRenderer.invoke("navigation:get-tab-status", tabId);
   },
-  goTo: (url: string, tabId?: number) => {
-    return ipcRenderer.send("navigation:go-to", url, tabId);
+  goTo: (url: string, tabId?: number, typedFromAddressBar?: boolean) => {
+    return ipcRenderer.send("navigation:go-to", url, tabId, typedFromAddressBar);
   },
   stopLoadingTab: (tabId: number) => {
     return ipcRenderer.send("navigation:stop-loading-tab", tabId);
@@ -513,6 +550,28 @@ const navigationAPI: FlowNavigationAPI = {
   },
   goToNavigationEntry: (tabId: number, index: number) => {
     return ipcRenderer.send("navigation:go-to-entry", tabId, index);
+  }
+};
+
+// HISTORY API //
+const historyAPI: FlowHistoryAPI = {
+  list: async () => {
+    return ipcRenderer.invoke("history:list");
+  },
+  listVisits: async (search?: string) => {
+    return ipcRenderer.invoke("history:list-visits", search);
+  },
+  listVisitsPage: async (args) => {
+    return ipcRenderer.invoke("history:list-visits-page", args);
+  },
+  deleteVisit: async (visitId: number) => {
+    return ipcRenderer.invoke("history:delete-visit", visitId);
+  },
+  deleteAllForUrl: async (urlRowId: number) => {
+    return ipcRenderer.invoke("history:delete-url", urlRowId);
+  },
+  clearAll: async () => {
+    return ipcRenderer.invoke("history:clear-all");
   }
 };
 
@@ -869,25 +928,6 @@ const shortcutsAPI: FlowShortcutsAPI = {
   }
 };
 
-// HISTORY API //
-const historyAPI: FlowHistoryAPI = {
-  getSignificant: async () => {
-    return ipcRenderer.invoke("history:get-significant");
-  },
-  search: async (query: string, limit?: number) => {
-    return ipcRenderer.invoke("history:search", query, limit);
-  },
-  recordVisit: (url: string, title: string, visitType?: VisitTypeValue) => {
-    return ipcRenderer.send("history:record-visit", url, title, visitType);
-  },
-  getRecent: async (limit?: number) => {
-    return ipcRenderer.invoke("history:get-recent", limit);
-  },
-  getMostVisited: async (limit?: number) => {
-    return ipcRenderer.invoke("history:get-most-visited", limit);
-  }
-};
-
 // OMNIBOX SHORTCUTS API //
 const omniboxShortcutsAPI: FlowOmniboxShortcutsAPI = {
   search: async (inputText: string, limit?: number) => {
@@ -922,8 +962,10 @@ const flowAPI: typeof flow = {
     newTab: "app",
     disablePictureInPicture: "all"
   }),
+  pinnedTabs: wrapAPI(pinnedTabsAPI, "browser"),
   page: wrapAPI(pageAPI, "browser"),
   navigation: wrapAPI(navigationAPI, "browser"),
+  history: wrapAPI(historyAPI, "browser"),
   interface: wrapAPI(interfaceAPI, "browser", {
     moveWindowTo: "all",
     resizeWindowTo: "all"
@@ -931,7 +973,6 @@ const flowAPI: typeof flow = {
   omnibox: wrapAPI(omniboxAPI, "browser"),
   newTab: wrapAPI(newTabAPI, "browser"),
   findInPage: wrapAPI(findInPageAPI, "browser"),
-  history: wrapAPI(historyAPI, "browser"),
   omniboxShortcuts: wrapAPI(omniboxShortcutsAPI, "browser"),
 
   // Session APIs

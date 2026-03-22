@@ -329,13 +329,15 @@ export class Omnibox {
         flow.browser.createIncognitoWindow();
       } else if (pedalAction === "open_extensions") {
         flow.tabs.newTab("flow://extensions", true);
+      } else if (pedalAction === "open_history") {
+        flow.tabs.newTab("flow://history", true);
       }
     } else {
       const url = autocompleteMatch.destinationUrl;
       if (whereToOpen === "current") {
-        flow.navigation.goTo(url);
+        flow.navigation.goTo(url, undefined, true);
       } else {
-        flow.tabs.newTab(url, true);
+        flow.tabs.newTab(url, true, undefined, true);
       }
     }
   }

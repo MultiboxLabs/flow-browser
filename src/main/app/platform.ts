@@ -2,9 +2,11 @@ import { app, Menu, MenuItem } from "electron";
 import { debugPrint } from "@/modules/output";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { hasCompletedOnboarding } from "@/saving/onboarding";
+import { createIncognitoWindow } from "@/modules/incognito/windows";
+import { FLAGS } from "@/modules/flags";
 
 function setupWindowsUserTasks() {
-  app.setUserTasks([
+  const tasks: Electron.Task[] = [
     {
       program: process.execPath,
       arguments: "--new-window",
@@ -13,7 +15,20 @@ function setupWindowsUserTasks() {
       title: "New Window",
       description: "Create a new window"
     }
-  ]);
+  ];
+
+  if (FLAGS.INCOGNITO_ENABLED) {
+    tasks.push({
+      program: process.execPath,
+      arguments: "--new-incognito-window",
+      iconPath: process.execPath,
+      iconIndex: 0,
+      title: "New Incognito Window",
+      description: "Create a new incognito window"
+    });
+  }
+
+  app.setUserTasks(tasks);
 }
 
 function setupMacOSDock() {
@@ -34,7 +49,12 @@ function setupMacOSDock() {
   dockMenu.append(
     new MenuItem({
       label: "New Incognito Window",
-      enabled: false
+      enabled: FLAGS.INCOGNITO_ENABLED,
+      click: () => {
+        createIncognitoWindow().catch((error) => {
+          console.error("Failed to create incognito window:", error);
+        });
+      }
     })
   );
 
