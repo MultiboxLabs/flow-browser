@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Space } from "~/flow/interfaces/sessions/spaces";
 import { hexToOKLCHString } from "@/lib/colors";
 import { hex_is_light } from "@/lib/utils";
-import { WindowType } from "@/components/old-browser-ui/main";
+import type { BrowserUIType } from "@/components/browser-ui/types";
 import { createPortal } from "react-dom";
 
 interface SpacesContextValue {
@@ -27,7 +27,7 @@ export const useSpaces = () => {
 };
 
 interface SpacesProviderProps {
-  windowType: WindowType;
+  windowType: BrowserUIType;
   children: React.ReactNode;
 }
 

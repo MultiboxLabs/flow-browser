@@ -34,9 +34,7 @@ import { NavigationControls } from "@/components/browser-ui/browser-sidebar/_com
 import { AddressBar } from "@/components/browser-ui/browser-sidebar/_components/address-bar";
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
 import { usePlatform } from "@/components/main/platform";
-
-export type BrowserUIType = "main" | "popup";
-export type SidebarVariant = "attached" | "floating";
+import type { BrowserUIType } from "./types";
 
 function SidebarResizeHandle() {
   const [isDown, setIsDown] = useState(false);

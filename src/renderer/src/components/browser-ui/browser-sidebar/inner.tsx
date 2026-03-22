@@ -1,4 +1,4 @@
-import { SidebarVariant } from "@/components/browser-ui/main";
+import { SidebarVariant } from "@/components/browser-ui/types";
 import { AttachedDirection, useBrowserSidebar } from "./provider";
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
 import { usePlatform } from "@/components/main/platform";

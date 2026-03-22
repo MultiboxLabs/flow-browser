@@ -3,7 +3,7 @@ import { usePresence } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useMount } from "react-use";
 import { type AttachedDirection, useBrowserSidebar, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH } from "./provider";
-import { type SidebarVariant } from "@/components/browser-ui/main";
+import { type SidebarVariant } from "@/components/browser-ui/types";
 import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 import { SidebarInner } from "./inner";
 import { type ImperativeResizablePanelWrapperHandle, PixelBasedResizablePanel } from "@/components/ui/resizable-extras";
