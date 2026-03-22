@@ -41,7 +41,7 @@ bun dev
 bun dev:watch
 ```
 
-For more detailed development info, see the [contributing documentation](./docs/contributing/).
+For more detailed development info, see the [contributing documentation](./docs/contributing/) and the guide on [adding database migrations](./docs/contributing/migrations.md).
 
 ## Using Extensions
 
