@@ -130,7 +130,7 @@ function BrowserContent() {
   }, [onSidebarResize]);
 
   return (
-    <div className={cn("rounded-lg", "flex-1 relative remove-app-drag", "bg-white/20", "shadow-xl shadow-black/20")}>
+    <div className={cn("rounded-lg", "flex-1 relative remove-app-drag", "bg-white/15", "shadow-xl shadow-black/20")}>
       {placeholderUrl && (
         <img
           src={placeholderUrl}
