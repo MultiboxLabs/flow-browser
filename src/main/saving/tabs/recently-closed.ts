@@ -1,102 +1,85 @@
-import { getDb, schema } from "@/saving/db";
+import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { RecentlyClosedTabData, PersistedTabData, PersistedTabGroupData } from "~/types/tabs";
 import { getCurrentTimestamp } from "@/modules/utils";
-import { eq, desc } from "drizzle-orm";
 
 const MAX_RECENTLY_CLOSED = 25;
 
+type RecentlyClosedEvents = {
+  changed: [];
+};
+
 /**
  * Manages a capped list of recently closed tabs that can be restored.
- * Stored in SQLite via drizzle.
+ * Intentionally kept in memory only so closed tabs do not survive app restarts.
  */
-export class RecentlyClosedManager {
+export class RecentlyClosedManager extends TypedEventEmitter<RecentlyClosedEvents> {
+  private entries: RecentlyClosedTabData[] = [];
+
+  constructor() {
+    super();
+  }
+
   /**
    * Add a tab to the recently closed list.
-   * Maintains a FIFO queue capped at MAX_RECENTLY_CLOSED entries.
+   * Maintains a most-recent-first list capped at MAX_RECENTLY_CLOSED entries.
    */
   async add(tabData: PersistedTabData, tabGroupData?: PersistedTabGroupData): Promise<void> {
-    try {
-      const db = getDb();
-      const closedAt = getCurrentTimestamp();
-
-      db.transaction((tx) => {
-        // Insert or replace the entry
-        tx.insert(schema.recentlyClosed)
-          .values({
-            uniqueId: tabData.uniqueId,
-            closedAt,
-            tabData,
-            tabGroupData: tabGroupData ?? null
-          })
-          .onConflictDoUpdate({
-            target: schema.recentlyClosed.uniqueId,
-            set: {
-              closedAt,
-              tabData,
-              tabGroupData: tabGroupData ?? null
-            }
-          })
-          .run();
-
-        // Get count and delete oldest entries beyond the cap
-        const allEntries = tx
-          .select({ uniqueId: schema.recentlyClosed.uniqueId })
-          .from(schema.recentlyClosed)
-          .orderBy(desc(schema.recentlyClosed.closedAt))
-          .all();
-
-        if (allEntries.length > MAX_RECENTLY_CLOSED) {
-          const toDelete = allEntries.slice(MAX_RECENTLY_CLOSED);
-          for (const entry of toDelete) {
-            tx.delete(schema.recentlyClosed).where(eq(schema.recentlyClosed.uniqueId, entry.uniqueId)).run();
-          }
-        }
-      });
-    } catch (err) {
-      console.error("[RecentlyClosedManager] Failed to add entry:", err);
-    }
+    const closedAt = getCurrentTimestamp();
+    this.entries = this.entries.filter((entry) => entry.tabData.uniqueId !== tabData.uniqueId);
+    this.entries.unshift({
+      closedAt,
+      tabData,
+      tabGroupData
+    });
+    this.entries.length = Math.min(this.entries.length, MAX_RECENTLY_CLOSED);
+    this.emit("changed");
   }
 
   /**
    * Get all recently closed tabs, sorted by most recently closed first.
    */
   async getAll(): Promise<RecentlyClosedTabData[]> {
-    const db = getDb();
-    const rows = db.select().from(schema.recentlyClosed).orderBy(desc(schema.recentlyClosed.closedAt)).all();
+    return [...this.entries];
+  }
 
-    return rows.map((row) => ({
-      closedAt: row.closedAt,
-      tabData: row.tabData,
-      tabGroupData: row.tabGroupData ?? undefined
-    }));
+  public hasEntries(): boolean {
+    return this.entries.length > 0;
+  }
+
+  public peekMostRecent(): RecentlyClosedTabData | null {
+    return this.entries[0] ?? null;
   }
 
   /**
    * Restore a recently closed tab by uniqueId.
-   * Removes it from the recently closed store and returns the persisted data
-   * along with any tab group data the tab belonged to.
+   * Removes it from the in-memory store and returns the persisted data along
+   * with any tab group data the tab belonged to.
    */
   async restore(uniqueId: string): Promise<{ tabData: PersistedTabData; tabGroupData?: PersistedTabGroupData } | null> {
-    const db = getDb();
+    const index = this.entries.findIndex((entry) => entry.tabData.uniqueId === uniqueId);
+    if (index === -1) return null;
 
-    const row = db.select().from(schema.recentlyClosed).where(eq(schema.recentlyClosed.uniqueId, uniqueId)).get();
-
-    if (!row) return null;
-
-    db.delete(schema.recentlyClosed).where(eq(schema.recentlyClosed.uniqueId, uniqueId)).run();
-
+    const [row] = this.entries.splice(index, 1);
+    this.emit("changed");
     return {
       tabData: row.tabData,
-      tabGroupData: row.tabGroupData ?? undefined
+      tabGroupData: row.tabGroupData
     };
+  }
+
+  public async restoreMostRecent(): Promise<{ tabData: PersistedTabData; tabGroupData?: PersistedTabGroupData } | null> {
+    const mostRecent = this.peekMostRecent();
+    if (!mostRecent) return null;
+    return this.restore(mostRecent.tabData.uniqueId);
   }
 
   /**
    * Clear all recently closed tabs.
    */
   async clear(): Promise<void> {
-    const db = getDb();
-    db.delete(schema.recentlyClosed).run();
+    if (this.entries.length === 0) return;
+    this.entries = [];
+    this.emit("changed");
   }
 }
 
