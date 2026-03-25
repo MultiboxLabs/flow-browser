@@ -219,6 +219,19 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
     return this.tabs[0].position;
   }
 
+  /**
+   * Best-effort anchor position for close-order fallback.
+   * Unlike `position`, this remains readable during destroy cleanup.
+   */
+  public getAnchorPosition(): number | undefined {
+    const firstTabId = this.tabIds[0];
+    if (firstTabId === undefined) {
+      return undefined;
+    }
+
+    return getTabFromId(this.tabsController, firstTabId)?.position;
+  }
+
   public destroy() {
     this.errorIfDestroyed();
 

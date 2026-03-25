@@ -634,7 +634,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   /**
    * Remove the active tab for a space and set a new one if possible
    */
-  public removeActiveTab(windowId: number, spaceId: string) {
+  public removeActiveTab(windowId: number, spaceId: string, closedPosition?: number) {
     const windowSpaceReference = `${windowId}-${spaceId}` as WindowSpaceReference;
     this.spaceActiveTabMap.delete(windowSpaceReference);
     this.removeFocusedTab(windowId, spaceId);
@@ -649,6 +649,9 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
           // Check if it's an existing Tab
           const tab = this.getTabById(itemId);
           if (tab && !tab.isDestroyed && tab.getWindow().id === windowId && tab.spaceId === spaceId) {
+            // Closing should only honor activation history once; after restoring,
+            // subsequent closes should fall back to visual tab order.
+            this.spaceActivationHistory.set(windowSpaceReference, [tab.id]);
             this.setActiveTab(tab);
             return;
           }
@@ -662,6 +665,9 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
             group.windowId === windowId &&
             group.spaceId === spaceId
           ) {
+            // Closing should only honor activation history once; after restoring,
+            // subsequent closes should fall back to visual tab order.
+            this.spaceActivationHistory.set(windowSpaceReference, [group.groupId]);
             this.setActiveTab(group);
             return;
           }
@@ -669,17 +675,10 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       }
     }
 
-    // Find the next available tab or group in the same window/space to activate
-    const tabsInSpace = this.getTabsInWindowSpace(windowId, spaceId);
-    const groupsInSpace = this.getTabGroupsInWindow(windowId).filter(
-      (group) => group.spaceId === spaceId && !group.isDestroyed && group.tabs.length > 0
-    );
-
-    // Prioritize setting a non-empty group as active if available
-    if (groupsInSpace.length > 0) {
-      this.setActiveTab(groupsInSpace[0]);
-    } else if (tabsInSpace.length > 0) {
-      this.setActiveTab(tabsInSpace[0]);
+    // Fall back to the next item in tab order.
+    const nextTabOrGroup = this.getNextTabOrGroupByOrder(windowId, spaceId, closedPosition);
+    if (nextTabOrGroup) {
+      this.setActiveTab(nextTabOrGroup);
     } else {
       // No valid tabs or groups left
       this.emit("active-tab-changed", windowId, spaceId);
@@ -822,7 +821,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
         }
       } else {
         // If the active element was the tab itself, remove it and find the next active.
-        this.removeActiveTab(windowId, spaceId);
+        this.removeActiveTab(windowId, spaceId, tab.position);
       }
     } else {
       // Tab was not active, just ensure it's removed from any group
@@ -947,6 +946,41 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       }
     }
     return result;
+  }
+
+  /**
+   * Get activatable items in visual order for a window-space.
+   * Grouped tabs are represented by their group, not as standalone tabs.
+   */
+  private getOrderedTabOrGroups(windowId: number, spaceId: string): (Tab | TabGroup)[] {
+    const groupsInSpace = this.getTabGroupsInWindow(windowId).filter(
+      (group) => group.spaceId === spaceId && !group.isDestroyed && group.tabs.length > 0
+    );
+    const groupedTabIds = new Set(groupsInSpace.flatMap((group) => group.tabs.map((tab) => tab.id)));
+    const standaloneTabs = this.getTabsInWindowSpace(windowId, spaceId).filter((tab) => !groupedTabIds.has(tab.id));
+
+    return [...groupsInSpace, ...standaloneTabs].sort((a, b) => a.position - b.position);
+  }
+
+  /**
+   * Pick the next activatable tab/group from the closed item's position.
+   * Prefer the next item in order; if the closed item was last, use the previous one.
+   */
+  private getNextTabOrGroupByOrder(
+    windowId: number,
+    spaceId: string,
+    closedPosition?: number
+  ): Tab | TabGroup | undefined {
+    const orderedItems = this.getOrderedTabOrGroups(windowId, spaceId);
+    if (orderedItems.length === 0) {
+      return undefined;
+    }
+
+    if (closedPosition === undefined) {
+      return orderedItems[0];
+    }
+
+    return orderedItems.find((item) => item.position >= closedPosition) ?? orderedItems[orderedItems.length - 1];
   }
 
   /**
@@ -1109,6 +1143,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   private internalDestroyTabGroup(tabGroup: TabGroup) {
     const wasActive = this.getActiveTab(tabGroup.windowId, tabGroup.spaceId) === tabGroup;
     const groupId = tabGroup.groupId;
+    const groupPosition = tabGroup.getAnchorPosition();
 
     if (!this.tabGroups.has(groupId)) return;
 
@@ -1121,7 +1156,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     }
 
     if (wasActive) {
-      this.removeActiveTab(tabGroup.windowId, tabGroup.spaceId);
+      this.removeActiveTab(tabGroup.windowId, tabGroup.spaceId, groupPosition);
     }
   }
 
