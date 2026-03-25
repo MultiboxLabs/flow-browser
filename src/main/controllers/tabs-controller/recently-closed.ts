@@ -17,14 +17,19 @@ import { tabsController } from ".";
 export function restoreTabGroupMembership(restoredTab: Tab, groupData?: PersistedTabGroupData): void {
   if (!groupData) return;
 
+  const tabsByUniqueId = new Map<string, Tab>();
+  for (const tab of tabsController.tabs.values()) {
+    if (!tab.isDestroyed) {
+      tabsByUniqueId.set(tab.uniqueId, tab);
+    }
+  }
+
   const otherTabIds: number[] = [];
   for (const uniqueId of groupData.tabUniqueIds) {
     if (uniqueId === restoredTab.uniqueId) continue;
-    for (const tab of tabsController.tabs.values()) {
-      if (tab.uniqueId === uniqueId && !tab.isDestroyed) {
-        otherTabIds.push(tab.id);
-        break;
-      }
+    const tab = tabsByUniqueId.get(uniqueId);
+    if (tab) {
+      otherTabIds.push(tab.id);
     }
   }
 
@@ -53,9 +58,7 @@ export function restoreTabGroupMembership(restoredTab: Tab, groupData?: Persiste
     const newGroup = tabsController.createTabGroup(groupData.mode, allTabIds as [number, ...number[]]);
 
     if (groupData.mode === "glance" && groupData.glanceFrontTabUniqueId) {
-      const frontTab = [...tabsController.tabs.values()].find(
-        (t) => t.uniqueId === groupData.glanceFrontTabUniqueId && !t.isDestroyed
-      );
+      const frontTab = tabsByUniqueId.get(groupData.glanceFrontTabUniqueId);
       if (frontTab && newGroup instanceof GlanceTabGroup) {
         newGroup.setFrontTab(frontTab.id);
       }
