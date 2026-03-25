@@ -2,7 +2,7 @@
   "version": "6",
   "dialect": "sqlite",
   "id": "d167eef2-6061-44ad-a781-c9e745868372",
-  "prevId": "e470840f-20a9-43ef-82ad-3edd70442b5e",
+  "prevId": "79c5e988-f117-404d-9172-dd63400aa78e",
   "tables": {
     "history_urls": {
       "name": "history_urls",
