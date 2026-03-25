@@ -380,9 +380,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
         const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
         const group = this.getTabGroupByTabId(tab.id);
         const groupData = group ? serializeTabGroup(group) : undefined;
-        recentlyClosedManager
-          .add(serialized, groupData)
-          .catch((err) => console.error("[TabsController] Failed to save recently closed tab:", err));
+        recentlyClosedManager.add(serialized, groupData);
 
         // Remove from persistence
         tabPersistenceManager.markRemoved(tab.uniqueId);

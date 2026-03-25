@@ -6,10 +6,7 @@ import { browserWindowsController } from "@/controllers/windows-controller/inter
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import { Tab } from "@/controllers/tabs-controller/tab";
 import { tabsController } from "@/controllers/tabs-controller";
-import {
-  restoreMostRecentClosedTabInWindow,
-  restoreRecentlyClosedTabInWindow
-} from "@/controllers/tabs-controller/recently-closed";
+import { restoreRecentlyClosedTabInWindow } from "@/controllers/tabs-controller/recently-closed";
 import { serializeTabForRenderer, serializeTabGroupForRenderer } from "@/saving/tabs/serialization";
 import { recentlyClosedManager } from "@/controllers/tabs-controller/recently-closed-manager";
 import {
@@ -455,27 +452,25 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
     })
   );
 
-  // Reopen Closed Tab — async check for recently closed tabs
-  recentlyClosedManager.getAll().then((recentlyClosed) => {
-    const hasRecentlyClosed = recentlyClosed.length > 0;
-    const mostRecent = hasRecentlyClosed ? recentlyClosed[0] : null;
+  const recentlyClosed = recentlyClosedManager.getAll();
+  const hasRecentlyClosed = recentlyClosed.length > 0;
+  const mostRecent = hasRecentlyClosed ? recentlyClosed[0] : null;
 
-    contextMenu.append(
-      new MenuItem({
-        label: mostRecent ? `Reopen Closed Tab (${mostRecent.tabData.title})` : "Reopen Closed Tab",
-        enabled: hasRecentlyClosed,
-        click: () => {
-          if (!mostRecent) return;
-          restoreMostRecentClosedTabInWindow(window).catch((error) => {
-            console.error("Failed to restore most recent closed tab:", error);
-          });
-        }
-      })
-    );
+  contextMenu.append(
+    new MenuItem({
+      label: mostRecent ? `Reopen Closed Tab (${mostRecent.tabData.title})` : "Reopen Closed Tab",
+      enabled: hasRecentlyClosed,
+      click: () => {
+        if (!mostRecent) return;
+        restoreRecentlyClosedTabInWindow(window, mostRecent.tabData.uniqueId).catch((error) => {
+          console.error("Failed to restore most recent closed tab:", error);
+        });
+      }
+    })
+  );
 
-    contextMenu.popup({
-      window: window.browserWindow
-    });
+  contextMenu.popup({
+    window: window.browserWindow
   });
 });
 
@@ -494,7 +489,7 @@ ipcMain.handle("tabs:restore-recently-closed", async (event, uniqueId: string) =
 });
 
 ipcMain.handle("tabs:clear-recently-closed", async () => {
-  await recentlyClosedManager.clear();
+  recentlyClosedManager.clear();
   return true;
 });
 

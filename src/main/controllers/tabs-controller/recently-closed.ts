@@ -89,13 +89,13 @@ async function restoreIntoWindow(
 }
 
 export async function restoreRecentlyClosedTabInWindow(window: BrowserWindow, uniqueId: string): Promise<boolean> {
-  const result = await recentlyClosedManager.restore(uniqueId);
+  const result = recentlyClosedManager.restore(uniqueId);
   if (!result) return false;
   return restoreIntoWindow(window, result);
 }
 
 export async function restoreMostRecentClosedTabInWindow(window: BrowserWindow): Promise<boolean> {
-  const result = await recentlyClosedManager.restoreMostRecent();
+  const result = recentlyClosedManager.restoreMostRecent();
   if (!result) return false;
   return restoreIntoWindow(window, result);
 }

@@ -19,7 +19,7 @@ export class RecentlyClosedManager extends TypedEventEmitter<RecentlyClosedEvent
    * Add a tab to the recently closed list.
    * Maintains a most-recent-first list capped at MAX_RECENTLY_CLOSED entries.
    */
-  async add(tabData: PersistedTabData, tabGroupData?: PersistedTabGroupData): Promise<void> {
+  add(tabData: PersistedTabData, tabGroupData?: PersistedTabGroupData): void {
     const closedAt = getCurrentTimestamp();
     this.entries = this.entries.filter((entry) => entry.tabData.uniqueId !== tabData.uniqueId);
     this.entries.unshift({
@@ -34,7 +34,7 @@ export class RecentlyClosedManager extends TypedEventEmitter<RecentlyClosedEvent
   /**
    * Get all recently closed tabs, sorted by most recently closed first.
    */
-  async getAll(): Promise<RecentlyClosedTabData[]> {
+  getAll(): RecentlyClosedTabData[] {
     return [...this.entries];
   }
 
@@ -51,7 +51,7 @@ export class RecentlyClosedManager extends TypedEventEmitter<RecentlyClosedEvent
    * Removes it from the in-memory store and returns the persisted data along
    * with any tab group data the tab belonged to.
    */
-  async restore(uniqueId: string): Promise<{ tabData: PersistedTabData; tabGroupData?: PersistedTabGroupData } | null> {
+  restore(uniqueId: string): { tabData: PersistedTabData; tabGroupData?: PersistedTabGroupData } | null {
     const index = this.entries.findIndex((entry) => entry.tabData.uniqueId === uniqueId);
     if (index === -1) return null;
 
@@ -63,10 +63,10 @@ export class RecentlyClosedManager extends TypedEventEmitter<RecentlyClosedEvent
     };
   }
 
-  public async restoreMostRecent(): Promise<{
+  public restoreMostRecent(): {
     tabData: PersistedTabData;
     tabGroupData?: PersistedTabGroupData;
-  } | null> {
+  } | null {
     const mostRecent = this.peekMostRecent();
     if (!mostRecent) return null;
     return this.restore(mostRecent.tabData.uniqueId);
@@ -75,7 +75,7 @@ export class RecentlyClosedManager extends TypedEventEmitter<RecentlyClosedEvent
   /**
    * Clear all recently closed tabs.
    */
-  async clear(): Promise<void> {
+  clear(): void {
     if (this.entries.length === 0) return;
     this.entries = [];
     this.emit("changed");
