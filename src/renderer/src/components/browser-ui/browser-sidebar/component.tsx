@@ -8,6 +8,7 @@ import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 import { SidebarInner } from "./inner";
 import { type ImperativeResizablePanelWrapperHandle, PixelBasedResizablePanel } from "@/components/ui/resizable-extras";
 import { PortalComponent } from "@/components/portal/portal";
+import { SpaceBackgroundStylesheet } from "@/components/providers/spaces-provider";
 import { ViewLayer } from "~/layers";
 
 // Component //
@@ -172,14 +173,16 @@ export function BrowserSidebar({
 
   const content = (
     <div
+      data-space-background-scope={isFloating ? "" : undefined}
       className={cn(
         "w-full h-full max-h-screen remove-app-drag",
         "transition-transform",
         SIDEBAR_ANIMATE_CLASS,
         "flex flex-col",
-        isFloating && "rounded-lg border border-sidebar-border sidebar-floating-bg"
+        isFloating && "rounded-lg border border-sidebar-border/50 sidebar-floating-bg"
       )}
     >
+      {isFloating && <SpaceBackgroundStylesheet selector='[data-space-background-scope]' />}
       <div
         className={cn(
           "m-3 mb-0 flex-1 min-h-0",

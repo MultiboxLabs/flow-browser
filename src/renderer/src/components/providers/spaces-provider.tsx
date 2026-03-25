@@ -26,6 +26,26 @@ export const useSpaces = () => {
   return context;
 };
 
+export function SpaceBackgroundStylesheet({ selector = ":root" }: { selector?: string }) {
+  const { currentSpace } = useSpaces();
+
+  if (!currentSpace) return null;
+
+  const bgStart = hexToOKLCHString(currentSpace.bgStartColor || "#000000");
+  const bgEnd = hexToOKLCHString(currentSpace.bgEndColor || "#000000");
+
+  return (
+    <style>
+      {`
+${selector} {
+  --space-background-start: ${bgStart};
+  --space-background-end: ${bgEnd};
+}
+`}
+    </style>
+  );
+}
+
 interface SpacesProviderProps {
   windowType: BrowserUIType;
   children: React.ReactNode;
@@ -161,9 +181,6 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
     return () => unsub();
   }, [allSpaces, fetchSpaces]);
 
-  const bgStart = hexToOKLCHString(currentSpace?.bgStartColor || "#000000");
-  const bgEnd = hexToOKLCHString(currentSpace?.bgEndColor || "#000000");
-
   useEffect(() => {
     const unsub = flow.spaces.onSpacesChanged(() => {
       revalidate();
@@ -182,20 +199,6 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
     flow.omnibox.hide();
   }, [currentSpace]);
 
-  // Stylesheet Portal
-  const stylesheet = (
-    <style>
-      {currentSpace
-        ? `
-  :root {
-    --space-background-start: ${bgStart};
-    --space-background-end: ${bgEnd};
-  }
-`
-        : ""}
-    </style>
-  );
-
   return (
     <SpacesContext.Provider
       value={{
@@ -209,7 +212,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
         setCurrentSpace: handleSetCurrentSpace
       }}
     >
-      {createPortal(stylesheet, document.head)}
+      {createPortal(<SpaceBackgroundStylesheet />, document.head)}
       {children}
     </SpacesContext.Provider>
   );

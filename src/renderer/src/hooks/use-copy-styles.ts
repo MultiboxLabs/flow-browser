@@ -1,5 +1,19 @@
 import { useLayoutEffect } from "react";
 
+function syncPortalDocumentState(targetDoc: Document) {
+  const targetRoot = targetDoc.documentElement;
+  const mainRoot = document.documentElement;
+  if (targetRoot && mainRoot) {
+    targetRoot.className = mainRoot.className;
+  }
+
+  const targetBody = targetDoc.body;
+  const mainBody = document.body;
+  if (targetBody && mainBody) {
+    targetBody.className = mainBody.className;
+  }
+}
+
 /**
  * Copy all styles from the main document to a target document.
  * Handles both <style> tags (matched by content) and <link rel="stylesheet">
@@ -10,6 +24,8 @@ import { useLayoutEffect } from "react";
  * needing a React component.
  */
 export function copyStylesToDocument(targetDoc: Document) {
+  syncPortalDocumentState(targetDoc);
+
   // Get current styles from main document and target
   const mainStyles = document.querySelectorAll('style, link[rel="stylesheet"]');
   const targetStyles = targetDoc.querySelectorAll('style, link[rel="stylesheet"]');
@@ -131,6 +147,18 @@ export function useCopyStyles(containerWin: Window | null) {
       attributeFilter: ["href", "media", "disabled"],
       characterData: true // Observe text content changes in <style> tags
     });
+
+    styleObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"]
+    });
+
+    if (document.body) {
+      styleObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ["class"]
+      });
+    }
 
     // Clean up observer when component unmounts
     return () => {
