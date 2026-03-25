@@ -52,7 +52,6 @@ export function restoreTabGroupMembership(restoredTab: Tab, groupData?: Persiste
   }
 
   const allTabIds = [restoredTab.id, ...otherTabIds];
-  if (allTabIds.length < 2) return;
 
   try {
     const newGroup = tabsController.createTabGroup(groupData.mode, allTabIds as [number, ...number[]]);
