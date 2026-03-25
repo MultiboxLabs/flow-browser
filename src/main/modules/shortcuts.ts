@@ -36,6 +36,12 @@ const typedShortcuts = [
     category: "Tab"
   },
   {
+    id: "tab.reopenClosed",
+    name: "Reopen Closed Tab",
+    shortcut: "Shift+CommandOrControl+T",
+    category: "Tab"
+  },
+  {
     id: "tab.toggleDevTools",
     name: "Toggle DevTools",
     shortcut: "F12",

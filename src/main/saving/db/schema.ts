@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
-import { NavigationEntry, PersistedTabData, PersistedTabGroupData, TabGroupMode } from "~/types/tabs";
+import { NavigationEntry, TabGroupMode } from "~/types/tabs";
 
 // --- Tabs Table ---
 
@@ -55,22 +55,6 @@ export const windowStates = sqliteTable("window_states", {
 
 export type WindowStateRow = typeof windowStates.$inferSelect;
 export type WindowStateInsert = typeof windowStates.$inferInsert;
-
-// --- Recently Closed Table ---
-
-export const recentlyClosed = sqliteTable(
-  "recently_closed",
-  {
-    uniqueId: text("unique_id").primaryKey(),
-    closedAt: integer("closed_at").notNull(),
-    tabData: text("tab_data", { mode: "json" }).$type<PersistedTabData>().notNull(),
-    tabGroupData: text("tab_group_data", { mode: "json" }).$type<PersistedTabGroupData>()
-  },
-  (table) => [index("idx_recently_closed_closed_at").on(table.closedAt)]
-);
-
-export type RecentlyClosedRow = typeof recentlyClosed.$inferSelect;
-export type RecentlyClosedInsert = typeof recentlyClosed.$inferInsert;
 
 // --- Pinned Tabs Table ---
 

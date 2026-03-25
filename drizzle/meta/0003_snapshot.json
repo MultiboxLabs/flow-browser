@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "79c5e988-f117-404d-9172-dd63400aa78e",
-  "prevId": "e470840f-20a9-43ef-82ad-3edd70442b5e",
+  "id": "d167eef2-6061-44ad-a781-c9e745868372",
+  "prevId": "79c5e988-f117-404d-9172-dd63400aa78e",
   "tables": {
     "history_urls": {
       "name": "history_urls",
@@ -174,50 +174,6 @@
         "idx_pinned_tabs_profile_id": {
           "name": "idx_pinned_tabs_profile_id",
           "columns": ["profile_id"],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "recently_closed": {
-      "name": "recently_closed",
-      "columns": {
-        "unique_id": {
-          "name": "unique_id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "closed_at": {
-          "name": "closed_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "tab_data": {
-          "name": "tab_data",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "tab_group_data": {
-          "name": "tab_group_data",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "idx_recently_closed_closed_at": {
-          "name": "idx_recently_closed_closed_at",
-          "columns": ["closed_at"],
           "isUnique": false
         }
       },

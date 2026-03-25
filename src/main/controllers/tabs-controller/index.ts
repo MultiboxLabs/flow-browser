@@ -7,7 +7,7 @@ import { TabLifecycleManager } from "./tab-lifecycle";
 import { windowTabsChanged, windowTabContentChanged } from "@/ipc/browser/tabs";
 import { shouldArchiveTab, shouldSleepTab, tabPersistenceManager } from "@/saving/tabs";
 import { serializeTab, serializeTabGroup } from "@/saving/tabs/serialization";
-import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
+import { recentlyClosedManager } from "./recently-closed-manager";
 import { GlanceTabGroup } from "./tab-groups/glance";
 import { SplitTabGroup } from "./tab-groups/split";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
@@ -380,9 +380,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
         const serialized = serializeTab(tab, windowGroupId, lifecycleManager.preSleepState);
         const group = this.getTabGroupByTabId(tab.id);
         const groupData = group ? serializeTabGroup(group) : undefined;
-        recentlyClosedManager
-          .add(serialized, groupData)
-          .catch((err) => console.error("[TabsController] Failed to save recently closed tab:", err));
+        recentlyClosedManager.add(serialized, groupData);
 
         // Remove from persistence
         tabPersistenceManager.markRemoved(tab.uniqueId);
