@@ -1,6 +1,6 @@
 import { GlanceTabGroup } from "@/controllers/tabs-controller/tab-groups/glance";
 import { spacesController } from "@/controllers/spaces-controller";
-import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
+import { recentlyClosedManager } from "./recently-closed-manager";
 import type { BrowserWindow } from "@/controllers/windows-controller/types";
 import { PersistedTabData, PersistedTabGroupData } from "~/types/tabs";
 import { Tab } from "./tab";

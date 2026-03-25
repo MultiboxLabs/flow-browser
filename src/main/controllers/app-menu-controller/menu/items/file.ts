@@ -5,7 +5,7 @@ import { getCurrentShortcut } from "@/modules/shortcuts";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { createIncognitoWindow } from "@/modules/incognito/windows";
 import { FLAGS } from "@/modules/flags";
-import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
+import { recentlyClosedManager } from "@/controllers/tabs-controller/recently-closed-manager";
 import { restoreMostRecentClosedTabInWindow } from "@/controllers/tabs-controller/recently-closed";
 
 export const createFileMenu = (): MenuItemConstructorOptions => ({

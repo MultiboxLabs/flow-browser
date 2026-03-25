@@ -11,7 +11,7 @@ import {
   restoreRecentlyClosedTabInWindow
 } from "@/controllers/tabs-controller/recently-closed";
 import { serializeTabForRenderer, serializeTabGroupForRenderer } from "@/saving/tabs/serialization";
-import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
+import { recentlyClosedManager } from "@/controllers/tabs-controller/recently-closed-manager";
 import {
   isTabSyncEnabled,
   isSyncExcludedTab,

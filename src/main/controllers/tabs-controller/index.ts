@@ -7,7 +7,7 @@ import { TabLifecycleManager } from "./tab-lifecycle";
 import { windowTabsChanged, windowTabContentChanged } from "@/ipc/browser/tabs";
 import { shouldArchiveTab, shouldSleepTab, tabPersistenceManager } from "@/saving/tabs";
 import { serializeTab, serializeTabGroup } from "@/saving/tabs/serialization";
-import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
+import { recentlyClosedManager } from "./recently-closed-manager";
 import { GlanceTabGroup } from "./tab-groups/glance";
 import { SplitTabGroup } from "./tab-groups/split";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";

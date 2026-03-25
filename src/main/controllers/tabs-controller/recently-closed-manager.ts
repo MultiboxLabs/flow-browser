@@ -1,6 +1,6 @@
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { RecentlyClosedTabData, PersistedTabData, PersistedTabGroupData } from "~/types/tabs";
 import { getCurrentTimestamp } from "@/modules/utils";
+import { RecentlyClosedTabData, PersistedTabData, PersistedTabGroupData } from "~/types/tabs";
 
 const MAX_RECENTLY_CLOSED = 25;
 
@@ -9,15 +9,11 @@ type RecentlyClosedEvents = {
 };
 
 /**
- * Manages a capped list of recently closed tabs that can be restored.
- * Intentionally kept in memory only so closed tabs do not survive app restarts.
+ * Runtime-only store for recently closed tabs.
+ * Closed tabs should never survive an app restart.
  */
 export class RecentlyClosedManager extends TypedEventEmitter<RecentlyClosedEvents> {
   private entries: RecentlyClosedTabData[] = [];
-
-  constructor() {
-    super();
-  }
 
   /**
    * Add a tab to the recently closed list.

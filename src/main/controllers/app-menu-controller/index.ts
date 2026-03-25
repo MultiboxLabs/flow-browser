@@ -8,7 +8,7 @@ import { createViewMenu } from "./menu/items/view";
 import { createWindowMenu } from "./menu/items/window";
 import { MenuItem, MenuItemConstructorOptions } from "electron";
 import { shortcutsEmitter } from "@/saving/shortcuts";
-import { recentlyClosedManager } from "@/saving/tabs/recently-closed";
+import { recentlyClosedManager } from "@/controllers/tabs-controller/recently-closed-manager";
 import { spacesController } from "@/controllers/spaces-controller";
 import { windowsController } from "@/controllers/windows-controller";
 
