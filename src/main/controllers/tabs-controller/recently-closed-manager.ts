@@ -2,7 +2,7 @@ import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getCurrentTimestamp } from "@/modules/utils";
 import { RecentlyClosedTabData, PersistedTabData, PersistedTabGroupData } from "~/types/tabs";
 
-const MAX_RECENTLY_CLOSED = 25;
+const MAX_RECENTLY_CLOSED = 10;
 
 type RecentlyClosedEvents = {
   changed: [];
