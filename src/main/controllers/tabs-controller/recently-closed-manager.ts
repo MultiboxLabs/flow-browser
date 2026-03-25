@@ -63,7 +63,10 @@ export class RecentlyClosedManager extends TypedEventEmitter<RecentlyClosedEvent
     };
   }
 
-  public async restoreMostRecent(): Promise<{ tabData: PersistedTabData; tabGroupData?: PersistedTabGroupData } | null> {
+  public async restoreMostRecent(): Promise<{
+    tabData: PersistedTabData;
+    tabGroupData?: PersistedTabGroupData;
+  } | null> {
     const mostRecent = this.peekMostRecent();
     if (!mostRecent) return null;
     return this.restore(mostRecent.tabData.uniqueId);

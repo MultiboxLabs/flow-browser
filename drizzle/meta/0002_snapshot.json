@@ -62,10 +62,7 @@
       "indexes": {
         "idx_history_urls_profile_url": {
           "name": "idx_history_urls_profile_url",
-          "columns": [
-            "profile_id",
-            "url"
-          ],
+          "columns": ["profile_id", "url"],
           "isUnique": true
         }
       },
@@ -110,16 +107,12 @@
       "indexes": {
         "idx_history_visits_url_id": {
           "name": "idx_history_visits_url_id",
-          "columns": [
-            "url_id"
-          ],
+          "columns": ["url_id"],
           "isUnique": false
         },
         "idx_history_visits_visit_time": {
           "name": "idx_history_visits_visit_time",
-          "columns": [
-            "visit_time"
-          ],
+          "columns": ["visit_time"],
           "isUnique": false
         }
       },
@@ -128,12 +121,8 @@
           "name": "history_visits_url_id_history_urls_id_fk",
           "tableFrom": "history_visits",
           "tableTo": "history_urls",
-          "columnsFrom": [
-            "url_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["url_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -184,9 +173,7 @@
       "indexes": {
         "idx_pinned_tabs_profile_id": {
           "name": "idx_pinned_tabs_profile_id",
-          "columns": [
-            "profile_id"
-          ],
+          "columns": ["profile_id"],
           "isUnique": false
         }
       },
@@ -230,9 +217,7 @@
       "indexes": {
         "idx_recently_closed_closed_at": {
           "name": "idx_recently_closed_closed_at",
-          "columns": [
-            "closed_at"
-          ],
+          "columns": ["closed_at"],
           "isUnique": false
         }
       },
@@ -405,9 +390,7 @@
       "indexes": {
         "idx_tabs_window_group_id": {
           "name": "idx_tabs_window_group_id",
-          "columns": [
-            "window_group_id"
-          ],
+          "columns": ["window_group_id"],
           "isUnique": false
         }
       },
