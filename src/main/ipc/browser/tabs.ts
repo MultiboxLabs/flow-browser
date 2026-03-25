@@ -455,10 +455,15 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
   const recentlyClosed = recentlyClosedManager.getAll();
   const hasRecentlyClosed = recentlyClosed.length > 0;
   const mostRecent = hasRecentlyClosed ? recentlyClosed[0] : null;
+  const mostRecentTitle = mostRecent?.tabData.title;
+  const mostRecentTruncatedTitle =
+    mostRecentTitle && mostRecentTitle.length > 35
+      ? mostRecentTitle.slice(0, 35).trim() + "..."
+      : mostRecentTitle?.trim();
 
   contextMenu.append(
     new MenuItem({
-      label: mostRecent ? `Reopen Closed Tab (${mostRecent.tabData.title})` : "Reopen Closed Tab",
+      label: mostRecentTruncatedTitle ? `Reopen Closed Tab (${mostRecentTruncatedTitle})` : "Reopen Closed Tab",
       enabled: hasRecentlyClosed,
       click: () => {
         if (!mostRecent) return;
