@@ -250,7 +250,7 @@ export function OmniboxMain() {
       }}
     >
       <div className="flex shrink-0 items-center gap-3 border-b border-white/8 px-4 py-3.5">
-        <Search className="size-3.5 shrink-0 text-zinc-100" strokeWidth={2} aria-hidden />
+        <Search className="ml-1.5 size-3.5 shrink-0 text-zinc-100" strokeWidth={2} aria-hidden />
         <input
           ref={inputRef}
           type="text"

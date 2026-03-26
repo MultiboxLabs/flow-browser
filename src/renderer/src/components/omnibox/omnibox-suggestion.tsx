@@ -34,13 +34,46 @@ function actionHint(suggestion: OmniboxSuggestion): { label: string; show: boole
   switch (suggestion.type) {
     case "open-tab":
       return { label: "Switch to Tab", show: true };
-    case "search":
-      return { label: "Search", show: true };
-    case "website":
-      return { label: "Open", show: true };
+    // case "search":
+    //   return { label: "Search", show: true };
+    // case "website":
+    //   return { label: "Open", show: true };
     default:
       return { label: "", show: false };
   }
+}
+
+interface SuggestionIconProps {
+  suggestion: OmniboxSuggestion;
+  selected: boolean;
+  faviconUrl: string | null;
+  setHasLoadedFavicon: (loaded: boolean) => void;
+  className?: string;
+}
+function SuggestionIcon({
+  suggestion,
+  selected,
+  faviconUrl,
+  setHasLoadedFavicon,
+  className
+}: SuggestionIconProps): React.ReactNode {
+  if (suggestion.type === "pedal") {
+    return <PedalGlyph className={className} action={suggestion.action} selected={selected} />;
+  }
+  if (suggestion.type === "search") {
+    return <Search className={cn("size-3.5 text-zinc-100", className)} strokeWidth={2} />;
+  }
+  if (faviconUrl) {
+    return (
+      <WebsiteFavicon
+        url={faviconUrl}
+        className={cn("size-4 object-cover rounded-[2px]", className)}
+        cacheOnly
+        onLoadedChange={setHasLoadedFavicon}
+      />
+    );
+  }
+  return <Search className={cn("size-3.5 text-zinc-100", className)} strokeWidth={2} />;
 }
 
 export type OmniboxSuggestionRowProps = {
@@ -80,7 +113,7 @@ export function OmniboxSuggestionRow({ suggestion, index, selected, onSelect }: 
       <div
         className={cn(
           "flex w-full items-center gap-2.5 rounded-[10px] text-left",
-          "px-3.5 py-2.5",
+          "px-2.5 py-3",
           selected ? "bg-space-background-start/50" : "bg-transparent hover:bg-white/4"
         )}
       >
@@ -91,18 +124,12 @@ export function OmniboxSuggestionRow({ suggestion, index, selected, onSelect }: 
             selected && hasLoadedFavicon ? "bg-white rounded-[2px]" : "bg-transparent"
           )}
         >
-          {suggestion.type === "pedal" ? (
-            <PedalGlyph action={suggestion.action} selected={selected} />
-          ) : faviconUrl ? (
-            <WebsiteFavicon
-              url={faviconUrl}
-              className="size-4 object-cover rounded-[2px]"
-              cacheOnly
-              onLoadedChange={setHasLoadedFavicon}
-            />
-          ) : (
-            <Search className="size-3.5 text-zinc-100" strokeWidth={2} />
-          )}
+          <SuggestionIcon
+            suggestion={suggestion}
+            selected={selected}
+            faviconUrl={faviconUrl}
+            setHasLoadedFavicon={setHasLoadedFavicon}
+          />
         </span>
         <span
           className={cn(
