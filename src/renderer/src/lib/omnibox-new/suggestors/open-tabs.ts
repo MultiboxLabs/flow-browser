@@ -15,6 +15,8 @@ const ZERO_SUGGEST_OPEN_TAB_MIN_RELEVANCE = 780;
 
 type NormalizedOpenTab = TabData & {
   titleLower: string;
+  urlLower: string;
+  displayUrlLower: string;
   hostname: string;
   normalizedHostname: string;
 };
@@ -35,6 +37,8 @@ const openTabsCache = new Map<string, OpenTabsCacheEntry>();
 function normalizeOpenTab(tab: TabData): NormalizedOpenTab {
   const title = tab.title.trim();
   const titleLower = title.toLowerCase();
+  const urlLower = tab.url.trim().toLowerCase();
+  const displayUrlLower = generateTitleFromUrl(tab.url).toLowerCase();
   let hostname = "";
 
   try {
@@ -47,6 +51,8 @@ function normalizeOpenTab(tab: TabData): NormalizedOpenTab {
   return {
     ...tab,
     titleLower,
+    urlLower,
+    displayUrlLower,
     hostname,
     normalizedHostname: hostname.replace(/^www\./, "")
   };
@@ -57,18 +63,29 @@ function isUrlLikeInput(input: string): boolean {
 }
 
 function hasUrlPrefixMatch(tab: NormalizedOpenTab, inputLower: string): boolean {
-  return tab.hostname.startsWith(inputLower) || tab.normalizedHostname.startsWith(inputLower);
+  return (
+    tab.urlLower.startsWith(inputLower) ||
+    tab.displayUrlLower.startsWith(inputLower) ||
+    tab.hostname.startsWith(inputLower) ||
+    tab.normalizedHostname.startsWith(inputLower)
+  );
 }
 
 function getOpenTabSimilarity(tab: NormalizedOpenTab, inputLower: string): number {
   const titleSimilarity = stringSimilarity(inputLower, tab.titleLower, undefined, false);
+  const urlSimilarity = stringSimilarity(inputLower, tab.urlLower, undefined, false);
+  const displayUrlSimilarity = stringSimilarity(inputLower, tab.displayUrlLower, undefined, false);
   const hostnameSimilarity = stringSimilarity(inputLower, tab.normalizedHostname, undefined, false);
-  return Math.max(titleSimilarity, hostnameSimilarity);
+  return Math.max(titleSimilarity, urlSimilarity, displayUrlSimilarity, hostnameSimilarity);
 }
 
 function getOpenTabRelevance(tab: NormalizedOpenTab, inputLower: string, inputLooksLikeUrl: boolean): number | null {
   const bestSimilarity = getOpenTabSimilarity(tab, inputLower);
-  const hasSubstringMatch = tab.titleLower.includes(inputLower) || tab.normalizedHostname.includes(inputLower);
+  const hasSubstringMatch =
+    tab.titleLower.includes(inputLower) ||
+    tab.urlLower.includes(inputLower) ||
+    tab.displayUrlLower.includes(inputLower) ||
+    tab.normalizedHostname.includes(inputLower);
   const hasStrongUrlPrefix = hasUrlPrefixMatch(tab, inputLower);
 
   if (inputLooksLikeUrl && !hasStrongUrlPrefix && bestSimilarity < MIN_SIMILARITY) {

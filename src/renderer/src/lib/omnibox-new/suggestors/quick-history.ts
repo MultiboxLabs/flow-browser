@@ -87,6 +87,10 @@ function matchesAllTokens(entry: NormalizedHistoryEntry, tokens: string[]): bool
   return tokens.every((token) => entry.urlLower.includes(token) || entry.titleLower.includes(token));
 }
 
+function hostnameContainsAllTokens(entry: NormalizedHistoryEntry, tokens: string[]): boolean {
+  return tokens.every((token) => entry.hostname.includes(token));
+}
+
 function hasUrlPrefixMatch(entry: NormalizedHistoryEntry, inputLower: string): boolean {
   const urlWithHostname = `${entry.hostname}${entry.pathAndQuery}`;
   return (
@@ -239,11 +243,19 @@ export function getQuickHistorySuggestions(trimmedInput: string): OmniboxSuggest
         suggestion: createWebsiteSuggestion(entry.url, relevance, entry.title.trim() || null, "quick-history"),
         lastVisitTime: entry.lastVisitTime,
         typedCount: entry.typedCount,
-        visitCount: entry.visitCount
+        visitCount: entry.visitCount,
+        hostnameTokenMatch: hostnameContainsAllTokens(entry, tokens),
+        urlLength: entry.uniqueUrlKey.length
       };
     })
     .filter((value): value is NonNullable<typeof value> => value !== null)
     .sort((left, right) => {
+      if (left.hostnameTokenMatch !== right.hostnameTokenMatch) {
+        return Number(right.hostnameTokenMatch) - Number(left.hostnameTokenMatch);
+      }
+      if (left.hostnameTokenMatch && right.hostnameTokenMatch && left.urlLength !== right.urlLength) {
+        return left.urlLength - right.urlLength;
+      }
       if (right.suggestion.relevance !== left.suggestion.relevance) {
         return right.suggestion.relevance - left.suggestion.relevance;
       }
