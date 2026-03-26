@@ -24,10 +24,20 @@ export const AddressBar = memo(function AddressBar() {
         return;
       }
 
-      flow.omnibox.show(null, {
-        currentInput: addressUrl,
-        openIn: focusedTabId ? "current" : "new_tab"
-      });
+      const rect = el.getBoundingClientRect();
+
+      flow.omnibox.show(
+        {
+          x: rect.x,
+          y: rect.y,
+          width: rect.width * 1.8,
+          height: rect.height * 8
+        },
+        {
+          currentInput: addressUrl,
+          openIn: focusedTabId ? "current" : "new_tab"
+        }
+      );
     },
     [addressUrl, focusedTabId]
   );

@@ -3,18 +3,26 @@ import { debugPrint } from "@/modules/output";
 import { clamp } from "@/modules/utils";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
-import type { OmniboxOpenIn, OmniboxOpenState } from "~/flow/interfaces/browser/omnibox";
+import type { OmniboxOpenIn, OmniboxOpenState, OmniboxShadowPadding } from "~/flow/interfaces/browser/omnibox";
 
 const omniboxes = new Map<BrowserWindow, Omnibox>();
 const OMNIBOX_URL = "flow-internal://omnibox/";
 const DEFAULT_OMNIBOX_WIDTH = 750;
 const DEFAULT_OMNIBOX_HEIGHT = 335;
-
-// OMNIBOX_VIEW_PADDING and OMNIBOX_SHADOW_PADDING must be synced to the same value.
-// Make sure to update it in /src/main/controllers/windows-controller/utils/browser/omnibox.ts as well.
 const OMNIBOX_SHADOW_PADDING = 30;
 
+const DEFAULT_SHADOW_PADDING: OmniboxShadowPadding = {
+  top: OMNIBOX_SHADOW_PADDING,
+  right: OMNIBOX_SHADOW_PADDING,
+  bottom: OMNIBOX_SHADOW_PADDING,
+  left: OMNIBOX_SHADOW_PADDING
+};
+
 type QueryParams = { [key: string]: string };
+type PaddedBounds = {
+  bounds: Rectangle;
+  shadowPadding: OmniboxShadowPadding;
+};
 
 const OMNIBOX_OPEN_DEVTOOLS = true;
 
@@ -32,17 +40,25 @@ function normalizeBounds(bounds: Electron.Rectangle, windowBounds: Rectangle): R
   };
 }
 
-function addShadowPadding(bounds: Electron.Rectangle, windowBounds: Rectangle): Rectangle {
+function addShadowPadding(bounds: Electron.Rectangle, windowBounds: Rectangle): PaddedBounds {
   const left = clamp(bounds.x - OMNIBOX_SHADOW_PADDING, 0, windowBounds.width);
   const top = clamp(bounds.y - OMNIBOX_SHADOW_PADDING, 0, windowBounds.height);
   const right = clamp(bounds.x + bounds.width + OMNIBOX_SHADOW_PADDING, left, windowBounds.width);
   const bottom = clamp(bounds.y + bounds.height + OMNIBOX_SHADOW_PADDING, top, windowBounds.height);
 
   return {
-    x: left,
-    y: top,
-    width: right - left,
-    height: bottom - top
+    bounds: {
+      x: left,
+      y: top,
+      width: right - left,
+      height: bottom - top
+    },
+    shadowPadding: {
+      top: bounds.y - top,
+      right: right - (bounds.x + bounds.width),
+      bottom: bottom - (bounds.y + bounds.height),
+      left: bounds.x - left
+    }
   };
 }
 
@@ -57,7 +73,8 @@ export class Omnibox {
   private openState: OmniboxOpenState = {
     currentInput: "",
     openIn: "current",
-    sequence: 0
+    sequence: 0,
+    shadowPadding: DEFAULT_SHADOW_PADDING
   };
 
   private isDestroyed: boolean = false;
@@ -157,13 +174,33 @@ export class Omnibox {
     return this.openState;
   }
 
+  private setShadowPadding(shadowPadding: OmniboxShadowPadding) {
+    const current = this.openState.shadowPadding;
+    if (
+      current.top === shadowPadding.top &&
+      current.right === shadowPadding.right &&
+      current.bottom === shadowPadding.bottom &&
+      current.left === shadowPadding.left
+    ) {
+      return;
+    }
+
+    this.openState = {
+      ...this.openState,
+      shadowPadding
+    };
+    debugPrint("OMNIBOX", `Updating shadow padding: ${JSON.stringify(shadowPadding)}`);
+    this.emitOpenState();
+  }
+
   setOpenState(params: QueryParams | null) {
     this.assertNotDestroyed();
 
     this.openState = {
       currentInput: params?.currentInput ?? "",
       openIn: this.normalizeOpenIn(params?.openIn),
-      sequence: this.openState.sequence + 1
+      sequence: this.openState.sequence + 1,
+      shadowPadding: this.openState.shadowPadding
     };
     debugPrint("OMNIBOX", `Updating open state: ${JSON.stringify(this.openState)}`);
     this.emitOpenState();
@@ -178,9 +215,10 @@ export class Omnibox {
       const windowBounds = this.window.getBounds();
 
       const contentBounds = normalizeBounds(this.bounds, windowBounds);
-      const newBounds = addShadowPadding(contentBounds, windowBounds);
+      const paddedBounds = addShadowPadding(contentBounds, windowBounds);
 
-      this.view.setBounds(newBounds);
+      this.setShadowPadding(paddedBounds.shadowPadding);
+      this.view.setBounds(paddedBounds.bounds);
     } else {
       const windowBounds = this.window.getBounds();
 
@@ -190,7 +228,7 @@ export class Omnibox {
       const omniboxHeight = Math.min(DEFAULT_OMNIBOX_HEIGHT, availableHeight);
       const omniboxX = Math.round(windowBounds.width / 2 - omniboxWidth / 2);
       const omniboxY = Math.round(windowBounds.height / 2 - omniboxHeight / 2);
-      const newBounds = addShadowPadding(
+      const paddedBounds = addShadowPadding(
         {
           x: omniboxX,
           y: omniboxY,
@@ -199,8 +237,9 @@ export class Omnibox {
         },
         windowBounds
       );
-      debugPrint("OMNIBOX", `Calculating new bounds: ${JSON.stringify(newBounds)}`);
-      this.view.setBounds(newBounds);
+      debugPrint("OMNIBOX", `Calculating new bounds: ${JSON.stringify(paddedBounds.bounds)}`);
+      this.setShadowPadding(paddedBounds.shadowPadding);
+      this.view.setBounds(paddedBounds.bounds);
     }
   }
 

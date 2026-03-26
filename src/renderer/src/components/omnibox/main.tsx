@@ -14,12 +14,14 @@ import { setOmniboxCurrentProfileId } from "@/lib/omnibox-new/states";
 const DEFAULT_OPEN_STATE: OmniboxOpenState = {
   currentInput: "",
   openIn: "current",
-  sequence: 0
+  sequence: 0,
+  shadowPadding: {
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0
+  }
 };
-
-// OMNIBOX_VIEW_PADDING and OMNIBOX_SHADOW_PADDING must be synced to the same value.
-// Make sure to update it in /src/main/controllers/windows-controller/utils/browser/omnibox.ts as well.
-const OMNIBOX_VIEW_PADDING = 30;
 
 const OMNIBOX_SHADOW =
   "0 10px 25px -10px rgba(0, 0, 0, 0.52), 0 6px 14px -8px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.16), 0 1px 0 rgba(255, 255, 255, 0.08)";
@@ -173,7 +175,7 @@ export function OmniboxMain() {
     requestAnimationFrame(() => {
       ensureInputFocused(openState.currentInput ? "all" : "end");
     });
-  }, [currentSpace?.profileId, openState, requestSuggestions, ensureInputFocused]);
+  }, [currentSpace?.profileId, openState.sequence, openState.currentInput, requestSuggestions, ensureInputFocused]);
 
   const commitSelected = useCallback(
     (suggestion: OmniboxSuggestion) => {
@@ -222,7 +224,15 @@ export function OmniboxMain() {
   };
 
   return (
-    <div className={"h-screen w-screen box-border"} style={{ padding: OMNIBOX_VIEW_PADDING }}>
+    <div
+      className={"h-screen w-screen box-border"}
+      style={{
+        paddingTop: openState.shadowPadding.top,
+        paddingRight: openState.shadowPadding.right,
+        paddingBottom: openState.shadowPadding.bottom,
+        paddingLeft: openState.shadowPadding.left
+      }}
+    >
       <div
         className={cn(
           "h-full w-full rounded-[13px]",
