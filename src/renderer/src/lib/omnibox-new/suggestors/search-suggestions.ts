@@ -1,8 +1,8 @@
-import { generateTitleFromUrl, type OmniboxFlush } from "./helpers";
-import { mergeSearchCompletions, resolveCompletionUrl } from "./search/helpers";
-import { getSearchProvider } from "./search/index";
-import type { SearchProviderCompletion } from "./search/types";
-import type { OmniboxSuggestion } from "./types";
+import { generateTitleFromUrl, type OmniboxFlush } from "../helpers";
+import { getSearchProvider } from "../search-providers";
+import { mergeSearchCompletions, resolveCompletionUrl } from "../search-providers/helpers";
+import type { SearchProviderCompletion } from "../search-providers/types";
+import type { OmniboxSuggestion } from "../types";
 
 const SEARCH_SUGGESTION_LIMIT = 5;
 

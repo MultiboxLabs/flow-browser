@@ -1,8 +1,9 @@
-import { AppWindow, ChevronRight, History, Puzzle, Search, Settings, Shield } from "lucide-react";
+import { ChevronRight, Search } from "lucide-react";
 import { useState } from "react";
 import type { OmniboxSuggestion } from "@/lib/omnibox-new/types";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { cn } from "@/lib/utils";
+import { PedalGlyph } from "@/components/omnibox/pedal-glyph";
 
 function pageUrlForFavicon(suggestion: OmniboxSuggestion): string | null {
   switch (suggestion.type) {
@@ -39,24 +40,6 @@ function actionHint(suggestion: OmniboxSuggestion): { label: string; show: boole
       return { label: "Open", show: true };
     default:
       return { label: "", show: false };
-  }
-}
-
-function PedalGlyph({ action, selected }: { action: string; selected: boolean }) {
-  const cls = cn("size-5 shrink-0", selected ? "text-white" : "text-zinc-400");
-  switch (action) {
-    case "open_settings":
-      return <Settings className={cls} strokeWidth={2} />;
-    case "open_new_window":
-      return <AppWindow className={cls} strokeWidth={2} />;
-    case "open_incognito_window":
-      return <Shield className={cls} strokeWidth={2} />;
-    case "open_extensions":
-      return <Puzzle className={cls} strokeWidth={2} />;
-    case "open_history":
-      return <History className={cls} strokeWidth={2} />;
-    default:
-      return <Search className={cls} strokeWidth={2} />;
   }
 }
 
