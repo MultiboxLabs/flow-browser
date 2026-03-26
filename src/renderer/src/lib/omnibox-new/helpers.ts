@@ -49,7 +49,11 @@ export function isValidUrl(value: string): string | null {
   }
 
   const parsedWithScheme = URL.parse(trimmedValue);
-  if (parsedWithScheme?.hostname) {
+  if (
+    parsedWithScheme &&
+    (parsedWithScheme.hostname !== "" ||
+      (parsedWithScheme.protocol === "file:" && parsedWithScheme.pathname.startsWith("/")))
+  ) {
     return parsedWithScheme.toString();
   }
 
