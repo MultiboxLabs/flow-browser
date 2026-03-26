@@ -430,6 +430,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     options: { noLoadURL?: boolean }
   ) {
     let windowId = sourceTab.getWindow().id;
+    const shouldInsertAfterSource = disposition !== "new-window";
 
     if (disposition === "new-window") {
       const parsedFeatures: Record<string, string | number> = {};
@@ -457,8 +458,16 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
     const newTab = this.internalCreateTab(windowId, sourceTab.profileId, sourceTab.spaceId, constructorOptions, {
       url,
-      noLoadURL: options.noLoadURL
+      noLoadURL: options.noLoadURL,
+      // Tabs opened from an existing tab should appear directly under the opener
+      // in the sidebar instead of using the default prepend-to-top behavior.
+      // TODO(Topbar): Should be -0.5 for topbar if we implement topbar.
+      ...(shouldInsertAfterSource ? { position: sourceTab.position + 0.5 } : {})
     });
+
+    if (shouldInsertAfterSource) {
+      this.normalizePositions(sourceTab.getWindow().id, sourceTab.spaceId);
+    }
 
     // Set the webContents reference so the createWindow callback can return it
     sourceTab._lastCreatedWebContents = newTab.webContents;
