@@ -1,7 +1,19 @@
 import { GlobeIcon } from "lucide-react";
 import { useState } from "react";
 
-export function WebsiteFavicon({ url, favicon, className }: { url: string; favicon?: string; className?: string }) {
+export function WebsiteFavicon({
+  url,
+  favicon,
+  className,
+  cacheOnly = false,
+  onLoadedChange
+}: {
+  url: string;
+  favicon?: string;
+  className?: string;
+  cacheOnly?: boolean;
+  onLoadedChange?: (loaded: boolean) => void;
+}) {
   const [useFlowUtility, setUseFlowUtility] = useState(true);
   const [useCustomFavicon, setUseCustomFavicon] = useState(false);
 
@@ -13,9 +25,11 @@ export function WebsiteFavicon({ url, favicon, className }: { url: string; favic
         src={srcUrl.toString()}
         alt="Favicon"
         className={className}
+        onLoad={() => onLoadedChange?.(true)}
         onError={() => {
+          onLoadedChange?.(false);
           setUseFlowUtility(false);
-          if (favicon) {
+          if (!cacheOnly && favicon) {
             setUseCustomFavicon(true);
           }
         }}
@@ -23,13 +37,17 @@ export function WebsiteFavicon({ url, favicon, className }: { url: string; favic
     );
   }
 
-  if (useCustomFavicon && favicon) {
+  if (!cacheOnly && useCustomFavicon && favicon) {
     return (
       <img
         src={favicon}
         alt="Favicon"
         className={className}
-        onError={() => setUseCustomFavicon(false)}
+        onLoad={() => onLoadedChange?.(true)}
+        onError={() => {
+          onLoadedChange?.(false);
+          setUseCustomFavicon(false);
+        }}
         crossOrigin="anonymous"
         referrerPolicy="no-referrer"
       />

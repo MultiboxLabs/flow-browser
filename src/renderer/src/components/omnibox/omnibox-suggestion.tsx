@@ -1,4 +1,5 @@
 import { AppWindow, ChevronRight, History, Puzzle, Search, Settings, Shield } from "lucide-react";
+import { useState } from "react";
 import type { OmniboxSuggestion } from "@/lib/omnibox-new/types";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { cn } from "@/lib/utils";
@@ -67,6 +68,7 @@ export type OmniboxSuggestionRowProps = {
 };
 
 export function OmniboxSuggestionRow({ suggestion, index, selected, onSelect }: OmniboxSuggestionRowProps) {
+  const [hasLoadedFavicon, setHasLoadedFavicon] = useState(false);
   const faviconUrl = pageUrlForFavicon(suggestion);
   const title = primaryLabel(suggestion);
   const { label: actionLabel, show: showAction } = actionHint(suggestion);
@@ -103,13 +105,18 @@ export function OmniboxSuggestionRow({ suggestion, index, selected, onSelect }: 
           className={cn(
             "flex size-6 shrink-0",
             "items-center justify-center overflow-hidden",
-            selected && faviconUrl ? "bg-white rounded-[2px]" : "bg-transparent"
+            selected && hasLoadedFavicon ? "bg-white rounded-[2px]" : "bg-transparent"
           )}
         >
           {suggestion.type === "pedal" ? (
             <PedalGlyph action={suggestion.action} selected={selected} />
           ) : faviconUrl ? (
-            <WebsiteFavicon url={faviconUrl} className="size-4 object-cover rounded-[2px]" />
+            <WebsiteFavicon
+              url={faviconUrl}
+              className="size-4 object-cover rounded-[2px]"
+              cacheOnly
+              onLoadedChange={setHasLoadedFavicon}
+            />
           ) : (
             <Search className="size-3.5 text-zinc-100" strokeWidth={2} />
           )}
