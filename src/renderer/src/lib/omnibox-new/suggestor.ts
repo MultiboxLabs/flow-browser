@@ -1,6 +1,6 @@
 import { flushSearchSuggestions } from "./suggestors/search-suggestions";
 import { type OmniboxFlush } from "./helpers";
-import { getPedalSuggestions, getVerbatimSuggestions } from "./suggestors";
+import { getPedalSuggestions, getQuickHistorySuggestions, getVerbatimSuggestions } from "./suggestors";
 
 /**
  * Produce omnibox rows for the current input. Call `flush` whenever the list changes
@@ -16,12 +16,11 @@ export function getOmniboxSuggestions(input: string, flush: OmniboxFlush): void 
     return;
   }
 
-  // Initial suggestions (verbatim and pedal)
+  // Initial suggestions (verbatim, quick history, and pedal)
   const verbatimSuggestions = getVerbatimSuggestions(trimmedInput);
-  flush(verbatimSuggestions);
-
+  const quickHistorySuggestions = getQuickHistorySuggestions(trimmedInput);
   const pedalSuggestions = getPedalSuggestions(trimmedInput);
-  flush(pedalSuggestions);
+  flush([...verbatimSuggestions, ...quickHistorySuggestions, ...pedalSuggestions]);
 
   // Asynchronous suggestions (search)
   flushSearchSuggestions(trimmedInput, flush);

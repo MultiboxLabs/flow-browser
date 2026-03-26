@@ -1,5 +1,6 @@
 import { generateTitleFromUrl } from "./helpers";
 import { getSearchProvider } from "./search-providers";
+import { getCachedUrlTitle } from "./states";
 import type { SearchSuggestion, WebsiteSuggestion } from "./types";
 
 export function createSearchSuggestion(query: string, relevance: number, overrideUrl: string | null): SearchSuggestion {
@@ -18,7 +19,8 @@ export function createWebsiteSuggestion(
   relevance: number,
   overrideTitle: string | null
 ): WebsiteSuggestion {
-  const title = overrideTitle === null ? generateTitleFromUrl(url) : overrideTitle;
+  const cachedTitle = getCachedUrlTitle(url);
+  const title = overrideTitle ?? cachedTitle ?? generateTitleFromUrl(url);
   return {
     type: "website",
     title,

@@ -1,28 +1,9 @@
-import { guardOmniboxFlush, type OmniboxFlush } from "./helpers";
+import { getUniqueKeyFromUrl, guardOmniboxFlush, type OmniboxFlush } from "./helpers";
 import { getOmniboxSuggestions } from "./suggestor";
 import type { OmniboxSuggestion } from "./types";
 
-export { guardOmniboxFlush, type OmniboxFlush } from "./helpers";
+export { guardOmniboxFlush, getUniqueKeyFromUrl, type OmniboxFlush } from "./helpers";
 export { getOmniboxSuggestions } from "./suggestor";
-
-// Remove scheme, www, and trailing slashes
-function getUniqueKeyFromUrl(url: string): string {
-  const trimmed = url.trim();
-  if (!trimmed) return "";
-
-  let parsed: URL;
-  try {
-    parsed = new URL(trimmed);
-  } catch {
-    return trimmed;
-  }
-
-  const hostname = parsed.hostname.replace(/^www\./i, "");
-  const port = parsed.port ? `:${parsed.port}` : "";
-  const pathname = parsed.pathname.replace(/\/+$/, "");
-
-  return `${hostname}${port}${pathname}${parsed.search}${parsed.hash}`;
-}
 
 function getSuggestionIdentity(suggestion: OmniboxSuggestion): string {
   switch (suggestion.type) {

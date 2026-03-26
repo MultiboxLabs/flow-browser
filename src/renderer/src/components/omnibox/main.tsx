@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { requestOmniboxSuggestions } from "@/lib/omnibox-new";
+import { primeQuickHistoryCache } from "@/lib/omnibox-new/suggestors";
 import type { OmniboxSuggestion } from "@/lib/omnibox-new/types";
 import { OmniboxSuggestionRow } from "@/components/omnibox/omnibox-suggestion";
+import { useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import type { OmniboxOpenState } from "~/flow/interfaces/browser/omnibox";
 import "@/css/border.css";
+import { setOmniboxCurrentProfileId } from "@/lib/omnibox-new/states";
 
 const DEFAULT_OPEN_STATE: OmniboxOpenState = {
   currentInput: "",
@@ -63,6 +66,7 @@ function commitSuggestion(suggestion: OmniboxSuggestion, openIn: "current" | "ne
 }
 
 export function OmniboxMain() {
+  const { currentSpace } = useSpaces();
   const [openState, setOpenState] = useState<OmniboxOpenState>(DEFAULT_OPEN_STATE);
   const [inputValue, setInputValue] = useState("");
   const [suggestions, setSuggestions] = useState<OmniboxSuggestion[]>([]);
@@ -97,6 +101,7 @@ export function OmniboxMain() {
       const requestId = ++suggestionRequestIdRef.current;
       setSuggestions([]);
       setSelectedIndex(0);
+      setOmniboxCurrentProfileId(currentSpace?.profileId);
       requestOmniboxSuggestions({
         input,
         requestId,
@@ -104,12 +109,16 @@ export function OmniboxMain() {
         applySuggestions
       });
     },
-    [applySuggestions]
+    [applySuggestions, currentSpace?.profileId]
   );
 
   useEffect(() => {
     requestSuggestions(inputValue);
   }, [inputValue, requestSuggestions]);
+
+  useEffect(() => {
+    void primeQuickHistoryCache(currentSpace?.profileId);
+  }, [currentSpace?.profileId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -156,12 +165,13 @@ export function OmniboxMain() {
   useEffect(() => {
     setInputValue(openState.currentInput);
     setSelectedIndex(0);
+    void primeQuickHistoryCache(currentSpace?.profileId, { force: true });
     requestSuggestions(openState.currentInput);
 
     requestAnimationFrame(() => {
       ensureInputFocused(openState.currentInput ? "all" : "end");
     });
-  }, [openState, requestSuggestions, ensureInputFocused]);
+  }, [currentSpace?.profileId, openState, requestSuggestions, ensureInputFocused]);
 
   const commitSelected = useCallback(
     (suggestion: OmniboxSuggestion) => {

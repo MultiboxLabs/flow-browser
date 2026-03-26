@@ -111,3 +111,22 @@ export function generateTitleFromUrl(url: string): string {
 
   return pathAndQuery ? `${host}${pathAndQuery}` : host;
 }
+
+// Remove scheme, www, and trailing slashes
+export function getUniqueKeyFromUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return trimmed;
+  }
+
+  const hostname = parsed.hostname.replace(/^www\./i, "");
+  const port = parsed.port ? `:${parsed.port}` : "";
+  const pathname = parsed.pathname.replace(/\/+$/, "");
+
+  return `${hostname}${port}${pathname}${parsed.search}${parsed.hash}`;
+}
