@@ -778,6 +778,12 @@ const omniboxAPI: FlowOmniboxAPI = {
   show: (bounds: Electron.Rectangle | null, params: { [key: string]: string } | null) => {
     return ipcRenderer.send("omnibox:show", bounds, params);
   },
+  getState: async () => {
+    return ipcRenderer.invoke("omnibox:get-state");
+  },
+  onStateChanged: (callback) => {
+    return listenOnIPCChannel("omnibox:on-state-changed", callback);
+  },
   hide: () => {
     return ipcRenderer.send("omnibox:hide");
   }

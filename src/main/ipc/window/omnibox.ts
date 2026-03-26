@@ -20,8 +20,22 @@ ipcMain.on("omnibox:show", (event, bounds: Electron.Rectangle | null, params: { 
 
   const omnibox = parentWindow.omnibox;
   omnibox.setBounds(bounds);
-  omnibox.loadInterface(params);
+  omnibox.setOpenState(params);
   omnibox.show();
+});
+
+ipcMain.handle("omnibox:get-state", (event) => {
+  const parentWindow = windowsController.getWindowFromWebContents(event.sender);
+  if (!parentWindow) {
+    debugPrint("OMNIBOX", "Parent window not found");
+    return null;
+  }
+  if (!browserWindowsManager.isInstanceOf(parentWindow)) {
+    debugPrint("OMNIBOX", "Parent window is not a BrowserWindow");
+    return null;
+  }
+
+  return parentWindow.omnibox.getOpenState();
 });
 
 ipcMain.on("omnibox:hide", (event) => {

@@ -78,8 +78,10 @@ export function OmniboxSuggestionRow({ suggestion, index, selected, onSelect }: 
       aria-selected={selected}
       data-index={index}
       tabIndex={-1}
-      onClick={(e) => {
-        (e.currentTarget as HTMLDivElement).focus({ preventScroll: true });
+      onMouseDown={(e) => {
+        e.preventDefault();
+      }}
+      onClick={() => {
         onSelect(suggestion);
       }}
       onKeyDown={(e) => {

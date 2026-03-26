@@ -1,18 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
-import { getOmniboxSuggestions } from "@/lib/omnibox-new";
+import { getOmniboxSuggestions, guardOmniboxFlush } from "@/lib/omnibox-new";
 import type { OmniboxSuggestion } from "@/lib/omnibox-new/types";
 import { OmniboxSuggestionRow } from "@/components/omnibox/omnibox-suggestion";
 import { createSearchUrl } from "@/lib/search";
 import { cn } from "@/lib/utils";
+import type { OmniboxOpenState } from "~/flow/interfaces/browser/omnibox";
 
-function readOmniboxSearchParams() {
-  const params = new URLSearchParams(window.location.search);
-  return {
-    currentInput: params.get("currentInput") ?? "",
-    openIn: params.get("openIn") === "new_tab" ? ("new_tab" as const) : ("current" as const)
-  };
-}
+const DEFAULT_OPEN_STATE: OmniboxOpenState = {
+  currentInput: "",
+  openIn: "current",
+  sequence: 0
+};
 
 function commitSuggestion(suggestion: OmniboxSuggestion, openIn: "current" | "new_tab") {
   switch (suggestion.type) {
@@ -57,35 +56,103 @@ function commitSuggestion(suggestion: OmniboxSuggestion, openIn: "current" | "ne
 }
 
 export function OmniboxMain() {
-  const { currentInput: initialInput, openIn } = useMemo(() => readOmniboxSearchParams(), []);
-  const [inputValue, setInputValue] = useState(initialInput);
+  const [openState, setOpenState] = useState<OmniboxOpenState>(DEFAULT_OPEN_STATE);
+  const [inputValue, setInputValue] = useState("");
   const [suggestions, setSuggestions] = useState<OmniboxSuggestion[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const suggestionRequestIdRef = useRef(0);
 
-  const flushSuggestions = useCallback((items: OmniboxSuggestion[]) => {
+  const ensureInputFocused = useCallback((cursorToEnd: boolean = false) => {
+    const el = inputRef.current;
+    if (!el) return;
+
+    if (document.activeElement !== el) {
+      el.focus();
+    }
+
+    if (cursorToEnd) {
+      const end = el.value.length;
+      el.setSelectionRange(end, end);
+    }
+  }, []);
+
+  const applySuggestions = useCallback((items: OmniboxSuggestion[]) => {
     setSuggestions(items);
     setSelectedIndex(0);
   }, []);
 
-  useEffect(() => {
-    getOmniboxSuggestions(inputValue, flushSuggestions);
-  }, [inputValue, flushSuggestions]);
+  const requestSuggestions = useCallback(
+    (input: string) => {
+      const requestId = ++suggestionRequestIdRef.current;
+      const flush = guardOmniboxFlush(requestId, () => suggestionRequestIdRef.current, applySuggestions);
+      getOmniboxSuggestions(input, flush);
+    },
+    [applySuggestions]
+  );
 
   useEffect(() => {
-    const el = inputRef.current;
-    if (!el) return;
-    el.focus();
-    const end = el.value.length;
-    el.setSelectionRange(end, end);
+    requestSuggestions(inputValue);
+  }, [inputValue, requestSuggestions]);
+
+  useEffect(() => {
+    let isMounted = true;
+    void flow.omnibox.getState().then((state) => {
+      if (!isMounted || !state) return;
+      setOpenState(state);
+    });
+
+    const unsubscribe = flow.omnibox.onStateChanged((state) => {
+      setOpenState(state);
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
+
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      requestAnimationFrame(() => {
+        ensureInputFocused();
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        ensureInputFocused();
+      });
+    };
+
+    window.addEventListener("focus", handleWindowFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("focus", handleWindowFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [ensureInputFocused]);
+
+  useEffect(() => {
+    setInputValue(openState.currentInput);
+    setSelectedIndex(0);
+    requestSuggestions(openState.currentInput);
+
+    requestAnimationFrame(() => {
+      ensureInputFocused(true);
+    });
+  }, [openState, requestSuggestions, ensureInputFocused]);
 
   const commitSelected = useCallback(
     (suggestion: OmniboxSuggestion) => {
-      commitSuggestion(suggestion, openIn);
+      commitSuggestion(suggestion, openState.openIn);
     },
-    [openIn]
+    [openState.openIn]
   );
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -136,6 +203,13 @@ export function OmniboxMain() {
         "select-none",
         "border-[#4D4D4D] border-2 m-[2px] rounded-[13px]"
       )}
+      onMouseDownCapture={(e) => {
+        if (e.target !== inputRef.current) {
+          requestAnimationFrame(() => {
+            ensureInputFocused();
+          });
+        }
+      }}
     >
       <div className="flex shrink-0 items-center gap-3 border-b border-white/8 px-4 py-3.5">
         <Search className="size-3.5 shrink-0 text-zinc-100" strokeWidth={2} aria-hidden />
@@ -145,7 +219,14 @@ export function OmniboxMain() {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={onKeyDown}
-          onFocus={() => getOmniboxSuggestions(inputValue, flushSuggestions)}
+          onFocus={() => requestSuggestions(inputValue)}
+          onBlur={() => {
+            requestAnimationFrame(() => {
+              if (document.hasFocus()) {
+                ensureInputFocused();
+              }
+            });
+          }}
           placeholder="Search or Enter URL..."
           className={cn(
             "min-w-0 flex-1 bg-transparent font-sans text-lg font-medium",

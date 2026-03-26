@@ -1,13 +1,18 @@
-import { isValidUrl } from "./helpers";
+import { isValidUrl, type OmniboxFlush } from "./helpers";
 import type { OmniboxSuggestion } from "./types";
+
+export { guardOmniboxFlush, type OmniboxFlush } from "./helpers";
 
 const HIGHEST_RELEVANCE = 999999;
 
 /**
  * Produce omnibox rows for the current input. Call `flush` whenever the list changes
  * (once or multiple times for incremental updates).
+ *
+ * For async work, pass a `flush` wrapped with {@link guardOmniboxFlush} at the call
+ * site so stale completions cannot overwrite a newer query.
  */
-export function getOmniboxSuggestions(input: string, flush: (items: OmniboxSuggestion[]) => void): void {
+export function getOmniboxSuggestions(input: string, flush: OmniboxFlush): void {
   // Implement: derive suggestions from `input`, then flush(results).
   if (!input) {
     flush([]);

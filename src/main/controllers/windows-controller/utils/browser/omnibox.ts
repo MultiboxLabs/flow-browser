@@ -2,8 +2,11 @@ import { BrowserWindow, Rectangle, WebContents, WebContentsView } from "electron
 import { debugPrint } from "@/modules/output";
 import { clamp } from "@/modules/utils";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
+import type { OmniboxOpenIn, OmniboxOpenState } from "~/flow/interfaces/browser/omnibox";
 
 const omniboxes = new Map<BrowserWindow, Omnibox>();
+const OMNIBOX_URL = "flow-internal://omnibox/";
 
 type QueryParams = { [key: string]: string };
 
@@ -14,6 +17,11 @@ export class Omnibox {
   private window: BrowserWindow;
   private bounds: Electron.Rectangle | null = null;
   private ignoreBlurEvents: boolean = false;
+  private openState: OmniboxOpenState = {
+    currentInput: "",
+    openIn: "current",
+    sequence: 0
+  };
 
   private isDestroyed: boolean = false;
 
@@ -41,13 +49,17 @@ export class Omnibox {
       debugPrint("OMNIBOX", "WebContents blur event received");
       this.maybeHide();
     });
+    onmiboxWC.on("did-finish-load", () => {
+      debugPrint("OMNIBOX", "Omnibox interface finished loading");
+      this.emitOpenState();
+    });
     parentWindow.on("resize", () => {
       debugPrint("OMNIBOX", "Parent window resize event received");
       this.updateBounds();
     });
 
     setTimeout(() => {
-      this.loadInterface(null);
+      this.loadInterface();
       this.updateBounds();
       this.hide();
     }, 0);
@@ -65,27 +77,44 @@ export class Omnibox {
     }
   }
 
-  loadInterface(params: QueryParams | null) {
+  loadInterface() {
     this.assertNotDestroyed();
 
-    debugPrint("OMNIBOX", `Loading interface with params: ${JSON.stringify(params)}`);
+    debugPrint("OMNIBOX", "Ensuring omnibox interface is loaded");
     const onmiboxWC = this.webContents;
+    if (onmiboxWC.getURL() !== OMNIBOX_URL) {
+      debugPrint("OMNIBOX", `Loading omnibox URL: ${OMNIBOX_URL}`);
+      onmiboxWC.loadURL(OMNIBOX_URL);
+    }
+  }
 
-    const url = new URL("flow-internal://omnibox/");
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.set(key, value);
-      });
+  private normalizeOpenIn(value: string | undefined): OmniboxOpenIn {
+    return value === "new_tab" ? "new_tab" : "current";
+  }
+
+  private emitOpenState() {
+    if (this.webContents.isDestroyed()) {
+      return;
     }
 
-    const urlString = url.toString();
-    if (onmiboxWC.getURL() !== urlString) {
-      debugPrint("OMNIBOX", `Loading new URL: ${urlString}`);
-      onmiboxWC.loadURL(urlString);
-    } else {
-      debugPrint("OMNIBOX", "Reloading current URL");
-      onmiboxWC.reload();
-    }
+    sendMessageToListenersWithWebContents([this.webContents], "omnibox:on-state-changed", this.openState);
+  }
+
+  getOpenState() {
+    this.assertNotDestroyed();
+    return this.openState;
+  }
+
+  setOpenState(params: QueryParams | null) {
+    this.assertNotDestroyed();
+
+    this.openState = {
+      currentInput: params?.currentInput ?? "",
+      openIn: this.normalizeOpenIn(params?.openIn),
+      sequence: this.openState.sequence + 1
+    };
+    debugPrint("OMNIBOX", `Updating open state: ${JSON.stringify(this.openState)}`);
+    this.emitOpenState();
   }
 
   updateBounds() {
@@ -140,6 +169,7 @@ export class Omnibox {
     this.assertNotDestroyed();
 
     debugPrint("OMNIBOX", "Showing omnibox");
+    this.loadInterface();
     // Hide omnibox if it is already visible
     this.hide();
 

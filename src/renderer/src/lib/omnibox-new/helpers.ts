@@ -1,4 +1,24 @@
 import { parse as parseTld } from "tldts";
+import type { OmniboxSuggestion } from "./types";
+
+export type OmniboxFlush = (items: OmniboxSuggestion[]) => void;
+
+/**
+ * Wraps `flush` so late calls from an older request are ignored after a newer
+ * `getOmniboxSuggestions` run has started. Increment a shared counter (or ref)
+ * before each request; pass the captured id and a getter that returns the
+ * latest id (same ref).
+ */
+export function guardOmniboxFlush(
+  requestId: number,
+  getCurrentRequestId: () => number,
+  flush: OmniboxFlush
+): OmniboxFlush {
+  return (items) => {
+    if (requestId !== getCurrentRequestId()) return;
+    flush(items);
+  };
+}
 
 const ipv4Pattern = /^(?:\d{1,3}\.){3}\d{1,3}$/;
 

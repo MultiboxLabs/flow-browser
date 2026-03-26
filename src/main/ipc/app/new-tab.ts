@@ -12,7 +12,10 @@ export function openNewTab(window: BrowserWindow) {
     if (omnibox.isVisible()) {
       omnibox.hide();
     } else {
-      omnibox.loadInterface(null);
+      omnibox.setOpenState({
+        currentInput: "",
+        openIn: "new_tab"
+      });
       omnibox.setBounds(null);
       omnibox.show();
     }

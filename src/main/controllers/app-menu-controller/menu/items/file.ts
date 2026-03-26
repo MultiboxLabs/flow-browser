@@ -63,7 +63,10 @@ export const createFileMenu = (): MenuItemConstructorOptions => ({
           omnibox.hide();
         } else {
           omnibox.setBounds(null);
-          omnibox.loadInterface(null);
+          omnibox.setOpenState({
+            currentInput: "",
+            openIn: "current"
+          });
           omnibox.show();
         }
       }
