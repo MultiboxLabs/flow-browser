@@ -3,7 +3,6 @@ import { Search } from "lucide-react";
 import { getOmniboxSuggestions, guardOmniboxFlush } from "@/lib/omnibox-new";
 import type { OmniboxSuggestion } from "@/lib/omnibox-new/types";
 import { OmniboxSuggestionRow } from "@/components/omnibox/omnibox-suggestion";
-import { createSearchUrl } from "@/lib/search";
 import { cn } from "@/lib/utils";
 import type { OmniboxOpenState } from "~/flow/interfaces/browser/omnibox";
 
@@ -34,7 +33,7 @@ function commitSuggestion(suggestion: OmniboxSuggestion, openIn: "current" | "ne
       break;
     }
     case "search": {
-      const url = createSearchUrl(suggestion.query);
+      const url = suggestion.url;
       if (openIn === "current") {
         flow.navigation.goTo(url, undefined, true);
       } else {

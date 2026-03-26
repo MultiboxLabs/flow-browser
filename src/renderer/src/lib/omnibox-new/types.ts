@@ -1,6 +1,7 @@
 export interface SearchSuggestion {
   type: "search";
   query: string;
+  url: string;
   relevance: number;
 }
 
