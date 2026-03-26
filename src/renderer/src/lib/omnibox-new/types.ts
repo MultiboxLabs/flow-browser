@@ -9,7 +9,6 @@ export interface WebsiteSuggestion {
   type: "website";
   title: string;
   url: string;
-  description: string;
   relevance: number;
 }
 

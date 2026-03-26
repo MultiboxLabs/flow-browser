@@ -1,5 +1,5 @@
-import { createSearchSuggestion } from "../suggestions";
-import { generateTitleFromUrl, type OmniboxFlush } from "../helpers";
+import { createSearchSuggestion, createWebsiteSuggestion } from "../suggestions";
+import { type OmniboxFlush } from "../helpers";
 import { getSearchProvider } from "../search-providers";
 import { mergeSearchCompletions, resolveCompletionUrl } from "../search-providers/helpers";
 import type { SearchProviderCompletion } from "../search-providers/types";
@@ -18,13 +18,7 @@ function mapCompletionToSuggestion(completion: SearchProviderCompletion): Omnibo
     if (!targetUrl) {
       return null;
     }
-    return {
-      type: "website",
-      title: completion.title ?? generateTitleFromUrl(targetUrl),
-      url: targetUrl,
-      description: completion.description ?? targetUrl,
-      relevance: completion.relevance
-    };
+    return createWebsiteSuggestion(targetUrl, completion.relevance, completion.title);
   }
 
   if (!completion.query) {

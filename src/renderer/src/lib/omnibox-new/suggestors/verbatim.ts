@@ -1,6 +1,6 @@
 import { generateTitleFromUrl, isValidUrl } from "../helpers";
 import type { OmniboxSuggestion } from "../types";
-import { createSearchSuggestion } from "../suggestions";
+import { createSearchSuggestion, createWebsiteSuggestion } from "../suggestions";
 import { bangs } from "../bangs";
 
 const VERBATIM_URL_RELEVANCE = 500;
@@ -39,13 +39,8 @@ export function getVerbatimSuggestions(trimmedInput: string): OmniboxSuggestion[
   // Website suggestion (if input can be normalized to a navigable URL)
   const targetUrl = isValidUrl(trimmedInput);
   if (targetUrl) {
-    verbatimSuggestions.push({
-      type: "website",
-      title: generateTitleFromUrl(targetUrl),
-      url: targetUrl,
-      description: targetUrl,
-      relevance: VERBATIM_URL_RELEVANCE
-    });
+    const websiteSuggestion = createWebsiteSuggestion(targetUrl, VERBATIM_URL_RELEVANCE, null);
+    verbatimSuggestions.push(websiteSuggestion);
   }
 
   // Search suggestion
