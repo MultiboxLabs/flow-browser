@@ -1,4 +1,4 @@
-import { generateTitleFromUrl, isValidUrl } from "../helpers";
+import { isValidUrl } from "../helpers";
 import type { OmniboxSuggestion } from "../types";
 import { createSearchSuggestion, createWebsiteSuggestion } from "../suggestions";
 import { bangs } from "../bangs";
