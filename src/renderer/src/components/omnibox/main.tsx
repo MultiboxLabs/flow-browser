@@ -209,7 +209,7 @@ export function OmniboxMain() {
   return (
     <div className={"h-screen w-screen box-border"} style={{ padding: OMNIBOX_VIEW_PADDING }}>
       <div
-        className={cn("h-full w-full rounded-[13px]", "bg-[#202020]/90 backdrop-blur-lg")}
+        className={cn("h-full w-full rounded-[13px]", "bg-[#202020]/90 backdrop-blur-sm")}
         style={{ boxShadow: OMNIBOX_SHADOW }}
       >
         <div className="h-full w-full border-[0.5px] border-(--frame-shadow-border) rounded-[13px]">
