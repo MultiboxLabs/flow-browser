@@ -4,6 +4,7 @@ import type { OmniboxSuggestion } from "@/lib/omnibox-new/types";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { cn } from "@/lib/utils";
 import { PedalGlyph } from "@/components/omnibox/pedal-glyph";
+import { generateTitleFromUrl } from "@/lib/omnibox-new/helpers";
 
 function pageUrlForFavicon(suggestion: OmniboxSuggestion): string | null {
   switch (suggestion.type) {
@@ -131,13 +132,13 @@ export function OmniboxSuggestionRow({ suggestion, index, selected, onSelect }: 
             setHasLoadedFavicon={setHasLoadedFavicon}
           />
         </span>
-        <span
-          className={cn(
-            "min-w-0 flex-1 truncate font-sans text-[14px] font-medium leading-tight",
-            selected ? "text-white" : "text-zinc-200"
+        <span className={cn("min-w-0 flex-1 truncate font-sans text-[14px] font-medium leading-tight")}>
+          <span className={cn(selected ? "text-white" : "text-zinc-200")}>{title}</span>
+          {suggestion.type === "website" && title !== generateTitleFromUrl(suggestion.url) && (
+            <span
+              className={cn(selected ? "text-zinc-300" : "text-zinc-400")}
+            >{` — ${generateTitleFromUrl(suggestion.url)}`}</span>
           )}
-        >
-          {title}
         </span>
         {showAction ? (
           <span className="flex shrink-0 items-center gap-2">
