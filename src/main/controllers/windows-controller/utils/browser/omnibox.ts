@@ -17,6 +17,7 @@ export class Omnibox {
   private window: BrowserWindow;
   private bounds: Electron.Rectangle | null = null;
   private ignoreBlurEvents: boolean = false;
+  private blurIgnoreTimeout: NodeJS.Timeout | null = null;
   private openState: OmniboxOpenState = {
     currentInput: "",
     openIn: "current",
@@ -90,6 +91,19 @@ export class Omnibox {
 
   private normalizeOpenIn(value: string | undefined): OmniboxOpenIn {
     return value === "new_tab" ? "new_tab" : "current";
+  }
+
+  private suppressBlurEventsTemporarily(durationMs: number = 150) {
+    this.ignoreBlurEvents = true;
+
+    if (this.blurIgnoreTimeout) {
+      clearTimeout(this.blurIgnoreTimeout);
+    }
+
+    this.blurIgnoreTimeout = setTimeout(() => {
+      this.ignoreBlurEvents = false;
+      this.blurIgnoreTimeout = null;
+    }, durationMs);
   }
 
   private emitOpenState() {
@@ -184,13 +198,10 @@ export class Omnibox {
       }
     };
 
-    this.ignoreBlurEvents = true;
+    this.suppressBlurEventsTemporarily();
 
     tryFocus();
     setTimeout(tryFocus, 100);
-    setTimeout(() => {
-      this.ignoreBlurEvents = false;
-    }, 150);
   }
 
   refocus() {
@@ -198,6 +209,8 @@ export class Omnibox {
 
     if (this.isVisible()) {
       debugPrint("OMNIBOX", "Refocusing omnibox");
+      this.suppressBlurEventsTemporarily();
+      this.window.focus();
       this.webContents.focus();
       return true;
     }
@@ -258,6 +271,11 @@ export class Omnibox {
 
   destroy() {
     this.assertNotDestroyed();
+
+    if (this.blurIgnoreTimeout) {
+      clearTimeout(this.blurIgnoreTimeout);
+      this.blurIgnoreTimeout = null;
+    }
 
     this.isDestroyed = true;
     this.webContents.close();
