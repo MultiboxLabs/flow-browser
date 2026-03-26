@@ -60,12 +60,16 @@ export const createFileMenu = (): MenuItemConstructorOptions => ({
         if (!window) return;
         const tab = getTabFromFocusedWindow();
         const omnibox = window.omnibox;
-        omnibox.setBounds(null);
-        omnibox.setOpenState({
-          currentInput: tab?.url ?? "",
-          openIn: "current"
-        });
-        omnibox.show();
+        if (omnibox.isVisible()) {
+          omnibox.hide();
+        } else {
+          omnibox.setBounds(null);
+          omnibox.setOpenState({
+            currentInput: tab?.url ?? "",
+            openIn: "current"
+          });
+          omnibox.show();
+        }
       }
     },
     {
