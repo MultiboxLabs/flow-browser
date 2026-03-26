@@ -1,5 +1,5 @@
 import { MenuItemConstructorOptions } from "electron";
-import { getFocusedBrowserWindow } from "../helpers";
+import { getFocusedBrowserWindow, getTabFromFocusedWindow } from "../helpers";
 import { openNewTab } from "@/ipc/app/new-tab";
 import { getCurrentShortcut } from "@/modules/shortcuts";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
@@ -53,22 +53,19 @@ export const createFileMenu = (): MenuItemConstructorOptions => ({
       type: "separator"
     },
     {
-      label: "Toggle Command Palette",
+      label: "Focus Address Bar",
       accelerator: getCurrentShortcut("navigation.toggleCommandPalette"),
       click: () => {
         const window = getFocusedBrowserWindow();
         if (!window) return;
+        const tab = getTabFromFocusedWindow();
         const omnibox = window.omnibox;
-        if (omnibox.isVisible()) {
-          omnibox.hide();
-        } else {
-          omnibox.setBounds(null);
-          omnibox.setOpenState({
-            currentInput: "",
-            openIn: "current"
-          });
-          omnibox.show();
-        }
+        omnibox.setBounds(null);
+        omnibox.setOpenState({
+          currentInput: tab?.url ?? "",
+          openIn: "current"
+        });
+        omnibox.show();
       }
     },
     {

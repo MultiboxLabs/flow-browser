@@ -64,7 +64,7 @@ export function OmniboxMain() {
   const listRef = useRef<HTMLDivElement>(null);
   const suggestionRequestIdRef = useRef(0);
 
-  const ensureInputFocused = useCallback((cursorToEnd: boolean = false) => {
+  const ensureInputFocused = useCallback((selection: "preserve" | "end" | "all" = "preserve") => {
     const el = inputRef.current;
     if (!el) return;
 
@@ -72,9 +72,11 @@ export function OmniboxMain() {
       el.focus();
     }
 
-    if (cursorToEnd) {
+    if (selection === "end") {
       const end = el.value.length;
       el.setSelectionRange(end, end);
+    } else if (selection === "all") {
+      el.setSelectionRange(0, el.value.length);
     }
   }, []);
 
@@ -144,7 +146,7 @@ export function OmniboxMain() {
     requestSuggestions(openState.currentInput);
 
     requestAnimationFrame(() => {
-      ensureInputFocused(true);
+      ensureInputFocused(openState.currentInput ? "all" : "end");
     });
   }, [openState, requestSuggestions, ensureInputFocused]);
 
