@@ -34,16 +34,28 @@ function mapSuggestionRelevance(serverRelevance: number | undefined, index: numb
   );
 }
 
-function normalizeNavigationUrl(value: string): string | null {
+function normalizeNavigationUrl(value: string): URL | null {
   try {
-    return new URL(value).toString();
+    return new URL(value);
   } catch {
     try {
-      return new URL(`http://${value}`).toString();
+      return new URL(`http://${value}`);
     } catch {
       return null;
     }
   }
+}
+
+const isAllowedProtocol = (url: URL): boolean => ["http:", "https:"].includes(url.protocol.toLowerCase());
+function normalizeAndValidateUrl(value: string): string | null {
+  const url = normalizeNavigationUrl(value);
+  if (!url) {
+    return null;
+  }
+  if (!isAllowedProtocol(url)) {
+    return null;
+  }
+  return url.toString();
 }
 
 function buildSearchUrl(query: string): string {
@@ -59,7 +71,7 @@ function parseSuggestion(
   index: number
 ): SearchProviderCompletion | null {
   if (type === "NAVIGATION") {
-    const url = normalizeNavigationUrl(text);
+    const url = normalizeAndValidateUrl(text);
     if (!url) {
       return null;
     }

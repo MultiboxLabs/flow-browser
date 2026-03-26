@@ -194,13 +194,15 @@ export function primeQuickHistoryCache(
     })
     .catch((error: unknown) => {
       console.error("primeQuickHistoryCache: history lookup failed", error);
-      const stale = quickHistoryCache.get(profileId);
-      if (stale) {
+      if (existing) {
         quickHistoryCache.set(profileId, {
-          ...stale,
+          ...existing,
           refreshPromise: null
         });
+        return;
       }
+
+      quickHistoryCache.delete(profileId);
     });
 
   quickHistoryCache.set(profileId, {

@@ -30,7 +30,7 @@ export interface FlowOmniboxAPI {
   /**
    * Gets the current omnibox open state.
    */
-  getState: () => Promise<OmniboxOpenState>;
+  getState: () => Promise<OmniboxOpenState | null>;
 
   /**
    * Listens for omnibox open-state changes.

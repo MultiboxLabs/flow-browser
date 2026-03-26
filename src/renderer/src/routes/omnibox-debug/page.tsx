@@ -58,13 +58,19 @@ function Page() {
       setOmniboxCurrentSpaceId(currentSpace?.id);
 
       const requestId = ++requestIdRef.current;
+      let didHandleFirstNonEmptyFlush = false;
       abortSuggestionsRef.current = requestOmniboxSuggestions({
         input: nextInput,
         requestId,
         getCurrentRequestId: () => requestIdRef.current,
         applySuggestions: (items) => {
           setSuggestions(items);
-          setSelectedSuggestion(null);
+          if (!didHandleFirstNonEmptyFlush) {
+            if (items.length > 0) {
+              didHandleFirstNonEmptyFlush = true;
+            }
+            setSelectedSuggestion(null);
+          }
         }
       });
     },

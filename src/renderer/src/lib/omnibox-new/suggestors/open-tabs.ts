@@ -150,13 +150,15 @@ export function primeOpenTabsCache(
     })
     .catch((error: unknown) => {
       console.error("primeOpenTabsCache: tabs lookup failed", error);
-      const stale = openTabsCache.get(currentSpaceId);
-      if (stale) {
+      if (existing) {
         openTabsCache.set(currentSpaceId, {
-          ...stale,
+          ...existing,
           refreshPromise: null
         });
+        return;
       }
+
+      openTabsCache.delete(currentSpaceId);
     });
 
   openTabsCache.set(currentSpaceId, {
