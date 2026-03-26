@@ -28,7 +28,7 @@ import { FlowIconsAPI } from "~/flow/interfaces/settings/icons";
 import { FlowNewTabAPI } from "~/flow/interfaces/browser/newTab";
 import { FlowOpenExternalAPI } from "~/flow/interfaces/settings/openExternal";
 import { FlowOnboardingAPI } from "~/flow/interfaces/settings/onboarding";
-import { FlowOmniboxAPI } from "~/flow/interfaces/browser/omnibox";
+import type { FlowOmniboxAPI, OmniboxOpenParams } from "~/flow/interfaces/browser/omnibox";
 import { FlowSettingsAPI } from "~/flow/interfaces/settings/settings";
 import { FlowWindowsAPI } from "~/flow/interfaces/app/windows";
 import { FlowExtensionsAPI } from "~/flow/interfaces/app/extensions";
@@ -775,7 +775,7 @@ const onboardingAPI: FlowOnboardingAPI = {
 
 // OMNIBOX API //
 const omniboxAPI: FlowOmniboxAPI = {
-  show: (bounds: Electron.Rectangle | null, params: { [key: string]: string } | null) => {
+  show: (bounds: Electron.Rectangle | null, params: OmniboxOpenParams | null) => {
     return ipcRenderer.send("omnibox:show", bounds, params);
   },
   getState: async () => {

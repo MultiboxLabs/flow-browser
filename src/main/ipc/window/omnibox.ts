@@ -1,8 +1,9 @@
 import { browserWindowsManager, windowsController } from "@/controllers/windows-controller";
 import { debugPrint } from "@/modules/output";
 import { ipcMain } from "electron";
+import type { OmniboxOpenParams } from "~/flow/interfaces/browser/omnibox";
 
-ipcMain.on("omnibox:show", (event, bounds: Electron.Rectangle | null, params: { [key: string]: string } | null) => {
+ipcMain.on("omnibox:show", (event, bounds: Electron.Rectangle | null, params: OmniboxOpenParams | null) => {
   debugPrint(
     "OMNIBOX",
     `IPC: show-omnibox received with bounds: ${JSON.stringify(bounds)} and params: ${JSON.stringify(params)}`

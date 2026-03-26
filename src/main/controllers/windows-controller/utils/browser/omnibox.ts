@@ -3,7 +3,12 @@ import { debugPrint } from "@/modules/output";
 import { clamp } from "@/modules/utils";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
-import type { OmniboxOpenIn, OmniboxOpenState, OmniboxShadowPadding } from "~/flow/interfaces/browser/omnibox";
+import type {
+  OmniboxOpenIn,
+  OmniboxOpenParams,
+  OmniboxOpenState,
+  OmniboxShadowPadding
+} from "~/flow/interfaces/browser/omnibox";
 
 const omniboxes = new Map<BrowserWindow, Omnibox>();
 const OMNIBOX_URL = "flow-internal://omnibox/";
@@ -18,7 +23,6 @@ const DEFAULT_SHADOW_PADDING: OmniboxShadowPadding = {
   left: OMNIBOX_SHADOW_PADDING
 };
 
-type QueryParams = { [key: string]: string };
 type PaddedBounds = {
   bounds: Rectangle;
   shadowPadding: OmniboxShadowPadding;
@@ -193,7 +197,7 @@ export class Omnibox {
     this.emitOpenState();
   }
 
-  setOpenState(params: QueryParams | null) {
+  setOpenState(params: OmniboxOpenParams | null) {
     this.assertNotDestroyed();
 
     this.openState = {
