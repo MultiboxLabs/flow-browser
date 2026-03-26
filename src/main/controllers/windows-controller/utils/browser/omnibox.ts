@@ -10,6 +10,8 @@ const OMNIBOX_URL = "flow-internal://omnibox/";
 
 type QueryParams = { [key: string]: string };
 
+const OMNIBOX_OPEN_DEVTOOLS = true;
+
 export class Omnibox {
   public view: WebContentsView;
   public webContents: WebContents;
@@ -34,6 +36,10 @@ export class Omnibox {
       }
     });
     const onmiboxWC = onmiboxView.webContents;
+
+    if (OMNIBOX_OPEN_DEVTOOLS) {
+      onmiboxWC.openDevTools({ mode: "detach" });
+    }
 
     onmiboxView.setBorderRadius(13);
 
