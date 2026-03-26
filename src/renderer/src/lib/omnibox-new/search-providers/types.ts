@@ -1,21 +1,27 @@
-export type SearchCompletionKind = "query" | "navigation";
-
 export interface SearchProviderRequest {
   input: string;
   limit: number;
   signal: AbortSignal;
 }
 
-export interface SearchProviderCompletion {
-  kind: SearchCompletionKind;
+interface SearchProviderCompletionBase {
   title: string | null;
   relevance: number;
-  query?: string;
-  url?: string;
   description?: string;
   isVerbatim?: boolean;
   providerPayload?: unknown;
 }
+
+export interface QuerySearchProviderCompletion extends SearchProviderCompletionBase {
+  kind: "query";
+  query: string;
+}
+
+export interface NavigationSearchProviderCompletion extends SearchProviderCompletionBase {
+  kind: "navigation";
+  url: string;
+}
+export type SearchProviderCompletion = QuerySearchProviderCompletion | NavigationSearchProviderCompletion;
 
 export interface SearchProvider {
   id: string;

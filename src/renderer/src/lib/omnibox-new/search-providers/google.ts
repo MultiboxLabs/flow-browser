@@ -1,4 +1,10 @@
-import type { SearchProvider, SearchProviderCompletion, SearchProviderRequest } from "./types";
+import type {
+  NavigationSearchProviderCompletion,
+  QuerySearchProviderCompletion,
+  SearchProviderCompletion,
+  SearchProvider,
+  SearchProviderRequest
+} from "./types";
 
 interface GoogleSuggestResponse {
   0?: string;
@@ -58,21 +64,23 @@ function parseSuggestion(
       return null;
     }
 
-    return {
+    const completion: NavigationSearchProviderCompletion = {
       kind: "navigation",
       title: null,
       url,
       description: url,
       relevance: mapSuggestionRelevance(relevance, index)
     };
+    return completion;
   }
 
-  return {
+  const completion: QuerySearchProviderCompletion = {
     kind: "query",
     title: text,
     query: text,
     relevance: mapSuggestionRelevance(relevance, index)
   };
+  return completion;
 }
 
 async function fetchGoogleSuggestions({
@@ -122,9 +130,7 @@ export const googleSearchProvider: SearchProvider = {
       return [];
     }
 
-    const completions = await fetchGoogleSuggestions({ ...request, input: trimmedInput }).catch(
-      () => [] as SearchProviderCompletion[]
-    );
+    const completions = await fetchGoogleSuggestions({ ...request, input: trimmedInput }).catch(() => []);
     return completions;
   }
 };
