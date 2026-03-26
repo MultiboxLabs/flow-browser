@@ -113,7 +113,7 @@ export class Omnibox {
       const windowBounds = this.window.getBounds();
 
       const omniboxWidth = Math.min(750, windowBounds.width);
-      const omniboxHeight = Math.min(350, windowBounds.height);
+      const omniboxHeight = Math.min(335, windowBounds.height);
       const omniboxX = windowBounds.width / 2 - omniboxWidth / 2;
       const omniboxY = windowBounds.height / 2 - omniboxHeight / 2;
 

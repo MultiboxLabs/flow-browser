@@ -28,7 +28,7 @@ These dependencies are bundled into the `node_modules` of the app. These should 
 - posthog-node - Provide analytics.
 - arktype - Handles Data Validation. (Better alternative to zod)
 - sharp - Image Processing.
-- tldts - Parse top-level domains from URLs.
+- tldts - Parse top-level domains from URLs for macOS webauthn & omnibox.
 
 ## Dev Dependencies
 
