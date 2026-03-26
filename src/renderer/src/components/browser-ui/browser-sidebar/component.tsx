@@ -182,7 +182,7 @@ export function BrowserSidebar({
         isFloating && "rounded-lg border border-sidebar-border/50 sidebar-floating-bg"
       )}
     >
-      {isFloating && <SpaceBackgroundStylesheet selector='[data-space-background-scope]' />}
+      {isFloating && <SpaceBackgroundStylesheet selector="[data-space-background-scope]" />}
       <div
         className={cn(
           "m-3 mb-0 flex-1 min-h-0",
