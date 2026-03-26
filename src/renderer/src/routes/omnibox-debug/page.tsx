@@ -144,7 +144,7 @@ function Page() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
       >
-        <div className="relative flex-grow">
+        <div className="relative grow">
           <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             ref={inputRef}
@@ -187,20 +187,20 @@ function Page() {
         </Button>
       </motion.div>
 
-      <div className="grid flex-grow grid-cols-1 gap-4 overflow-hidden md:grid-cols-2">
+      <div className="grid grow grid-cols-1 gap-4 overflow-hidden md:grid-cols-2">
         <motion.div
           className="flex h-full flex-col overflow-hidden"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
         >
-          <Card className="flex flex-grow flex-col overflow-hidden">
+          <Card className="flex grow flex-col overflow-hidden">
             <CardHeader className="border-b px-4 py-2">
               <CardTitle className="flex items-center gap-2 text-base font-medium">
                 <List className="h-4 w-4" /> Suggestions ({suggestions.length})
               </CardTitle>
             </CardHeader>
-            <ScrollArea className="flex-grow">
+            <ScrollArea className="grow">
               <AnimatePresence mode="wait">
                 {suggestions.length > 0 ? (
                   <motion.div
@@ -297,7 +297,7 @@ function Page() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
         >
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-grow flex-col overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex grow flex-col overflow-hidden">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="details">
                 <Info className="mr-1 h-4 w-4" /> Details
@@ -319,13 +319,13 @@ function Page() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="details" className="mt-0 flex-grow overflow-hidden">
+            <TabsContent value="details" className="mt-0 grow overflow-hidden">
               <Card className="flex h-full flex-col rounded-t-none border-t-0">
                 <AnimatePresence mode="wait">
                   {selectedSuggestion ? (
                     <motion.div
                       key="details-content"
-                      className="flex flex-grow flex-col overflow-hidden"
+                      className="flex grow flex-col overflow-hidden"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
@@ -338,14 +338,14 @@ function Page() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 flex-shrink-0"
+                          className="h-7 w-7 shrink-0"
                           onClick={closeDetails}
                           title="Close details"
                         >
                           <X className="h-4 w-4" />
                         </Button>
                       </CardHeader>
-                      <ScrollArea className="flex-grow">
+                      <ScrollArea className="grow">
                         <CardContent className="space-y-3 p-4 text-sm">
                           <div className="flex items-center justify-between rounded bg-secondary/30 p-2">
                             <div>
@@ -408,12 +408,12 @@ function Page() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="debug" className="mt-0 flex-grow overflow-hidden">
+            <TabsContent value="debug" className="mt-0 grow overflow-hidden">
               <Card className="flex h-full flex-col rounded-t-none border-t-0">
                 <CardHeader className="border-b px-4 py-2">
                   <CardTitle className="text-base font-medium">Current State</CardTitle>
                 </CardHeader>
-                <ScrollArea className="flex-grow">
+                <ScrollArea className="grow">
                   <CardContent className="p-4 text-sm">
                     <div className="grid grid-cols-1 gap-3">
                       <div>
