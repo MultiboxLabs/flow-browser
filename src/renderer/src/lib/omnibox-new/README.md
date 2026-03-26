@@ -1,5 +1,10 @@
 # Omnibox Implementation
 
+## Module Layout
+
+- `suggestor.ts` - Raw suggestion production for the current query
+- `index.ts` - Public facade for request orchestration and suggestion list utilities
+
 ## Suggestors
 
 - Verbatim (Synchronous) - Provide exact search suggestion, and website suggestion if the input is a valid URL (bangs are supported)

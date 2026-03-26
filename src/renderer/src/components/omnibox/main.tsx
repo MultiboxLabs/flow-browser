@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
-import { getOmniboxSuggestions, guardOmniboxFlush } from "@/lib/omnibox-new";
+import { requestOmniboxSuggestions } from "@/lib/omnibox-new";
 import type { OmniboxSuggestion } from "@/lib/omnibox-new/types";
 import { OmniboxSuggestionRow } from "@/components/omnibox/omnibox-suggestion";
 import { cn } from "@/lib/utils";
@@ -12,41 +12,6 @@ const DEFAULT_OPEN_STATE: OmniboxOpenState = {
   openIn: "current",
   sequence: 0
 };
-
-function getSuggestionIdentity(suggestion: OmniboxSuggestion): string {
-  switch (suggestion.type) {
-    case "search":
-      return `search:${suggestion.url}`;
-    case "website":
-      return `website:${suggestion.url}`;
-    case "open-tab":
-      return `open-tab:${suggestion.spaceId}:${suggestion.tabId}`;
-    case "pedal":
-      return `pedal:${suggestion.action}`;
-  }
-}
-
-function sortSuggestions(items: OmniboxSuggestion[]): OmniboxSuggestion[] {
-  return [...items].sort((left, right) => right.relevance - left.relevance);
-}
-
-function mergeSuggestions(existing: OmniboxSuggestion[], incoming: OmniboxSuggestion[]): OmniboxSuggestion[] {
-  if (incoming.length === 0) {
-    return existing;
-  }
-
-  const merged = new Map<string, OmniboxSuggestion>();
-
-  for (const suggestion of existing) {
-    merged.set(getSuggestionIdentity(suggestion), suggestion);
-  }
-
-  for (const suggestion of incoming) {
-    merged.set(getSuggestionIdentity(suggestion), suggestion);
-  }
-
-  return sortSuggestions(Array.from(merged.values()));
-}
 
 function commitSuggestion(suggestion: OmniboxSuggestion, openIn: "current" | "new_tab") {
   switch (suggestion.type) {
@@ -116,7 +81,7 @@ export function OmniboxMain() {
   }, []);
 
   const applySuggestions = useCallback((items: OmniboxSuggestion[]) => {
-    setSuggestions((currentSuggestions) => mergeSuggestions(currentSuggestions, items));
+    setSuggestions(items);
     setSelectedIndex(0);
   }, []);
 
@@ -125,8 +90,12 @@ export function OmniboxMain() {
       const requestId = ++suggestionRequestIdRef.current;
       setSuggestions([]);
       setSelectedIndex(0);
-      const flush = guardOmniboxFlush(requestId, () => suggestionRequestIdRef.current, applySuggestions);
-      getOmniboxSuggestions(input, flush);
+      requestOmniboxSuggestions({
+        input,
+        requestId,
+        getCurrentRequestId: () => suggestionRequestIdRef.current,
+        applySuggestions
+      });
     },
     [applySuggestions]
   );
