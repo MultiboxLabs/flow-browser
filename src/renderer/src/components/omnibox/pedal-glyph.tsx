@@ -2,7 +2,11 @@ import { cn } from "@/lib/utils";
 import { HistoryIcon, AppWindowIcon, PuzzleIcon, SettingsIcon, ShieldIcon, LinkIcon } from "lucide-react";
 
 export function PedalGlyph({ action, selected, className }: { action: string; selected: boolean; className?: string }) {
-  const cls = cn("size-5 shrink-0", selected ? "text-white" : "text-zinc-400", className);
+  const cls = cn(
+    "size-5 shrink-0",
+    selected ? "text-zinc-950 dark:text-white" : "text-zinc-500 dark:text-zinc-400",
+    className
+  );
   switch (action) {
     case "open_settings":
       return <SettingsIcon className={cls} strokeWidth={2} />;

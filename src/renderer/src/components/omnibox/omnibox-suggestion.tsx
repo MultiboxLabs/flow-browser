@@ -62,19 +62,19 @@ function SuggestionIcon({
     return <PedalGlyph className={className} action={suggestion.action} selected={selected} />;
   }
   if (suggestion.type === "search") {
-    return <Search className={cn("size-3.5 text-zinc-100", className)} strokeWidth={2} />;
+    return <Search className={cn("size-3.5 text-zinc-600 dark:text-zinc-100", className)} strokeWidth={2} />;
   }
   if (faviconUrl) {
     return (
       <WebsiteFavicon
         url={faviconUrl}
-        className={cn("size-4 object-cover rounded-[2px] text-zinc-100", className)}
+        className={cn("size-4 object-cover rounded-[2px] text-zinc-600 dark:text-zinc-100", className)}
         cacheOnly
         onLoadedChange={setHasLoadedFavicon}
       />
     );
   }
-  return <Search className={cn("size-3.5 text-zinc-100", className)} strokeWidth={2} />;
+  return <Search className={cn("size-3.5 text-zinc-600 dark:text-zinc-100", className)} strokeWidth={2} />;
 }
 
 export type OmniboxSuggestionRowProps = {
@@ -115,14 +115,16 @@ export function OmniboxSuggestionRow({ suggestion, index, selected, onSelect }: 
         className={cn(
           "flex w-full items-center gap-2.5 rounded-[10px] text-left",
           "px-2.5 py-3",
-          selected ? "bg-space-background-start/50" : "bg-transparent hover:bg-white/4"
+          selected
+            ? "bg-black/8 dark:bg-space-background-start/50"
+            : "bg-transparent hover:bg-black/4 dark:hover:bg-white/4"
         )}
       >
         <span
           className={cn(
             "flex size-6 shrink-0",
             "items-center justify-center overflow-hidden",
-            selected && hasLoadedFavicon ? "bg-white rounded-[2px]" : "bg-transparent"
+            selected && hasLoadedFavicon ? "rounded-[2px] bg-white dark:bg-white" : "bg-transparent"
           )}
         >
           <SuggestionIcon
@@ -133,11 +135,13 @@ export function OmniboxSuggestionRow({ suggestion, index, selected, onSelect }: 
           />
         </span>
         <span className={cn("min-w-0 flex-1 truncate font-sans text-[14px] font-medium leading-tight")}>
-          <span className={cn(selected ? "text-white" : "text-zinc-200")}>{title}</span>
+          <span className={cn(selected ? "text-zinc-950 dark:text-white" : "text-zinc-700 dark:text-zinc-200")}>
+            {title}
+          </span>
           {suggestion.type === "website" && title !== generateTitleFromUrl(suggestion.url) && (
-            <span
-              className={cn(selected ? "text-zinc-300" : "text-zinc-400")}
-            >{` — ${generateTitleFromUrl(suggestion.url)}`}</span>
+            <span className={cn(selected ? "text-zinc-600 dark:text-zinc-300" : "text-zinc-500 dark:text-zinc-400")}>
+              {` — ${generateTitleFromUrl(suggestion.url)}`}
+            </span>
           )}
         </span>
         {showAction ? (
@@ -145,15 +149,17 @@ export function OmniboxSuggestionRow({ suggestion, index, selected, onSelect }: 
             <span
               className={cn(
                 "hidden font-sans text-[12px] sm:inline font-medium",
-                selected ? "text-white/90" : "text-zinc-500"
+                selected ? "text-zinc-700 dark:text-white/90" : "text-zinc-500 dark:text-zinc-500"
               )}
             >
               {actionLabel}
             </span>
             <span
               className={cn(
-                "flex size-7 items-center justify-center rounded-sm",
-                selected ? "bg-white text-space-background-start" : "bg-zinc-800 text-zinc-300"
+                "flex size-6 items-center justify-center rounded-sm",
+                selected
+                  ? "bg-white text-zinc-700 dark:text-space-background-start"
+                  : "bg-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
               )}
             >
               <ArrowRight className="size-4" strokeWidth={3} aria-hidden />

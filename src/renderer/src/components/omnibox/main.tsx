@@ -272,14 +272,14 @@ export function OmniboxMain() {
         className={cn(
           "h-full w-full rounded-[13px]",
           "backdrop-blur-sm",
-          commandPaletteOpacity === "solid" && "bg-[#202020]",
-          commandPaletteOpacity === "tinted" && "bg-[#202020]/90",
-          commandPaletteOpacity === "glassy" && "bg-[#202020]/70"
+          commandPaletteOpacity === "solid" && "bg-white dark:bg-[#202020]",
+          commandPaletteOpacity === "tinted" && "bg-white/90 dark:bg-[#202020]/90",
+          commandPaletteOpacity === "glassy" && "bg-white/70 dark:bg-[#202020]/70"
         )}
         style={{ boxShadow: OMNIBOX_SHADOW }}
       >
-        <div className="h-full w-full border-[0.5px] border-transparent platform-darwin:border-(--frame-shadow-border) rounded-[13px]">
-          <div className="h-full w-full border border-(--frame-highlight-border) rounded-[13px]">
+        <div className="h-full w-full rounded-[13px] border-[0.5px] border-black/8 platform-darwin:border-(--frame-shadow-border) dark:border-transparent">
+          <div className="h-full w-full rounded-[13px] border border-black/8 dark:border-(--frame-highlight-border)">
             <div
               className={cn("flex h-full w-full flex-col overflow-hidden", "select-none", "rounded-[13px]")}
               onMouseDownCapture={(e) => {
@@ -290,8 +290,12 @@ export function OmniboxMain() {
                 }
               }}
             >
-              <div className="flex shrink-0 items-center gap-3 border-b border-white/8 px-4 py-3.5">
-                <Search className="ml-1.5 size-3.5 shrink-0 text-zinc-100" strokeWidth={2} aria-hidden />
+              <div className="flex shrink-0 items-center gap-3 border-b border-black/8 px-4 py-3.5 dark:border-white/8">
+                <Search
+                  className="ml-1.5 size-3.5 shrink-0 text-zinc-700 dark:text-zinc-100"
+                  strokeWidth={3}
+                  aria-hidden
+                />
                 <input
                   ref={inputRef}
                   type="text"
@@ -320,7 +324,7 @@ export function OmniboxMain() {
                   placeholder="Search or Enter URL..."
                   className={cn(
                     "min-w-0 flex-1 bg-transparent font-sans text-lg font-medium",
-                    "text-zinc-100 placeholder:text-zinc-500",
+                    "text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400",
                     "outline-none caret-[#3B82F6]"
                   )}
                   spellCheck={false}

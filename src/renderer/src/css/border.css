@@ -1,9 +1,4 @@
 :root {
-  --frame-shadow-border: rgba(0, 0, 0, 0.1);
-  --frame-highlight-border: rgba(255, 255, 255, 0.75);
-}
-
-.dark {
   --frame-shadow-border: rgba(0, 0, 0, 0.8);
   --frame-highlight-border: rgba(255, 255, 255, 0.3);
 }
