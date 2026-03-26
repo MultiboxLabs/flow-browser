@@ -67,7 +67,7 @@ function SuggestionIcon({
     return (
       <WebsiteFavicon
         url={faviconUrl}
-        className={cn("size-4 object-cover rounded-[2px]", className)}
+        className={cn("size-4 object-cover rounded-[2px] text-zinc-100", className)}
         cacheOnly
         onLoadedChange={setHasLoadedFavicon}
       />
