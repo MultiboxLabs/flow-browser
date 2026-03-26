@@ -257,7 +257,7 @@ export function OmniboxMain() {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={onKeyDown}
-          onFocus={() => requestSuggestions(inputValue)}
+          // onFocus={() => requestSuggestions(inputValue)}
           onBlur={() => {
             requestAnimationFrame(() => {
               if (document.hasFocus()) {
