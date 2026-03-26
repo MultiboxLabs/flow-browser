@@ -1,4 +1,4 @@
-import { ChevronRight, Search } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import { useState } from "react";
 import type { OmniboxSuggestion } from "@/lib/omnibox-new/types";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
@@ -143,17 +143,20 @@ export function OmniboxSuggestionRow({ suggestion, index, selected, onSelect }: 
         {showAction ? (
           <span className="flex shrink-0 items-center gap-2">
             <span
-              className={cn("hidden font-sans text-[12px] sm:inline", selected ? "text-white/90" : "text-zinc-500")}
+              className={cn(
+                "hidden font-sans text-[12px] sm:inline font-medium",
+                selected ? "text-white/90" : "text-zinc-500"
+              )}
             >
               {actionLabel}
             </span>
             <span
               className={cn(
-                "flex size-7 items-center justify-center rounded-lg",
-                selected ? "bg-white text-space-background-start" : "bg-zinc-800 text-zinc-500"
+                "flex size-7 items-center justify-center rounded-sm",
+                selected ? "bg-white text-space-background-start" : "bg-zinc-800 text-zinc-300"
               )}
             >
-              <ChevronRight className="size-4" strokeWidth={2.5} aria-hidden />
+              <ArrowRight className="size-4" strokeWidth={3} aria-hidden />
             </span>
           </span>
         ) : null}
