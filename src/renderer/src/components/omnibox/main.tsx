@@ -194,10 +194,22 @@ export function OmniboxMain() {
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setSelectedIndex((i) => Math.min(i + 1, suggestions.length - 1));
+      setSelectedIndex((i) => {
+        let newIndex = i + 1;
+        if (newIndex >= suggestions.length) {
+          newIndex = 0;
+        }
+        return newIndex;
+      });
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setSelectedIndex((i) => Math.max(i - 1, 0));
+      setSelectedIndex((i) => {
+        let newIndex = i - 1;
+        if (newIndex < 0) {
+          newIndex = suggestions.length - 1;
+        }
+        return newIndex;
+      });
     } else if (e.key === "Enter") {
       e.preventDefault();
       const row = suggestions[selectedIndex];
@@ -207,7 +219,7 @@ export function OmniboxMain() {
 
   useEffect(() => {
     const row = listRef.current?.querySelector<HTMLElement>(`[data-index="${selectedIndex}"]`);
-    row?.scrollIntoView({ block: "nearest" });
+    row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [selectedIndex]);
 
   const suggestionKey = (s: OmniboxSuggestion, index: number) => {
