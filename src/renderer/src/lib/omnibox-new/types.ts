@@ -1,4 +1,11 @@
-export type OmniboxSuggestionSource = "verbatim" | "quick-history" | "search-provider" | "pedal" | "open-tab";
+export type OmniboxSuggestionSource =
+  | "verbatim"
+  | "quick-history"
+  | "search-provider"
+  | "pedal"
+  | "open-tab"
+  | "zero-suggest-open-tab"
+  | "zero-suggest-history";
 
 interface OmniboxSuggestionBase {
   relevance: number;

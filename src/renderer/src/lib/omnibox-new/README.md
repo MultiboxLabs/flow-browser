@@ -5,6 +5,7 @@
 - `suggestor.ts` - Raw suggestion production for the current query
 - `index.ts` - Public facade for request orchestration and suggestion list utilities
 - `states.ts` - Tiny shared omnibox state store for the active profile id and URL-title cache
+- `suggestors/zero-suggest.ts` - Empty-input suggestion composition over warmed open-tab and history caches
 - `suggestors/quick-history.ts` - Synchronous, profile-scoped history cache and ranking
 - `suggestors/open-tabs.ts` - Synchronous, current-space open-tab ranking over a cache primed when the omnibox opens
 
@@ -22,7 +23,17 @@ What's the difference between synchronous and asynchronous suggestions?
 
 - Synchronous suggestions are provided immediately, while asynchronous suggestions could take some time to be provided.
 - Synchronous suggestions must have a higher priority than asynchronous suggestions, as we do not want the top suggestion to be replaced after it is provided.
+- Empty input is handled entirely synchronously by Zero Suggest; it does not request remote search suggestions or produce verbatim/pedal rows.
 - The current pipeline flushes all synchronous suggestors together in one batch: `verbatim + quick history + open tabs + pedal`, then merges async search suggestions afterward.
+
+## Zero Suggest
+
+This feature provides a list of suggestions when the input is empty.
+
+It suggests:
+
+- Open Tabs
+- History Records
 
 ## Quick History
 
@@ -62,6 +73,8 @@ What's the difference between synchronous and asynchronous suggestions?
 
 ## Relevance Scores
 
+- Zero Suggest Open Tabs - 780 to 840
+- Zero Suggest History - up to 760
 - Quick History - up to 690, intended to beat weak verbatim/search results when the history match is strong
 - Open Tabs - sync, relevance band 550 to 650
 - Pedal Suggestions (similarity >= 0.85) - 600 to 700

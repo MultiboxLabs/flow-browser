@@ -6,6 +6,7 @@ import type { BrowsingHistoryEntry } from "~/types/history";
 import { cacheUrlTitle, getOmniboxCurrentProfileId } from "../states";
 
 const QUICK_HISTORY_LIMIT = 3;
+const ZERO_SUGGEST_HISTORY_LIMIT = 5;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const SEVEN_DAYS_MS = 7 * ONE_DAY_MS;
 const THIRTY_DAYS_MS = 30 * ONE_DAY_MS;
@@ -130,6 +131,14 @@ function getRecencyBonus(lastVisitTime: number): number {
   return 20;
 }
 
+function getZeroSuggestRecencyBonus(lastVisitTime: number): number {
+  const age = Date.now() - lastVisitTime;
+  if (age <= ONE_DAY_MS) return 210;
+  if (age <= SEVEN_DAYS_MS) return 170;
+  if (age <= THIRTY_DAYS_MS) return 115;
+  return 35;
+}
+
 function getQuickHistoryRelevance(entry: NormalizedHistoryEntry, inputLower: string, tokens: string[]): number | null {
   if (!matchesAllTokens(entry, tokens)) {
     return null;
@@ -250,5 +259,75 @@ export function getQuickHistorySuggestions(trimmedInput: string): OmniboxSuggest
       return left.suggestion.url.localeCompare(right.suggestion.url);
     })
     .slice(0, QUICK_HISTORY_LIMIT)
+    .map((entry) => entry.suggestion);
+}
+
+function getQuickHistoryCacheEntries(): NormalizedHistoryEntry[] {
+  const profileId = getOmniboxCurrentProfileId();
+  if (!profileId) {
+    return [];
+  }
+
+  const cacheEntry = quickHistoryCache.get(profileId);
+  if (!cacheEntry || cacheEntry.profileId !== profileId || cacheEntry.entries.length === 0) {
+    return [];
+  }
+
+  return cacheEntry.entries;
+}
+
+function getZeroSuggestHistoryRelevance(entry: NormalizedHistoryEntry): number {
+  const typedBonus = Math.min(entry.typedCount * 18, 250);
+  const visitBonus = Math.min(entry.visitCount * 4, 180);
+  const recencyBonus = getZeroSuggestRecencyBonus(entry.lastVisitTime);
+
+  return Math.min(760, 240 + typedBonus + visitBonus + recencyBonus);
+}
+
+export function getZeroSuggestHistorySuggestions(): OmniboxSuggestion[] {
+  const entries = getQuickHistoryCacheEntries();
+  if (entries.length === 0) {
+    return [];
+  }
+
+  const dedupedEntries = new Map<string, NormalizedHistoryEntry>();
+
+  for (const entry of entries) {
+    const existing = dedupedEntries.get(entry.uniqueUrlKey);
+    if (!existing) {
+      dedupedEntries.set(entry.uniqueUrlKey, entry);
+      continue;
+    }
+
+    const currentScore = getZeroSuggestHistoryRelevance(entry);
+    const existingScore = getZeroSuggestHistoryRelevance(existing);
+    if (currentScore > existingScore || (currentScore === existingScore && entry.lastVisitTime > existing.lastVisitTime)) {
+      dedupedEntries.set(entry.uniqueUrlKey, entry);
+    }
+  }
+
+  return Array.from(dedupedEntries.values())
+    .map((entry) => ({
+      suggestion: createWebsiteSuggestion(entry.url, getZeroSuggestHistoryRelevance(entry), entry.title.trim() || null, "zero-suggest-history"),
+      lastVisitTime: entry.lastVisitTime,
+      typedCount: entry.typedCount,
+      visitCount: entry.visitCount
+    }))
+    .sort((left, right) => {
+      if (right.suggestion.relevance !== left.suggestion.relevance) {
+        return right.suggestion.relevance - left.suggestion.relevance;
+      }
+      if (right.lastVisitTime !== left.lastVisitTime) {
+        return right.lastVisitTime - left.lastVisitTime;
+      }
+      if (right.typedCount !== left.typedCount) {
+        return right.typedCount - left.typedCount;
+      }
+      if (right.visitCount !== left.visitCount) {
+        return right.visitCount - left.visitCount;
+      }
+      return left.suggestion.url.localeCompare(right.suggestion.url);
+    })
+    .slice(0, ZERO_SUGGEST_HISTORY_LIMIT)
     .map((entry) => entry.suggestion);
 }

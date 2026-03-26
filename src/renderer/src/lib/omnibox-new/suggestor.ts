@@ -1,5 +1,6 @@
 import { flushSearchSuggestions } from "./suggestors/search-suggestions";
 import { type OmniboxFlush } from "./helpers";
+import { getZeroSuggestSuggestions } from "./zero-suggest";
 import {
   getOpenTabSuggestions,
   getPedalSuggestions,
@@ -17,8 +18,7 @@ import {
 export function getOmniboxSuggestions(input: string, flush: OmniboxFlush): void {
   const trimmedInput = input.trim();
   if (!trimmedInput) {
-    flush([]);
-    return;
+    return getZeroSuggestSuggestions(flush);
   }
 
   // Initial suggestions (verbatim, quick history, open tabs, and pedal)

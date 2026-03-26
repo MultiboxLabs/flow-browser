@@ -9,6 +9,9 @@ const MIN_QUERY_LENGTH = 3;
 const MIN_SIMILARITY = 0.35;
 const OPEN_TAB_MIN_RELEVANCE = 550;
 const OPEN_TAB_MAX_RELEVANCE = 650;
+const ZERO_SUGGEST_OPEN_TAB_LIMIT = 3;
+const ZERO_SUGGEST_OPEN_TAB_MAX_RELEVANCE = 840;
+const ZERO_SUGGEST_OPEN_TAB_MIN_RELEVANCE = 780;
 
 type NormalizedOpenTab = TabData & {
   titleLower: string;
@@ -81,7 +84,7 @@ function getOpenTabRelevance(tab: NormalizedOpenTab, inputLower: string, inputLo
   return Math.min(OPEN_TAB_MAX_RELEVANCE, Math.max(OPEN_TAB_MIN_RELEVANCE, relevance));
 }
 
-function createOpenTabSuggestion(tab: NormalizedOpenTab, relevance: number): OpenTabSuggestion {
+function createOpenTabSuggestion(tab: NormalizedOpenTab, relevance: number, isZeroSuggest: boolean): OpenTabSuggestion {
   return {
     type: "open-tab",
     tabId: tab.id,
@@ -89,8 +92,16 @@ function createOpenTabSuggestion(tab: NormalizedOpenTab, relevance: number): Ope
     title: tab.title.trim() || generateTitleFromUrl(tab.url),
     url: tab.url,
     relevance,
-    source: "open-tab"
+    source: isZeroSuggest ? "zero-suggest-open-tab" : "open-tab"
   };
+}
+
+function getEligibleOpenTabs(cacheEntry: OpenTabsCacheEntry, currentSpaceId: string): NormalizedOpenTab[] {
+  const focusedTabId = cacheEntry.focusedTabIds[currentSpaceId] ?? null;
+
+  return cacheEntry.tabs
+    .filter((tab) => tab.spaceId === currentSpaceId && !tab.ephemeral && tab.id !== focusedTabId)
+    .map(normalizeOpenTab);
 }
 
 export function primeOpenTabsCache(
@@ -158,11 +169,8 @@ export function getOpenTabSuggestions(trimmedInput: string): OpenTabSuggestion[]
 
   const inputLower = trimmedInput.toLowerCase();
   const inputLooksLikeUrl = isUrlLikeInput(trimmedInput);
-  const focusedTabId = cacheEntry.focusedTabIds[currentSpaceId] ?? null;
 
-  return cacheEntry.tabs
-    .filter((tab) => tab.spaceId === currentSpaceId && !tab.ephemeral && tab.id !== focusedTabId)
-    .map(normalizeOpenTab)
+  return getEligibleOpenTabs(cacheEntry, currentSpaceId)
     .map((tab) => {
       const relevance = getOpenTabRelevance(tab, inputLower, inputLooksLikeUrl);
       if (relevance === null) {
@@ -170,7 +178,7 @@ export function getOpenTabSuggestions(trimmedInput: string): OpenTabSuggestion[]
       }
 
       return {
-        suggestion: createOpenTabSuggestion(tab, relevance),
+        suggestion: createOpenTabSuggestion(tab, relevance, false),
         lastActiveAt: tab.lastActiveAt
       };
     })
@@ -186,4 +194,38 @@ export function getOpenTabSuggestions(trimmedInput: string): OpenTabSuggestion[]
     })
     .slice(0, OPEN_TAB_LIMIT)
     .map((entry) => entry.suggestion);
+}
+
+export function getZeroSuggestOpenTabSuggestions(): OpenTabSuggestion[] {
+  const currentSpaceId = getOmniboxCurrentSpaceId();
+  if (!currentSpaceId) {
+    return [];
+  }
+
+  const cacheEntry = openTabsCache.get(currentSpaceId);
+  if (!cacheEntry || cacheEntry.tabs.length === 0) {
+    return [];
+  }
+
+  const eligibleTabs = getEligibleOpenTabs(cacheEntry, currentSpaceId);
+  if (eligibleTabs.length === 0) {
+    return [];
+  }
+
+  const relevanceStep =
+    ZERO_SUGGEST_OPEN_TAB_LIMIT > 1
+      ? (ZERO_SUGGEST_OPEN_TAB_MAX_RELEVANCE - ZERO_SUGGEST_OPEN_TAB_MIN_RELEVANCE) / (ZERO_SUGGEST_OPEN_TAB_LIMIT - 1)
+      : 0;
+
+  return eligibleTabs
+    .sort((left, right) => {
+      if (right.lastActiveAt !== left.lastActiveAt) {
+        return right.lastActiveAt - left.lastActiveAt;
+      }
+      return left.url.localeCompare(right.url);
+    })
+    .slice(0, ZERO_SUGGEST_OPEN_TAB_LIMIT)
+    .map((tab, index) =>
+      createOpenTabSuggestion(tab, Math.round(ZERO_SUGGEST_OPEN_TAB_MAX_RELEVANCE - index * relevanceStep), true)
+    );
 }
