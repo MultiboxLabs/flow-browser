@@ -98,7 +98,7 @@ export function OmniboxSuggestionRow({ suggestion, index, selected, onSelect }: 
         className={cn(
           "flex w-full items-center gap-2.5 rounded-[10px] text-left",
           "px-3.5 py-2.5",
-          selected ? "bg-[#7C3AED]" : "bg-transparent hover:bg-white/4"
+          selected ? "bg-space-background-start/50" : "bg-transparent hover:bg-white/4"
         )}
       >
         <span
@@ -139,7 +139,7 @@ export function OmniboxSuggestionRow({ suggestion, index, selected, onSelect }: 
             <span
               className={cn(
                 "flex size-7 items-center justify-center rounded-lg",
-                selected ? "bg-white text-[#7C3AED]" : "bg-zinc-800 text-zinc-500"
+                selected ? "bg-white text-space-background-start" : "bg-zinc-800 text-zinc-500"
               )}
             >
               <ChevronRight className="size-4" strokeWidth={2.5} aria-hidden />
