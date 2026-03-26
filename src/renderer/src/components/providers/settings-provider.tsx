@@ -18,6 +18,13 @@ export const useSettings = () => {
   return context;
 };
 
+export function useSetting<T>(settingId: string): [T, (value: T) => Promise<boolean>] {
+  const { getSetting, setSetting } = useSettings();
+  const value = getSetting<T>(settingId);
+  const set = useCallback((newValue: T) => setSetting(settingId, newValue), [settingId, setSetting]);
+  return [value, set];
+}
+
 interface SettingsProviderProps {
   children: React.ReactNode;
 }

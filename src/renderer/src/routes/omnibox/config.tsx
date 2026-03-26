@@ -1,3 +1,4 @@
+import { SettingsProvider } from "@/components/providers/settings-provider";
 import { SpacesProvider } from "@/components/providers/spaces-provider";
 import { ThemeProvider } from "@/components/main/theme";
 import { RouteConfigType } from "@/types/routes";
@@ -7,7 +8,9 @@ export const RouteConfig: RouteConfigType = {
   Providers: ({ children }: { children: ReactNode }) => {
     return (
       <ThemeProvider>
-        <SpacesProvider windowType="popup">{children}</SpacesProvider>
+        <SettingsProvider>
+          <SpacesProvider windowType="popup">{children}</SpacesProvider>
+        </SettingsProvider>
       </ThemeProvider>
     );
   }

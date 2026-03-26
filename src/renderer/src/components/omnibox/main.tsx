@@ -4,6 +4,7 @@ import { requestOmniboxSuggestions } from "@/lib/omnibox-new";
 import { primeQuickHistoryCache } from "@/lib/omnibox-new/suggestors";
 import type { OmniboxSuggestion } from "@/lib/omnibox-new/types";
 import { OmniboxSuggestionRow } from "@/components/omnibox/omnibox-suggestion";
+import { useSetting } from "@/components/providers/settings-provider";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import type { OmniboxOpenState } from "~/flow/interfaces/browser/omnibox";
@@ -74,6 +75,7 @@ export function OmniboxMain() {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const suggestionRequestIdRef = useRef(0);
+  const [commandPaletteOpacity] = useSetting<"solid" | "tinted" | "glassy">("commandPaletteOpacity");
 
   const ensureInputFocused = useCallback((selection: "preserve" | "end" | "all" = "preserve") => {
     const el = inputRef.current;
@@ -222,7 +224,13 @@ export function OmniboxMain() {
   return (
     <div className={"h-screen w-screen box-border"} style={{ padding: OMNIBOX_VIEW_PADDING }}>
       <div
-        className={cn("h-full w-full rounded-[13px]", "bg-[#202020]/90 backdrop-blur-sm")}
+        className={cn(
+          "h-full w-full rounded-[13px]",
+          "backdrop-blur-sm",
+          commandPaletteOpacity === "solid" && "bg-[#202020]",
+          commandPaletteOpacity === "tinted" && "bg-[#202020]/90",
+          commandPaletteOpacity === "glassy" && "bg-[#202020]/70"
+        )}
         style={{ boxShadow: OMNIBOX_SHADOW }}
       >
         <div className="h-full w-full border-[0.5px] border-(--frame-shadow-border) rounded-[13px]">

@@ -97,6 +97,29 @@ export const BasicSettings: BasicSetting[] = [
     ]
   },
 
+  // Command Palette Opacity
+  {
+    id: "commandPaletteOpacity",
+    name: "Command Palette Opacity",
+    showName: false,
+    type: "enum",
+    defaultValue: "tinted",
+    options: [
+      {
+        id: "solid",
+        name: "Solid"
+      },
+      {
+        id: "tinted",
+        name: "Tinted (Default)"
+      },
+      {
+        id: "glassy",
+        name: "Glassy"
+      }
+    ]
+  },
+
   // Sidebar Side
   {
     id: "sidebarSide",
@@ -237,6 +260,13 @@ export const BasicSettingCards: BasicSettingCard[] = [
     title: "New Tab Mode",
     subtitle: "Choose how new tabs should open",
     settings: ["newTabMode"]
+  },
+
+  // Command Palette Card
+  {
+    title: "Command Palette",
+    subtitle: "Choose how translucent the command palette should be",
+    settings: ["commandPaletteOpacity"]
   },
 
   // Sidebar Settings Card
