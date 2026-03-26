@@ -313,14 +313,22 @@ export function getZeroSuggestHistorySuggestions(): OmniboxSuggestion[] {
 
     const currentScore = getZeroSuggestHistoryRelevance(entry);
     const existingScore = getZeroSuggestHistoryRelevance(existing);
-    if (currentScore > existingScore || (currentScore === existingScore && entry.lastVisitTime > existing.lastVisitTime)) {
+    if (
+      currentScore > existingScore ||
+      (currentScore === existingScore && entry.lastVisitTime > existing.lastVisitTime)
+    ) {
       dedupedEntries.set(entry.uniqueUrlKey, entry);
     }
   }
 
   return Array.from(dedupedEntries.values())
     .map((entry) => ({
-      suggestion: createWebsiteSuggestion(entry.url, getZeroSuggestHistoryRelevance(entry), entry.title.trim() || null, "zero-suggest-history"),
+      suggestion: createWebsiteSuggestion(
+        entry.url,
+        getZeroSuggestHistoryRelevance(entry),
+        entry.title.trim() || null,
+        "zero-suggest-history"
+      ),
       lastVisitTime: entry.lastVisitTime,
       typedCount: entry.typedCount,
       visitCount: entry.visitCount
