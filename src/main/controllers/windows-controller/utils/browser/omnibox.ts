@@ -7,10 +7,41 @@ import type { OmniboxOpenIn, OmniboxOpenState } from "~/flow/interfaces/browser/
 
 const omniboxes = new Map<BrowserWindow, Omnibox>();
 const OMNIBOX_URL = "flow-internal://omnibox/";
+const OMNIBOX_SHADOW_PADDING = 30;
+const DEFAULT_OMNIBOX_WIDTH = 750;
+const DEFAULT_OMNIBOX_HEIGHT = 335;
 
 type QueryParams = { [key: string]: string };
 
 const OMNIBOX_OPEN_DEVTOOLS = true;
+
+function normalizeBounds(bounds: Electron.Rectangle, windowBounds: Rectangle): Rectangle {
+  const width = clamp(Math.round(bounds.width), 0, windowBounds.width);
+  const height = clamp(Math.round(bounds.height), 0, windowBounds.height);
+  const x = clamp(Math.round(bounds.x), 0, Math.max(0, windowBounds.width - width));
+  const y = clamp(Math.round(bounds.y), 0, Math.max(0, windowBounds.height - height));
+
+  return {
+    x,
+    y,
+    width,
+    height
+  };
+}
+
+function addShadowPadding(bounds: Electron.Rectangle, windowBounds: Rectangle): Rectangle {
+  const left = clamp(bounds.x - OMNIBOX_SHADOW_PADDING, 0, windowBounds.width);
+  const top = clamp(bounds.y - OMNIBOX_SHADOW_PADDING, 0, windowBounds.height);
+  const right = clamp(bounds.x + bounds.width + OMNIBOX_SHADOW_PADDING, left, windowBounds.width);
+  const bottom = clamp(bounds.y + bounds.height + OMNIBOX_SHADOW_PADDING, top, windowBounds.height);
+
+  return {
+    x: left,
+    y: top,
+    width: right - left,
+    height: bottom - top
+  };
+}
 
 export class Omnibox {
   public view: WebContentsView;
@@ -40,8 +71,6 @@ export class Omnibox {
     if (OMNIBOX_OPEN_DEVTOOLS) {
       onmiboxWC.openDevTools({ mode: "detach" });
     }
-
-    onmiboxView.setBorderRadius(13);
 
     // on focus lost, hide omnibox
     onmiboxWC.on("blur", () => {
@@ -145,33 +174,28 @@ export class Omnibox {
 
       const windowBounds = this.window.getBounds();
 
-      const newX = clamp(this.bounds.x, 0, windowBounds.width);
-      const newY = clamp(this.bounds.y, 0, windowBounds.height);
-      const newWidth = clamp(this.bounds.width, 0, windowBounds.width - newX);
-      const newHeight = clamp(this.bounds.height, 0, windowBounds.height - newY);
-
-      const newBounds: Rectangle = {
-        x: newX,
-        y: newY,
-        width: newWidth,
-        height: newHeight
-      };
+      const contentBounds = normalizeBounds(this.bounds, windowBounds);
+      const newBounds = addShadowPadding(contentBounds, windowBounds);
 
       this.view.setBounds(newBounds);
     } else {
       const windowBounds = this.window.getBounds();
 
-      const omniboxWidth = Math.min(750, windowBounds.width);
-      const omniboxHeight = Math.min(335, windowBounds.height);
-      const omniboxX = windowBounds.width / 2 - omniboxWidth / 2;
-      const omniboxY = windowBounds.height / 2 - omniboxHeight / 2;
-
-      const newBounds: Rectangle = {
-        x: omniboxX,
-        y: omniboxY,
-        width: omniboxWidth,
-        height: omniboxHeight
-      };
+      const availableWidth = Math.max(0, windowBounds.width - OMNIBOX_SHADOW_PADDING * 2);
+      const availableHeight = Math.max(0, windowBounds.height - OMNIBOX_SHADOW_PADDING * 2);
+      const omniboxWidth = Math.min(DEFAULT_OMNIBOX_WIDTH, availableWidth);
+      const omniboxHeight = Math.min(DEFAULT_OMNIBOX_HEIGHT, availableHeight);
+      const omniboxX = Math.round(windowBounds.width / 2 - omniboxWidth / 2);
+      const omniboxY = Math.round(windowBounds.height / 2 - omniboxHeight / 2);
+      const newBounds = addShadowPadding(
+        {
+          x: omniboxX,
+          y: omniboxY,
+          width: omniboxWidth,
+          height: omniboxHeight
+        },
+        windowBounds
+      );
       debugPrint("OMNIBOX", `Calculating new bounds: ${JSON.stringify(newBounds)}`);
       this.view.setBounds(newBounds);
     }
@@ -289,18 +313,8 @@ export class Omnibox {
 
   // Extra //
   setBounds(bounds: Electron.Rectangle | null) {
-    const parentWindow = this.window;
     if (bounds) {
-      const windowBounds = parentWindow.getBounds();
-
-      const newBounds: Electron.Rectangle = {
-        x: Math.min(bounds.x, windowBounds.width - bounds.width),
-        y: Math.min(bounds.y, windowBounds.height - bounds.height),
-        width: bounds.width,
-        height: bounds.height
-      };
-
-      this._setBounds(newBounds);
+      this._setBounds(bounds);
     } else {
       this._setBounds(null);
     }

@@ -13,6 +13,10 @@ const DEFAULT_OPEN_STATE: OmniboxOpenState = {
   sequence: 0
 };
 
+const OMNIBOX_VIEW_PADDING = 30;
+const OMNIBOX_SHADOW =
+  "0 10px 25px -10px rgba(0, 0, 0, 0.52), 0 6px 14px -8px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.16), 0 1px 0 rgba(255, 255, 255, 0.08)";
+
 function commitSuggestion(suggestion: OmniboxSuggestion, openIn: "current" | "new_tab") {
   switch (suggestion.type) {
     case "open-tab":
@@ -203,70 +207,71 @@ export function OmniboxMain() {
   };
 
   return (
-    <div className="border-[0.5px] border-(--frame-shadow-border) rounded-[13px]">
-      <div className="border border-(--frame-highlight-border) rounded-[13px]">
-        <div
-          className={cn(
-            "flex flex-col overflow-hidden",
-            "w-[calc(100vw-3px)] h-[calc(100vh-3px)]",
-            "bg-[#202020]/90 backdrop-blur-lg",
-            "select-none",
-            "rounded-[13px]"
-          )}
-          onMouseDownCapture={(e) => {
-            if (e.target !== inputRef.current) {
-              requestAnimationFrame(() => {
-                ensureInputFocused();
-              });
-            }
-          }}
-        >
-          <div className="flex shrink-0 items-center gap-3 border-b border-white/8 px-4 py-3.5">
-            <Search className="ml-1.5 size-3.5 shrink-0 text-zinc-100" strokeWidth={2} aria-hidden />
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={onKeyDown}
-              // onFocus={() => requestSuggestions(inputValue)}
-              onBlur={() => {
-                requestAnimationFrame(() => {
-                  if (document.hasFocus()) {
+    <div className={"h-screen w-screen box-border"} style={{ padding: OMNIBOX_VIEW_PADDING }}>
+      <div
+        className={cn("h-full w-full rounded-[13px]", "bg-[#202020]/90 backdrop-blur-lg")}
+        style={{ boxShadow: OMNIBOX_SHADOW }}
+      >
+        <div className="h-full w-full border-[0.5px] border-(--frame-shadow-border) rounded-[13px]">
+          <div className="h-full w-full border border-(--frame-highlight-border) rounded-[13px]">
+            <div
+              className={cn("flex h-full w-full flex-col overflow-hidden", "select-none", "rounded-[13px]")}
+              onMouseDownCapture={(e) => {
+                if (e.target !== inputRef.current) {
+                  requestAnimationFrame(() => {
                     ensureInputFocused();
-                  }
-                });
+                  });
+                }
               }}
-              placeholder="Search or Enter URL..."
-              className={cn(
-                "min-w-0 flex-1 bg-transparent font-sans text-lg font-medium",
-                "text-zinc-100 placeholder:text-zinc-500",
-                "outline-none caret-[#3B82F6]"
-              )}
-              spellCheck={false}
-              autoComplete="off"
-              autoCorrect="off"
-              aria-autocomplete="list"
-              aria-controls="omnibox-suggestions"
-              aria-activedescendant={suggestions.length > 0 ? `omnibox-option-${selectedIndex}` : undefined}
-            />
-          </div>
+            >
+              <div className="flex shrink-0 items-center gap-3 border-b border-white/8 px-4 py-3.5">
+                <Search className="ml-1.5 size-3.5 shrink-0 text-zinc-100" strokeWidth={2} aria-hidden />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  // onFocus={() => requestSuggestions(inputValue)}
+                  onBlur={() => {
+                    requestAnimationFrame(() => {
+                      if (document.hasFocus()) {
+                        ensureInputFocused();
+                      }
+                    });
+                  }}
+                  placeholder="Search or Enter URL..."
+                  className={cn(
+                    "min-w-0 flex-1 bg-transparent font-sans text-lg font-medium",
+                    "text-zinc-100 placeholder:text-zinc-500",
+                    "outline-none caret-[#3B82F6]"
+                  )}
+                  spellCheck={false}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  aria-autocomplete="list"
+                  aria-controls="omnibox-suggestions"
+                  aria-activedescendant={suggestions.length > 0 ? `omnibox-option-${selectedIndex}` : undefined}
+                />
+              </div>
 
-          <div
-            ref={listRef}
-            id="omnibox-suggestions"
-            role="listbox"
-            className="min-h-0 flex-1 overflow-y-auto px-2 py-2 no-scrollbar"
-          >
-            {suggestions.map((suggestion, index) => (
-              <OmniboxSuggestionRow
-                key={suggestionKey(suggestion, index)}
-                suggestion={suggestion}
-                index={index}
-                selected={index === selectedIndex}
-                onSelect={commitSelected}
-              />
-            ))}
+              <div
+                ref={listRef}
+                id="omnibox-suggestions"
+                role="listbox"
+                className="min-h-0 flex-1 overflow-y-auto px-2 py-2 no-scrollbar"
+              >
+                {suggestions.map((suggestion, index) => (
+                  <OmniboxSuggestionRow
+                    key={suggestionKey(suggestion, index)}
+                    suggestion={suggestion}
+                    index={index}
+                    selected={index === selectedIndex}
+                    onSelect={commitSelected}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
