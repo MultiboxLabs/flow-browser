@@ -16,20 +16,16 @@ type GoogleSuggestType = "QUERY" | "NAVIGATION" | "ENTITY" | "TAIL" | "CALCULATO
 
 const GOOGLE_SEARCH_BASE_URL = "https://www.google.com/search";
 const GOOGLE_SUGGEST_BASE_URL = "https://suggestqueries.google.com/complete/search";
+const SEARCH_SUGGESTION_MIN_RELEVANCE = 100;
+const SEARCH_SUGGESTION_MAX_RELEVANCE = 400;
 
-function mapSuggestionRelevance(
-  serverRelevance: number | undefined,
-  index: number,
-  kind: SearchProviderCompletion["kind"]
-): number {
-  const fallback = kind === "navigation" ? 700 : 500;
+function mapSuggestionRelevance(serverRelevance: number | undefined, index: number): number {
+  const fallback = SEARCH_SUGGESTION_MIN_RELEVANCE;
   const clamped = Math.max(0, Math.min(serverRelevance ?? fallback - index * 25, 1300));
-
-  if (kind === "navigation") {
-    return Math.round(600 + (clamped / 1300) * 500);
-  }
-
-  return Math.round(300 + (clamped / 1300) * 700);
+  return Math.round(
+    SEARCH_SUGGESTION_MIN_RELEVANCE +
+      (clamped / 1300) * (SEARCH_SUGGESTION_MAX_RELEVANCE - SEARCH_SUGGESTION_MIN_RELEVANCE)
+  );
 }
 
 function normalizeNavigationUrl(value: string): string | null {
@@ -67,7 +63,7 @@ function parseSuggestion(
       title: null,
       url,
       description: url,
-      relevance: mapSuggestionRelevance(relevance, index, "navigation")
+      relevance: mapSuggestionRelevance(relevance, index)
     };
   }
 
@@ -75,7 +71,7 @@ function parseSuggestion(
     kind: "query",
     title: text,
     query: text,
-    relevance: mapSuggestionRelevance(relevance, index, "query")
+    relevance: mapSuggestionRelevance(relevance, index)
   };
 }
 

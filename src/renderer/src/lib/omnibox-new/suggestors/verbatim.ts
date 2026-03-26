@@ -3,7 +3,8 @@ import { getSearchProvider } from "../search-providers";
 import type { OmniboxSuggestion } from "../types";
 import { bangs } from "../bangs";
 
-const VERBATIM_MAX_RELEVANCE = 500;
+const VERBATIM_URL_RELEVANCE = 500;
+const VERBATIM_SEARCH_RELEVANCE = 499;
 
 // Bangs implementation mostly taken from unduck
 // https://github.com/T3-Content/unduck/blob/c1b821de0ffa286cfd964817d1918c5e90545db4/src/main.ts#L50
@@ -43,7 +44,7 @@ export function getVerbatimSuggestions(trimmedInput: string): OmniboxSuggestion[
       title: generateTitleFromUrl(targetUrl),
       url: targetUrl,
       description: targetUrl,
-      relevance: VERBATIM_MAX_RELEVANCE
+      relevance: VERBATIM_URL_RELEVANCE
     });
   }
 
@@ -54,7 +55,7 @@ export function getVerbatimSuggestions(trimmedInput: string): OmniboxSuggestion[
     type: "search",
     query: trimmedInput,
     url: searchUrl,
-    relevance: VERBATIM_MAX_RELEVANCE - 1
+    relevance: VERBATIM_SEARCH_RELEVANCE
   });
 
   return verbatimSuggestions;

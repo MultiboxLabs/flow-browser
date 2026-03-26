@@ -9,7 +9,7 @@
 ## Relevance Scores
 
 - Pedal Suggestions (similarity >= 0.85) - 600 to 700
-- Verbatim Suggestion (Exact Search) - 500
-- Verbatim Suggestion (Exact URL) - 499
+- Verbatim Suggestion (Exact URL) - 500
+- Verbatim Suggestion (Exact Search) - 499
 - Pedal Suggestions (similarity >= 0.4) - 300 to 400
 - Search Suggestions - 100 to 400

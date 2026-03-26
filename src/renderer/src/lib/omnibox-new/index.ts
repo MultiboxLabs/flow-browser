@@ -1,3 +1,4 @@
+import { flushSearchSuggestions } from "./suggestors/search-suggestions";
 import { type OmniboxFlush } from "./helpers";
 import { getPedalSuggestions, getVerbatimSuggestions } from "./suggestors";
 
@@ -23,5 +24,5 @@ export function getOmniboxSuggestions(input: string, flush: OmniboxFlush): void 
   const pedalSuggestions = getPedalSuggestions(trimmedInput);
   flush(pedalSuggestions);
 
-  // flushSearchSuggestions(trimmedInput, verbatimSuggestions, flush);
+  flushSearchSuggestions(trimmedInput, flush);
 }
