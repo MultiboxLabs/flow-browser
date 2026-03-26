@@ -1,7 +1,7 @@
 import { createSearchSuggestion, createWebsiteSuggestion } from "../suggestions";
 import { type OmniboxFlush } from "../helpers";
 import { getSearchProvider } from "../search-providers";
-import { mergeSearchCompletions, resolveCompletionUrl } from "../search-providers/helpers";
+import { resolveCompletionUrl } from "../search-providers/helpers";
 import type { SearchProviderCompletion } from "../search-providers/types";
 import type { OmniboxSuggestion } from "../types";
 
@@ -40,8 +40,8 @@ export function flushSearchSuggestions(input: string, flush: OmniboxFlush, signa
       signal
     })
     .then((suggestions) => {
-      const mergedCompletions = mergeSearchCompletions(suggestions.filter(isNonNullable), SEARCH_SUGGESTION_LIMIT);
-      const searchSuggestions = mergedCompletions.map(mapCompletionToSuggestion).filter(isNonNullable);
+      const limitedCompletions = suggestions.filter(isNonNullable).slice(0, SEARCH_SUGGESTION_LIMIT);
+      const searchSuggestions = limitedCompletions.map(mapCompletionToSuggestion).filter(isNonNullable);
       flush(searchSuggestions);
     })
     .catch((error: unknown) => {

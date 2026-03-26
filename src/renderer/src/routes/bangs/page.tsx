@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { getBangs, preloadBangs, type BangEntry } from "@/lib/omnibox-new/bangs-initializer";
+import { getBangs, waitForBangsLoad, type BangEntry } from "@/lib/omnibox-new/bangs-initializer";
 import { motion } from "motion/react";
 import { Search } from "lucide-react";
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
@@ -77,7 +77,7 @@ function BangsPage() {
 
     let cancelled = false;
 
-    void preloadBangs().then(() => {
+    void waitForBangsLoad().then(() => {
       if (cancelled) return;
       startTransition(() => {
         setBangEntries(getBangs());

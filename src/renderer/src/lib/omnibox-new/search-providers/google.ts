@@ -85,6 +85,9 @@ async function fetchGoogleSuggestions({
   url.searchParams.set("q", input);
 
   const response = await fetch(url, { signal });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Google suggestions: ${response.statusText}`);
+  }
   const data = (await response.json()) as GoogleSuggestResponse;
 
   const texts = data[1] ?? [];
@@ -119,7 +122,9 @@ export const googleSearchProvider: SearchProvider = {
       return [];
     }
 
-    const completions = await fetchGoogleSuggestions({ ...request, input: trimmedInput });
+    const completions = await fetchGoogleSuggestions({ ...request, input: trimmedInput }).catch(
+      () => [] as SearchProviderCompletion[]
+    );
     return completions;
   }
 };

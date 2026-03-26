@@ -16,13 +16,22 @@ export type BangEntry = {
 };
 
 let bangs: BangEntry[] | undefined;
-let bangsPromise: Promise<typeof bangs> | undefined;
+let bangsPromise: Promise<BangEntry[]> | undefined;
 
-export async function preloadBangs() {
+async function preloadBangs() {
   if (bangs) return false;
   const bangsModule = (await import("./bangs")) as unknown as { bangs: BangEntry[] };
-  bangs = bangsModule.bangs as BangEntry[];
+  bangs = bangsModule.bangs;
   return true;
+}
+
+export async function waitForBangsLoad() {
+  if (bangs) return bangs;
+  getBangs();
+  if (bangsPromise) {
+    return await bangsPromise;
+  }
+  throw new Error("Bangs not loaded - should be unreachable!!");
 }
 
 export function getBangs() {
@@ -30,7 +39,8 @@ export function getBangs() {
   if (!bangsPromise) {
     bangsPromise = preloadBangs().then(() => {
       bangsPromise = undefined;
-      return bangs;
+      if (bangs) return bangs;
+      throw new Error("Bangs not loaded after preload - should be unreachable!!");
     });
   }
   return [];
