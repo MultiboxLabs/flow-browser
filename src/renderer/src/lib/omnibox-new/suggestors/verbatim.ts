@@ -5,13 +5,30 @@ import { createSearchSuggestion, createWebsiteSuggestion } from "../suggestions"
 const VERBATIM_URL_RELEVANCE = 500;
 const VERBATIM_SEARCH_RELEVANCE = 499;
 
+type BangEntry = {
+  /** category */
+  c?: string;
+  /** subcategory */
+  sc?: string;
+  /** domain */
+  d: string;
+  /** relevance */
+  r: number;
+  /** display name / site name */
+  s: string;
+  /** bang trigger text */
+  t: string;
+  /** search url template, with {{{s}}} replaced with the search query */
+  u: string;
+};
+
 // Instead of importing the bangs module directly, we preload it so the omnibox can be initialized faster.
-let bangs: typeof import("../bangs").bangs | undefined;
+let bangs: BangEntry[] | undefined;
 let bangsPromise: Promise<typeof bangs> | undefined;
 async function preloadBangs() {
   if (bangs) return false;
-  const bangsModule = await import("../bangs");
-  bangs = bangsModule.bangs;
+  const bangsModule = (await import("../bangs")) as unknown as { bangs: BangEntry[] };
+  bangs = bangsModule.bangs as BangEntry[];
   return true;
 }
 function getBangs() {
