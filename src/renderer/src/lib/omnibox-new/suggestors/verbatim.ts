@@ -1,10 +1,31 @@
 import { isValidUrl } from "../helpers";
 import type { OmniboxSuggestion } from "../types";
 import { createSearchSuggestion, createWebsiteSuggestion } from "../suggestions";
-import { bangs } from "../bangs";
 
 const VERBATIM_URL_RELEVANCE = 500;
 const VERBATIM_SEARCH_RELEVANCE = 499;
+
+// Instead of importing the bangs module directly, we preload it so the omnibox can be initialized faster.
+let bangs: typeof import("../bangs").bangs | undefined;
+let bangsPromise: Promise<typeof bangs> | undefined;
+async function preloadBangs() {
+  if (bangs) return false;
+  const bangsModule = await import("../bangs");
+  bangs = bangsModule.bangs;
+  return true;
+}
+function getBangs() {
+  if (bangs) return bangs;
+  if (!bangsPromise) {
+    bangsPromise = preloadBangs().then(() => {
+      bangsPromise = undefined;
+      return bangs;
+    });
+  }
+  return [];
+}
+
+getBangs();
 
 // Bangs implementation mostly taken from unduck
 // https://github.com/T3-Content/unduck/blob/c1b821de0ffa286cfd964817d1918c5e90545db4/src/main.ts#L50
@@ -12,6 +33,7 @@ function getBangSearchUrl(query: string): string | null {
   const match = query.match(/!(\S+)/i);
 
   const bangCandidate = match?.[1]?.toLowerCase();
+  const bangs = getBangs();
   const selectedBang = bangs.find((b) => b.t === bangCandidate);
   if (!selectedBang) return null;
 
