@@ -21,7 +21,7 @@ const SEARCH_SUGGESTION_MAX_RELEVANCE = 400;
 
 function mapSuggestionRelevance(serverRelevance: number | undefined, index: number): number {
   const fallback = SEARCH_SUGGESTION_MIN_RELEVANCE;
-  const clamped = Math.max(0, Math.min(serverRelevance ?? fallback - index * 25, 1300));
+  const clamped = Math.max(0, Math.min((serverRelevance ?? fallback) - index * 25, 1300));
   return Math.round(
     SEARCH_SUGGESTION_MIN_RELEVANCE +
       (clamped / 1300) * (SEARCH_SUGGESTION_MAX_RELEVANCE - SEARCH_SUGGESTION_MIN_RELEVANCE)
