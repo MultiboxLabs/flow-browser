@@ -61,7 +61,8 @@ export function requestOmniboxSuggestions({
   requestId,
   getCurrentRequestId,
   applySuggestions
-}: RequestOmniboxSuggestionsOptions): void {
+}: RequestOmniboxSuggestionsOptions): () => void {
+  const controller = new AbortController();
   let currentSuggestions: OmniboxSuggestion[] = [];
 
   const flush = guardOmniboxFlush(requestId, getCurrentRequestId, (items) => {
@@ -69,5 +70,9 @@ export function requestOmniboxSuggestions({
     applySuggestions(currentSuggestions);
   });
 
-  getOmniboxSuggestions(input, flush);
+  getOmniboxSuggestions(input, flush, controller.signal);
+
+  return () => {
+    controller.abort();
+  };
 }

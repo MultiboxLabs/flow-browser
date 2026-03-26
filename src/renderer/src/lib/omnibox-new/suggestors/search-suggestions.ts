@@ -27,19 +27,17 @@ function mapCompletionToSuggestion(completion: SearchProviderCompletion): Omnibo
   return createSearchSuggestion(completion.query, completion.relevance, null, "search-provider");
 }
 
-export function flushSearchSuggestions(input: string, flush: OmniboxFlush): void {
+export function flushSearchSuggestions(input: string, flush: OmniboxFlush, signal: AbortSignal): void {
   const searchProvider = getSearchProvider();
-  if (!searchProvider.getSuggestions) {
+  if (!searchProvider.getSuggestions || signal.aborted) {
     return;
   }
-
-  const controller = new AbortController();
 
   void searchProvider
     .getSuggestions({
       input,
       limit: SEARCH_SUGGESTION_LIMIT,
-      signal: controller.signal
+      signal
     })
     .then((suggestions) => {
       const mergedCompletions = mergeSearchCompletions(suggestions.filter(isNonNullable), SEARCH_SUGGESTION_LIMIT);

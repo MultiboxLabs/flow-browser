@@ -47,16 +47,18 @@ function Page() {
   const [selectedSuggestion, setSelectedSuggestion] = useState<OmniboxSuggestion | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const requestIdRef = useRef(0);
+  const abortSuggestionsRef = useRef<(() => void) | null>(null);
   const [activeTab, setActiveTab] = useState("details");
 
   const requestSuggestions = useCallback(
     (nextInput: string) => {
+      abortSuggestionsRef.current?.();
       const profileId = currentSpace?.profileId;
       setOmniboxCurrentProfileId(profileId);
       setOmniboxCurrentSpaceId(currentSpace?.id);
 
       const requestId = ++requestIdRef.current;
-      requestOmniboxSuggestions({
+      abortSuggestionsRef.current = requestOmniboxSuggestions({
         input: nextInput,
         requestId,
         getCurrentRequestId: () => requestIdRef.current,
@@ -68,6 +70,12 @@ function Page() {
     },
     [currentSpace?.id, currentSpace?.profileId]
   );
+
+  useEffect(() => {
+    return () => {
+      abortSuggestionsRef.current?.();
+    };
+  }, []);
 
   useEffect(() => {
     setOmniboxCurrentProfileId(currentSpace?.profileId);

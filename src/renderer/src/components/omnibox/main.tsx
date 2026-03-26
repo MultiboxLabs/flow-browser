@@ -79,6 +79,7 @@ export function OmniboxMain() {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const suggestionRequestIdRef = useRef(0);
+  const abortSuggestionsRef = useRef<(() => void) | null>(null);
   const [commandPaletteOpacity] = useSetting<"solid" | "tinted" | "glassy">("commandPaletteOpacity");
   const pendingSelectionModeRef = useRef<Exclude<InputSelectionMode, "preserve"> | null>(null);
 
@@ -109,12 +110,13 @@ export function OmniboxMain() {
 
   const requestSuggestions = useCallback(
     (input: string) => {
+      abortSuggestionsRef.current?.();
       const requestId = ++suggestionRequestIdRef.current;
       setSuggestions([]);
       setSelectedIndex(0);
       setOmniboxCurrentProfileId(currentSpace?.profileId);
       setOmniboxCurrentSpaceId(currentSpace?.id);
-      requestOmniboxSuggestions({
+      abortSuggestionsRef.current = requestOmniboxSuggestions({
         input,
         requestId,
         getCurrentRequestId: () => suggestionRequestIdRef.current,
@@ -194,6 +196,7 @@ export function OmniboxMain() {
 
   useEffect(() => {
     return () => {
+      abortSuggestionsRef.current?.();
       cancelPendingSelection();
     };
   }, [cancelPendingSelection]);

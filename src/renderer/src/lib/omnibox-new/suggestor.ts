@@ -15,7 +15,7 @@ import {
  * For async work, pass a `flush` wrapped with {@link guardOmniboxFlush} at the call
  * site so stale completions cannot overwrite a newer query.
  */
-export function getOmniboxSuggestions(input: string, flush: OmniboxFlush): void {
+export function getOmniboxSuggestions(input: string, flush: OmniboxFlush, signal: AbortSignal): void {
   const trimmedInput = input.trim();
   if (!trimmedInput) {
     return getZeroSuggestSuggestions(flush);
@@ -29,5 +29,5 @@ export function getOmniboxSuggestions(input: string, flush: OmniboxFlush): void 
   flush([...verbatimSuggestions, ...quickHistorySuggestions, ...openTabSuggestions, ...pedalSuggestions]);
 
   // Asynchronous suggestions (search)
-  flushSearchSuggestions(trimmedInput, flush);
+  flushSearchSuggestions(trimmedInput, flush, signal);
 }
