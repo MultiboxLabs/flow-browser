@@ -61,13 +61,13 @@ export function getVerbatimSuggestions(trimmedInput: string): OmniboxSuggestion[
   // Website suggestion (if input can be normalized to a navigable URL)
   const targetUrl = isValidUrl(trimmedInput);
   if (targetUrl) {
-    const websiteSuggestion = createWebsiteSuggestion(targetUrl, VERBATIM_URL_RELEVANCE, null);
+    const websiteSuggestion = createWebsiteSuggestion(targetUrl, VERBATIM_URL_RELEVANCE, null, "verbatim");
     verbatimSuggestions.push(websiteSuggestion);
   }
 
   // Search suggestion
   const bangSearchUrl = getBangSearchUrl(trimmedInput);
-  verbatimSuggestions.push(createSearchSuggestion(trimmedInput, VERBATIM_SEARCH_RELEVANCE, bangSearchUrl));
+  verbatimSuggestions.push(createSearchSuggestion(trimmedInput, VERBATIM_SEARCH_RELEVANCE, bangSearchUrl, "verbatim"));
 
   return verbatimSuggestions;
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -6,60 +6,86 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X, RotateCw, Search, Info, List } from "lucide-react";
-import { Omnibox, OmniboxUpdateCallback } from "@/lib/omnibox/omnibox";
-import { AutocompleteMatch } from "@/lib/omnibox/types";
+import { requestOmniboxSuggestions } from "@/lib/omnibox-new";
+import { primeQuickHistoryCache } from "@/lib/omnibox-new/suggestors";
+import { setOmniboxCurrentProfileId } from "@/lib/omnibox-new/states";
+import type { OmniboxSuggestion } from "@/lib/omnibox-new/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSpaces } from "@/components/providers/spaces-provider";
+
+function suggestionLabel(suggestion: OmniboxSuggestion): string {
+  switch (suggestion.type) {
+    case "search":
+      return suggestion.query;
+    case "website":
+    case "open-tab":
+    case "pedal":
+      return suggestion.title;
+  }
+}
+
+function suggestionValue(suggestion: OmniboxSuggestion): string {
+  switch (suggestion.type) {
+    case "search":
+    case "website":
+    case "open-tab":
+      return suggestion.url;
+    case "pedal":
+      return suggestion.action;
+  }
+}
+
+function suggestionSourceLabel(suggestion: OmniboxSuggestion): string {
+  return suggestion.source.replace(/-/g, " ");
+}
 
 function Page() {
+  const { currentSpace } = useSpaces();
   const [input, setInput] = useState("");
-  const [suggestions, setSuggestions] = useState<AutocompleteMatch[]>([]);
-  const [selectedSuggestion, setSelectedSuggestion] = useState<AutocompleteMatch | null>(null);
+  const [suggestions, setSuggestions] = useState<OmniboxSuggestion[]>([]);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<OmniboxSuggestion | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const omniboxRef = useRef<Omnibox | null>(null);
+  const requestIdRef = useRef(0);
   const [activeTab, setActiveTab] = useState("details");
 
+  const requestSuggestions = useCallback(
+    (nextInput: string) => {
+      const profileId = currentSpace?.profileId;
+      setOmniboxCurrentProfileId(profileId);
+
+      const requestId = ++requestIdRef.current;
+      requestOmniboxSuggestions({
+        input: nextInput,
+        requestId,
+        getCurrentRequestId: () => requestIdRef.current,
+        applySuggestions: (items) => {
+          setSuggestions(items);
+          setSelectedSuggestion(null);
+        }
+      });
+    },
+    [currentSpace?.profileId]
+  );
+
   useEffect(() => {
-    // Initialize the Omnibox with a callback to update suggestions
-    const handleSuggestionsUpdate: OmniboxUpdateCallback = (results) => {
-      setSuggestions(results);
-      // Clear the selected suggestion when the suggestion list changes
-      setSelectedSuggestion(null);
-    };
+    setOmniboxCurrentProfileId(currentSpace?.profileId);
+    void primeQuickHistoryCache(currentSpace?.profileId, { force: true });
+  }, [currentSpace?.profileId]);
 
-    omniboxRef.current = new Omnibox(handleSuggestionsUpdate, {
-      hasZeroSuggest: true,
-      hasPedals: true
-    });
-
-    // Cleanup on unmount
-    return () => {
-      if (omniboxRef.current) {
-        omniboxRef.current.stopQuery();
-      }
-    };
-  }, []);
+  useEffect(() => {
+    requestSuggestions(input);
+  }, [input, requestSuggestions]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setInput(newValue);
-    if (omniboxRef.current) {
-      omniboxRef.current.handleInput(newValue, "keystroke");
-    }
+    setInput(e.target.value);
   };
 
   const handleInputFocus = () => {
-    if (omniboxRef.current) {
-      omniboxRef.current.handleInput(input, "focus");
-    }
+    requestSuggestions(input);
   };
 
-  const handleInputBlur = () => {
-    // Don't stop the query immediately to allow the user to interact with suggestions
-    // We'll handle stopping the query when navigating away from the page
-  };
-
-  const handleSuggestionClick = (suggestion: AutocompleteMatch) => {
+  const handleSuggestionClick = (suggestion: OmniboxSuggestion) => {
     setSelectedSuggestion(suggestion);
     setActiveTab("details");
   };
@@ -70,109 +96,96 @@ function Page() {
 
   const clearInput = () => {
     setInput("");
-    if (omniboxRef.current) {
-      omniboxRef.current.stopQuery();
-      setSuggestions([]);
-    }
+    setSuggestions([]);
+    setSelectedSuggestion(null);
   };
 
   const forceFocus = () => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
+    inputRef.current?.focus();
   };
 
-  const simulateZeroSuggest = () => {
-    clearInput();
-    setTimeout(() => {
-      if (inputRef.current && omniboxRef.current) {
-        inputRef.current.focus();
-        omniboxRef.current.handleInput("", "focus");
-      }
-    }, 100);
+  const setDebugInput = (nextInput: string) => {
+    setInput(nextInput);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
   };
+
+  const sourceTypes = useMemo(
+    () => Array.from(new Set(suggestions.map((suggestion) => suggestionSourceLabel(suggestion)))),
+    [suggestions]
+  );
+
+  const matchTypes = useMemo(
+    () => Array.from(new Set(suggestions.map((suggestion) => suggestion.type))),
+    [suggestions]
+  );
 
   return (
-    <div className="flex flex-col h-screen p-4 gap-4">
+    <div className="flex h-screen flex-col gap-4 p-4">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <h1 className="text-xl font-semibold">Omnibox Debugger</h1>
       </motion.div>
 
       <motion.div
-        className="flex gap-2 items-center"
+        className="flex items-center gap-2"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.1 }}
       >
         <div className="relative flex-grow">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             ref={inputRef}
             type="text"
             value={input}
             onChange={handleInputChange}
             onFocus={handleInputFocus}
-            onBlur={handleInputBlur}
             placeholder="Enter search query..."
             autoFocus
-            className="pl-8 pr-10"
+            className="pr-10 pl-8"
           />
-          {input && (
+          {input ? (
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-1 top-1 h-8 w-8"
+              className="absolute top-1 right-1 h-8 w-8"
               onClick={clearInput}
               title="Clear input"
             >
               <X className="h-4 w-4" />
             </Button>
-          )}
+          ) : null}
         </div>
         <Button variant="outline" size="icon" onClick={forceFocus} title="Refocus input">
           <RotateCw className="h-4 w-4" />
         </Button>
-        <Button variant="secondary" size="sm" onClick={simulateZeroSuggest} className="text-xs whitespace-nowrap">
-          Test Zero Suggest
+        <Button variant="secondary" size="sm" onClick={() => setDebugInput("")} className="text-xs whitespace-nowrap">
+          Test Empty
         </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => {
-            setInput("r");
-            if (omniboxRef.current) {
-              omniboxRef.current.handleInput("r", "keystroke");
-            }
-          }}
-          className="text-xs whitespace-nowrap"
-        >
+        <Button variant="secondary" size="sm" onClick={() => setDebugInput("r")} className="text-xs whitespace-nowrap">
           {'Test "r"'}
         </Button>
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => {
-            setInput("onboarding");
-            if (omniboxRef.current) {
-              omniboxRef.current.handleInput("onboarding", "keystroke");
-            }
-          }}
+          onClick={() => setDebugInput("onboarding")}
           className="text-xs whitespace-nowrap"
         >
           Test Pedal
         </Button>
       </motion.div>
 
-      <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 overflow-hidden">
+      <div className="grid flex-grow grid-cols-1 gap-4 overflow-hidden md:grid-cols-2">
         <motion.div
-          className="flex flex-col h-full overflow-hidden"
+          className="flex h-full flex-col overflow-hidden"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
         >
-          <Card className="flex-grow flex flex-col overflow-hidden">
-            <CardHeader className="py-2 px-4 border-b">
-              <CardTitle className="text-base font-medium flex items-center gap-2">
+          <Card className="flex flex-grow flex-col overflow-hidden">
+            <CardHeader className="border-b px-4 py-2">
+              <CardTitle className="flex items-center gap-2 text-base font-medium">
                 <List className="h-4 w-4" /> Suggestions ({suggestions.length})
               </CardTitle>
             </CardHeader>
@@ -189,17 +202,18 @@ function Page() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[70px] px-2 py-1">Type</TableHead>
+                          <TableHead className="w-[80px] px-2 py-1">Type</TableHead>
                           <TableHead className="px-2 py-1">Content</TableHead>
-                          <TableHead className="w-[70px] text-right px-2 py-1">Score</TableHead>
-                          <TableHead className="w-[100px] hidden lg:table-cell px-2 py-1">Provider</TableHead>
+                          <TableHead className="hidden px-2 py-1 lg:table-cell">Value</TableHead>
+                          <TableHead className="w-[80px] px-2 py-1 text-right">Score</TableHead>
+                          <TableHead className="w-[120px] px-2 py-1">Source</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {suggestions.map((suggestion, index) => (
                           <motion.tr
-                            key={suggestion.contents + suggestion.providerName + index}
-                            className={`cursor-pointer hover:bg-accent/50 text-sm ${selectedSuggestion === suggestion ? "bg-accent" : ""}`}
+                            key={`${suggestion.type}-${suggestionValue(suggestion)}-${index}`}
+                            className={`cursor-pointer text-sm hover:bg-accent/50 ${selectedSuggestion === suggestion ? "bg-accent" : ""}`}
                             initial={{ opacity: 0, y: -5 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.15, delay: index * 0.02 }}
@@ -209,15 +223,22 @@ function Page() {
                             <TableCell className="align-top px-2 py-1.5">
                               <Badge
                                 variant={selectedSuggestion === suggestion ? "default" : "outline"}
-                                className="font-normal text-xs whitespace-nowrap"
+                                className="text-xs font-normal whitespace-nowrap"
                               >
                                 {suggestion.type}
                               </Badge>
                             </TableCell>
-                            <TableCell className="font-medium align-top px-2 py-1.5">{suggestion.contents}</TableCell>
-                            <TableCell className="text-right align-top px-2 py-1.5">{suggestion.relevance}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground align-top hidden lg:table-cell px-2 py-1.5">
-                              {suggestion.providerName}
+                            <TableCell className="align-top px-2 py-1.5 font-medium">
+                              {suggestionLabel(suggestion)}
+                            </TableCell>
+                            <TableCell className="hidden max-w-0 align-top px-2 py-1.5 font-mono text-xs text-muted-foreground lg:table-cell">
+                              <span className="block truncate">{suggestionValue(suggestion)}</span>
+                            </TableCell>
+                            <TableCell className="px-2 py-1.5 text-right align-top">
+                              {Math.round(suggestion.relevance)}
+                            </TableCell>
+                            <TableCell className="px-2 py-1.5 align-top text-xs text-muted-foreground">
+                              {suggestionSourceLabel(suggestion)}
                             </TableCell>
                           </motion.tr>
                         ))}
@@ -227,26 +248,31 @@ function Page() {
                 ) : input ? (
                   <motion.div
                     key="no-suggestions"
-                    className="flex flex-col items-center justify-center h-full text-center py-8 text-muted-foreground"
+                    className="flex h-full flex-col items-center justify-center py-8 text-center text-muted-foreground"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <Search className="h-10 w-10 mb-3 text-muted-foreground/50" />
-                    {'No suggestions found for "{input}"'}
+                    <Search className="mb-3 h-10 w-10 text-muted-foreground/50" />
+                    {'No suggestions found for "'}
+                    {input}
+                    {'"'}
                   </motion.div>
                 ) : (
                   <motion.div
                     key="empty-state"
-                    className="flex flex-col items-center justify-center h-full text-center py-8 text-muted-foreground"
+                    className="flex h-full flex-col items-center justify-center py-8 text-center text-muted-foreground"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <Search className="h-10 w-10 mb-3 text-muted-foreground/50" />
-                    Start typing or use test buttons
+                    <Search className="mb-3 h-10 w-10 text-muted-foreground/50" />
+                    Type to request omnibox suggestions.
+                    <span className="mt-1 text-xs text-muted-foreground/70">
+                      Empty input currently returns no rows.
+                    </span>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -255,22 +281,22 @@ function Page() {
         </motion.div>
 
         <motion.div
-          className="flex flex-col h-full overflow-hidden"
+          className="flex h-full flex-col overflow-hidden"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
         >
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col overflow-hidden">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-grow flex-col overflow-hidden">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="details">
-                <Info className="h-4 w-4 mr-1" /> Details
+                <Info className="mr-1 h-4 w-4" /> Details
               </TabsTrigger>
               <TabsTrigger value="debug">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
                   fill="currentColor"
-                  className="h-4 w-4 mr-1"
+                  className="mr-1 h-4 w-4"
                 >
                   <path
                     fillRule="evenodd"
@@ -282,20 +308,22 @@ function Page() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="details" className="flex-grow overflow-hidden mt-0">
-              <Card className="h-full flex flex-col border-t-0 rounded-t-none">
+            <TabsContent value="details" className="mt-0 flex-grow overflow-hidden">
+              <Card className="flex h-full flex-col rounded-t-none border-t-0">
                 <AnimatePresence mode="wait">
                   {selectedSuggestion ? (
                     <motion.div
                       key="details-content"
-                      className="flex-grow flex flex-col overflow-hidden"
+                      className="flex flex-grow flex-col overflow-hidden"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <CardHeader className="py-2 px-4 flex flex-row items-center justify-between border-b">
-                        <CardTitle className="text-base font-medium truncate">{selectedSuggestion.contents}</CardTitle>
+                      <CardHeader className="flex flex-row items-center justify-between border-b px-4 py-2">
+                        <CardTitle className="truncate text-base font-medium">
+                          {suggestionLabel(selectedSuggestion)}
+                        </CardTitle>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -307,59 +335,58 @@ function Page() {
                         </Button>
                       </CardHeader>
                       <ScrollArea className="flex-grow">
-                        <CardContent className="p-4 text-sm space-y-3">
-                          <div className="flex justify-between items-center bg-secondary/30 p-2 rounded">
+                        <CardContent className="space-y-3 p-4 text-sm">
+                          <div className="flex items-center justify-between rounded bg-secondary/30 p-2">
                             <div>
                               <span className="font-medium text-muted-foreground">Type:</span> {selectedSuggestion.type}
                             </div>
-                            <Badge variant="outline">{selectedSuggestion.relevance}</Badge>
+                            <Badge variant="outline">{Math.round(selectedSuggestion.relevance)}</Badge>
                           </div>
                           <div>
-                            <span className="font-medium text-muted-foreground">Provider:</span>{" "}
-                            {selectedSuggestion.providerName}
+                            <span className="font-medium text-muted-foreground">Source:</span>{" "}
+                            {suggestionSourceLabel(selectedSuggestion)}
                           </div>
-
-                          {selectedSuggestion.description && (
-                            <div>
-                              <span className="font-medium text-muted-foreground">Description:</span>
-                              <p className="mt-1 text-muted-foreground/80">{selectedSuggestion.description}</p>
-                            </div>
-                          )}
-
                           <div>
-                            <span className="font-medium text-muted-foreground">Destination URL:</span>
-                            <div className="text-xs break-all mt-1 bg-secondary/30 p-2 rounded font-mono">
-                              {selectedSuggestion.destinationUrl}
+                            <span className="font-medium text-muted-foreground">Primary Label:</span>
+                            <div className="mt-1 rounded bg-secondary/30 p-2">
+                              {suggestionLabel(selectedSuggestion)}
                             </div>
                           </div>
-
-                          {selectedSuggestion.inlineCompletion && (
-                            <div>
-                              <span className="font-medium text-muted-foreground">Inline Completion:</span>
-                              <p className="mt-1 font-mono bg-secondary/30 p-1 rounded inline-block">
-                                {'"{selectedSuggestion.inlineCompletion}"'}
-                              </p>
+                          <div>
+                            <span className="font-medium text-muted-foreground">Value:</span>
+                            <div className="mt-1 break-all rounded bg-secondary/30 p-2 font-mono text-xs">
+                              {suggestionValue(selectedSuggestion)}
                             </div>
-                          )}
-
-                          {selectedSuggestion.isDefault && (
-                            <div className="bg-green-100 p-2 rounded dark:bg-green-900/30 text-green-800 dark:text-green-200">
-                              <span className="font-medium">Default Match</span>
+                          </div>
+                          {selectedSuggestion.type === "open-tab" ? (
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                              <div>
+                                <span className="font-medium text-muted-foreground">Tab ID:</span>
+                                <div className="mt-1 rounded bg-secondary/30 p-2 font-mono text-xs">
+                                  {selectedSuggestion.tabId}
+                                </div>
+                              </div>
+                              <div>
+                                <span className="font-medium text-muted-foreground">Space ID:</span>
+                                <div className="mt-1 rounded bg-secondary/30 p-2 font-mono text-xs">
+                                  {selectedSuggestion.spaceId}
+                                </div>
+                              </div>
                             </div>
-                          )}
+                          ) : null}
                         </CardContent>
                       </ScrollArea>
                     </motion.div>
                   ) : (
                     <motion.div
                       key="no-details-selected"
-                      className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-6"
+                      className="flex h-full flex-col items-center justify-center p-6 text-center text-muted-foreground"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <Info className="h-10 w-10 mb-3 text-muted-foreground/50" />
+                      <Info className="mb-3 h-10 w-10 text-muted-foreground/50" />
                       <p>
                         Select a suggestion from the list <br />
                         to view its details here.
@@ -370,9 +397,9 @@ function Page() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="debug" className="flex-grow overflow-hidden mt-0">
-              <Card className="h-full flex flex-col border-t-0 rounded-t-none">
-                <CardHeader className="py-2 px-4 border-b">
+            <TabsContent value="debug" className="mt-0 flex-grow overflow-hidden">
+              <Card className="flex h-full flex-col rounded-t-none border-t-0">
+                <CardHeader className="border-b px-4 py-2">
                   <CardTitle className="text-base font-medium">Current State</CardTitle>
                 </CardHeader>
                 <ScrollArea className="flex-grow">
@@ -380,7 +407,7 @@ function Page() {
                     <div className="grid grid-cols-1 gap-3">
                       <div>
                         <span className="font-medium text-muted-foreground">Input:</span>
-                        <span className="ml-2 font-mono bg-secondary/30 p-1 rounded">{`"${input}"`}</span>
+                        <span className="ml-2 rounded bg-secondary/30 p-1 font-mono">{`"${input}"`}</span>
                       </div>
                       <div>
                         <span className="font-medium text-muted-foreground">Input Length:</span>
@@ -391,17 +418,25 @@ function Page() {
                         <span className="ml-2">{suggestions.length}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-muted-foreground">Provider Types:</span>
-                        <span className="ml-2">
-                          {Array.from(new Set(suggestions.map((s) => s.providerName))).join(", ") || "None"}
+                        <span className="font-medium text-muted-foreground">Current Space:</span>
+                        <span className="ml-2">{currentSpace?.name ?? "None"}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-muted-foreground">Current Profile ID:</span>
+                        <span className="ml-2 rounded bg-secondary/30 p-1 font-mono text-xs">
+                          {currentSpace?.profileId ?? "None"}
                         </span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-muted-foreground">Suggestion Sources:</span>
+                        <span className="ml-2">{sourceTypes.join(", ") || "None"}</span>
                       </div>
                       <div>
                         <span className="font-medium text-muted-foreground">Match Types:</span>
                         <div className="mt-1 space-x-1">
-                          {suggestions.length > 0 ? (
-                            Array.from(new Set(suggestions.map((s) => s.type))).map((type, i) => (
-                              <Badge key={i} variant="secondary">
+                          {matchTypes.length > 0 ? (
+                            matchTypes.map((type) => (
+                              <Badge key={type} variant="secondary">
                                 {type}
                               </Badge>
                             ))
@@ -410,14 +445,14 @@ function Page() {
                           )}
                         </div>
                       </div>
-                      {selectedSuggestion && (
-                        <div className="mt-4 pt-4 border-t">
-                          <h4 className="font-medium mb-2 text-muted-foreground">Selected Suggestion Raw:</h4>
-                          <pre className="text-xs bg-secondary/20 p-2 rounded overflow-x-auto">
+                      {selectedSuggestion ? (
+                        <div className="mt-4 border-t pt-4">
+                          <h4 className="mb-2 font-medium text-muted-foreground">Selected Suggestion Raw:</h4>
+                          <pre className="overflow-x-auto rounded bg-secondary/20 p-2 text-xs">
                             {JSON.stringify(selectedSuggestion, null, 2)}
                           </pre>
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   </CardContent>
                 </ScrollArea>
@@ -434,7 +469,7 @@ function App() {
   return (
     <>
       <title>Omnibox Debugger</title>
-      <div className="w-full h-full bg-background">
+      <div className="h-full w-full bg-background">
         <Page />
       </div>
     </>

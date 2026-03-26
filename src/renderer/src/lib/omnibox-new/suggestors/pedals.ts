@@ -69,7 +69,8 @@ export function getPedalSuggestions(trimmedInput: string): OmniboxSuggestion[] {
         type: "pedal",
         title: pedal.description,
         action: pedal.action,
-        relevance
+        relevance,
+        source: "pedal"
       });
     }
   }

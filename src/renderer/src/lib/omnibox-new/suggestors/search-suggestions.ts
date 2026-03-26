@@ -18,13 +18,13 @@ function mapCompletionToSuggestion(completion: SearchProviderCompletion): Omnibo
     if (!targetUrl) {
       return null;
     }
-    return createWebsiteSuggestion(targetUrl, completion.relevance, completion.title);
+    return createWebsiteSuggestion(targetUrl, completion.relevance, completion.title, "search-provider");
   }
 
   if (!completion.query) {
     return null;
   }
-  return createSearchSuggestion(completion.query, completion.relevance, null);
+  return createSearchSuggestion(completion.query, completion.relevance, null, "search-provider");
 }
 
 export function flushSearchSuggestions(input: string, flush: OmniboxFlush): void {

@@ -227,7 +227,7 @@ export function getQuickHistorySuggestions(trimmedInput: string): OmniboxSuggest
       }
 
       return {
-        suggestion: createWebsiteSuggestion(entry.url, relevance, entry.title.trim() || null),
+        suggestion: createWebsiteSuggestion(entry.url, relevance, entry.title.trim() || null, "quick-history"),
         lastVisitTime: entry.lastVisitTime,
         typedCount: entry.typedCount,
         visitCount: entry.visitCount

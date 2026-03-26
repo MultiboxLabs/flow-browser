@@ -1,33 +1,36 @@
-export interface SearchSuggestion {
+export type OmniboxSuggestionSource = "verbatim" | "quick-history" | "search-provider" | "pedal" | "open-tab";
+
+interface OmniboxSuggestionBase {
+  relevance: number;
+  source: OmniboxSuggestionSource;
+}
+
+export interface SearchSuggestion extends OmniboxSuggestionBase {
   type: "search";
   query: string;
   url: string;
-  relevance: number;
 }
 
-export interface WebsiteSuggestion {
+export interface WebsiteSuggestion extends OmniboxSuggestionBase {
   type: "website";
   title: string;
   url: string;
-  relevance: number;
 }
 
-export interface OpenTabSuggestion {
+export interface OpenTabSuggestion extends OmniboxSuggestionBase {
   type: "open-tab";
   /** Tab to activate */
   tabId: number;
   spaceId: string;
   title: string;
   url: string;
-  relevance: number;
 }
 
-export interface PedalSuggestion {
+export interface PedalSuggestion extends OmniboxSuggestionBase {
   type: "pedal";
   /** e.g. open_settings, open_new_window */
   action: string;
   title: string;
-  relevance: number;
 }
 
 export type OmniboxSuggestion = SearchSuggestion | WebsiteSuggestion | OpenTabSuggestion | PedalSuggestion;
