@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { requestOmniboxSuggestions } from "@/lib/omnibox-new";
 import { primeQuickHistoryCache } from "@/lib/omnibox-new/suggestors";
@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import type { OmniboxOpenState } from "~/flow/interfaces/browser/omnibox";
 import "@/css/border.css";
 import { setOmniboxCurrentProfileId } from "@/lib/omnibox-new/states";
+
+type InputSelectionMode = "preserve" | "end" | "all";
 
 const DEFAULT_OPEN_STATE: OmniboxOpenState = {
   currentInput: "",
@@ -78,13 +80,14 @@ export function OmniboxMain() {
   const listRef = useRef<HTMLDivElement>(null);
   const suggestionRequestIdRef = useRef(0);
   const [commandPaletteOpacity] = useSetting<"solid" | "tinted" | "glassy">("commandPaletteOpacity");
+  const pendingSelectionModeRef = useRef<Exclude<InputSelectionMode, "preserve"> | null>(null);
 
-  const ensureInputFocused = useCallback((selection: "preserve" | "end" | "all" = "preserve") => {
+  const ensureInputFocused = useCallback((selection: InputSelectionMode = "preserve") => {
     const el = inputRef.current;
     if (!el) return;
 
     if (document.activeElement !== el) {
-      el.focus();
+      el.focus({ preventScroll: true });
     }
 
     if (selection === "end") {
@@ -93,6 +96,10 @@ export function OmniboxMain() {
     } else if (selection === "all") {
       el.setSelectionRange(0, el.value.length);
     }
+  }, []);
+
+  const cancelPendingSelection = useCallback(() => {
+    pendingSelectionModeRef.current = null;
   }, []);
 
   const applySuggestions = useCallback((items: OmniboxSuggestion[]) => {
@@ -144,7 +151,7 @@ export function OmniboxMain() {
   useEffect(() => {
     const handleWindowFocus = () => {
       requestAnimationFrame(() => {
-        ensureInputFocused();
+        ensureInputFocused(pendingSelectionModeRef.current ?? "preserve");
       });
     };
 
@@ -154,7 +161,7 @@ export function OmniboxMain() {
       }
 
       requestAnimationFrame(() => {
-        ensureInputFocused();
+        ensureInputFocused(pendingSelectionModeRef.current ?? "preserve");
       });
     };
 
@@ -171,11 +178,23 @@ export function OmniboxMain() {
     setSelectedIndex(0);
     void primeQuickHistoryCache(currentSpace?.profileId, { force: true });
     requestSuggestions(openState.currentInput);
+    pendingSelectionModeRef.current = openState.currentInput ? "all" : "end";
+  }, [currentSpace?.profileId, openState.sequence, openState.currentInput, requestSuggestions]);
 
-    requestAnimationFrame(() => {
-      ensureInputFocused(openState.currentInput ? "all" : "end");
-    });
-  }, [currentSpace?.profileId, openState.sequence, openState.currentInput, requestSuggestions, ensureInputFocused]);
+  useLayoutEffect(() => {
+    const pendingSelectionMode = pendingSelectionModeRef.current;
+    if (!pendingSelectionMode) {
+      return;
+    }
+
+    ensureInputFocused(pendingSelectionMode);
+  }, [inputValue, openState.sequence, ensureInputFocused]);
+
+  useEffect(() => {
+    return () => {
+      cancelPendingSelection();
+    };
+  }, [cancelPendingSelection]);
 
   const commitSelected = useCallback(
     (suggestion: OmniboxSuggestion) => {
@@ -185,6 +204,8 @@ export function OmniboxMain() {
   );
 
   const onKeyDown = (e: React.KeyboardEvent) => {
+    cancelPendingSelection();
+
     if (e.key === "Escape") {
       e.preventDefault();
       flow.omnibox.hide();
@@ -262,7 +283,7 @@ export function OmniboxMain() {
               onMouseDownCapture={(e) => {
                 if (e.target !== inputRef.current) {
                   requestAnimationFrame(() => {
-                    ensureInputFocused();
+                    ensureInputFocused(pendingSelectionModeRef.current ?? "preserve");
                   });
                 }
               }}
@@ -273,13 +294,24 @@ export function OmniboxMain() {
                   ref={inputRef}
                   type="text"
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={(e) => {
+                    cancelPendingSelection();
+                    setInputValue(e.target.value);
+                  }}
                   onKeyDown={onKeyDown}
-                  // onFocus={() => requestSuggestions(inputValue)}
+                  onFocus={() => {
+                    const pendingSelectionMode = pendingSelectionModeRef.current;
+                    if (pendingSelectionMode) {
+                      ensureInputFocused(pendingSelectionMode);
+                    }
+                  }}
+                  onMouseDown={() => {
+                    cancelPendingSelection();
+                  }}
                   onBlur={() => {
                     requestAnimationFrame(() => {
                       if (document.hasFocus()) {
-                        ensureInputFocused();
+                        ensureInputFocused(pendingSelectionModeRef.current ?? "preserve");
                       }
                     });
                   }}
