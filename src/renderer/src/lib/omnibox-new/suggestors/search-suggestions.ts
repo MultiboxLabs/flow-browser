@@ -1,3 +1,4 @@
+import { createSearchSuggestion } from "../suggestions";
 import { generateTitleFromUrl, type OmniboxFlush } from "../helpers";
 import { getSearchProvider } from "../search-providers";
 import { mergeSearchCompletions, resolveCompletionUrl } from "../search-providers/helpers";
@@ -11,14 +12,12 @@ function isNonNullable<T>(value: T | null): value is T {
 }
 
 function mapCompletionToSuggestion(completion: SearchProviderCompletion): OmniboxSuggestion | null {
-  const searchProvider = getSearchProvider();
-  const targetUrl = resolveCompletionUrl(searchProvider, completion);
-
-  if (!targetUrl) {
-    return null;
-  }
+  const targetUrl = resolveCompletionUrl(completion);
 
   if (completion.kind === "navigation") {
+    if (!targetUrl) {
+      return null;
+    }
     return {
       type: "website",
       title: completion.title ?? generateTitleFromUrl(targetUrl),
@@ -31,13 +30,7 @@ function mapCompletionToSuggestion(completion: SearchProviderCompletion): Omnibo
   if (!completion.query) {
     return null;
   }
-
-  return {
-    type: "search",
-    query: completion.query,
-    url: targetUrl,
-    relevance: completion.relevance
-  };
+  return createSearchSuggestion(completion.query, completion.relevance, null);
 }
 
 export function flushSearchSuggestions(input: string, flush: OmniboxFlush): void {

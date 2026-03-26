@@ -1,5 +1,5 @@
 import { generateTitleFromUrl } from "@/lib/omnibox-new/helpers";
-import type { SearchProvider, SearchProviderCompletion } from "./types";
+import type { SearchProviderCompletion } from "./types";
 
 function completionIdentity(completion: SearchProviderCompletion): string {
   if (completion.kind === "navigation" && completion.url) {
@@ -13,15 +13,10 @@ function completionIdentity(completion: SearchProviderCompletion): string {
   return `${completion.kind}:${completion.title}`;
 }
 
-export function resolveCompletionUrl(provider: SearchProvider, completion: SearchProviderCompletion): string | null {
+export function resolveCompletionUrl(completion: SearchProviderCompletion): string | null {
   if (completion.kind === "navigation") {
     return completion.url ?? null;
   }
-
-  if (completion.query) {
-    return provider.buildSearchUrl(completion.query);
-  }
-
   return null;
 }
 

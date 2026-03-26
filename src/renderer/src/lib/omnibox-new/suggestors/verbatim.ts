@@ -1,6 +1,6 @@
 import { generateTitleFromUrl, isValidUrl } from "../helpers";
-import { getSearchProvider } from "../search-providers";
 import type { OmniboxSuggestion } from "../types";
+import { createSearchSuggestion } from "../suggestions";
 import { bangs } from "../bangs";
 
 const VERBATIM_URL_RELEVANCE = 500;
@@ -49,14 +49,8 @@ export function getVerbatimSuggestions(trimmedInput: string): OmniboxSuggestion[
   }
 
   // Search suggestion
-  const searchProvider = getSearchProvider();
-  const searchUrl = getBangSearchUrl(trimmedInput) ?? searchProvider.buildSearchUrl(trimmedInput);
-  verbatimSuggestions.push({
-    type: "search",
-    query: trimmedInput,
-    url: searchUrl,
-    relevance: VERBATIM_SEARCH_RELEVANCE
-  });
+  const bangSearchUrl = getBangSearchUrl(trimmedInput);
+  verbatimSuggestions.push(createSearchSuggestion(trimmedInput, VERBATIM_SEARCH_RELEVANCE, bangSearchUrl));
 
   return verbatimSuggestions;
 }
