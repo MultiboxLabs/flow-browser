@@ -102,6 +102,14 @@ export const STATIC_DOMAINS: StaticDomainInfo[] = [
   },
   {
     protocol: "flow",
+    hostname: "bangs",
+    actual: {
+      type: "route",
+      route: "bangs"
+    }
+  },
+  {
+    protocol: "flow",
     hostname: "pdf-viewer",
     actual: {
       type: "route",
