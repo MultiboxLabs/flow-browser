@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { requestOmniboxSuggestions } from "@/lib/omnibox-new";
-import { primeQuickHistoryCache } from "@/lib/omnibox-new/suggestors";
+import { primeOpenTabsCache, primeQuickHistoryCache } from "@/lib/omnibox-new/suggestors";
 import type { OmniboxSuggestion } from "@/lib/omnibox-new/types";
 import { OmniboxSuggestionRow } from "@/components/omnibox/omnibox-suggestion";
 import { useSetting } from "@/components/providers/settings-provider";
@@ -9,7 +9,7 @@ import { useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
 import type { OmniboxOpenState } from "~/flow/interfaces/browser/omnibox";
 import "@/css/border.css";
-import { setOmniboxCurrentProfileId } from "@/lib/omnibox-new/states";
+import { setOmniboxCurrentProfileId, setOmniboxCurrentSpaceId } from "@/lib/omnibox-new/states";
 
 type InputSelectionMode = "preserve" | "end" | "all";
 
@@ -113,6 +113,7 @@ export function OmniboxMain() {
       setSuggestions([]);
       setSelectedIndex(0);
       setOmniboxCurrentProfileId(currentSpace?.profileId);
+      setOmniboxCurrentSpaceId(currentSpace?.id);
       requestOmniboxSuggestions({
         input,
         requestId,
@@ -120,16 +121,18 @@ export function OmniboxMain() {
         applySuggestions
       });
     },
-    [applySuggestions, currentSpace?.profileId]
+    [applySuggestions, currentSpace?.id, currentSpace?.profileId]
   );
 
   useEffect(() => {
     requestSuggestions(inputValue);
   }, [inputValue, requestSuggestions]);
 
+  // This effect is ran when the omnibox is opened.
   useEffect(() => {
-    void primeQuickHistoryCache(currentSpace?.profileId);
-  }, [currentSpace?.profileId]);
+    void primeQuickHistoryCache(currentSpace?.profileId, { force: true });
+    void primeOpenTabsCache(currentSpace?.id, { force: true });
+  }, [openState.openIn, openState.sequence, currentSpace?.id, currentSpace?.profileId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -176,7 +179,6 @@ export function OmniboxMain() {
   useEffect(() => {
     setInputValue(openState.currentInput);
     setSelectedIndex(0);
-    void primeQuickHistoryCache(currentSpace?.profileId, { force: true });
     requestSuggestions(openState.currentInput);
     pendingSelectionModeRef.current = openState.currentInput ? "all" : "end";
   }, [currentSpace?.profileId, openState.sequence, openState.currentInput, requestSuggestions]);

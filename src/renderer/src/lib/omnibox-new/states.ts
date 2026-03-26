@@ -9,6 +9,15 @@ export function getOmniboxCurrentProfileId(): string | undefined {
   return currentProfileId;
 }
 
+// Stores the current space id for the omnibox.
+let currentSpaceId: string | undefined = undefined;
+export function setOmniboxCurrentSpaceId(spaceId: string | undefined) {
+  currentSpaceId = spaceId;
+}
+export function getOmniboxCurrentSpaceId(): string | undefined {
+  return currentSpaceId;
+}
+
 // URL Title Cache
 const urlTitleCache = new Map<string, string>();
 export function cacheUrlTitle(url: string, title: string) {

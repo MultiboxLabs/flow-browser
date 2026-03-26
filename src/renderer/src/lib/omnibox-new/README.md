@@ -6,11 +6,13 @@
 - `index.ts` - Public facade for request orchestration and suggestion list utilities
 - `states.ts` - Tiny shared omnibox state store for the active profile id and URL-title cache
 - `suggestors/quick-history.ts` - Synchronous, profile-scoped history cache and ranking
+- `suggestors/open-tabs.ts` - Synchronous, current-space open-tab ranking over a cache primed when the omnibox opens
 
 ## Suggestors
 
 - Verbatim (Synchronous) - Provide exact search suggestion, and website suggestion if the input is a valid URL (bangs are supported)
 - Quick History (Synchronous) - Suggest a small set of high-value history URLs from a warm in-memory cache using match quality plus frecency
+- Open Tabs (Synchronous) - Suggest a small set of matching open tabs from the active space using a cache primed when the omnibox opens
 - Pedal (Synchronous) - Provide pedal suggestions based on the input
 - Search Suggestions (Asynchronous) - Provide search & link suggestions based on the input, powered by the search provider
 
@@ -20,7 +22,7 @@ What's the difference between synchronous and asynchronous suggestions?
 
 - Synchronous suggestions are provided immediately, while asynchronous suggestions could take some time to be provided.
 - Synchronous suggestions must have a higher priority than asynchronous suggestions, as we do not want the top suggestion to be replaced after it is provided.
-- The current pipeline flushes all synchronous suggestors together in one batch: `verbatim + quick history + pedal`, then merges async search suggestions afterward.
+- The current pipeline flushes all synchronous suggestors together in one batch: `verbatim + quick history + open tabs + pedal`, then merges async search suggestions afterward.
 
 ## Quick History
 
@@ -43,9 +45,25 @@ What's the difference between synchronous and asynchronous suggestions?
 - If the cache is still cold when the user types, Quick History may be absent until a later request.
 - The ranking constants are hand-tuned and not backed by fixture tests yet.
 
+## Open Tabs
+
+- Open-tab data is cached per active space and refreshed when the omnibox opens.
+- `OmniboxMain` primes the cache with `primeOpenTabsCache(..., { force: true })` whenever the omnibox open sequence changes.
+- The debug route also primes the cache explicitly so synchronous open-tab suggestions are available there.
+- `suggestor.ts` reads the active space through `states.ts`, which is set immediately before each request.
+- Open Tabs only runs for non-empty input with at least 3 characters and returns at most 3 results.
+- Matching is restricted to tabs in the active space, excludes the focused tab, and excludes ephemeral tabs.
+- URL-like input requires a strong hostname/path prefix match.
+- Ranking uses a fixed open-tab band from `550` to `650`.
+- Relevance is derived only from the best string similarity between the input and:
+  - The tab title
+  - The normalized hostname
+- The similarity score is then mapped directly into the `550` to `650` band.
+
 ## Relevance Scores
 
 - Quick History - up to 690, intended to beat weak verbatim/search results when the history match is strong
+- Open Tabs - sync, relevance band 550 to 650
 - Pedal Suggestions (similarity >= 0.85) - 600 to 700
 - Verbatim Suggestion (Exact URL) - 500
 - Verbatim Suggestion (Exact Search) - 499

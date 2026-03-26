@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X, RotateCw, Search, Info, List } from "lucide-react";
 import { requestOmniboxSuggestions } from "@/lib/omnibox-new";
-import { primeQuickHistoryCache } from "@/lib/omnibox-new/suggestors";
-import { setOmniboxCurrentProfileId } from "@/lib/omnibox-new/states";
+import { primeOpenTabsCache, primeQuickHistoryCache } from "@/lib/omnibox-new/suggestors";
+import { setOmniboxCurrentProfileId, setOmniboxCurrentSpaceId } from "@/lib/omnibox-new/states";
 import type { OmniboxSuggestion } from "@/lib/omnibox-new/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -53,6 +53,7 @@ function Page() {
     (nextInput: string) => {
       const profileId = currentSpace?.profileId;
       setOmniboxCurrentProfileId(profileId);
+      setOmniboxCurrentSpaceId(currentSpace?.id);
 
       const requestId = ++requestIdRef.current;
       requestOmniboxSuggestions({
@@ -65,13 +66,15 @@ function Page() {
         }
       });
     },
-    [currentSpace?.profileId]
+    [currentSpace?.id, currentSpace?.profileId]
   );
 
   useEffect(() => {
     setOmniboxCurrentProfileId(currentSpace?.profileId);
+    setOmniboxCurrentSpaceId(currentSpace?.id);
     void primeQuickHistoryCache(currentSpace?.profileId, { force: true });
-  }, [currentSpace?.profileId]);
+    void primeOpenTabsCache(currentSpace?.id, { force: true });
+  }, [currentSpace?.id, currentSpace?.profileId, requestSuggestions]);
 
   useEffect(() => {
     requestSuggestions(input);
