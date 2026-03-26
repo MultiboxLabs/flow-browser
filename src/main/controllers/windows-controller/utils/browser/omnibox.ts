@@ -7,9 +7,12 @@ import type { OmniboxOpenIn, OmniboxOpenState } from "~/flow/interfaces/browser/
 
 const omniboxes = new Map<BrowserWindow, Omnibox>();
 const OMNIBOX_URL = "flow-internal://omnibox/";
-const OMNIBOX_SHADOW_PADDING = 30;
 const DEFAULT_OMNIBOX_WIDTH = 750;
 const DEFAULT_OMNIBOX_HEIGHT = 335;
+
+// OMNIBOX_VIEW_PADDING and OMNIBOX_SHADOW_PADDING must be synced to the same value.
+// Make sure to update it in /src/main/controllers/windows-controller/utils/browser/omnibox.ts as well.
+const OMNIBOX_SHADOW_PADDING = 30;
 
 type QueryParams = { [key: string]: string };
 

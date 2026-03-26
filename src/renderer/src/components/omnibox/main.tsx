@@ -13,7 +13,10 @@ const DEFAULT_OPEN_STATE: OmniboxOpenState = {
   sequence: 0
 };
 
+// OMNIBOX_VIEW_PADDING and OMNIBOX_SHADOW_PADDING must be synced to the same value.
+// Make sure to update it in /src/main/controllers/windows-controller/utils/browser/omnibox.ts as well.
 const OMNIBOX_VIEW_PADDING = 30;
+
 const OMNIBOX_SHADOW =
   "0 10px 25px -10px rgba(0, 0, 0, 0.52), 0 6px 14px -8px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.16), 0 1px 0 rgba(255, 255, 255, 0.08)";
 
