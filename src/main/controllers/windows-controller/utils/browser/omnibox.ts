@@ -24,7 +24,7 @@ type PaddedBounds = {
   shadowPadding: OmniboxShadowPadding;
 };
 
-const OMNIBOX_OPEN_DEVTOOLS = true;
+const OMNIBOX_OPEN_DEVTOOLS = false;
 
 function normalizeBounds(bounds: Electron.Rectangle, windowBounds: Rectangle): Rectangle {
   const width = clamp(Math.round(bounds.width), 0, windowBounds.width);

@@ -243,7 +243,7 @@ export function OmniboxMain() {
         )}
         style={{ boxShadow: OMNIBOX_SHADOW }}
       >
-        <div className="h-full w-full border-[0.5px] border-(--frame-shadow-border) rounded-[13px]">
+        <div className="h-full w-full border-[0.5px] border-transparent platform-darwin:border-(--frame-shadow-border) rounded-[13px]">
           <div className="h-full w-full border border-(--frame-highlight-border) rounded-[13px]">
             <div
               className={cn("flex h-full w-full flex-col overflow-hidden", "select-none", "rounded-[13px]")}
