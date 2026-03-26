@@ -76,61 +76,64 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
     currentSpaceRef.current = currentSpace;
   }, [currentSpace]);
 
-  const fetchSpaces = useCallback(async (preferredSpaceId?: string) => {
-    if (!flow) return;
-    try {
-      const [spaces, profiles] = await Promise.all([flow.spaces.getSpaces(), flow.profiles.getProfiles()]);
-      const nextAreProfilesInternal = Object.fromEntries(profiles.map((profile) => [profile.id, profile.internal]));
-      const nextAreProfilesEphemeral = Object.fromEntries(profiles.map((profile) => [profile.id, profile.ephemeral]));
-      setAllSpaces(spaces);
-      setAreProfilesInternal(nextAreProfilesInternal);
-      setAreProfilesEphemeral(nextAreProfilesEphemeral);
+  const fetchSpaces = useCallback(
+    async (preferredSpaceId?: string) => {
+      if (!flow) return;
+      try {
+        const [spaces, profiles] = await Promise.all([flow.spaces.getSpaces(), flow.profiles.getProfiles()]);
+        const nextAreProfilesInternal = Object.fromEntries(profiles.map((profile) => [profile.id, profile.internal]));
+        const nextAreProfilesEphemeral = Object.fromEntries(profiles.map((profile) => [profile.id, profile.ephemeral]));
+        setAllSpaces(spaces);
+        setAreProfilesInternal(nextAreProfilesInternal);
+        setAreProfilesEphemeral(nextAreProfilesEphemeral);
 
-      if (preferredSpaceId) {
-        const preferredSpace = spaces.find((space) => space.id === preferredSpaceId);
-        if (preferredSpace) {
-          setCurrentSpace(preferredSpace);
-          return;
+        if (preferredSpaceId) {
+          const preferredSpace = spaces.find((space) => space.id === preferredSpaceId);
+          if (preferredSpace) {
+            setCurrentSpace(preferredSpace);
+            return;
+          }
         }
-      }
 
-      const existingCurrentSpaceId = currentSpaceRef.current?.id;
-      if (existingCurrentSpaceId) {
-        const updatedCurrentSpace = spaces.find((space) => space.id === existingCurrentSpaceId);
-        if (updatedCurrentSpace) {
-          setCurrentSpace(updatedCurrentSpace);
-          return;
+        const existingCurrentSpaceId = currentSpaceRef.current?.id;
+        if (existingCurrentSpaceId) {
+          const updatedCurrentSpace = spaces.find((space) => space.id === existingCurrentSpaceId);
+          if (updatedCurrentSpace) {
+            setCurrentSpace(updatedCurrentSpace);
+            return;
+          }
         }
-      }
 
-      // Get and set window space if available
-      const windowSpaceId = await flow.spaces.getUsingSpace();
-      if (windowSpaceId) {
-        const windowSpace = spaces.find((space) => space.id === windowSpaceId);
-        if (windowSpace) {
-          setCurrentSpace(windowSpace);
-          return;
+        // Get and set window space if available
+        const windowSpaceId = await flow.spaces.getUsingSpace();
+        if (windowSpaceId) {
+          const windowSpace = spaces.find((space) => space.id === windowSpaceId);
+          if (windowSpace) {
+            setCurrentSpace(windowSpace);
+            return;
+          }
         }
-      }
 
-      // Get and set last used space if no window space
-      const lastUsedSpace = await flow.spaces.getLastUsedSpace();
-      if (lastUsedSpace) {
-        setCurrentSpace(lastUsedSpace);
-      } else if (spaces.length > 0) {
-        // If no last used space, default to first non-internal space
-        const firstVisible = spaces.find((space) => !nextAreProfilesInternal[space.profileId]) ?? spaces[0];
-        setCurrentSpace(firstVisible);
-        if (!isReadOnlyConsumer) {
-          await flow.spaces.setUsingSpace(firstVisible.profileId, firstVisible.id);
+        // Get and set last used space if no window space
+        const lastUsedSpace = await flow.spaces.getLastUsedSpace();
+        if (lastUsedSpace) {
+          setCurrentSpace(lastUsedSpace);
+        } else if (spaces.length > 0) {
+          // If no last used space, default to first non-internal space
+          const firstVisible = spaces.find((space) => !nextAreProfilesInternal[space.profileId]) ?? spaces[0];
+          setCurrentSpace(firstVisible);
+          if (!isReadOnlyConsumer) {
+            await flow.spaces.setUsingSpace(firstVisible.profileId, firstVisible.id);
+          }
         }
+      } catch (error) {
+        console.error("Failed to fetch spaces:", error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch spaces:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isReadOnlyConsumer]);
+    },
+    [isReadOnlyConsumer]
+  );
 
   const revalidate = useCallback(async () => {
     setIsLoading(true);
