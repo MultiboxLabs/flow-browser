@@ -8,7 +8,7 @@ export interface SearchProviderRequest {
 
 export interface SearchProviderCompletion {
   kind: SearchCompletionKind;
-  title: string;
+  title: string | null;
   relevance: number;
   query?: string;
   url?: string;

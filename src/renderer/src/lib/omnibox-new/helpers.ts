@@ -53,7 +53,7 @@ export function isValidUrl(value: string): string | null {
     return parsedWithScheme.toString();
   }
 
-  const candidate = URL.parse(`https://${trimmedValue}`);
+  const candidate = URL.parse(`http://${trimmedValue}`);
   const hostname = candidate?.hostname;
   if (!hostname) {
     return null;
@@ -69,4 +69,41 @@ export function isValidUrl(value: string): string | null {
   }
 
   return candidate.toString();
+}
+
+export function generateTitleFromUrl(url: string): string {
+  // strip scheme if it is http or https, `www.` and trailing slashes
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return trimmed;
+  }
+
+  let pathname = parsed.pathname;
+  if (pathname !== "/" && pathname.endsWith("/")) {
+    pathname = pathname.replace(/\/+$/, "");
+  }
+  const pathAndQuery = `${pathname === "/" ? "" : pathname}${parsed.search}${parsed.hash}`;
+
+  const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
+  if (!isHttp) {
+    const canUseAuthority = parsed.host !== "" || (parsed.protocol === "file:" && parsed.pathname.startsWith("/"));
+    if (!canUseAuthority) {
+      return parsed.href;
+    }
+    return `${parsed.protocol}//${parsed.host}${pathAndQuery}`;
+  }
+
+  const hostname = parsed.hostname.replace(/^www\./i, "");
+  const needsIpv6Brackets = hostname.includes(":") && !hostname.startsWith("[");
+  const formattedHostname = needsIpv6Brackets ? `[${hostname}]` : hostname;
+  const host = parsed.port !== "" ? `${formattedHostname}:${parsed.port}` : formattedHostname;
+
+  return pathAndQuery ? `${host}${pathAndQuery}` : host;
 }

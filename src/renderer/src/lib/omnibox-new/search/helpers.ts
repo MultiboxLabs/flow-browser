@@ -1,3 +1,4 @@
+import { generateTitleFromUrl } from "@/lib/omnibox-new/helpers";
 import type { SearchProvider, SearchProviderCompletion } from "./types";
 
 function completionIdentity(completion: SearchProviderCompletion): string {
@@ -39,7 +40,17 @@ export function mergeSearchCompletions(
       return left.isVerbatim ? -1 : 1;
     }
 
-    return left.title.localeCompare(right.title);
+    let leftTitle = left.title;
+    let rightTitle = right.title;
+    if (leftTitle === null && left.url) {
+      leftTitle = generateTitleFromUrl(left.url);
+    }
+    if (rightTitle === null && right.url) {
+      rightTitle = generateTitleFromUrl(right.url);
+    }
+    if (!leftTitle) leftTitle = "";
+    if (!rightTitle) rightTitle = "";
+    return leftTitle.localeCompare(rightTitle);
   });
 
   for (const completion of sorted) {

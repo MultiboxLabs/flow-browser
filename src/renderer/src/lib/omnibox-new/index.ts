@@ -1,4 +1,4 @@
-import { isValidUrl, type OmniboxFlush } from "./helpers";
+import { generateTitleFromUrl, isValidUrl, type OmniboxFlush } from "./helpers";
 import { flushSearchSuggestions } from "./search-suggestions";
 import { getSearchProvider } from "./search/index";
 import type { OmniboxSuggestion } from "./types";
@@ -15,7 +15,7 @@ function getVerbatimSuggestions(trimmedInput: string): OmniboxSuggestion[] {
   if (targetUrl) {
     verbatimSuggestions.push({
       type: "website",
-      title: targetUrl,
+      title: generateTitleFromUrl(targetUrl),
       url: targetUrl,
       description: targetUrl,
       relevance: HIGHEST_RELEVANCE

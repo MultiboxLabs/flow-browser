@@ -1,4 +1,4 @@
-import type { OmniboxFlush } from "./helpers";
+import { generateTitleFromUrl, type OmniboxFlush } from "./helpers";
 import { mergeSearchCompletions, resolveCompletionUrl } from "./search/helpers";
 import { getSearchProvider } from "./search/index";
 import type { SearchProviderCompletion } from "./search/types";
@@ -25,7 +25,7 @@ function mapCompletionToSuggestion(completion: SearchProviderCompletion): Omnibo
   if (completion.kind === "navigation") {
     return {
       type: "website",
-      title: completion.title,
+      title: completion.title ?? generateTitleFromUrl(targetUrl),
       url: targetUrl,
       description: completion.description ?? targetUrl,
       relevance: completion.relevance
@@ -71,7 +71,11 @@ function mergeOmniboxSuggestions(
   return sortSuggestions(mergedSuggestions);
 }
 
-export function flushSearchSuggestions(input: string, verbatimSuggestions: OmniboxSuggestion[], flush: OmniboxFlush): void {
+export function flushSearchSuggestions(
+  input: string,
+  verbatimSuggestions: OmniboxSuggestion[],
+  flush: OmniboxFlush
+): void {
   const searchProvider = getSearchProvider();
   if (!searchProvider.getSuggestions) {
     return;

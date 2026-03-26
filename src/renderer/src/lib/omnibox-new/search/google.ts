@@ -17,7 +17,11 @@ type GoogleSuggestType = "QUERY" | "NAVIGATION" | "ENTITY" | "TAIL" | "CALCULATO
 const GOOGLE_SEARCH_BASE_URL = "https://www.google.com/search";
 const GOOGLE_SUGGEST_BASE_URL = "https://suggestqueries.google.com/complete/search";
 
-function mapSuggestionRelevance(serverRelevance: number | undefined, index: number, kind: SearchProviderCompletion["kind"]): number {
+function mapSuggestionRelevance(
+  serverRelevance: number | undefined,
+  index: number,
+  kind: SearchProviderCompletion["kind"]
+): number {
   const fallback = kind === "navigation" ? 700 : 500;
   const clamped = Math.max(0, Math.min(serverRelevance ?? fallback - index * 25, 1300));
 
@@ -33,7 +37,7 @@ function normalizeNavigationUrl(value: string): string | null {
     return new URL(value).toString();
   } catch {
     try {
-      return new URL(`https://${value}`).toString();
+      return new URL(`http://${value}`).toString();
     } catch {
       return null;
     }
@@ -60,7 +64,7 @@ function parseSuggestion(
 
     return {
       kind: "navigation",
-      title: text,
+      title: null,
       url,
       description: url,
       relevance: mapSuggestionRelevance(relevance, index, "navigation")
@@ -75,7 +79,11 @@ function parseSuggestion(
   };
 }
 
-async function fetchGoogleSuggestions({ input, limit, signal }: SearchProviderRequest): Promise<SearchProviderCompletion[]> {
+async function fetchGoogleSuggestions({
+  input,
+  limit,
+  signal
+}: SearchProviderRequest): Promise<SearchProviderCompletion[]> {
   const url = new URL(GOOGLE_SUGGEST_BASE_URL);
   url.searchParams.set("client", "chrome");
   url.searchParams.set("q", input);
