@@ -21,7 +21,6 @@ export interface SearchProvider {
   id: string;
   label: string;
   buildSearchUrl(query: string): string;
-  getVerbatimCompletion(input: string): SearchProviderCompletion | null;
   getSuggestions?(request: SearchProviderRequest): Promise<SearchProviderCompletion[]>;
 }
 

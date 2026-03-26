@@ -1,5 +1,5 @@
 import { isValidUrl, type OmniboxFlush } from "./helpers";
-import { resolveCompletionUrl } from "./search/helpers";
+import { flushSearchSuggestions } from "./search-suggestions";
 import { getSearchProvider } from "./search/index";
 import type { OmniboxSuggestion } from "./types";
 
@@ -7,11 +7,11 @@ export { guardOmniboxFlush, type OmniboxFlush } from "./helpers";
 
 const HIGHEST_RELEVANCE = 999999;
 
-function getVerbatimSuggestions(input: string): OmniboxSuggestion[] {
+function getVerbatimSuggestions(trimmedInput: string): OmniboxSuggestion[] {
   const verbatimSuggestions: OmniboxSuggestion[] = [];
 
   // Website suggestion (if input can be normalized to a navigable URL)
-  const targetUrl = isValidUrl(input);
+  const targetUrl = isValidUrl(trimmedInput);
   if (targetUrl) {
     verbatimSuggestions.push({
       type: "website",
@@ -24,19 +24,22 @@ function getVerbatimSuggestions(input: string): OmniboxSuggestion[] {
 
   // Search suggestion
   const searchProvider = getSearchProvider();
-  const searchCompletion = searchProvider.getVerbatimCompletion(input);
-  const searchUrl = searchCompletion ? resolveCompletionUrl(searchProvider, searchCompletion) : null;
+  const searchUrl = searchProvider.buildSearchUrl(trimmedInput);
 
-  if (searchCompletion?.query && searchUrl) {
+  if (searchUrl) {
     verbatimSuggestions.push({
       type: "search",
-      query: searchCompletion.query,
+      query: trimmedInput,
       url: searchUrl,
       relevance: HIGHEST_RELEVANCE - 1
     });
   }
 
   return verbatimSuggestions;
+}
+
+function sortSuggestions(suggestions: OmniboxSuggestion[]): OmniboxSuggestion[] {
+  return [...suggestions].sort((left, right) => right.relevance - left.relevance);
 }
 
 /**
@@ -47,13 +50,14 @@ function getVerbatimSuggestions(input: string): OmniboxSuggestion[] {
  * site so stale completions cannot overwrite a newer query.
  */
 export function getOmniboxSuggestions(input: string, flush: OmniboxFlush): void {
-  // Implement: derive suggestions from `input`, then flush(results).
-  if (!input) {
+  const trimmedInput = input.trim();
+  if (!trimmedInput) {
     flush([]);
     return;
   }
 
-  // Verbatim suggestions
-  const verbatimSuggestions = getVerbatimSuggestions(input);
-  flush(verbatimSuggestions);
+  const verbatimSuggestions = getVerbatimSuggestions(trimmedInput);
+  flush(sortSuggestions(verbatimSuggestions));
+
+  flushSearchSuggestions(trimmedInput, verbatimSuggestions, flush);
 }

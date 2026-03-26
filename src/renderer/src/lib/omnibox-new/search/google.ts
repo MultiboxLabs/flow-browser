@@ -16,7 +16,6 @@ type GoogleSuggestType = "QUERY" | "NAVIGATION" | "ENTITY" | "TAIL" | "CALCULATO
 
 const GOOGLE_SEARCH_BASE_URL = "https://www.google.com/search";
 const GOOGLE_SUGGEST_BASE_URL = "https://suggestqueries.google.com/complete/search";
-const DEFAULT_VERBATIM_RELEVANCE = 1000;
 
 function mapSuggestionRelevance(serverRelevance: number | undefined, index: number, kind: SearchProviderCompletion["kind"]): number {
   const fallback = kind === "navigation" ? 700 : 500;
@@ -45,19 +44,6 @@ function buildSearchUrl(query: string): string {
   const url = new URL(GOOGLE_SEARCH_BASE_URL);
   url.searchParams.set("q", query);
   return url.toString();
-}
-
-function buildVerbatimCompletion(input: string, serverRelevance?: number): SearchProviderCompletion {
-  const relevance = serverRelevance === undefined ? DEFAULT_VERBATIM_RELEVANCE : Math.max(DEFAULT_VERBATIM_RELEVANCE, serverRelevance);
-
-  return {
-    kind: "query",
-    title: input,
-    query: input,
-    description: `Search Google for "${input}"`,
-    relevance,
-    isVerbatim: true
-  };
 }
 
 function parseSuggestion(
@@ -123,14 +109,6 @@ export const googleSearchProvider: SearchProvider = {
   id: "google",
   label: "Google",
   buildSearchUrl,
-  getVerbatimCompletion(input: string) {
-    const trimmedInput = input.trim();
-    if (!trimmedInput) {
-      return null;
-    }
-
-    return buildVerbatimCompletion(trimmedInput);
-  },
   async getSuggestions(request: SearchProviderRequest): Promise<SearchProviderCompletion[]> {
     const trimmedInput = request.input.trim();
     if (!trimmedInput) {
