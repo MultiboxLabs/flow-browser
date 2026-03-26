@@ -109,7 +109,7 @@ export function OmniboxSuggestionRow({ suggestion, index, selected, onSelect }: 
           onSelect(suggestion);
         }
       }}
-      className="cursor-default pb-1 outline-none"
+      className="cursor-default outline-none"
     >
       <div
         className={cn(

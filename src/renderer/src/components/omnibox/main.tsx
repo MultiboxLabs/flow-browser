@@ -302,7 +302,7 @@ export function OmniboxMain() {
                 ref={listRef}
                 id="omnibox-suggestions"
                 role="listbox"
-                className="min-h-0 flex-1 overflow-y-auto px-2 py-2 no-scrollbar"
+                className="min-h-0 flex-1 overflow-y-auto px-2 py-2 no-scrollbar space-y-1 scroll-py-2"
               >
                 {suggestions.map((suggestion, index) => (
                   <OmniboxSuggestionRow
