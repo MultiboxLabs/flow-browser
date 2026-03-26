@@ -1,6 +1,11 @@
 import { flushSearchSuggestions } from "./suggestors/search-suggestions";
 import { type OmniboxFlush } from "./helpers";
-import { getOpenTabSuggestions, getPedalSuggestions, getQuickHistorySuggestions, getVerbatimSuggestions } from "./suggestors";
+import {
+  getOpenTabSuggestions,
+  getPedalSuggestions,
+  getQuickHistorySuggestions,
+  getVerbatimSuggestions
+} from "./suggestors";
 
 /**
  * Produce omnibox rows for the current input. Call `flush` whenever the list changes

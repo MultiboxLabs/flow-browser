@@ -76,7 +76,8 @@ function getOpenTabRelevance(tab: NormalizedOpenTab, inputLower: string, inputLo
     return null;
   }
 
-  const relevance = OPEN_TAB_MIN_RELEVANCE + Math.round(bestSimilarity * (OPEN_TAB_MAX_RELEVANCE - OPEN_TAB_MIN_RELEVANCE));
+  const relevance =
+    OPEN_TAB_MIN_RELEVANCE + Math.round(bestSimilarity * (OPEN_TAB_MAX_RELEVANCE - OPEN_TAB_MIN_RELEVANCE));
   return Math.min(OPEN_TAB_MAX_RELEVANCE, Math.max(OPEN_TAB_MIN_RELEVANCE, relevance));
 }
 
