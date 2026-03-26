@@ -9,7 +9,7 @@ export const RouteConfig: RouteConfigType = {
     return (
       <ThemeProvider>
         <SettingsProvider>
-          <SpacesProvider windowType="popup">{children}</SpacesProvider>
+          <SpacesProvider windowType="none">{children}</SpacesProvider>
         </SettingsProvider>
       </ThemeProvider>
     );

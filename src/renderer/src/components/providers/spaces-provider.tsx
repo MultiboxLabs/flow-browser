@@ -58,6 +58,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
   const [currentSpace, setCurrentSpace] = useState<Space | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const currentSpaceRef = useRef<Space | null>(null);
+  const isReadOnlyConsumer = windowType === "none";
 
   // Expose only spaces whose profile is not internal to the UI
   const visibleSpaces = useMemo(
@@ -120,14 +121,16 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
         // If no last used space, default to first non-internal space
         const firstVisible = spaces.find((space) => !nextAreProfilesInternal[space.profileId]) ?? spaces[0];
         setCurrentSpace(firstVisible);
-        await flow.spaces.setUsingSpace(firstVisible.profileId, firstVisible.id);
+        if (!isReadOnlyConsumer) {
+          await flow.spaces.setUsingSpace(firstVisible.profileId, firstVisible.id);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch spaces:", error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isReadOnlyConsumer]);
 
   const revalidate = useCallback(async () => {
     setIsLoading(true);
@@ -143,7 +146,7 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
 
   const handleSetCurrentSpace = useCallback(
     async (spaceId: string) => {
-      if (windowType === "popup" && currentSpaceRef.current) return;
+      if (windowType !== "main") return;
       if (!flow) return;
       const space = allSpaces.find((s) => s.id === spaceId);
       if (!space) return;
@@ -164,9 +167,10 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
   }, [fetchSpaces]);
 
   useEffect(() => {
+    if (isReadOnlyConsumer) return;
     if (!currentSpace) return;
     flow.browser.loadProfile(currentSpace.profileId);
-  }, [currentSpace]);
+  }, [currentSpace, isReadOnlyConsumer]);
 
   useEffect(() => {
     const unsub = flow.spaces.onSetWindowSpace((spaceId) => {
@@ -193,11 +197,12 @@ export const SpacesProvider = ({ windowType, children }: SpacesProviderProps) =>
   // On current space change, hide omnibox
   const currentSpaceIdRef = useRef("");
   useEffect(() => {
+    if (isReadOnlyConsumer) return;
     if (currentSpaceIdRef.current === currentSpace?.id) return;
     if (!currentSpace) return;
     currentSpaceIdRef.current = currentSpace.id;
     flow.omnibox.hide();
-  }, [currentSpace]);
+  }, [currentSpace, isReadOnlyConsumer]);
 
   return (
     <SpacesContext.Provider

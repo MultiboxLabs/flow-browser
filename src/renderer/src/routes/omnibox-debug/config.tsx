@@ -7,7 +7,7 @@ export const RouteConfig: RouteConfigType = {
   Providers: ({ children }: { children: ReactNode }) => {
     return (
       <ThemeProvider>
-        <SpacesProvider windowType="popup">{children}</SpacesProvider>
+        <SpacesProvider windowType="none">{children}</SpacesProvider>
       </ThemeProvider>
     );
   }
