@@ -2,9 +2,16 @@
 
 ## Suggestors
 
-- Verbatim - Provide exact search suggestion, and website suggestion if the input is a valid URL (bangs are supported)
-- Pedal - Provide pedal suggestions based on the input
-- Search Suggestions - Provide search & link suggestions based on the input, powered by the search provider
+- Verbatim (Synchronous) - Provide exact search suggestion, and website suggestion if the input is a valid URL (bangs are supported)
+- Pedal (Synchronous) - Provide pedal suggestions based on the input
+- Search Suggestions (Asynchronous) - Provide search & link suggestions based on the input, powered by the search provider
+
+## Synchronous vs Asynchronous
+
+What's the difference between synchronous and asynchronous suggestions?
+
+- Synchronous suggestions are provided immediately, while asynchronous suggestions could take some time to be provided.
+- Synchronous suggestions must have a higher priority than asynchronous suggestions, as we do not want the top suggestion to be replaced after it is provided.
 
 ## Relevance Scores
 

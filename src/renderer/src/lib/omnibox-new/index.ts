@@ -18,11 +18,13 @@ export function getOmniboxSuggestions(input: string, flush: OmniboxFlush): void 
     return;
   }
 
+  // Initial suggestions (verbatim and pedal)
   const verbatimSuggestions = getVerbatimSuggestions(trimmedInput);
   flush(verbatimSuggestions);
 
   const pedalSuggestions = getPedalSuggestions(trimmedInput);
   flush(pedalSuggestions);
 
+  // Asynchronous suggestions (search)
   flushSearchSuggestions(trimmedInput, flush);
 }
