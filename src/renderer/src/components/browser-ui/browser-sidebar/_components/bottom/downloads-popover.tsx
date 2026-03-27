@@ -3,19 +3,10 @@ import { useSpaces } from "@/components/providers/spaces-provider";
 import { Button } from "@/components/ui/button";
 import { PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { filenameFromRecord, isActive } from "@/components/downloads/manager/utils";
 import type { DownloadRecord } from "~/types/downloads";
 import { DownloadIcon, FileText } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-
-const POLL_MS = 1500;
-
-function filenameFromRecord(r: DownloadRecord): string {
-  if (r.savePath) {
-    const parts = r.savePath.split(/[/\\]/);
-    return parts[parts.length - 1] || r.suggestedFilename;
-  }
-  return r.suggestedFilename;
-}
 
 function relativeTime(ts: number): string {
   const now = Date.now();
@@ -44,7 +35,7 @@ function DownloadRow({
   setOpen: (open: boolean) => void;
 }) {
   const filename = filenameFromRecord(dl);
-  const isActive = dl.state === "progressing" || dl.state === "paused";
+  const active = isActive(dl.state);
 
   const handleClick = () => {
     if (dl.state === "completed" && !fileMissing) {
@@ -60,12 +51,9 @@ function DownloadRow({
       onClick={handleClick}
       className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
     >
-      {/* File icon */}
       <div className="shrink-0 size-10 rounded-lg bg-muted/80 border border-border/30 flex items-center justify-center">
         <FileText className="size-5 text-muted-foreground" />
       </div>
-
-      {/* Text */}
       <div className="min-w-0 flex-1">
         <p
           className={cn(
@@ -76,7 +64,7 @@ function DownloadRow({
           {filename}
         </p>
         <p className="text-xs text-muted-foreground mt-0.5 truncate leading-snug">
-          {isActive
+          {active
             ? dl.state === "paused"
               ? "Paused"
               : "Downloading…"
@@ -102,7 +90,7 @@ export function DownloadsPopover() {
       const all = await flow.downloads.list();
       setDownloads(all);
       const idsToCheck = all
-        .filter((d) => d.state !== "progressing" && d.state !== "paused" && d.savePath)
+        .filter((d) => !isActive(d.state) && d.savePath)
         .map((d) => d.id);
       if (idsToCheck.length > 0) {
         const existence = await flow.downloads.checkFilesExist(idsToCheck);
@@ -113,16 +101,18 @@ export function DownloadsPopover() {
     }
   }, []);
 
+  // Fetch on open + listen for changes while open
   useEffect(() => {
     if (!open) return;
     void fetchDownloads();
-    const id = setInterval(() => void fetchDownloads(), POLL_MS);
-    return () => clearInterval(id);
+    const unsubscribe = flow.downloads.onChanged(() => {
+      void fetchDownloads();
+    });
+    return unsubscribe;
   }, [open, fetchDownloads]);
 
-  // Show up to 5 most recent, prioritizing active downloads
-  const active = downloads.filter((d) => d.state === "progressing" || d.state === "paused");
-  const recent = downloads.filter((d) => d.state !== "progressing" && d.state !== "paused");
+  const active = downloads.filter((d) => isActive(d.state));
+  const recent = downloads.filter((d) => !isActive(d.state));
   const shown = [...active, ...recent].slice(0, 5);
   const hasActive = active.length > 0;
 

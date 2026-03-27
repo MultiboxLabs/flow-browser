@@ -11,6 +11,7 @@ import {
   upsertDownloadRecord
 } from "@/saving/downloads";
 import type { DownloadInsert, DownloadRow } from "@/saving/db/schema";
+import { fireDownloadsChanged } from "@/ipc/browser/downloads";
 
 type MacOSProgressModule = typeof import("./macos-progress");
 
@@ -146,6 +147,7 @@ class DownloadsController {
         startTime: Math.floor(record.startTime / 1000)
       });
 
+      fireDownloadsChanged();
       debugPrint("DOWNLOADS", `Queued interrupted download restore for ${downloadId}`);
       return true;
     } catch (err) {
@@ -179,6 +181,7 @@ class DownloadsController {
       canResume: false,
       endTime: Date.now()
     });
+    fireDownloadsChanged();
     debugPrint("DOWNLOADS", `Marked inactive download ${downloadId} as cancelled`);
     return true;
   }
@@ -244,6 +247,7 @@ class DownloadsController {
     this.activeDownloadsById.set(downloadId, activeDownload);
 
     upsertDownloadRecord(this.buildDownloadInsert(item, metadata, existingRecord));
+    fireDownloadsChanged();
 
     debugPrint("DOWNLOADS", `Download requested: ${suggestedFilename} (${downloadId})`);
 
@@ -378,6 +382,7 @@ class DownloadsController {
     }
 
     this.persistDownloadSnapshot(active, state, true);
+    fireDownloadsChanged();
     debugPrint("DOWNLOADS", `Download ${state}: ${this.getSavePath(active.item) ?? active.item.getFilename()}`);
   }
 
@@ -447,6 +452,7 @@ class DownloadsController {
     });
 
     meta.lastPersistedAt = now;
+    fireDownloadsChanged();
   }
 
   private getPersistedState(

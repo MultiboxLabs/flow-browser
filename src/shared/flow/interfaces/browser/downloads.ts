@@ -1,3 +1,4 @@
+import type { IPCListener } from "~/flow/types";
 import type { DownloadRecord } from "~/types/downloads";
 
 export interface FlowDownloadsAPI {
@@ -11,4 +12,5 @@ export interface FlowDownloadsAPI {
   removeRecord: (downloadId: string) => Promise<boolean>;
   clearCompleted: () => Promise<void>;
   checkFilesExist: (downloadIds: string[]) => Promise<Record<string, boolean>>;
+  onChanged: IPCListener<[]>;
 }

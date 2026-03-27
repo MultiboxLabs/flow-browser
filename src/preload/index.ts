@@ -440,6 +440,9 @@ const downloadsAPI: FlowDownloadsAPI = {
   },
   checkFilesExist: async (downloadIds: string[]) => {
     return ipcRenderer.invoke("downloads:check-files-exist", downloadIds);
+  },
+  onChanged: (callback: () => void) => {
+    return listenOnIPCChannel("downloads:on-changed", callback);
   }
 };
 
