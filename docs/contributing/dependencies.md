@@ -107,3 +107,4 @@ These dependencies are either used in the build process, or they are only used i
 - cmdk - Used for building command menus.
 - string-similarity-js - Use for fuzzy matching.
 - hono - Used for handling and routing custom protocols. (Used and bundled into the main process)
+- @electron/fuses - Used for flipping development fuses.

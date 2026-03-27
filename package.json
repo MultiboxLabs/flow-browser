@@ -30,7 +30,8 @@
     "script:upgrade-electron-to-next": "bun run scripts/electron-upgrader/next.ts",
     "script:generate-frontend-routes": "bun run scripts/frontend-routes-generator/generator.ts --run-as-script",
     "script:prune-frontend-routes": "bun run scripts/frontend-routes-generator/pruner.ts",
-    "postinstall": "electron-builder install-app-deps",
+    "script:apply-dev-fuses": "bun run scripts/apply-dev-fuses.ts",
+    "postinstall": "electron-builder install-app-deps && bun run script:apply-dev-fuses",
     "reset": "rm -rf dist && rm -rf out && rm -rf yalc.lock && rm -rf .yalc && rm -rf node_modules && bun pm cache rm && echo 'Reset complete!'"
   },
   "dependencies": {
@@ -61,6 +62,7 @@
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
     "@electron-toolkit/eslint-config-ts": "^3.1.0",
     "@electron-toolkit/tsconfig": "^2.0.0",
+    "@electron/fuses": "^2.1.1",
     "@headlessui/react": "^2.2.3",
     "@iamevan/react-resizable-panels": "^3.0.7",
     "@pdfslick/react": "^3.0.0",
