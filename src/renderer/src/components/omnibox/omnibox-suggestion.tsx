@@ -150,7 +150,7 @@ export function OmniboxSuggestionRow({ suggestion, index, selected, onSelect }: 
             <span
               className={cn(
                 "hidden font-sans text-[12px] sm:inline font-medium",
-                selected ? "text-zinc-700 dark:text-white/90" : "text-zinc-500 dark:text-zinc-500"
+                selected ? "text-zinc-700 dark:text-white/90" : "text-zinc-500 dark:text-zinc-400"
               )}
             >
               {actionLabel}
