@@ -12,6 +12,7 @@ import "@/ipc/browser/pinned-tabs";
 import "@/ipc/browser/page";
 import "@/ipc/browser/navigation";
 import "@/ipc/browser/history";
+import "@/ipc/browser/downloads";
 import "@/ipc/browser/interface";
 import "@/ipc/browser/find-in-page";
 import "@/ipc/window/omnibox";

@@ -41,6 +41,7 @@ import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts
 import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/find-in-page";
 import { FlowHistoryAPI } from "~/flow/interfaces/browser/history";
 import { FlowPasskeyAPI } from "~/flow/interfaces/browser/passkey";
+import { FlowDownloadsAPI } from "~/flow/interfaces/browser/downloads";
 import type { ConditionalPasskeyRequest, PasskeyCredential } from "~/types/passkey";
 
 // const isIFrame = !process.isMainFrame;
@@ -76,6 +77,7 @@ function hasPermission(permission: Permission) {
   // Extensions
   const isExtensions = isLocation("flow:", "extensions");
   const isHistoryPage = isLocation("flow:", "history");
+  const isDownloadsPage = isLocation("flow:", "downloads");
 
   switch (permission) {
     case "all":
@@ -83,7 +85,7 @@ function hasPermission(permission: Permission) {
     case "app":
       return isInternalProtocols || isExtensions;
     case "browser":
-      return isBrowserUI || isOmnibox || isHistoryPage;
+      return isBrowserUI || isOmnibox || isHistoryPage || isDownloadsPage;
     case "session":
       return isFlowInternalProtocol || isOmnibox || isBrowserUI;
     case "settings":
@@ -404,6 +406,37 @@ const passkeyAPI: FlowPasskeyAPI = {
   },
   openSystemSettings: async () => {
     return ipcRenderer.invoke("passkey:open-system-settings");
+  }
+};
+
+// DOWNLOADS API //
+const downloadsAPI: FlowDownloadsAPI = {
+  list: async () => {
+    return ipcRenderer.invoke("downloads:list");
+  },
+  get: async (downloadId: string) => {
+    return ipcRenderer.invoke("downloads:get", downloadId);
+  },
+  pause: async (downloadId: string) => {
+    return ipcRenderer.invoke("downloads:pause", downloadId);
+  },
+  resume: async (downloadId: string) => {
+    return ipcRenderer.invoke("downloads:resume", downloadId);
+  },
+  cancel: async (downloadId: string) => {
+    return ipcRenderer.invoke("downloads:cancel", downloadId);
+  },
+  showInFolder: async (downloadId: string) => {
+    return ipcRenderer.invoke("downloads:show-in-folder", downloadId);
+  },
+  openFile: async (downloadId: string) => {
+    return ipcRenderer.invoke("downloads:open-file", downloadId);
+  },
+  removeRecord: async (downloadId: string) => {
+    return ipcRenderer.invoke("downloads:remove-record", downloadId);
+  },
+  clearCompleted: async () => {
+    return ipcRenderer.invoke("downloads:clear-completed");
   }
 };
 
@@ -781,6 +814,7 @@ const flowAPI: typeof flow = {
   navigation: wrapAPI(navigationAPI, "browser"),
   history: wrapAPI(historyAPI, "browser"),
   passkey: wrapAPI(passkeyAPI, "browser"),
+  downloads: wrapAPI(downloadsAPI, "browser"),
   interface: wrapAPI(interfaceAPI, "browser", {
     moveWindowTo: "all",
     resizeWindowTo: "all"

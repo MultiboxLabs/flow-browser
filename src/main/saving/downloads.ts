@@ -59,6 +59,11 @@ export function listDownloads(): DownloadRow[] {
   return getDb().select().from(schema.downloads).orderBy(desc(schema.downloads.updatedAt)).all();
 }
 
+export function deleteDownloadRecord(downloadId: string): boolean {
+  const result = getDb().delete(schema.downloads).where(eq(schema.downloads.id, downloadId)).run();
+  return result.changes > 0;
+}
+
 export function reconcileDownloadsOnStartup(): void {
   getDb()
     .update(schema.downloads)
