@@ -30,7 +30,7 @@ export const AddressBar = memo(function AddressBar() {
         {
           x: rect.x,
           y: rect.y,
-          width: rect.width * 2,
+          width: rect.width * 1.8,
           height: rect.height * 8
         },
         {

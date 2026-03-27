@@ -2,10 +2,69 @@ import { BrowserWindow, Rectangle, WebContents, WebContentsView } from "electron
 import { debugPrint } from "@/modules/output";
 import { clamp } from "@/modules/utils";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
+import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
+import type {
+  OmniboxOpenIn,
+  OmniboxOpenParams,
+  OmniboxOpenState,
+  OmniboxShadowPadding
+} from "~/flow/interfaces/browser/omnibox";
 
 const omniboxes = new Map<BrowserWindow, Omnibox>();
+const OMNIBOX_URL = "flow-internal://omnibox/";
+const DEFAULT_OMNIBOX_WIDTH = 750;
+const DEFAULT_OMNIBOX_HEIGHT = 335;
+const OMNIBOX_SHADOW_PADDING = 30;
 
-type QueryParams = { [key: string]: string };
+const DEFAULT_SHADOW_PADDING: OmniboxShadowPadding = {
+  top: OMNIBOX_SHADOW_PADDING,
+  right: OMNIBOX_SHADOW_PADDING,
+  bottom: OMNIBOX_SHADOW_PADDING,
+  left: OMNIBOX_SHADOW_PADDING
+};
+
+type PaddedBounds = {
+  bounds: Rectangle;
+  shadowPadding: OmniboxShadowPadding;
+};
+
+const OMNIBOX_OPEN_DEVTOOLS = false;
+
+function normalizeBounds(bounds: Electron.Rectangle, windowBounds: Rectangle): Rectangle {
+  const width = clamp(Math.round(bounds.width), 0, windowBounds.width);
+  const height = clamp(Math.round(bounds.height), 0, windowBounds.height);
+  const x = clamp(Math.round(bounds.x), 0, Math.max(0, windowBounds.width - width));
+  const y = clamp(Math.round(bounds.y), 0, Math.max(0, windowBounds.height - height));
+
+  return {
+    x,
+    y,
+    width,
+    height
+  };
+}
+
+function addShadowPadding(bounds: Electron.Rectangle, windowBounds: Rectangle): PaddedBounds {
+  const left = clamp(bounds.x - OMNIBOX_SHADOW_PADDING, 0, windowBounds.width);
+  const top = clamp(bounds.y - OMNIBOX_SHADOW_PADDING, 0, windowBounds.height);
+  const right = clamp(bounds.x + bounds.width + OMNIBOX_SHADOW_PADDING, left, windowBounds.width);
+  const bottom = clamp(bounds.y + bounds.height + OMNIBOX_SHADOW_PADDING, top, windowBounds.height);
+
+  return {
+    bounds: {
+      x: left,
+      y: top,
+      width: right - left,
+      height: bottom - top
+    },
+    shadowPadding: {
+      top: bounds.y - top,
+      right: right - (bounds.x + bounds.width),
+      bottom: bottom - (bounds.y + bounds.height),
+      left: bounds.x - left
+    }
+  };
+}
 
 export class Omnibox {
   public view: WebContentsView;
@@ -14,6 +73,13 @@ export class Omnibox {
   private window: BrowserWindow;
   private bounds: Electron.Rectangle | null = null;
   private ignoreBlurEvents: boolean = false;
+  private blurIgnoreTimeout: NodeJS.Timeout | null = null;
+  private openState: OmniboxOpenState = {
+    currentInput: "",
+    openIn: "current",
+    sequence: 0,
+    shadowPadding: DEFAULT_SHADOW_PADDING
+  };
 
   private isDestroyed: boolean = false;
 
@@ -26,7 +92,9 @@ export class Omnibox {
     });
     const onmiboxWC = onmiboxView.webContents;
 
-    onmiboxView.setBorderRadius(13);
+    if (OMNIBOX_OPEN_DEVTOOLS) {
+      onmiboxWC.openDevTools({ mode: "detach" });
+    }
 
     // on focus lost, hide omnibox
     onmiboxWC.on("blur", () => {
@@ -41,13 +109,17 @@ export class Omnibox {
       debugPrint("OMNIBOX", "WebContents blur event received");
       this.maybeHide();
     });
+    onmiboxWC.on("did-finish-load", () => {
+      debugPrint("OMNIBOX", "Omnibox interface finished loading");
+      this.emitOpenState();
+    });
     parentWindow.on("resize", () => {
       debugPrint("OMNIBOX", "Parent window resize event received");
       this.updateBounds();
     });
 
     setTimeout(() => {
-      this.loadInterface(null);
+      this.loadInterface();
       this.updateBounds();
       this.hide();
     }, 0);
@@ -65,27 +137,77 @@ export class Omnibox {
     }
   }
 
-  loadInterface(params: QueryParams | null) {
+  loadInterface() {
     this.assertNotDestroyed();
 
-    debugPrint("OMNIBOX", `Loading interface with params: ${JSON.stringify(params)}`);
+    debugPrint("OMNIBOX", "Ensuring omnibox interface is loaded");
     const onmiboxWC = this.webContents;
+    if (onmiboxWC.getURL() !== OMNIBOX_URL) {
+      debugPrint("OMNIBOX", `Loading omnibox URL: ${OMNIBOX_URL}`);
+      onmiboxWC.loadURL(OMNIBOX_URL);
+    }
+  }
 
-    const url = new URL("flow-internal://omnibox/");
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.set(key, value);
-      });
+  private normalizeOpenIn(value: string | undefined): OmniboxOpenIn {
+    return value === "new_tab" ? "new_tab" : "current";
+  }
+
+  private suppressBlurEventsTemporarily(durationMs: number = 150) {
+    this.ignoreBlurEvents = true;
+
+    if (this.blurIgnoreTimeout) {
+      clearTimeout(this.blurIgnoreTimeout);
     }
 
-    const urlString = url.toString();
-    if (onmiboxWC.getURL() !== urlString) {
-      debugPrint("OMNIBOX", `Loading new URL: ${urlString}`);
-      onmiboxWC.loadURL(urlString);
-    } else {
-      debugPrint("OMNIBOX", "Reloading current URL");
-      onmiboxWC.reload();
+    this.blurIgnoreTimeout = setTimeout(() => {
+      this.ignoreBlurEvents = false;
+      this.blurIgnoreTimeout = null;
+    }, durationMs);
+  }
+
+  private emitOpenState() {
+    if (this.webContents.isDestroyed()) {
+      return;
     }
+
+    sendMessageToListenersWithWebContents([this.webContents], "omnibox:on-state-changed", this.openState);
+  }
+
+  getOpenState() {
+    this.assertNotDestroyed();
+    return this.openState;
+  }
+
+  private setShadowPadding(shadowPadding: OmniboxShadowPadding) {
+    const current = this.openState.shadowPadding;
+    if (
+      current.top === shadowPadding.top &&
+      current.right === shadowPadding.right &&
+      current.bottom === shadowPadding.bottom &&
+      current.left === shadowPadding.left
+    ) {
+      return;
+    }
+
+    this.openState = {
+      ...this.openState,
+      shadowPadding
+    };
+    debugPrint("OMNIBOX", `Updating shadow padding: ${JSON.stringify(shadowPadding)}`);
+    this.emitOpenState();
+  }
+
+  setOpenState(params: OmniboxOpenParams | null) {
+    this.assertNotDestroyed();
+
+    this.openState = {
+      currentInput: params?.currentInput ?? "",
+      openIn: this.normalizeOpenIn(params?.openIn),
+      sequence: this.openState.sequence + 1,
+      shadowPadding: this.openState.shadowPadding
+    };
+    debugPrint("OMNIBOX", `Updating open state: ${JSON.stringify(this.openState)}`);
+    this.emitOpenState();
   }
 
   updateBounds() {
@@ -96,35 +218,32 @@ export class Omnibox {
 
       const windowBounds = this.window.getBounds();
 
-      const newX = clamp(this.bounds.x, 0, windowBounds.width);
-      const newY = clamp(this.bounds.y, 0, windowBounds.height);
-      const newWidth = clamp(this.bounds.width, 0, windowBounds.width - newX);
-      const newHeight = clamp(this.bounds.height, 0, windowBounds.height - newY);
+      const contentBounds = normalizeBounds(this.bounds, windowBounds);
+      const paddedBounds = addShadowPadding(contentBounds, windowBounds);
 
-      const newBounds: Rectangle = {
-        x: newX,
-        y: newY,
-        width: newWidth,
-        height: newHeight
-      };
-
-      this.view.setBounds(newBounds);
+      this.setShadowPadding(paddedBounds.shadowPadding);
+      this.view.setBounds(paddedBounds.bounds);
     } else {
       const windowBounds = this.window.getBounds();
 
-      const omniboxWidth = Math.min(750, windowBounds.width);
-      const omniboxHeight = Math.min(350, windowBounds.height);
-      const omniboxX = windowBounds.width / 2 - omniboxWidth / 2;
-      const omniboxY = windowBounds.height / 2 - omniboxHeight / 2;
-
-      const newBounds: Rectangle = {
-        x: omniboxX,
-        y: omniboxY,
-        width: omniboxWidth,
-        height: omniboxHeight
-      };
-      debugPrint("OMNIBOX", `Calculating new bounds: ${JSON.stringify(newBounds)}`);
-      this.view.setBounds(newBounds);
+      const availableWidth = Math.max(0, windowBounds.width - OMNIBOX_SHADOW_PADDING * 2);
+      const availableHeight = Math.max(0, windowBounds.height - OMNIBOX_SHADOW_PADDING * 2);
+      const omniboxWidth = Math.min(DEFAULT_OMNIBOX_WIDTH, availableWidth);
+      const omniboxHeight = Math.min(DEFAULT_OMNIBOX_HEIGHT, availableHeight);
+      const omniboxX = Math.round(windowBounds.width / 2 - omniboxWidth / 2);
+      const omniboxY = Math.round(windowBounds.height / 2 - omniboxHeight / 2);
+      const paddedBounds = addShadowPadding(
+        {
+          x: omniboxX,
+          y: omniboxY,
+          width: omniboxWidth,
+          height: omniboxHeight
+        },
+        windowBounds
+      );
+      debugPrint("OMNIBOX", `Calculating new bounds: ${JSON.stringify(paddedBounds.bounds)}`);
+      this.setShadowPadding(paddedBounds.shadowPadding);
+      this.view.setBounds(paddedBounds.bounds);
     }
   }
 
@@ -140,6 +259,7 @@ export class Omnibox {
     this.assertNotDestroyed();
 
     debugPrint("OMNIBOX", "Showing omnibox");
+    this.loadInterface();
     // Hide omnibox if it is already visible
     this.hide();
 
@@ -154,13 +274,10 @@ export class Omnibox {
       }
     };
 
-    this.ignoreBlurEvents = true;
+    this.suppressBlurEventsTemporarily();
 
     tryFocus();
     setTimeout(tryFocus, 100);
-    setTimeout(() => {
-      this.ignoreBlurEvents = false;
-    }, 150);
   }
 
   refocus() {
@@ -168,6 +285,8 @@ export class Omnibox {
 
     if (this.isVisible()) {
       debugPrint("OMNIBOX", "Refocusing omnibox");
+      this.suppressBlurEventsTemporarily();
+      this.window.focus();
       this.webContents.focus();
       return true;
     }
@@ -229,24 +348,19 @@ export class Omnibox {
   destroy() {
     this.assertNotDestroyed();
 
+    if (this.blurIgnoreTimeout) {
+      clearTimeout(this.blurIgnoreTimeout);
+      this.blurIgnoreTimeout = null;
+    }
+
     this.isDestroyed = true;
     this.webContents.close();
   }
 
   // Extra //
   setBounds(bounds: Electron.Rectangle | null) {
-    const parentWindow = this.window;
     if (bounds) {
-      const windowBounds = parentWindow.getBounds();
-
-      const newBounds: Electron.Rectangle = {
-        x: Math.min(bounds.x, windowBounds.width - bounds.width),
-        y: Math.min(bounds.y, windowBounds.height - bounds.height),
-        width: bounds.width,
-        height: bounds.height
-      };
-
-      this._setBounds(newBounds);
+      this._setBounds(bounds);
     } else {
       this._setBounds(null);
     }

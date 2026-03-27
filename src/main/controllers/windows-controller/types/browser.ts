@@ -162,6 +162,18 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     this.omnibox = new Omnibox(browserWindow);
     this.viewManager.addOrUpdateView(this.omnibox.view, ViewLayer.OMNIBOX);
     this.coreWebContents.push(this.omnibox.webContents);
+    browserWindow.on("focus", () => {
+      if (!this.omnibox.isVisible()) {
+        return;
+      }
+
+      this.omnibox.refocus();
+      setTimeout(() => {
+        if (!this.destroyed && !this.browserWindow.isDestroyed()) {
+          this.omnibox.refocus();
+        }
+      }, 50);
+    });
 
     // Current Space //
     spacesController.getLastUsed().then((space) => {

@@ -1,320 +1,363 @@
-import { Command, CommandItem, CommandList } from "@/components/ui/command";
-import { AutocompleteMatch } from "@/lib/omnibox/types";
-import { Omnibox } from "@/lib/omnibox/omnibox";
-import { useEffect, useRef, useState } from "react";
-import { Search, History, Zap, Terminal, Settings, PlusSquare, Link, PuzzleIcon, Shield } from "lucide-react";
-import { WebsiteFavicon } from "@/components/main/website-favicon";
-import { AnimatePresence } from "motion/react";
-import { motion } from "motion/react";
-import { CommandInput } from "cmdk";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Search } from "lucide-react";
+import { requestOmniboxSuggestions } from "@/lib/omnibox-new";
+import { primeOpenTabsCache, primeQuickHistoryCache } from "@/lib/omnibox-new/suggestors";
+import type { OmniboxSuggestion } from "@/lib/omnibox-new/types";
+import { OmniboxSuggestionRow } from "@/components/omnibox/omnibox-suggestion";
+import { useSetting } from "@/components/providers/settings-provider";
+import { useSpaces } from "@/components/providers/spaces-provider";
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/components/main/theme";
+import type { OmniboxOpenState } from "~/flow/interfaces/browser/omnibox";
+import "@/css/border.css";
+import { setOmniboxCurrentProfileId, setOmniboxCurrentSpaceId } from "@/lib/omnibox-new/states";
 
-const SHOW_INSTRUCTIONS = true;
+type InputSelectionMode = "preserve" | "end" | "all";
 
-function getIconForType(type: AutocompleteMatch["type"], match: AutocompleteMatch) {
-  switch (type) {
-    case "search-query":
-    case "verbatim":
-      return <Search className="h-5 w-5 text-primary" />;
-    case "history-url":
-      return <History className="h-5 w-5 text-amber-500" />;
-    case "url-what-you-typed":
-      return <WebsiteFavicon url={match.destinationUrl} className="h-5 w-5" />;
-    case "pedal":
-      if (match.destinationUrl === "open_settings") {
-        return <Settings className="h-5 w-5 text-blue-500" />;
-      }
-      if (match.destinationUrl === "open_new_window") {
-        return <PlusSquare className="h-5 w-5 text-green-500" />;
-      }
-      if (match.destinationUrl === "open_incognito_window") {
-        return <Shield className="h-5 w-5 text-slate-500" />;
-      }
-      if (match.destinationUrl === "open_extensions") {
-        return <PuzzleIcon className="h-5 w-5 text-purple-500" />;
-      }
-      if (match.destinationUrl === "open_history") {
-        return <History className="h-5 w-5 text-amber-500" />;
-      }
-      return <Zap className="h-5 w-5 text-purple-500" />;
-    case "open-tab":
-      return <Terminal className="h-5 w-5 text-teal-600 dark:text-teal-500" />;
-    case "zero-suggest":
-    default:
-      return <Link className="h-5 w-5 text-gray-500" />;
+const DEFAULT_OPEN_STATE: OmniboxOpenState = {
+  currentInput: "",
+  openIn: "current",
+  sequence: 0,
+  shadowPadding: {
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0
   }
-}
+};
 
-function getActionForType(type: AutocompleteMatch["type"]) {
-  switch (type) {
-    case "search-query":
-    case "verbatim":
-      return "Search";
+const OMNIBOX_SHADOW =
+  "0 10px 25px -10px rgba(0, 0, 0, 0.52), 0 6px 14px -8px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.16), 0 1px 0 rgba(255, 255, 255, 0.08)";
+
+function commitSuggestion(suggestion: OmniboxSuggestion, openIn: "current" | "new_tab") {
+  switch (suggestion.type) {
     case "open-tab":
-      return "Switch to Tab";
-    case "history-url":
-      return "History";
-    case "url-what-you-typed":
-      return "Go to";
-    case "pedal":
-      return "Action";
-    case "zero-suggest":
-    default:
-      return "Navigate";
+      flow.tabs.switchToTab(suggestion.tabId);
+      break;
+    case "pedal": {
+      const a = suggestion.action;
+      if (a === "open_settings") {
+        flow.windows.openSettingsWindow();
+      } else if (a === "open_new_window") {
+        flow.browser.createWindow();
+      } else if (a === "open_incognito_window") {
+        flow.browser.createIncognitoWindow();
+      } else if (a === "open_extensions") {
+        flow.tabs.newTab("flow://extensions", true);
+      } else if (a === "open_history") {
+        flow.tabs.newTab("flow://history", true);
+      }
+      break;
+    }
+    case "search": {
+      const url = suggestion.url;
+      if (openIn === "current") {
+        flow.navigation.goTo(url, undefined, true);
+      } else {
+        flow.tabs.newTab(url, true, undefined, true);
+      }
+      break;
+    }
+    case "website": {
+      const url = suggestion.url;
+      if (openIn === "current") {
+        flow.navigation.goTo(url, undefined, true);
+      } else {
+        flow.tabs.newTab(url, true, undefined, true);
+      }
+      break;
+    }
   }
+  flow.omnibox.hide();
 }
 
 export function OmniboxMain() {
-  const params = new URLSearchParams(window.location.search);
-  const currentInput = params.get("currentInput");
-  const openIn: "current" | "new_tab" = params.get("openIn") === "current" ? "current" : "new_tab";
-
-  const [input, setInput] = useState(currentInput || "");
-  const [matches, setMatches] = useState<AutocompleteMatch[]>([]);
+  const { currentSpace } = useSpaces();
+  const [openState, setOpenState] = useState<OmniboxOpenState>(DEFAULT_OPEN_STATE);
+  const [inputValue, setInputValue] = useState("");
+  const [suggestions, setSuggestions] = useState<OmniboxSuggestion[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const omniboxRef = useRef<Omnibox | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const suggestionRequestIdRef = useRef(0);
+  const abortSuggestionsRef = useRef<(() => void) | null>(null);
+  const [commandPaletteOpacity] = useSetting<"solid" | "tinted" | "glassy">("commandPaletteOpacity");
+  const pendingSelectionModeRef = useRef<Exclude<InputSelectionMode, "preserve"> | null>(null);
 
-  const [selectedValue, setSelectedValue] = useState("");
-  const [isOpen, setIsOpen] = useState(true);
-  const [windowHeight, setWindowHeight] = useState(window.innerHeight);
+  const ensureInputFocused = useCallback((selection: InputSelectionMode = "preserve") => {
+    const el = inputRef.current;
+    if (!el) return;
 
-  const { appliedTheme: theme } = useTheme();
+    if (document.activeElement !== el) {
+      el.focus({ preventScroll: true });
+    }
 
-  // Track window height for responsive sizing
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowHeight(window.innerHeight);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    if (selection === "end") {
+      const end = el.value.length;
+      el.setSelectionRange(end, end);
+    } else if (selection === "all") {
+      el.setSelectionRange(0, el.value.length);
+    }
   }, []);
 
-  // Initialize omnibox
+  const cancelPendingSelection = useCallback(() => {
+    pendingSelectionModeRef.current = null;
+  }, []);
+
+  const applySuggestions = useCallback((items: OmniboxSuggestion[]) => {
+    setSuggestions(items);
+    setSelectedIndex(0);
+  }, []);
+
+  const requestSuggestions = useCallback(
+    (input: string) => {
+      abortSuggestionsRef.current?.();
+      const requestId = ++suggestionRequestIdRef.current;
+      setSuggestions([]);
+      setSelectedIndex(0);
+      setOmniboxCurrentProfileId(currentSpace?.profileId);
+      setOmniboxCurrentSpaceId(currentSpace?.id);
+      abortSuggestionsRef.current = requestOmniboxSuggestions({
+        input,
+        requestId,
+        getCurrentRequestId: () => suggestionRequestIdRef.current,
+        applySuggestions
+      });
+    },
+    [applySuggestions, currentSpace?.id, currentSpace?.profileId]
+  );
+
   useEffect(() => {
-    const handleSuggestionsUpdate = (updatedMatches: AutocompleteMatch[]) => {
-      console.log("Received Updated Suggestions:", updatedMatches.length);
-      setMatches(updatedMatches);
-    };
-    omniboxRef.current = new Omnibox(handleSuggestionsUpdate, {
-      hasZeroSuggest: true,
-      hasPedals: true
+    requestSuggestions(inputValue);
+  }, [inputValue, requestSuggestions]);
+
+  // This effect is ran when the omnibox is opened.
+  useEffect(() => {
+    void primeQuickHistoryCache(currentSpace?.profileId, { force: true });
+    void primeOpenTabsCache(currentSpace?.id, { force: true });
+  }, [openState.openIn, openState.sequence, currentSpace?.id, currentSpace?.profileId]);
+
+  useEffect(() => {
+    let isMounted = true;
+    void flow.omnibox.getState().then((state) => {
+      if (!isMounted || !state) return;
+      setOpenState(state);
     });
 
-    if (omniboxRef.current) {
-      omniboxRef.current.handleInput(input, "focus");
-    }
+    const unsubscribe = flow.omnibox.onStateChanged((state) => {
+      setOpenState(state);
+    });
 
     return () => {
-      omniboxRef.current?.stopQuery();
+      isMounted = false;
+      unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // If the selected value is not in the matches, set it to the first match
   useEffect(() => {
-    const match = matches.find((match) => match.destinationUrl === selectedValue);
-    if (!match && matches.length > 0) {
-      setSelectedValue(matches[0].destinationUrl);
-    }
-  }, [selectedValue, matches]);
+    const handleWindowFocus = () => {
+      requestAnimationFrame(() => {
+        ensureInputFocused(pendingSelectionModeRef.current ?? "preserve");
+      });
+    };
 
-  // Focus on omnibox input
-  useEffect(() => {
-    inputRef.current?.focus();
-    setTimeout(() => {
-      inputRef.current?.select();
-    }, 10);
-  }, []);
-
-  // Re-introduce handleOpenMatch adapting logic from omnibox.ts
-  const handleOpenMatch = (match: AutocompleteMatch, whereToOpen: "current" | "new_tab") => {
-    setIsOpen(false);
-    setTimeout(() => {
-      omniboxRef.current?.openMatch(match, whereToOpen);
-      flow.omnibox.hide();
-    }, 150);
-  };
-
-  // Esc to close omnibox, Enter to navigate/search
-  useEffect(() => {
-    const inputBox = inputRef.current;
-    if (!inputBox) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-        setTimeout(() => {
-          flow.omnibox.hide();
-        }, 150);
-        event.preventDefault();
-      } else if (event.key === "Enter" && matches.length === 0 && input.trim() !== "") {
-        // Use handleOpenMatch for verbatim input
-        event.preventDefault();
-        const verbatimMatch: AutocompleteMatch = {
-          providerName: "Verbatim",
-          type: "verbatim",
-          contents: input,
-          destinationUrl: input, // Assume input is URL or search query
-          relevance: 9999,
-          isDefault: false
-        };
-        handleOpenMatch(verbatimMatch, openIn);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible") {
+        return;
       }
+
+      requestAnimationFrame(() => {
+        ensureInputFocused(pendingSelectionModeRef.current ?? "preserve");
+      });
     };
-    inputBox.addEventListener("keydown", handleKeyDown);
-    return () => inputBox.removeEventListener("keydown", handleKeyDown);
-  }, [input, matches.length, openIn]); // Added handleOpenMatch dependency implicitly via openIn
 
-  const handleInputChange = (value: string) => {
-    setInput(value);
-    omniboxRef.current?.handleInput(value, "keystroke");
+    window.addEventListener("focus", handleWindowFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("focus", handleWindowFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [ensureInputFocused]);
+
+  useEffect(() => {
+    setInputValue(openState.currentInput);
+    setSelectedIndex(0);
+    requestSuggestions(openState.currentInput);
+    pendingSelectionModeRef.current = openState.currentInput ? "all" : "end";
+  }, [currentSpace?.profileId, openState.sequence, openState.currentInput, requestSuggestions]);
+
+  useLayoutEffect(() => {
+    const pendingSelectionMode = pendingSelectionModeRef.current;
+    if (!pendingSelectionMode) {
+      return;
+    }
+
+    ensureInputFocused(pendingSelectionMode);
+  }, [inputValue, openState.sequence, ensureInputFocused]);
+
+  useEffect(() => {
+    return () => {
+      abortSuggestionsRef.current?.();
+      cancelPendingSelection();
+    };
+  }, [cancelPendingSelection]);
+
+  const commitSelected = useCallback(
+    (suggestion: OmniboxSuggestion) => {
+      commitSuggestion(suggestion, openState.openIn);
+    },
+    [openState.openIn]
+  );
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    cancelPendingSelection();
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      flow.omnibox.hide();
+      return;
+    }
+    if (suggestions.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((i) => {
+        let newIndex = i + 1;
+        if (newIndex >= suggestions.length) {
+          newIndex = 0;
+        }
+        return newIndex;
+      });
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex((i) => {
+        let newIndex = i - 1;
+        if (newIndex < 0) {
+          newIndex = suggestions.length - 1;
+        }
+        return newIndex;
+      });
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const row = suggestions[selectedIndex];
+      if (row) commitSelected(row);
+    }
   };
 
-  // Use the handleOpenMatch helper
-  const handleSelect = (match: AutocompleteMatch) => {
-    handleOpenMatch(match, openIn);
-  };
+  useEffect(() => {
+    const row = listRef.current?.querySelector<HTMLElement>(`[data-index="${selectedIndex}"]`);
+    row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [selectedIndex]);
 
-  const handleFocus = () => {
-    setTimeout(() => {
-      inputRef.current?.setSelectionRange(0, inputRef.current?.value.length);
-    }, 10);
-  };
-
-  const handleBlur = () => {
-    inputRef.current?.setSelectionRange(0, 0);
-  };
-
-  // Calculate max height based on window size, accounting for padding and other elements
-  const calculateMaxListHeight = () => {
-    const inputHeight = 44; // p-3.5 + text-lg + padding
-    const instructionsHeight = SHOW_INSTRUCTIONS ? 41 : 0; // Instructions bar height
-    const padding = 0; // Additional padding for container
-
-    // Subtract all the fixed elements from window height
-    return `calc(${windowHeight}px - ${inputHeight + instructionsHeight + padding}px)`;
+  const suggestionKey = (s: OmniboxSuggestion, index: number) => {
+    switch (s.type) {
+      case "search":
+        return `search-${s.query}-${index}`;
+      case "website":
+        return `web-${s.url}-${index}`;
+      case "open-tab":
+        return `tab-${s.spaceId}-${s.tabId}-${index}`;
+      case "pedal":
+        return `pedal-${s.action}-${index}`;
+    }
   };
 
   return (
     <div
-      className="flex flex-col justify-start items-center min-h-screen max-h-screen w-full overflow-hidden p-[1px]"
-      ref={containerRef}
+      className={"h-screen w-screen box-border"}
+      style={{
+        paddingTop: openState.shadowPadding.top,
+        paddingRight: openState.shadowPadding.right,
+        paddingBottom: openState.shadowPadding.bottom,
+        paddingLeft: openState.shadowPadding.left
+      }}
     >
-      <div className="w-full h-full mx-auto" style={{ maxHeight: "100vh", opacity: isOpen ? 1 : 0 }}>
-        <Command
-          className={cn(
-            "rounded-xl border backdrop-blur-xl overflow-hidden",
-            "border-[#949494] dark:border-[#383838]",
-            "bg-white/80 dark:bg-[#1c1c1c]/80",
-            "transition-all duration-150",
-            "flex flex-col",
-            "h-[calc(100vh-2px)]",
-            "shadow-[0_0_0_0.5px_transparent] dark:shadow-[0_0_0_0.5px_black]"
-          )}
-          loop
-          value={selectedValue}
-          onValueChange={setSelectedValue}
-          shouldFilter={false}
-          vimBindings={false}
-          onBlur={() => {
-            inputRef.current?.focus();
-          }}
-          disablePointerSelection
-        >
-          <div className="flex items-center p-3.5 border-b border-black/10 dark:border-white/10 flex-shrink-0">
-            <CommandInput
-              placeholder="Search, navigate, or enter URL..."
-              value={input}
-              onValueChange={handleInputChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              ref={inputRef}
-              className="size-full outline-none text-lg font-medium placeholder:text-black/40 dark:placeholder:text-white/40"
-            />
-          </div>
-
-          {matches.length > 0 && (
-            <CommandList
-              className="flex-1 px-1.5 py-2 overflow-y-auto no-scrollbar"
-              style={{
-                // scrollbarWidth: "thin",
-                scrollbarColor: theme === "dark" ? "rgba(255,255,255,0.2) transparent" : "rgba(0,0,0,0.2) transparent",
-                maxHeight: calculateMaxListHeight()
+      <div
+        className={cn(
+          "h-full w-full rounded-[13px]",
+          "backdrop-blur-sm",
+          commandPaletteOpacity === "solid" && "bg-white dark:bg-[#202020]",
+          commandPaletteOpacity === "tinted" && "bg-white/90 dark:bg-[#202020]/90",
+          commandPaletteOpacity === "glassy" && "bg-white/70 dark:bg-[#202020]/70"
+        )}
+        style={{ boxShadow: OMNIBOX_SHADOW }}
+      >
+        <div className="h-full w-full rounded-[13px] border-[0.5px] border-black/8 platform-darwin:border-(--frame-shadow-border) dark:border-transparent">
+          <div className="h-full w-full rounded-[13px] border border-black/8 dark:border-(--frame-highlight-border)">
+            <div
+              className={cn("flex h-full w-full flex-col overflow-hidden", "select-none", "rounded-[13px]")}
+              onMouseDownCapture={(e) => {
+                if (e.target !== inputRef.current) {
+                  requestAnimationFrame(() => {
+                    ensureInputFocused(pendingSelectionModeRef.current ?? "preserve");
+                  });
+                }
               }}
             >
-              <AnimatePresence>
-                {matches.length === 0 && input && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="px-3 py-6 text-center text-black/50 dark:text-white/50"
-                  >
-                    {`No results found. Press Enter to search or navigate to "${input}".`}
-                  </motion.div>
-                )}
+              <div className="flex shrink-0 items-center gap-3 border-b border-black/8 px-4 py-3.5 dark:border-white/8">
+                <Search
+                  className="ml-1.5 size-3.5 shrink-0 text-zinc-700 dark:text-zinc-100"
+                  strokeWidth={3}
+                  aria-hidden
+                />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => {
+                    cancelPendingSelection();
+                    setInputValue(e.target.value);
+                  }}
+                  onKeyDown={onKeyDown}
+                  onFocus={() => {
+                    const pendingSelectionMode = pendingSelectionModeRef.current;
+                    if (pendingSelectionMode) {
+                      ensureInputFocused(pendingSelectionMode);
+                    }
+                  }}
+                  onMouseDown={() => {
+                    cancelPendingSelection();
+                  }}
+                  onBlur={() => {
+                    requestAnimationFrame(() => {
+                      if (document.hasFocus()) {
+                        ensureInputFocused(pendingSelectionModeRef.current ?? "preserve");
+                      }
+                    });
+                  }}
+                  placeholder="Search or Enter URL..."
+                  className={cn(
+                    "min-w-0 flex-1 bg-transparent font-sans text-lg font-medium",
+                    "text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400",
+                    "outline-none caret-[#3B82F6]"
+                  )}
+                  spellCheck={false}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  aria-autocomplete="list"
+                  aria-controls="omnibox-suggestions"
+                  aria-activedescendant={suggestions.length > 0 ? `omnibox-option-${selectedIndex}` : undefined}
+                />
+              </div>
 
-                {matches.map((match) => (
-                  <CommandItem
-                    className={cn(
-                      "flex items-center justify-between my-0.5 px-3 py-2 cursor-pointer rounded-lg transition-colors",
-                      "hover:bg-black/5 dark:hover:bg-white/10",
-                      "aria-selected:!bg-black/10 dark:aria-selected:!bg-white/15"
-                    )}
-                    key={match.destinationUrl}
-                    value={match.destinationUrl}
-                    onSelect={() => handleSelect(match)}
-                  >
-                    <div className="flex items-center min-w-0 flex-1 mr-3">
-                      <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/5">
-                        {getIconForType(match.type, match)}
-                      </div>
-                      <div className="max-w-[70%] overflow-hidden">
-                        <span
-                          className="text-black/90 dark:text-white/90 truncate block font-medium"
-                          style={{ maxWidth: "100%" }}
-                        >
-                          {match.contents}
-                        </span>
-                        {match.type === "history-url" && (
-                          <span
-                            className="text-xs text-black/50 dark:text-white/50 truncate block"
-                            style={{ maxWidth: "100%" }}
-                          >
-                            {match.destinationUrl}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center text-xs text-black/60 dark:text-white/60 flex-shrink-0 bg-black/5 dark:bg-white/10 rounded-md px-2 py-1">
-                      <span>{getActionForType(match.type)}</span>
-                    </div>
-                  </CommandItem>
+              <div
+                ref={listRef}
+                id="omnibox-suggestions"
+                role="listbox"
+                className="min-h-0 flex-1 overflow-y-auto px-2 py-2 no-scrollbar space-y-1 scroll-py-2"
+              >
+                {suggestions.map((suggestion, index) => (
+                  <OmniboxSuggestionRow
+                    key={suggestionKey(suggestion, index)}
+                    suggestion={suggestion}
+                    index={index}
+                    selected={index === selectedIndex}
+                    onSelect={commitSelected}
+                  />
                 ))}
-              </AnimatePresence>
-            </CommandList>
-          )}
-
-          {input && SHOW_INSTRUCTIONS && (
-            <div className="px-3 py-2 text-xs text-black/50 dark:text-white/50 border-t border-black/10 dark:border-white/10 flex-shrink-0">
-              <div className="flex justify-between">
-                <div>
-                  Press <kbd className="px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10">↑</kbd>{" "}
-                  <kbd className="px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10">↓</kbd> to navigate
-                </div>
-                <div>
-                  Press <kbd className="px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10">Enter</kbd> to select
-                </div>
-                <div>
-                  Press <kbd className="px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10">Esc</kbd> to close
-                </div>
               </div>
             </div>
-          )}
-        </Command>
+          </div>
+        </div>
       </div>
     </div>
   );
