@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 import type { DownloadRecord, DownloadState } from "~/types/downloads";
 import {
   CheckCircle2,
@@ -140,14 +141,15 @@ function isActive(state: DownloadState): boolean {
 
 function DownloadItem({
   record,
-  invalidate
+  invalidate,
+  fileMissing
 }: {
   record: DownloadRecord;
   invalidate: () => void;
+  fileMissing: boolean;
 }) {
   const filename = filenameFromRecord(record);
-  const progress =
-    record.totalBytes > 0 ? Math.round((record.receivedBytes / record.totalBytes) * 100) : 0;
+  const progress = record.totalBytes > 0 ? Math.round((record.receivedBytes / record.totalBytes) * 100) : 0;
 
   const handlePause = async () => {
     const ok = await flow.downloads.pause(record.id);
@@ -197,14 +199,17 @@ function DownloadItem({
 
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-foreground truncate block leading-snug font-medium">
+              <span
+                className={cn(
+                  "text-sm text-foreground truncate block leading-snug font-medium",
+                  fileMissing && "line-through text-muted-foreground"
+                )}
+              >
                 {filename}
               </span>
             </div>
 
-            {isActive(record.state) && record.totalBytes > 0 && (
-              <Progress value={progress} className="h-1.5" />
-            )}
+            {isActive(record.state) && record.totalBytes > 0 && <Progress value={progress} className="h-1.5" />}
 
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
               <StateIcon state={record.state} />
@@ -219,9 +224,7 @@ function DownloadItem({
                 </>
               )}
               <span className="opacity-40">-</span>
-              <time dateTime={new Date(record.startTime).toISOString()}>
-                {formatTime(record.startTime)}
-              </time>
+              <time dateTime={new Date(record.startTime).toISOString()}>{formatTime(record.startTime)}</time>
             </div>
           </div>
 
@@ -336,6 +339,8 @@ function DownloadsPage() {
     return () => window.clearTimeout(t);
   }, [search]);
 
+  const [fileExistence, setFileExistence] = useState<Record<string, boolean>>({});
+
   const { data, isError, isPending, refetch } = useQuery({
     queryKey: ["downloads"],
     queryFn: () => flow.downloads.list(),
@@ -345,6 +350,14 @@ function DownloadsPage() {
   useEffect(() => {
     if (isError) toast.error("Could not load downloads");
   }, [isError]);
+
+  // Check file existence for non-active downloads that have a savePath
+  useEffect(() => {
+    if (!data) return;
+    const idsToCheck = data.filter((dl) => !isActive(dl.state) && dl.savePath).map((dl) => dl.id);
+    if (idsToCheck.length === 0) return;
+    void flow.downloads.checkFilesExist(idsToCheck).then(setFileExistence);
+  }, [data]);
 
   const filtered = useMemo(() => {
     if (!data) return [];
@@ -358,10 +371,7 @@ function DownloadsPage() {
 
   const grouped = useMemo(() => groupByDay(filtered), [filtered]);
 
-  const hasActiveDownloads = useMemo(
-    () => data?.some((dl) => isActive(dl.state)) ?? false,
-    [data]
-  );
+  const hasActiveDownloads = useMemo(() => data?.some((dl) => isActive(dl.state)) ?? false, [data]);
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["downloads"] });
@@ -455,7 +465,12 @@ function DownloadsPage() {
               <CardContent className="p-1">
                 <ul>
                   {group.items.map((dl) => (
-                    <DownloadItem key={dl.id} record={dl} invalidate={invalidate} />
+                    <DownloadItem
+                      key={dl.id}
+                      record={dl}
+                      invalidate={invalidate}
+                      fileMissing={dl.id in fileExistence && !fileExistence[dl.id]}
+                    />
                   ))}
                 </ul>
               </CardContent>

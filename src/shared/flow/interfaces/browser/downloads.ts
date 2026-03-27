@@ -10,4 +10,5 @@ export interface FlowDownloadsAPI {
   openFile: (downloadId: string) => Promise<boolean>;
   removeRecord: (downloadId: string) => Promise<boolean>;
   clearCompleted: () => Promise<void>;
+  checkFilesExist: (downloadIds: string[]) => Promise<Record<string, boolean>>;
 }

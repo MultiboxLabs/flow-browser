@@ -40,7 +40,7 @@ function StateIcon({ state, className }: { state: DownloadState; className?: str
   }
 }
 
-function DownloadRow({ dl }: { dl: DownloadRecord }) {
+function DownloadRow({ dl, fileMissing }: { dl: DownloadRecord; fileMissing: boolean }) {
   const filename = filenameFromRecord(dl);
   const progress = dl.totalBytes > 0 ? Math.round((dl.receivedBytes / dl.totalBytes) * 100) : 0;
   const isActive = dl.state === "progressing" || dl.state === "paused";
@@ -54,7 +54,14 @@ function DownloadRow({ dl }: { dl: DownloadRecord }) {
     <div className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent/50 group">
       <File className="size-3.5 text-muted-foreground shrink-0" />
       <div className="min-w-0 flex-1">
-        <div className="text-xs text-foreground truncate leading-snug">{filename}</div>
+        <div
+          className={cn(
+            "text-xs text-foreground truncate leading-snug",
+            fileMissing && "line-through text-muted-foreground"
+          )}
+        >
+          {filename}
+        </div>
         {isActive && dl.totalBytes > 0 ? (
           <div className="flex items-center gap-1.5 mt-0.5">
             <Progress value={progress} className="h-1 flex-1" />
@@ -89,7 +96,7 @@ function DownloadRow({ dl }: { dl: DownloadRecord }) {
             <X className="size-3" />
           </Button>
         )}
-        {dl.state === "completed" && (
+        {dl.state === "completed" && !fileMissing && (
           <Button variant="ghost" size="icon" className="size-5" onClick={handleOpen}>
             <ExternalLink className="size-3" />
           </Button>
@@ -102,6 +109,7 @@ function DownloadRow({ dl }: { dl: DownloadRecord }) {
 export function DownloadsPopover() {
   const [open, setOpen] = useState(false);
   const [downloads, setDownloads] = useState<DownloadRecord[]>([]);
+  const [fileExistence, setFileExistence] = useState<Record<string, boolean>>({});
 
   const { isCurrentSpaceLight } = useSpaces();
   const spaceInjectedClasses = cn(isCurrentSpaceLight ? "" : "dark");
@@ -110,6 +118,13 @@ export function DownloadsPopover() {
     try {
       const all = await flow.downloads.list();
       setDownloads(all);
+      const idsToCheck = all
+        .filter((d) => d.state !== "progressing" && d.state !== "paused" && d.savePath)
+        .map((d) => d.id);
+      if (idsToCheck.length > 0) {
+        const existence = await flow.downloads.checkFilesExist(idsToCheck);
+        setFileExistence(existence);
+      }
     } catch {
       // silently ignore
     }
@@ -138,9 +153,7 @@ export function DownloadsPopover() {
       <PopoverTrigger asChild>
         <Button size="icon" className="size-8 bg-transparent hover:bg-black/10 dark:hover:bg-white/10 relative">
           <DownloadIcon strokeWidth={2} className="w-4 h-4 text-black/80 dark:text-white/80" />
-          {hasActive && (
-            <span className="absolute top-1 right-1 size-2 rounded-full bg-blue-500 animate-pulse" />
-          )}
+          {hasActive && <span className="absolute top-1 right-1 size-2 rounded-full bg-blue-500 animate-pulse" />}
         </Button>
       </PopoverTrigger>
       <PortalPopover.Content className={cn("w-72 p-0 select-none", spaceInjectedClasses)}>
@@ -152,7 +165,7 @@ export function DownloadsPopover() {
         ) : (
           <div className="py-1 px-1 max-h-64 overflow-y-auto">
             {shown.map((dl) => (
-              <DownloadRow key={dl.id} dl={dl} />
+              <DownloadRow key={dl.id} dl={dl} fileMissing={dl.id in fileExistence && !fileExistence[dl.id]} />
             ))}
           </div>
         )}

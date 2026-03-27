@@ -437,6 +437,9 @@ const downloadsAPI: FlowDownloadsAPI = {
   },
   clearCompleted: async () => {
     return ipcRenderer.invoke("downloads:clear-completed");
+  },
+  checkFilesExist: async (downloadIds: string[]) => {
+    return ipcRenderer.invoke("downloads:check-files-exist", downloadIds);
   }
 };
 

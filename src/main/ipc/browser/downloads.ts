@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { ipcMain, shell } from "electron";
 import { downloadsController } from "@/controllers/downloads-controller";
 import { deleteDownloadRecord, getDownloadRecord, listDownloads } from "@/saving/downloads";
@@ -47,4 +48,17 @@ ipcMain.handle("downloads:clear-completed", () => {
       deleteDownloadRecord(dl.id);
     }
   }
+});
+
+ipcMain.handle("downloads:check-files-exist", (_event, downloadIds: string[]) => {
+  const result: Record<string, boolean> = {};
+  for (const id of downloadIds) {
+    const record = getDownloadRecord(id);
+    if (!record?.savePath) {
+      result[id] = false;
+    } else {
+      result[id] = fs.existsSync(record.savePath);
+    }
+  }
+  return result;
 });
