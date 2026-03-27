@@ -2,20 +2,12 @@ import { PortalPopover } from "@/components/portal/popover";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { Button } from "@/components/ui/button";
 import { PopoverTrigger } from "@/components/ui/popover";
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import type { DownloadRecord, DownloadState } from "~/types/downloads";
-import { CheckCircle2, DownloadIcon, ExternalLink, File, Pause, Play, X, XCircle } from "lucide-react";
+import type { DownloadRecord } from "~/types/downloads";
+import { DownloadIcon, FileText } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 const POLL_MS = 1500;
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB"];
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  return `${(bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
-}
 
 function filenameFromRecord(r: DownloadRecord): string {
   if (r.savePath) {
@@ -25,82 +17,73 @@ function filenameFromRecord(r: DownloadRecord): string {
   return r.suggestedFilename;
 }
 
-function StateIcon({ state, className }: { state: DownloadState; className?: string }) {
-  const base = cn("size-3.5 shrink-0", className);
-  switch (state) {
-    case "completed":
-      return <CheckCircle2 className={cn(base, "text-green-500")} />;
-    case "cancelled":
-    case "interrupted":
-      return <XCircle className={cn(base, state === "interrupted" ? "text-yellow-500" : "text-muted-foreground")} />;
-    case "paused":
-      return <Pause className={cn(base, "text-muted-foreground")} />;
-    case "progressing":
-      return <DownloadIcon className={cn(base, "text-blue-500 animate-pulse")} />;
-  }
+function relativeTime(ts: number): string {
+  const now = Date.now();
+  const diffSec = Math.floor((now - ts) / 1000);
+  if (diffSec < 60) return "Just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay === 1) return "Yesterday";
+  if (diffDay < 7) return `${diffDay}d ago`;
+  const diffWeek = Math.floor(diffDay / 7);
+  if (diffWeek === 1) return "1 week ago";
+  if (diffWeek < 5) return `${diffWeek} weeks ago`;
+  return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-function DownloadRow({ dl, fileMissing }: { dl: DownloadRecord; fileMissing: boolean }) {
+function DownloadRow({
+  dl,
+  fileMissing,
+  setOpen
+}: {
+  dl: DownloadRecord;
+  fileMissing: boolean;
+  setOpen: (open: boolean) => void;
+}) {
   const filename = filenameFromRecord(dl);
-  const progress = dl.totalBytes > 0 ? Math.round((dl.receivedBytes / dl.totalBytes) * 100) : 0;
   const isActive = dl.state === "progressing" || dl.state === "paused";
 
-  const handlePause = () => void flow.downloads.pause(dl.id);
-  const handleResume = () => void flow.downloads.resume(dl.id);
-  const handleCancel = () => void flow.downloads.cancel(dl.id);
-  const handleOpen = () => void flow.downloads.openFile(dl.id);
+  const handleClick = () => {
+    if (dl.state === "completed" && !fileMissing) {
+      void flow.downloads.openFile(dl.id);
+    } else {
+      flow.tabs.newTab("flow://downloads", true);
+      setOpen(false);
+    }
+  };
 
   return (
-    <div className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent/50 group">
-      <File className="size-3.5 text-muted-foreground shrink-0" />
+    <div
+      onClick={handleClick}
+      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
+    >
+      {/* File icon */}
+      <div className="shrink-0 size-10 rounded-lg bg-muted/80 border border-border/30 flex items-center justify-center">
+        <FileText className="size-5 text-muted-foreground" />
+      </div>
+
+      {/* Text */}
       <div className="min-w-0 flex-1">
-        <div
+        <p
           className={cn(
-            "text-xs text-foreground truncate leading-snug",
-            fileMissing && "line-through text-muted-foreground"
+            "text-sm font-medium text-foreground truncate leading-snug",
+            (fileMissing || dl.state === "cancelled") && "line-through text-muted-foreground"
           )}
         >
           {filename}
-        </div>
-        {isActive && dl.totalBytes > 0 ? (
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <Progress value={progress} className="h-1 flex-1" />
-            <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">{progress}%</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1 mt-0.5">
-            <StateIcon state={dl.state} className="size-3" />
-            <span className="text-[10px] text-muted-foreground">
-              {dl.state === "completed" && formatBytes(dl.receivedBytes)}
-              {dl.state === "progressing" && dl.totalBytes === 0 && formatBytes(dl.receivedBytes)}
-              {dl.state === "paused" && "Paused"}
-              {dl.state === "interrupted" && "Interrupted"}
-              {dl.state === "cancelled" && "Cancelled"}
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-        {dl.state === "progressing" && (
-          <Button variant="ghost" size="icon" className="size-5" onClick={handlePause}>
-            <Pause className="size-3" />
-          </Button>
-        )}
-        {(dl.state === "paused" || (dl.state === "interrupted" && dl.canResume)) && (
-          <Button variant="ghost" size="icon" className="size-5" onClick={handleResume}>
-            <Play className="size-3" />
-          </Button>
-        )}
-        {isActive && (
-          <Button variant="ghost" size="icon" className="size-5" onClick={handleCancel}>
-            <X className="size-3" />
-          </Button>
-        )}
-        {dl.state === "completed" && !fileMissing && (
-          <Button variant="ghost" size="icon" className="size-5" onClick={handleOpen}>
-            <ExternalLink className="size-3" />
-          </Button>
-        )}
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5 truncate leading-snug">
+          {isActive
+            ? dl.state === "paused"
+              ? "Paused"
+              : "Downloading…"
+            : fileMissing
+              ? "Deleted"
+              : relativeTime(dl.endTime ?? dl.startTime)}
+        </p>
       </div>
     </div>
   );
@@ -158,14 +141,19 @@ export function DownloadsPopover() {
       </PopoverTrigger>
       <PortalPopover.Content className={cn("w-72 p-0 select-none", spaceInjectedClasses)}>
         {shown.length === 0 ? (
-          <div className="px-3 py-4 text-center">
+          <div className="px-3 py-5 text-center">
             <DownloadIcon className="size-5 mx-auto text-muted-foreground/40 mb-1.5" />
             <p className="text-xs text-muted-foreground">No downloads</p>
           </div>
         ) : (
-          <div className="py-1 px-1 max-h-64 overflow-y-auto">
+          <div className="py-1.5 px-1.5 max-h-72 overflow-y-auto flex flex-col gap-0.5">
             {shown.map((dl) => (
-              <DownloadRow key={dl.id} dl={dl} fileMissing={dl.id in fileExistence && !fileExistence[dl.id]} />
+              <DownloadRow
+                key={dl.id}
+                dl={dl}
+                fileMissing={dl.id in fileExistence && !fileExistence[dl.id]}
+                setOpen={setOpen}
+              />
             ))}
           </div>
         )}
