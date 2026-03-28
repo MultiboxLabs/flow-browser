@@ -14,9 +14,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import type { DownloadRecord } from "~/types/downloads";
-import { FileText, FolderOpen, Link2, MoreVertical, Pause, Play, X } from "lucide-react";
+import { FolderOpen, Link2, MoreVertical, Pause, Play, X } from "lucide-react";
 import { toast } from "sonner";
 import { useDownloads } from "./provider";
+import { DownloadFileIcon } from "./file-icon";
 import { filenameFromRecord, formatBytes, isActive, simplifyUrl } from "./utils";
 
 function IconButton({
@@ -100,9 +101,12 @@ export function DownloadCard({ record }: { record: DownloadRecord }) {
       <ContextMenuTrigger asChild>
         <div className="flex items-center gap-4 rounded-xl bg-muted/40 border border-border/40 px-4 py-3.5 transition-colors hover:bg-muted/60">
           {/* File icon */}
-          <div className="shrink-0 size-10 rounded-lg bg-muted/80 flex items-center justify-center">
-            <FileText className="size-5 text-muted-foreground" />
-          </div>
+          <DownloadFileIcon
+            record={record}
+            className="shrink-0 size-10 rounded-lg flex items-center justify-center overflow-hidden"
+            imageClassName="size-8 object-contain"
+            fallbackClassName="size-8 text-muted-foreground"
+          />
 
           {/* Info */}
           <div className="min-w-0 flex-1">

@@ -112,7 +112,7 @@ export function DownloadsManagerMain() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="py-20 text-center">
-              <Download className="size-10 mx-auto text-muted-foreground mb-3 opacity-40" />
+              <Download className="size-10 mx-auto text-foreground mb-3 opacity-40" />
               <p className="text-foreground font-medium">No downloads found</p>
               <p className="text-muted-foreground text-sm mt-1">
                 {debouncedSearch ? "Try a different search." : "Files you download appear here."}

@@ -3,9 +3,10 @@ import { useSpaces } from "@/components/providers/spaces-provider";
 import { Button } from "@/components/ui/button";
 import { PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { DownloadFileIcon } from "@/components/downloads/manager/file-icon";
 import { filenameFromRecord, isActive } from "@/components/downloads/manager/utils";
 import type { DownloadRecord } from "~/types/downloads";
-import { DownloadIcon, FileText } from "lucide-react";
+import { DownloadIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 function relativeTime(ts: number): string {
@@ -51,9 +52,12 @@ function DownloadRow({
       onClick={handleClick}
       className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
     >
-      <div className="shrink-0 size-10 rounded-lg bg-muted/80 border border-border/30 flex items-center justify-center">
-        <FileText className="size-5 text-muted-foreground" />
-      </div>
+      <DownloadFileIcon
+        record={dl}
+        className="shrink-0 size-10 rounded-lg border border-border/30 flex items-center justify-center overflow-hidden"
+        imageClassName="size-8 object-contain"
+        fallbackClassName="size-8 text-muted-foreground"
+      />
       <div className="min-w-0 flex-1">
         <p
           className={cn(
@@ -89,9 +93,7 @@ export function DownloadsPopover() {
     try {
       const all = await flow.downloads.list();
       setDownloads(all);
-      const idsToCheck = all
-        .filter((d) => !isActive(d.state) && d.savePath)
-        .map((d) => d.id);
+      const idsToCheck = all.filter((d) => !isActive(d.state) && d.savePath).map((d) => d.id);
       if (idsToCheck.length > 0) {
         const existence = await flow.downloads.checkFilesExist(idsToCheck);
         setFileExistence(existence);
