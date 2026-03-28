@@ -65,20 +65,20 @@ It suggests:
 - Open Tabs only runs for non-empty input with at least 3 characters and returns at most 3 results.
 - Matching is restricted to tabs in the active space, excludes the focused tab, and excludes ephemeral tabs.
 - URL-like input requires a strong hostname/path prefix match.
-- Ranking uses a fixed open-tab band from `550` to `650`.
+- Ranking uses a fixed open-tab band from `300` to `500`.
 - Relevance is derived only from the best string similarity between the input and:
   - The tab title
   - The normalized hostname
-- The similarity score is then mapped directly into the `550` to `650` band.
+- The similarity score is then mapped directly into the `300` to `500` band.
 
 ## Relevance Scores
 
 - Zero Suggest Open Tabs - 780 to 840
 - Zero Suggest History - up to 760
 - Quick History - up to 690, intended to beat weak verbatim/search results when the history match is strong
-- Open Tabs - sync, relevance band 550 to 650
 - Pedal Suggestions (similarity >= 0.85) - 600 to 700
-- Verbatim Suggestion (Exact URL) - 500
-- Verbatim Suggestion (Exact Search) - 499
+- Verbatim Suggestion (Exact URL) - 502
+- Verbatim Suggestion (Exact Search) - 501
+- Open Tabs - sync, relevance band 300 to 500
 - Pedal Suggestions (similarity >= 0.4) - 300 to 400
 - Search Suggestions - 100 to 400

@@ -3,8 +3,8 @@ import type { OmniboxSuggestion } from "../types";
 import { createSearchSuggestion, createWebsiteSuggestion } from "../suggestions";
 import { getBangs } from "../bangs-initializer";
 
-const VERBATIM_URL_RELEVANCE = 500;
-const VERBATIM_SEARCH_RELEVANCE = 499;
+const VERBATIM_URL_RELEVANCE = 502;
+const VERBATIM_SEARCH_RELEVANCE = 501;
 
 // Bangs implementation mostly taken from unduck
 // https://github.com/T3-Content/unduck/blob/c1b821de0ffa286cfd964817d1918c5e90545db4/src/main.ts#L50
