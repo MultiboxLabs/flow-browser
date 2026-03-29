@@ -1,6 +1,6 @@
 {
   "name": "flow-browser",
-  "productName": "Flow",
+  "productName": "Flow (Dev)",
   "version": "0.11.0",
   "description": "A modern privacy-focused browser with a minimalistic design.",
   "main": "./out/main/index.js",
@@ -30,8 +30,7 @@
     "script:upgrade-electron-to-next": "bun run scripts/electron-upgrader/next.ts",
     "script:generate-frontend-routes": "bun run scripts/frontend-routes-generator/generator.ts --run-as-script",
     "script:prune-frontend-routes": "bun run scripts/frontend-routes-generator/pruner.ts",
-    "script:apply-dev-fuses": "bun run scripts/apply-dev-fuses.ts",
-    "postinstall": "electron-builder install-app-deps && bun run script:apply-dev-fuses",
+    "postinstall": "electron-builder install-app-deps",
     "reset": "rm -rf dist && rm -rf out && rm -rf yalc.lock && rm -rf .yalc && rm -rf node_modules && bun pm cache rm && echo 'Reset complete!'"
   },
   "dependencies": {
