@@ -123,7 +123,6 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
     const extensions = new ElectronChromeExtensions({
       license: "GPL-3.0",
       session: profileSession,
-      registerCrxProtocolInDefaultSession: false,
       assignTabDetails: (tabDetails, tabWebContents) => {
         const tab = tabsController.getTabByWebContents(tabWebContents);
         if (!tab) return;
@@ -260,10 +259,10 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
       afterUninstall: async (details) => {
         await extensionsManager.removeInstalledExtension(details.id);
       },
-      customSetExtensionEnabled: async (_state, extensionId, enabled) => {
+      setExtensionEnabled: async (extensionId, enabled) => {
         await extensionsManager.setExtensionDisabled(extensionId, !enabled);
       },
-      overrideExtensionInstallStatus: (_state, extensionId) => {
+      getExtensionInstallStatus: (extensionId) => {
         const isDisabled = extensionsManager.getExtensionDisabled(extensionId);
         if (isDisabled) {
           return ExtensionInstallStatus.DISABLED;

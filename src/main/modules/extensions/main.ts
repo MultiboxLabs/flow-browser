@@ -1,6 +1,6 @@
 import { sessionsController } from "@/controllers/sessions-controller";
-import { app, protocol, Session, session } from "electron";
-import { ElectronChromeExtensions, setPartitionSessionGrabber } from "electron-chrome-extensions";
+import { app, session } from "electron";
+import { ElectronChromeExtensions, setSessionPartitionResolver } from "electron-chrome-extensions";
 
 // A hack to load profiles rather than partitions
 const partitionSessionGrabber = (partition: string) => {
@@ -19,10 +19,12 @@ const partitionSessionGrabber = (partition: string) => {
   return session.fromPartition(partition);
 };
 
-setPartitionSessionGrabber(partitionSessionGrabber);
+setSessionPartitionResolver(partitionSessionGrabber);
 
 // Register CRX protocol in default session
 app.whenReady().then(() => {
+  ElectronChromeExtensions.handleCRXProtocol(session.defaultSession);
+  /**
   protocol.handle("crx", async (request) => {
     const url = URL.parse(request.url);
 
@@ -55,4 +57,5 @@ app.whenReady().then(() => {
 
     return extensions.handleCrxRequest(request);
   });
+  */
 });

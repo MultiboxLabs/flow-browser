@@ -426,11 +426,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    * view/webContents access.
    */
   private setupTabLevelListeners() {
-    const extensions = this.loadedProfile.extensions;
-
     this.on("updated", () => {
       if (!this.webContents) return;
-      extensions.tabUpdated(this.webContents);
+      this.webContents.emit("tab-updated");
     });
 
     // Transparent background for internal protocols
