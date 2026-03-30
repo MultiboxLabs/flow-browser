@@ -147,6 +147,15 @@ async function createSpaceMenuItem(
  * Creates the Spaces menu for the application
  */
 export async function createSpacesMenu(): Promise<MenuItemConstructorOptions> {
+  const manageSpacesItem = {
+    label: "Manage Spaces",
+    click: () => settings.show()
+  };
+  const noSpacesMenu = {
+    label: "Spaces",
+    submenu: [manageSpacesItem]
+  };
+
   try {
     const [spaces, areProfilesInternal] = await Promise.all([
       spacesController.getAll(),
@@ -156,30 +165,18 @@ export async function createSpacesMenu(): Promise<MenuItemConstructorOptions> {
 
     const focusedWindow = windowsController.getFocused();
     if (!focusedWindow || !browserWindowsManager.isInstanceOf(focusedWindow)) {
-      return {
-        label: "Spaces",
-        submenu: [
-          {
-            label: "Manage Spaces",
-            click: () => settings.show()
-          }
-        ]
-      };
+      return noSpacesMenu;
+    }
+
+    if (focusedWindow.browserWindowType === "popup") {
+      return noSpacesMenu;
     }
 
     const currentSpaceId = focusedWindow.currentSpaceId;
     if (currentSpaceId) {
       const currentSpace = spaces.find((space) => space.id === currentSpaceId);
       if (currentSpace && areProfilesInternal[currentSpace.profileId]) {
-        return {
-          label: "Spaces",
-          submenu: [
-            {
-              label: "Manage Spaces",
-              click: () => settings.show()
-            }
-          ]
-        };
+        return noSpacesMenu;
       }
     }
 
@@ -196,26 +193,11 @@ export async function createSpacesMenu(): Promise<MenuItemConstructorOptions> {
 
     return {
       label: "Spaces",
-      submenu: [
-        ...spaceMenuItems,
-        { type: "separator" },
-        {
-          label: "Manage Spaces",
-          click: () => settings.show()
-        }
-      ]
+      submenu: [...spaceMenuItems, { type: "separator" }, manageSpacesItem]
     };
   } catch (error) {
     console.error("Failed to create spaces menu:", error);
     // Provide a fallback menu if the spaces menu creation fails
-    return {
-      label: "Spaces",
-      submenu: [
-        {
-          label: "Manage Spaces",
-          click: () => settings.show()
-        }
-      ]
-    };
+    return noSpacesMenu;
   }
 }

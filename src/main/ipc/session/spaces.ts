@@ -65,6 +65,10 @@ export async function canUserSwitchWindowSpace(
   profileId: string,
   spaceId: string
 ): Promise<boolean> {
+  if (window.browserWindowType === "popup") {
+    return false;
+  }
+
   const targetProfile = await profilesController.get(profileId);
   if (targetProfile?.internal) {
     return false;

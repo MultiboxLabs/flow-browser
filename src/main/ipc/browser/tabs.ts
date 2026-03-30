@@ -249,13 +249,13 @@ ipcMain.handle("tabs:switch-to-tab", async (event, tabId: number) => {
       if (window.destroyed) return;
       if (movedTab.getWindow().id !== window.id) return;
 
-      tabsController.setActiveTab(movedTab);
+      tabsController.activateTab(movedTab);
       switched = true;
     });
     return switched;
   }
 
-  tabsController.setActiveTab(tab);
+  tabsController.activateTab(tab);
   return true;
 });
 
@@ -285,7 +285,7 @@ ipcMain.handle(
     });
 
     if (isForeground) {
-      tabsController.setActiveTab(tab);
+      tabsController.activateTab(tab);
     }
     return true;
   }
@@ -385,7 +385,7 @@ ipcMain.handle("tabs:move-tab-to-window-space", async (event, tabId: number, spa
     tabsController.normalizePositions(window.id, sourceSpaceId);
   }
 
-  tabsController.setActiveTab(tab);
+  tabsController.activateTab(tab);
   return true;
 });
 
@@ -429,7 +429,7 @@ ipcMain.on("tabs:show-context-menu", (event, tabId: number) => {
         if (!lifecycleManager) return;
         if (tab.asleep) {
           lifecycleManager.wakeUp();
-          tabsController.setActiveTab(tab);
+          tabsController.activateTab(tab);
         } else {
           lifecycleManager.putToSleep();
         }

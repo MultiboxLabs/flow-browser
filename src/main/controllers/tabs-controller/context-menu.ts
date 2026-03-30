@@ -58,7 +58,7 @@ export function createTabContextMenu(
           undefined,
           { url }
         );
-        tabsController.setActiveTab(sourceTab);
+        tabsController.activateTab(sourceTab);
       };
 
       // Create all menu sections

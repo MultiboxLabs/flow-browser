@@ -86,7 +86,7 @@ async function restoreIntoWindow(
   });
 
   restoreTabGroupMembership(restoredTab, tabGroupData);
-  tabsController.setActiveTab(restoredTab);
+  tabsController.activateTab(restoredTab);
   return true;
 }
 

@@ -56,7 +56,7 @@ async function createAndAssociatePinnedTab(
   });
 
   pinnedTabsController.associateTab(pinnedTabId, spaceId, newTab.id);
-  tabsController.setActiveTab(newTab);
+  tabsController.activateTab(newTab);
   return newTab;
 }
 
@@ -126,7 +126,7 @@ async function handlePinnedTabClick(
       if (navigateToDefault && tab.url !== pinnedTab.defaultUrl) {
         tab.loadURL(pinnedTab.defaultUrl);
       }
-      tabsController.setActiveTab(tab);
+      tabsController.activateTab(tab);
       return true;
     }
     // Tab was destroyed but association wasn't cleaned up — clear it
@@ -205,7 +205,7 @@ ipcMain.handle("pinned-tabs:unpin-to-tab-list", async (event, pinnedTabId: strin
       position
     });
 
-    tabsController.setActiveTab(newTab);
+    tabsController.activateTab(newTab);
     tabsController.normalizePositions(window.id, currentSpaceId);
   }
 

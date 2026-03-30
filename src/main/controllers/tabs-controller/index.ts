@@ -33,6 +33,11 @@ type TabsControllerEvents = {
 
 type WindowSpaceReference = `${number}-${string}`;
 
+interface PopupWindowReconcileOptions {
+  preferredSpaceId?: string;
+  forcePreferredSpace?: boolean;
+}
+
 function shouldPersistTab(tab: Tab): boolean {
   if (tab.ephemeral) return false;
   if (tab.loadedProfile.profileData.ephemeral) return false;
@@ -96,6 +101,10 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     this.on("tab-created", (tab) => {
       if (quitController.isQuitting) return;
       windowTabsChanged(tab.getWindow().id);
+      this.reconcilePopupWindow(tab.getWindow().id, {
+        preferredSpaceId: tab.spaceId,
+        forcePreferredSpace: true
+      });
     });
 
     this.on("tab-removed", (tab) => {
@@ -327,6 +336,10 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
 
       // Structural change — needs full data refresh (tab moved between spaces)
       windowTabsChanged(tab.getWindow().id);
+      this.reconcilePopupWindow(tab.getWindow().id, {
+        preferredSpaceId: tab.spaceId,
+        forcePreferredSpace: true
+      });
 
       // Mark tab dirty for persistence
       this.persistTab(tab);
@@ -339,6 +352,13 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       windowTabsChanged(newWindowId);
       if (oldWindowId !== newWindowId) {
         windowTabsChanged(oldWindowId);
+      }
+      this.reconcilePopupWindow(newWindowId, {
+        preferredSpaceId: tab.spaceId,
+        forcePreferredSpace: true
+      });
+      if (oldWindowId !== newWindowId) {
+        this.reconcilePopupWindow(oldWindowId);
       }
 
       // Mark tab dirty for persistence
@@ -479,17 +499,17 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
         // Add the new tab to the existing glance group
         existingGroup.addTab(newTab.id);
         existingGroup.setFrontTab(newTab.id);
-        this.setActiveTab(existingGroup);
+        this.activateTab(existingGroup);
       } else {
         // Create a new glance group with the source tab and new tab
         const glanceGroup = this.createTabGroup("glance", [sourceTab.id, newTab.id]);
         if (glanceGroup.mode === "glance") {
           glanceGroup.setFrontTab(newTab.id);
         }
-        this.setActiveTab(glanceGroup);
+        this.activateTab(glanceGroup);
       }
     } else if (disposition === "foreground-tab" || disposition === "new-window") {
-      this.setActiveTab(newTab);
+      this.activateTab(newTab);
     }
 
     // Keep source window in the same space for non-popup tab opens
@@ -515,7 +535,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
         win.browserWindow.focus();
 
         // Set active tab
-        this.setActiveTab(tab);
+        this.activateTab(tab);
       }
 
       return true;
@@ -576,25 +596,55 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   }
 
   /**
-   * Set the active tab for a space
+   * Activate a tab/group in its window, applying popup window policy first.
    */
-  public setActiveTab(tabOrGroup: Tab | TabGroup) {
+  public activateTab(tabOrGroup: Tab | TabGroup) {
+    const { window, spaceId } = this.getActivationContext(tabOrGroup);
+
+    if (window && !window.destroyed && window.browserWindowType === "popup" && window.currentSpaceId !== spaceId) {
+      setWindowSpace(window, spaceId);
+    }
+
+    this.setActiveTab(tabOrGroup);
+  }
+
+  private getActivationContext(tabOrGroup: Tab | TabGroup) {
     let windowId: number;
     let spaceId: string;
     let tabToFocus: Tab | undefined;
     let idToStore: number | string;
+    let window: ReturnType<typeof browserWindowsController.getWindowById> | undefined;
 
     if (tabOrGroup instanceof Tab) {
       windowId = tabOrGroup.getWindow().id;
       spaceId = tabOrGroup.spaceId;
       tabToFocus = tabOrGroup;
       idToStore = tabOrGroup.id;
+      window = tabOrGroup.getWindow();
     } else {
       windowId = tabOrGroup.windowId;
       spaceId = tabOrGroup.spaceId;
       tabToFocus = tabOrGroup.tabs.length > 0 ? tabOrGroup.tabs[0] : undefined;
       idToStore = tabOrGroup.groupId;
+      window = browserWindowsController.getWindowById(windowId);
     }
+
+    return {
+      windowId,
+      spaceId,
+      tabToFocus,
+      idToStore,
+      window
+    };
+  }
+
+  /**
+   * Set the active tab for a space.
+   * This only updates controller state; callers that need popup-space syncing
+   * should go through `activateTab()`.
+   */
+  private setActiveTab(tabOrGroup: Tab | TabGroup) {
+    const { windowId, spaceId, tabToFocus, idToStore } = this.getActivationContext(tabOrGroup);
 
     const windowSpaceReference = `${windowId}-${spaceId}` as WindowSpaceReference;
     this.spaceActiveTabMap.set(windowSpaceReference, tabOrGroup);
@@ -659,7 +709,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
             // Closing should only honor activation history once; after restoring,
             // subsequent closes should fall back to visual tab order.
             this.spaceActivationHistory.set(windowSpaceReference, [tab.id]);
-            this.setActiveTab(tab);
+            this.activateTab(tab);
             return;
           }
         } else {
@@ -675,7 +725,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
             // Closing should only honor activation history once; after restoring,
             // subsequent closes should fall back to visual tab order.
             this.spaceActivationHistory.set(windowSpaceReference, [group.groupId]);
-            this.setActiveTab(group);
+            this.activateTab(group);
             return;
           }
         }
@@ -685,7 +735,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     // Fall back to the next item in tab order.
     const nextTabOrGroup = this.getNextTabOrGroupByOrder(windowId, spaceId, closedPosition);
     if (nextTabOrGroup) {
-      this.setActiveTab(nextTabOrGroup);
+      this.activateTab(nextTabOrGroup);
     } else {
       // No valid tabs or groups left
       this.emit("active-tab-changed", windowId, spaceId);
@@ -840,6 +890,8 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
         }
       }
     }
+
+    this.reconcilePopupWindow(windowId);
   }
 
   // --- Tab Queries ---
@@ -990,6 +1042,100 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     return orderedItems.find((item) => item.position >= closedPosition) ?? orderedItems[orderedItems.length - 1];
   }
 
+  private getPopupTargetForSpace(windowId: number, spaceId: string): Tab | TabGroup | undefined {
+    const activeTabOrGroup = this.getActiveTab(windowId, spaceId);
+    if (activeTabOrGroup instanceof Tab) {
+      if (
+        !activeTabOrGroup.isDestroyed &&
+        activeTabOrGroup.getWindow().id === windowId &&
+        activeTabOrGroup.spaceId === spaceId
+      ) {
+        return activeTabOrGroup;
+      }
+    } else if (activeTabOrGroup) {
+      if (
+        !activeTabOrGroup.isDestroyed &&
+        activeTabOrGroup.windowId === windowId &&
+        activeTabOrGroup.spaceId === spaceId &&
+        activeTabOrGroup.tabs.length > 0
+      ) {
+        return activeTabOrGroup;
+      }
+    }
+
+    return this.getNextTabOrGroupByOrder(windowId, spaceId);
+  }
+
+  private getPopupTargetLastActiveAt(tabOrGroup: Tab | TabGroup): number {
+    if (tabOrGroup instanceof Tab) {
+      return tabOrGroup.lastActiveAt;
+    }
+
+    return tabOrGroup.tabs.reduce((latest, tab) => Math.max(latest, tab.lastActiveAt), 0);
+  }
+
+  private reconcilePopupWindow(windowId: number, options: PopupWindowReconcileOptions = {}): void {
+    if (quitController.isQuitting) return;
+
+    const window = browserWindowsController.getWindowById(windowId);
+    if (!window || window.destroyed || window.browserWindowType !== "popup") {
+      return;
+    }
+
+    const tabsInWindow = this.getTabsInWindow(windowId);
+    if (tabsInWindow.length === 0) {
+      setImmediate(() => {
+        const latestWindow = browserWindowsController.getWindowById(windowId);
+        if (!latestWindow || latestWindow.destroyed || latestWindow.browserWindowType !== "popup") {
+          return;
+        }
+        if (this.getTabsInWindow(windowId).length > 0) {
+          return;
+        }
+        latestWindow.close();
+      });
+      return;
+    }
+
+    if (options.forcePreferredSpace && options.preferredSpaceId) {
+      const preferredTarget = this.getPopupTargetForSpace(windowId, options.preferredSpaceId);
+      if (preferredTarget) {
+        this.activateTab(preferredTarget);
+        return;
+      }
+    }
+
+    const currentSpaceId = window.currentSpaceId;
+    if (currentSpaceId) {
+      const currentSpaceTarget = this.getPopupTargetForSpace(windowId, currentSpaceId);
+      if (currentSpaceTarget) {
+        if (!this.getActiveTab(windowId, currentSpaceId)) {
+          this.activateTab(currentSpaceTarget);
+        }
+        return;
+      }
+    }
+
+    let bestTarget: Tab | TabGroup | undefined;
+    let bestLastActiveAt = -Infinity;
+
+    const candidateSpaceIds = new Set<string>(tabsInWindow.map((tab) => tab.spaceId));
+    for (const candidateSpaceId of candidateSpaceIds) {
+      const candidateTarget = this.getPopupTargetForSpace(windowId, candidateSpaceId);
+      if (!candidateTarget) continue;
+
+      const candidateLastActiveAt = this.getPopupTargetLastActiveAt(candidateTarget);
+      if (!bestTarget || candidateLastActiveAt > bestLastActiveAt) {
+        bestTarget = candidateTarget;
+        bestLastActiveAt = candidateLastActiveAt;
+      }
+    }
+
+    if (bestTarget) {
+      this.activateTab(bestTarget);
+    }
+  }
+
   /**
    * Get all tabs in a window
    */
@@ -1119,7 +1265,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     const currentActive = this.getActiveTab(firstTab.getWindow().id, firstTab.spaceId);
     const currentActiveIsFirstTab = currentActive instanceof Tab && currentActive.id === firstTab.id;
     if (currentActiveIsFirstTab) {
-      this.setActiveTab(tabGroup);
+      this.activateTab(tabGroup);
     } else {
       // Ensure layout is updated for grouped tabs
       for (const t of tabGroup.tabs) {

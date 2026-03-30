@@ -144,7 +144,7 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
           url: tabDetails.url
         });
         if (tabDetails.active) {
-          tabsController.setActiveTab(tab);
+          tabsController.activateTab(tab);
         }
 
         const electronWindow = tab.getWindow().browserWindow;
@@ -160,7 +160,7 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
         setWindowSpace(window, tab.spaceId);
 
         // Set the active tab
-        tabsController.setActiveTab(tab);
+        tabsController.activateTab(tab);
       },
       removeTab: (tabWebContents) => {
         const tab = tabsController.getTabByWebContents(tabWebContents);
@@ -188,7 +188,7 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
 
             tabsController.createTab(window.id, profileId, undefined, undefined, { url }).then((tab) => {
               if (currentTabIndex === 0) {
-                tabsController.setActiveTab(tab);
+                tabsController.activateTab(tab);
               }
             });
 
