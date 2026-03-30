@@ -156,7 +156,7 @@ export class BaseTabGroup extends TypedEventEmitter<TabGroupEvents> {
         if (activeTab === tab) {
           // Set this tab group as active instead of just the tab
           // @ts-expect-error: the base class won't be used directly anyways
-          this.tabsController.setActiveTab(this);
+          this.tabsController.activateTab(this);
         }
       }
     };

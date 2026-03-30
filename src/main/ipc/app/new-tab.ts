@@ -27,7 +27,7 @@ export function openNewTab(window: BrowserWindow) {
       if (!space) return;
 
       const tab = await tabsController.createTab(window.id, space.profileId, spaceId);
-      tabsController.setActiveTab(tab);
+      tabsController.activateTab(tab);
     });
   }
 }

@@ -56,7 +56,7 @@ async function openUrlInWindow(useNewWindow: boolean, url: string) {
 
   // Create a new tab with the URL
   const tab = await tabsController.createTab(window.id, undefined, undefined, undefined, { url });
-  tabsController.setActiveTab(tab);
+  tabsController.activateTab(tab);
 }
 
 /**
