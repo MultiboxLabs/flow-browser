@@ -9,6 +9,7 @@ import type {
   OmniboxOpenState,
   OmniboxShadowPadding
 } from "~/flow/interfaces/browser/omnibox";
+import type { BrowserWindowType } from "@/controllers/windows-controller/types/browser";
 
 const omniboxes = new Map<BrowserWindow, Omnibox>();
 const OMNIBOX_URL = "flow-internal://omnibox/";
@@ -81,9 +82,10 @@ export class Omnibox {
     shadowPadding: DEFAULT_SHADOW_PADDING
   };
 
+  private disabled: boolean = false;
   private isDestroyed: boolean = false;
 
-  constructor(parentWindow: BrowserWindow) {
+  constructor(parentWindow: BrowserWindow, windowType: BrowserWindowType) {
     debugPrint("OMNIBOX", `Creating new omnibox for window ${parentWindow.id}`);
     const onmiboxView = new WebContentsView({
       webPreferences: {
@@ -91,6 +93,8 @@ export class Omnibox {
       }
     });
     const onmiboxWC = onmiboxView.webContents;
+
+    this.disabled = windowType === "popup";
 
     if (OMNIBOX_OPEN_DEVTOOLS) {
       onmiboxWC.openDevTools({ mode: "detach" });
@@ -257,6 +261,10 @@ export class Omnibox {
 
   show() {
     this.assertNotDestroyed();
+
+    if (this.disabled) {
+      return;
+    }
 
     debugPrint("OMNIBOX", "Showing omnibox");
     this.loadInterface();
