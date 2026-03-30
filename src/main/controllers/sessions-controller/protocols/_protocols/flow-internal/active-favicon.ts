@@ -1,5 +1,7 @@
 import { tabsController } from "@/controllers/tabs-controller";
 import { HonoApp } from ".";
+import { getExtensionAsset } from "@/modules/extensions/assets";
+import { bufferToArrayBuffer } from "@/modules/utils";
 
 // Cache storing the fetched favicon ArrayBuffer per tab, keyed by tabId.
 const activeTabFaviconCache = new Map<number, { faviconURL: string; data: ArrayBuffer; contentType: string }>();
@@ -69,6 +71,23 @@ export function registerActiveFaviconRoutes(app: HonoApp) {
     let fetchPromise = inFlightFetches.get(dedupeKey);
     if (!fetchPromise) {
       fetchPromise = (async () => {
+        if (faviconURL.toLowerCase().startsWith("chrome-extension://")) {
+          // Cannot fetch extension favicons via session.fetch() somehow, so we need to fetch it manually from the extension source
+          const faviconUrlObject = new URL(faviconURL);
+          if (faviconUrlObject.protocol.toLowerCase() === "chrome-extension:") {
+            const extensionId = faviconUrlObject.hostname;
+            const assetPath = faviconUrlObject.pathname;
+            const asset = await getExtensionAsset(extensionId, assetPath, {
+              session: profile.session,
+              requireWebAccessibleFor: tab.url
+            });
+            if (asset) {
+              return { data: bufferToArrayBuffer(asset.buffer), contentType: asset.contentType };
+            }
+            throw new Error("Failed to fetch extension favicon");
+          }
+        }
+
         const faviconResponse = await profile.session.fetch(faviconURL);
         const arrayBuffer = await faviconResponse.arrayBuffer();
         const contentType = faviconResponse.headers.get("Content-Type") || "image/png";
