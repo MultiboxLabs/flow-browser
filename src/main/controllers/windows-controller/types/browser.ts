@@ -127,6 +127,9 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     // Persist window bounds on resize/move so the size is restored on next launch
     let boundsDebounceTimer: ReturnType<typeof setTimeout> | null = null;
     const persistWindowBounds = () => {
+      if (type === "popup") {
+        return;
+      }
       if (boundsDebounceTimer) clearTimeout(boundsDebounceTimer);
       boundsDebounceTimer = setTimeout(() => {
         const bounds = browserWindow.getBounds();
@@ -134,8 +137,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
           width: bounds.width,
           height: bounds.height,
           x: bounds.x,
-          y: bounds.y,
-          isPopup: type === "popup" ? true : undefined
+          y: bounds.y
         });
       }, 500);
     };
