@@ -159,7 +159,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     this.coreWebContents = [browserWindow.webContents];
 
     // Omnibox //
-    this.omnibox = new Omnibox(browserWindow);
+    this.omnibox = new Omnibox(browserWindow, type);
     this.viewManager.addOrUpdateView(this.omnibox.view, ViewLayer.OMNIBOX);
     this.coreWebContents.push(this.omnibox.webContents);
     browserWindow.on("focus", () => {
