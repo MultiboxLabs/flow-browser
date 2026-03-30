@@ -1113,9 +1113,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     if (currentSpaceId) {
       const currentSpaceTarget = this.getPopupTargetForSpace(windowId, currentSpaceId);
       if (currentSpaceTarget) {
-        if (!this.getActiveTab(windowId, currentSpaceId)) {
-          this.activateTab(currentSpaceTarget);
-        }
+        this.activateTab(currentSpaceTarget);
         return;
       }
     }
