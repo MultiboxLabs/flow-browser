@@ -79,6 +79,9 @@ export function flushSidebarSize() {
 export type AttachedDirection = "left" | "right";
 export type BrowserSidebarMode = `attached-${AttachedDirection}` | `floating-${AttachedDirection}` | "hidden";
 interface BrowserSidebarContextValue {
+  /** False for popup windows (compact toolbar only; no full sidebar). */
+  hasSidebar: boolean;
+
   isVisible: boolean;
   setVisible: (isVisible: boolean) => void;
 
@@ -301,6 +304,8 @@ export function BrowserSidebarProvider({ children, hasSidebar = true }: BrowserS
   return (
     <BrowserSidebarContext.Provider
       value={{
+        hasSidebar,
+
         isVisible: isFloating ? true : isVisible,
         setVisible: handleSetVisible,
 

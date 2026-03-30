@@ -5,11 +5,13 @@ import { useAddressUrl, useFocusedTabId } from "@/components/providers/tabs-prov
 import { simplifyUrl } from "@/lib/url";
 import { PinnedBrowserActions } from "./pinned-browser-actions";
 import { BrowserActionList } from "@/components/browser-ui/browser-sidebar/_components/browser-action-list";
+import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
 
 export const AddressBar = memo(function AddressBar() {
   const containerRef = useRef<HTMLDivElement>(null);
   const addressUrl = useAddressUrl();
   const focusedTabId = useFocusedTabId();
+  const { hasSidebar } = useBrowserSidebar();
 
   const simplifiedUrl = simplifyUrl(addressUrl);
   const isPlaceholder = !simplifiedUrl;
@@ -26,6 +28,12 @@ export const AddressBar = memo(function AddressBar() {
 
       const rect = el.getBoundingClientRect();
 
+      // If it is in a popup window, do not show the omnibox
+      const isPopupWindow = !hasSidebar;
+      if (isPopupWindow) {
+        return;
+      }
+
       flow.omnibox.show(
         {
           x: rect.x,
@@ -39,7 +47,7 @@ export const AddressBar = memo(function AddressBar() {
         }
       );
     },
-    [addressUrl, focusedTabId]
+    [addressUrl, focusedTabId, hasSidebar]
   );
 
   return (
@@ -48,8 +56,8 @@ export const AddressBar = memo(function AddressBar() {
       onClick={handleClick}
       className={cn(
         "w-full min-w-0 h-9 rounded-xl select-none",
-        "bg-black/10 hover:bg-black/15",
-        "dark:bg-white/15 dark:hover:bg-white/20",
+        "bg-black/10 dark:bg-white/15",
+        hasSidebar && "hover:bg-black/15 dark:hover:bg-white/20",
         "transition-[background-color] duration-100",
         "flex items-center p-2 px-3 gap-1 overflow-hidden",
         isPlaceholder ? "text-black/60 dark:text-white/60" : "text-black dark:text-white"
