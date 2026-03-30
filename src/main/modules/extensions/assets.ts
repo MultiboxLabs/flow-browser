@@ -17,11 +17,11 @@ export type GetExtensionAssetOptions = {
 
 function findLoadedExtension(extensionId: string, session?: Session): Extension | null {
   if (session) {
-    return session.getExtension(extensionId) ?? null;
+    return session.extensions.getExtension(extensionId) ?? null;
   }
 
   for (const loadedProfile of loadedProfilesController.getAll()) {
-    const extension = loadedProfile.session.getExtension(extensionId);
+    const extension = loadedProfile.session.extensions.getExtension(extensionId);
     if (extension) {
       return extension;
     }
@@ -114,8 +114,10 @@ function isWebAccessibleForOrigin(extension: Extension, assetPath: string, reque
       if ("extension_ids" in entry) {
         try {
           const url = new URL(requestUrl);
-          return url.protocol === "chrome-extension:" &&
-            (entry.extension_ids.includes("*") || entry.extension_ids.includes(url.hostname));
+          return (
+            url.protocol === "chrome-extension:" &&
+            (entry.extension_ids.includes("*") || entry.extension_ids.includes(url.hostname))
+          );
         } catch {
           return false;
         }
@@ -150,7 +152,10 @@ export async function getExtensionAsset(
     return null;
   }
 
-  if (options.requireWebAccessibleFor && !isWebAccessibleForOrigin(extension, assetPath, options.requireWebAccessibleFor)) {
+  if (
+    options.requireWebAccessibleFor &&
+    !isWebAccessibleForOrigin(extension, assetPath, options.requireWebAccessibleFor)
+  ) {
     return null;
   }
 

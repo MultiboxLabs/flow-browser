@@ -296,7 +296,7 @@ export class ExtensionManager extends TypedEventEmitter<{
   private async loadExtensionWithData(extensionId: string, extensionData: ExtensionData) {
     const session = this.profileSession;
 
-    const loadedExtension = session.getExtension(extensionId);
+    const loadedExtension = session.extensions.getExtension(extensionId);
     if (loadedExtension) {
       await this._afterLoadExtension(loadedExtension);
       return loadedExtension;
