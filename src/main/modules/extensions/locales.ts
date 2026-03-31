@@ -111,3 +111,12 @@ export async function transformStringToLocale(
     return str;
   }
 }
+
+export function translateManifestString(extensionPath: string, str: string) {
+  const re = /^__MSG_(.+?)__$/;
+  const match = str.match(re);
+  if (!match) return str;
+
+  const [, key] = match;
+  return transformStringToLocale(extensionPath, key);
+}

@@ -5,7 +5,8 @@ import { NEW_TAB_URL, tabsController } from "@/controllers/tabs-controller";
 import { windowsController } from "@/controllers/windows-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { setWindowSpace } from "@/ipc/session/spaces";
-import { ExtensionManager } from "@/modules/extensions/management";
+import { ExtensionManager, getManifest } from "@/modules/extensions/management";
+import { translateManifestString } from "@/modules/extensions/locales";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getSettingValueById } from "@/saving/settings";
 import { dialog, BrowserWindow as ElectronBrowserWindow, Session } from "electron";
@@ -284,7 +285,7 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
       afterUninstall: async (details) => {
         await extensionsManager.removeInstalledExtension(details.id);
       },
-      setExtensionEnabled: async (extensionId, enabled) => {
+      setExtensionEnabled: async (extensionId, _details, enabled) => {
         await extensionsManager.setExtensionDisabled(extensionId, !enabled);
       },
       getExtensionInstallStatus: (extensionId) => {
@@ -294,6 +295,61 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
         }
         // go to default implementation
         return undefined;
+      },
+      getAllExtensions: async () => {
+        const extensions = await extensionsManager.getInstalledExtensions();
+        const promises = extensions.map(async (extension) => {
+          const extensionPath = await extensionsManager.getExtensionPath(extension.id, extension);
+          if (!extensionPath) return null;
+
+          const manifest = await getManifest(extensionPath);
+          if (!manifest) return null;
+
+          const translatedName = await translateManifestString(extensionPath, manifest.name);
+          const translatedShortName = manifest.short_name
+            ? await translateManifestString(extensionPath, manifest.short_name)
+            : undefined;
+          const translatedDescription = manifest.description
+            ? await translateManifestString(extensionPath, manifest.description)
+            : undefined;
+
+          return {
+            // Identity
+            id: extension.id,
+            name: translatedName,
+            shortName: translatedShortName ?? translatedName,
+            description: translatedDescription ?? "",
+            version: manifest.version,
+            versionName: manifest.version_name,
+            type: "extension" as const,
+
+            // State
+            enabled: !extension.disabled,
+            disabledReason: extension.disabled ? "unknown" : undefined,
+            installType: "normal" as const,
+            isApp: false,
+            offlineEnabled: false,
+            mayDisable: true,
+            mayEnable: extension.disabled ? true : undefined,
+
+            // Permissions
+            permissions: manifest.permissions ?? [],
+            hostPermissions: manifest.host_permissions ?? [],
+
+            // URLs
+            homepageUrl: manifest.homepage_url ?? "",
+            optionsUrl: manifest.options_url ?? "",
+            updateUrl: manifest.update_url ?? undefined,
+
+            // Assets
+            icons: Object.entries(manifest?.icons || {}).map(([size]) => ({
+              size: parseInt(size),
+              url: `chrome://extension-icon/${extension.id}/${size}/0`
+            }))
+          };
+        });
+        const results = await Promise.all(promises);
+        return results.filter((result) => result !== null);
       }
     });
 
