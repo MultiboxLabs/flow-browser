@@ -110,7 +110,7 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
 
     // Remove Electron and App details to closer emulate Chrome's User Agent
     const oldUserAgent = profileSession.getUserAgent();
-    const newUserAgent = transformUserAgentHeader(oldUserAgent, null);
+    const { userAgent: newUserAgent } = transformUserAgentHeader(oldUserAgent, null);
     if (oldUserAgent !== newUserAgent) {
       profileSession.setUserAgent(newUserAgent);
     }
