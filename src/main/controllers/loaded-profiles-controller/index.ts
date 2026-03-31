@@ -12,7 +12,7 @@ import { dialog, BrowserWindow as ElectronBrowserWindow, Session } from "electro
 import { ElectronChromeExtensions } from "electron-chrome-extensions";
 import { ExtensionInstallStatus, installChromeWebStore } from "electron-chrome-web-store";
 import path from "path";
-import { dispatchExtensionInstalledEvent } from "@/modules/extensions/events";
+import { startExtensionServiceWorker } from "@/modules/extensions/helpers";
 
 type LoadedProfilesControllerEvents = {
   "profile-loaded": [profileId: string];
@@ -262,7 +262,22 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
             return;
           }
 
-          dispatchExtensionInstalledEvent(extensions, details.id, "install");
+          const extension = profileSession.extensions.getExtension(details.id);
+          if (!extension) {
+            console.error(`Extension ${details.id} not found.`);
+            return;
+          }
+
+          // Wait for service worker to start
+          await startExtensionServiceWorker(profileSession, extension);
+
+          // Dispatch extension installed event
+          const success = await extensions.dispatchRuntimeInstalled(extension.id, { reason: "install" });
+          if (success) {
+            console.log(`Extension ${details.id} installed and service worker started.`);
+          } else {
+            console.error(`Failed to dispatch runtime installed event for extension ${details.id}.`);
+          }
         } catch (error) {
           console.error(`Failed to persist installed extension ${details.id}:`, error);
         }

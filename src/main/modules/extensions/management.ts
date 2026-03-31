@@ -7,6 +7,7 @@ import { ExtensionType } from "~/types/extensions";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { fireOnExtensionsUpdated } from "@/ipc/app/extensions";
 import { uninstallExtension } from "electron-chrome-web-store";
+import { startExtensionServiceWorker } from "./helpers";
 
 export type ExtensionData = {
   type: ExtensionType;
@@ -279,11 +280,11 @@ export class ExtensionManager extends TypedEventEmitter<{
    */
   private async _afterLoadExtension(extension: Extension) {
     const session = this.profileSession;
-    if (extension.manifest.manifest_version === 3 && extension.manifest.background?.service_worker) {
-      const scope = `chrome-extension://${extension.id}`;
-      await session.serviceWorkers.startWorkerForScope(scope).catch(() => {
-        console.error(`Failed to start worker for extension ${extension.id}`);
-      });
+    const { success, tries } = await startExtensionServiceWorker(session, extension);
+    if (!success) {
+      console.error(`Failed to start service worker for extension ${extension.id} after ${tries} tries`);
+    } else {
+      console.log(`Started service worker for extension ${extension.id} after ${tries} tries`);
     }
   }
 
