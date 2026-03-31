@@ -278,7 +278,7 @@ export class ExtensionManager extends TypedEventEmitter<{
    * Do stuff after an extension is loaded
    * @param extension - The extension to do stuff after
    */
-  private async _afterLoadExtension(extension: Extension) {
+  public async _afterLoadExtension(extension: Extension) {
     const session = this.profileSession;
     const { success, tries } = await startExtensionServiceWorker(session, extension);
     if (!success) {
