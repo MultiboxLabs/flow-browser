@@ -12,6 +12,7 @@ import { dialog, BrowserWindow as ElectronBrowserWindow, Session } from "electro
 import { ElectronChromeExtensions } from "electron-chrome-extensions";
 import { ExtensionInstallStatus, installChromeWebStore } from "electron-chrome-web-store";
 import path from "path";
+import { dispatchExtensionInstalledEvent } from "@/modules/extensions/events";
 
 type LoadedProfilesControllerEvents = {
   "profile-loaded": [profileId: string];
@@ -254,7 +255,17 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
         return { action: returnValue.response === 0 ? "deny" : "allow" };
       },
       afterInstall: async (details) => {
-        await extensionsManager.addInstalledExtension("crx", details.id);
+        try {
+          const persisted = await extensionsManager.addInstalledExtension("crx", details.id);
+          if (!persisted) {
+            console.error(`Failed to persist installed extension ${details.id}.`);
+            return;
+          }
+
+          dispatchExtensionInstalledEvent(extensions, details.id, "install");
+        } catch (error) {
+          console.error(`Failed to persist installed extension ${details.id}:`, error);
+        }
       },
       afterUninstall: async (details) => {
         await extensionsManager.removeInstalledExtension(details.id);
