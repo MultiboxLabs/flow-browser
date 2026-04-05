@@ -278,7 +278,7 @@ export class ExtensionManager extends TypedEventEmitter<{
    * Do stuff after an extension is loaded
    * @param extension - The extension to do stuff after
    */
-  public async _afterLoadExtension(extension: Extension) {
+  private async _afterLoadExtension(extension: Extension) {
     const session = this.profileSession;
 
     // Runs asynchronously, so we don't block the main thread
@@ -294,6 +294,15 @@ export class ExtensionManager extends TypedEventEmitter<{
 
     // Return stuff that may need to be used by the caller
     return { startSWPromise };
+  }
+
+  /**
+   * Initialize a loaded extension
+   * @param extension - The extension to initialize
+   * @returns A promise that resolves to the initialized extension
+   */
+  public async initializeLoadedExtension(extension: Extension) {
+    return await this._afterLoadExtension(extension);
   }
 
   /**
