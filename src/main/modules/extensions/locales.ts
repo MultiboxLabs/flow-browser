@@ -112,11 +112,11 @@ export async function transformStringToLocale(
   }
 }
 
-export function translateManifestString(extensionPath: string, str: string) {
+export async function translateManifestString(extensionPath: string, str: string): Promise<string> {
   const re = /^__MSG_(.+?)__$/;
   const match = str.match(re);
   if (!match) return str;
 
   const [, key] = match;
-  return transformStringToLocale(extensionPath, key);
+  return await transformStringToLocale(extensionPath, key);
 }
