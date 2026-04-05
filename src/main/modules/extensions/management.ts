@@ -280,12 +280,20 @@ export class ExtensionManager extends TypedEventEmitter<{
    */
   public async _afterLoadExtension(extension: Extension) {
     const session = this.profileSession;
-    const { success, tries } = await startExtensionServiceWorker(session, extension);
-    if (!success) {
-      console.error(`Failed to start service worker for extension ${extension.id} after ${tries} tries`);
-    } else {
-      console.log(`Started service worker for extension ${extension.id} after ${tries} tries`);
-    }
+
+    // Runs asynchronously, so we don't block the main thread
+    const startSWPromise = startExtensionServiceWorker(session, extension).then(({ success, tries }) => {
+      if (!success) {
+        console.error(`Failed to start service worker for extension ${extension.id} after ${tries} tries`);
+        return false;
+      } else {
+        console.log(`Started service worker for extension ${extension.id} after ${tries} tries`);
+        return true;
+      }
+    });
+
+    // Return stuff that may need to be used by the caller
+    return { startSWPromise };
   }
 
   /**

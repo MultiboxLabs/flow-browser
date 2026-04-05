@@ -269,7 +269,8 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
           }
 
           // Wait for service worker to start and other things to initialize
-          await extensionsManager._afterLoadExtension(extension);
+          const { startSWPromise } = await extensionsManager._afterLoadExtension(extension);
+          await startSWPromise;
 
           // Dispatch extension installed event
           const success = await extensions.dispatchRuntimeInstalled(extension.id, { reason: "install" });
