@@ -1,4 +1,4 @@
-import { ipcRenderer, contextBridge } from "electron";
+import { ipcRenderer, contextBridge, type IpcRendererEvent } from "electron";
 import { generateID } from "../utils";
 
 import type {
@@ -9,22 +9,36 @@ import type {
 } from "~/types/fido2-types";
 import { WebauthnUtils } from "./webauthn-utils";
 
-function handleConditionalMediation(options: CredentialRequestOptions) {
+async function handleConditionalMediation(options: CredentialRequestOptions) {
   const operationId = generateID();
   const publicKeyRequestOptions = options.publicKey;
   ipcRenderer.send("webauthn:start-conditional-mediation", operationId, publicKeyRequestOptions);
+
+  const { resolve, promise } = Promise.withResolvers<AssertCredentialResult | AssertCredentialErrorCodes | null>();
 
   const abortSignal = options.signal;
   if (abortSignal) {
     abortSignal.addEventListener("abort", () => {
       ipcRenderer.send("webauthn:cancel-conditional-mediation", operationId);
+      resolve("AbortError");
     });
   }
 
-  return new Promise<AssertCredentialResult | AssertCredentialErrorCodes | null>((resolve) => {
-    ipcRenderer.on("webauthn:conditional-mediation-result", (_, result) => {
-      resolve(result);
-    });
+  const onConditionalMediationResult = (
+    _event: IpcRendererEvent,
+    opId: string,
+    result: AssertCredentialResult | AssertCredentialErrorCodes | null
+  ) => {
+    if (opId !== operationId) {
+      return;
+    }
+    resolve(result);
+  };
+  ipcRenderer.on("webauthn:conditional-mediation-result", onConditionalMediationResult);
+
+  return await promise.then((result) => {
+    ipcRenderer.off("webauthn:conditional-mediation-result", onConditionalMediationResult);
+    return result;
   });
 }
 
@@ -148,11 +162,6 @@ export function tryPatchPasskeys() {
           // navigator.credentials.get()
           credentials.get = async (options) => {
             if (options && (await shouldUseMacOSWebauthnAddon())) {
-              // Conditional mediation is not supported yet
-              if (options.mediation === "conditional") {
-                throw new DOMException("The user agent does not support this operation.", "NotSupportedError");
-              }
-
               if (options.publicKey) {
                 const result = await patchedCredentials.get(options);
 
