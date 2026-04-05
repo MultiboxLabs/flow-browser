@@ -1,4 +1,5 @@
 import { ipcRenderer, contextBridge } from "electron";
+import { generateID } from "../utils";
 
 import type {
   AssertCredentialErrorCodes,
@@ -7,6 +8,25 @@ import type {
   CreateCredentialResult
 } from "~/types/fido2-types";
 import { WebauthnUtils } from "./webauthn-utils";
+
+function handleConditionalMediation(options: CredentialRequestOptions) {
+  const operationId = generateID();
+  const publicKeyRequestOptions = options.publicKey;
+  ipcRenderer.send("webauthn:start-conditional-mediation", operationId, publicKeyRequestOptions);
+
+  const abortSignal = options.signal;
+  if (abortSignal) {
+    abortSignal.addEventListener("abort", () => {
+      ipcRenderer.send("webauthn:cancel-conditional-mediation", operationId);
+    });
+  }
+
+  return new Promise<AssertCredentialResult | AssertCredentialErrorCodes | null>((resolve) => {
+    ipcRenderer.on("webauthn:conditional-mediation-result", (_, result) => {
+      resolve(result);
+    });
+  });
+}
 
 export function tryPatchPasskeys() {
   const SHOULD_PATCH_PASSKEYS = "navigator" in globalThis && "credentials" in globalThis.navigator;
@@ -36,10 +56,13 @@ export function tryPatchPasskeys() {
       },
       // @ts-expect-error: just not gonna bother with the error types
       get: async (options) => {
-        const serialized: AssertCredentialResult | AssertCredentialErrorCodes | null = await ipcRenderer.invoke(
-          "webauthn:get",
-          options
-        );
+        let serialized: AssertCredentialResult | AssertCredentialErrorCodes | null;
+
+        if (options && options.mediation === "conditional") {
+          serialized = await handleConditionalMediation(options);
+        } else {
+          serialized = await ipcRenderer.invoke("webauthn:get", options);
+        }
 
         if (!serialized) return null;
         if (typeof serialized === "string") {
@@ -57,7 +80,7 @@ export function tryPatchPasskeys() {
         return isWebauthnAddonAvailablePromise;
       },
       isConditionalMediationAvailable: async () => {
-        return false;
+        return true;
       }
     };
     contextBridge.exposeInMainWorld("electronCredentials", patchedCredentialsContainer);
