@@ -11,6 +11,10 @@ const FIND_BAR_WIDTH = 380;
 const FIND_BAR_HEIGHT = 44;
 const FIND_BAR_PADDING = 8;
 
+interface FindInPageProps {
+  anchorRef: React.RefObject<HTMLDivElement | null>;
+}
+
 function FindInPageBar({
   onQueryChange,
   onFindNext,
@@ -68,8 +72,7 @@ function FindInPageBar({
         "w-full h-full",
         "flex items-center gap-1 px-3 py-1.5",
         "bg-neutral-900/95 backdrop-blur-md",
-        "border border-white/10 rounded-lg",
-        "shadow-lg shadow-black/30"
+        "border border-white/10 rounded-lg"
       )}
       initial={{ opacity: 0, y: -8, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -226,7 +229,7 @@ const TabFindInPage = memo(function TabFindInPage({
  * Top-level orchestrator. Manages which tabs have find bars open and
  * renders one TabFindInPage per open tab.
  */
-export function FindInPage() {
+export function FindInPage({ anchorRef }: FindInPageProps) {
   const focusedTabId = useFocusedTabId();
   const { tabsData } = useTabs();
   const [openTabIds, setOpenTabIds] = useState<number[]>([]);
@@ -235,7 +238,6 @@ export function FindInPage() {
   const focusedTabIdRef = useRef(focusedTabId);
   focusedTabIdRef.current = focusedTabId;
 
-  const anchorRef = useRef<HTMLDivElement>(null);
   const anchorRect = useBoundingRect(anchorRef);
 
   useEffect(() => {
@@ -269,18 +271,17 @@ export function FindInPage() {
     setOpenTabIds((prev) => prev.filter((id) => id !== tabId));
   }, []);
 
-  const portalStyle: React.CSSProperties = anchorRect
-    ? {
-        top: anchorRect.y + FIND_BAR_PADDING,
-        right: window.innerWidth - anchorRect.right + FIND_BAR_PADDING,
-        width: FIND_BAR_WIDTH,
-        height: FIND_BAR_HEIGHT
-      }
-    : { top: 0, right: 0, width: FIND_BAR_WIDTH, height: FIND_BAR_HEIGHT };
+  if (!anchorRect) return null;
+
+  const portalStyle: React.CSSProperties = {
+    top: anchorRect.y + FIND_BAR_PADDING,
+    right: window.innerWidth - anchorRect.right + FIND_BAR_PADDING,
+    width: FIND_BAR_WIDTH,
+    height: FIND_BAR_HEIGHT
+  };
 
   return (
     <>
-      <div ref={anchorRef} className="absolute inset-0 pointer-events-none" />
       {openTabIds.map((tabId) => (
         <TabFindInPage
           key={tabId}

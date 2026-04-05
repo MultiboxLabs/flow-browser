@@ -228,6 +228,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
   // components above to prevent the entire layout from rerendering.
   const { mode: sidebarMode, attachedDirection } = useBrowserSidebar();
   const { topbarVisible, topbarHeight } = useAdaptiveTopbar();
+  const browserContentAnchorRef = useRef<HTMLDivElement>(null);
 
   const hasSidebar = type === "main";
 
@@ -276,9 +277,12 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
 
                     <div className="relative flex-1 min-w-0 h-full flex flex-col">
                       <LoadingIndicator />
-                      <FindInPage />
                       {!hasSidebar && <PopupToolbar />}
-                      <BrowserContent />
+                      <div className="relative flex-1 min-h-0 flex">
+                        <div ref={browserContentAnchorRef} className="absolute inset-0 pointer-events-none" />
+                        <FindInPage anchorRef={browserContentAnchorRef} />
+                        <BrowserContent />
+                      </div>
                     </div>
 
                     {sidebarMode !== "attached-right" ? (
