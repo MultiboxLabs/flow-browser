@@ -5,7 +5,8 @@ import { NEW_TAB_URL, tabsController } from "@/controllers/tabs-controller";
 import { windowsController } from "@/controllers/windows-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { setWindowSpace } from "@/ipc/session/spaces";
-import { ExtensionManager } from "@/modules/extensions/management";
+import { ExtensionManager, getManifest } from "@/modules/extensions/management";
+import { translateManifestString } from "@/modules/extensions/locales";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { getSettingValueById } from "@/saving/settings";
 import { dialog, BrowserWindow as ElectronBrowserWindow, Session } from "electron";
@@ -110,7 +111,7 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
 
     // Remove Electron and App details to closer emulate Chrome's User Agent
     const oldUserAgent = profileSession.getUserAgent();
-    const newUserAgent = transformUserAgentHeader(oldUserAgent, null);
+    const { userAgent: newUserAgent } = transformUserAgentHeader(oldUserAgent, null);
     if (oldUserAgent !== newUserAgent) {
       profileSession.setUserAgent(newUserAgent);
     }
@@ -123,7 +124,6 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
     const extensions = new ElectronChromeExtensions({
       license: "GPL-3.0",
       session: profileSession,
-      registerCrxProtocolInDefaultSession: false,
       assignTabDetails: (tabDetails, tabWebContents) => {
         const tab = tabsController.getTabByWebContents(tabWebContents);
         if (!tab) return;
@@ -186,7 +186,7 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
           for (const url of urls) {
             const currentTabIndex = tabIndex;
 
-            tabsController.createTab(window.id, profileId, undefined, undefined, { url }).then((tab) => {
+            await tabsController.createTab(window.id, profileId, undefined, undefined, { url }).then((tab) => {
               if (currentTabIndex === 0) {
                 tabsController.activateTab(tab);
               }
@@ -255,21 +255,102 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
         return { action: returnValue.response === 0 ? "deny" : "allow" };
       },
       afterInstall: async (details) => {
-        await extensionsManager.addInstalledExtension("crx", details.id);
+        try {
+          const persisted = await extensionsManager.addInstalledExtension("crx", details.id);
+          if (!persisted) {
+            console.error(`Failed to persist installed extension ${details.id}.`);
+            return;
+          }
+
+          const extension = profileSession.extensions.getExtension(details.id);
+          if (!extension) {
+            console.error(`Extension ${details.id} not found.`);
+            return;
+          }
+
+          // Wait for service worker to start and other things to initialize
+          const { startSWPromise } = await extensionsManager.initializeLoadedExtension(extension);
+          await startSWPromise;
+
+          // Dispatch extension installed event
+          const success = await extensions.dispatchRuntimeInstalled(extension.id, { reason: "install" });
+          if (success) {
+            console.log(`Dispatched extension installed event for extension ${details.id}.`);
+          } else {
+            console.error(`Failed to dispatch extension installed event for extension ${details.id}.`);
+          }
+        } catch (error) {
+          console.error(`Failed to persist installed extension ${details.id}:`, error);
+        }
       },
       afterUninstall: async (details) => {
         await extensionsManager.removeInstalledExtension(details.id);
       },
-      customSetExtensionEnabled: async (_state, extensionId, enabled) => {
+      setExtensionEnabled: async (extensionId, _details, enabled) => {
         await extensionsManager.setExtensionDisabled(extensionId, !enabled);
       },
-      overrideExtensionInstallStatus: (_state, extensionId) => {
+      getExtensionInstallStatus: (extensionId) => {
         const isDisabled = extensionsManager.getExtensionDisabled(extensionId);
         if (isDisabled) {
           return ExtensionInstallStatus.DISABLED;
         }
         // go to default implementation
         return undefined;
+      },
+      getAllExtensions: async () => {
+        const extensions = await extensionsManager.getInstalledExtensions();
+        const promises = extensions.map(async (extension) => {
+          const extensionPath = await extensionsManager.getExtensionPath(extension.id, extension);
+          if (!extensionPath) return null;
+
+          const manifest = await getManifest(extensionPath);
+          if (!manifest) return null;
+
+          const translatedName = await translateManifestString(extensionPath, manifest.name);
+          const translatedShortName = manifest.short_name
+            ? await translateManifestString(extensionPath, manifest.short_name)
+            : undefined;
+          const translatedDescription = manifest.description
+            ? await translateManifestString(extensionPath, manifest.description)
+            : undefined;
+
+          return {
+            // Identity
+            id: extension.id,
+            name: translatedName,
+            shortName: translatedShortName ?? translatedName,
+            description: translatedDescription ?? "",
+            version: manifest.version,
+            versionName: manifest.version_name,
+            type: "extension" as const,
+
+            // State
+            enabled: !extension.disabled,
+            disabledReason: extension.disabled ? "unknown" : undefined,
+            installType: "normal" as const,
+            isApp: false,
+            offlineEnabled: false,
+            mayDisable: true,
+            mayEnable: extension.disabled ? true : undefined,
+
+            // Permissions
+            permissions: manifest.permissions ?? [],
+            hostPermissions: manifest.host_permissions ?? [],
+
+            // URLs
+            homepageUrl: manifest.homepage_url ?? "",
+            optionsUrl: manifest.options_url ?? "",
+            updateUrl: manifest.update_url ?? undefined,
+
+            // Assets
+            icons: Object.entries(manifest?.icons || {}).map(([size]) => ({
+              size: parseInt(size),
+              url: `chrome://extension-icon/${extension.id}/${size}/0`
+            }))
+          };
+        });
+        const results = await Promise.all(promises);
+        return results.filter((result) => result !== null);
       }
     });
 

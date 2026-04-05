@@ -7,6 +7,7 @@ import { ExtensionType } from "~/types/extensions";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { fireOnExtensionsUpdated } from "@/ipc/app/extensions";
 import { uninstallExtension } from "electron-chrome-web-store";
+import { startExtensionServiceWorker } from "./helpers";
 
 export type ExtensionData = {
   type: ExtensionType;
@@ -279,12 +280,29 @@ export class ExtensionManager extends TypedEventEmitter<{
    */
   private async _afterLoadExtension(extension: Extension) {
     const session = this.profileSession;
-    if (extension.manifest.manifest_version === 3 && extension.manifest.background?.service_worker) {
-      const scope = `chrome-extension://${extension.id}`;
-      await session.serviceWorkers.startWorkerForScope(scope).catch(() => {
-        console.error(`Failed to start worker for extension ${extension.id}`);
-      });
-    }
+
+    // Runs asynchronously, so we don't block the main thread
+    const startSWPromise = startExtensionServiceWorker(session, extension).then(({ success, tries }) => {
+      if (!success) {
+        console.error(`Failed to start service worker for extension ${extension.id} after ${tries} tries`);
+        return false;
+      } else {
+        console.log(`Started service worker for extension ${extension.id} after ${tries} tries`);
+        return true;
+      }
+    });
+
+    // Return stuff that may need to be used by the caller
+    return { startSWPromise };
+  }
+
+  /**
+   * Initialize a loaded extension
+   * @param extension - The extension to initialize
+   * @returns A promise that resolves to the initialized extension
+   */
+  public async initializeLoadedExtension(extension: Extension) {
+    return await this._afterLoadExtension(extension);
   }
 
   /**
@@ -296,7 +314,7 @@ export class ExtensionManager extends TypedEventEmitter<{
   private async loadExtensionWithData(extensionId: string, extensionData: ExtensionData) {
     const session = this.profileSession;
 
-    const loadedExtension = session.getExtension(extensionId);
+    const loadedExtension = session.extensions.getExtension(extensionId);
     if (loadedExtension) {
       await this._afterLoadExtension(loadedExtension);
       return loadedExtension;

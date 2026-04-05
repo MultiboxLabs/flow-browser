@@ -1,5 +1,5 @@
 import { sendMessageToListeners } from "@/ipc/listeners-manager";
-import { transformStringToLocale } from "@/modules/extensions/locales";
+import { translateManifestString } from "@/modules/extensions/locales";
 import {
   ExtensionData,
   ExtensionManager,
@@ -13,15 +13,6 @@ import { dialog, ipcMain, IpcMainInvokeEvent, WebContents } from "electron";
 import { SharedExtensionData } from "~/types/extensions";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
-
-function translateManifestString(extensionPath: string, str: string) {
-  const re = /^__MSG_(.+?)__$/;
-  const match = str.match(re);
-  if (!match) return str;
-
-  const [, key] = match;
-  return transformStringToLocale(extensionPath, key);
-}
 
 async function generateSharedExtensionData(
   extensionsManager: ExtensionManager,

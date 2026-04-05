@@ -4,8 +4,12 @@ import { app } from "electron";
 const EDGE_USER_AGENT = "Edg/136.0.3240.76";
 
 export function transformUserAgentHeader(userAgent: string, url: URL | null) {
+  // Include Chrome Browser Headers:
+  // - Chrome-style client identification headers (x-browser-*)
+  let includeChromeBrowserHeaders = false;
+
   if (!FLAGS.SCRUBBED_USER_AGENT) {
-    return userAgent;
+    return { userAgent, includeChromeBrowserHeaders };
   }
 
   // Edge User Agent:
@@ -28,6 +32,11 @@ export function transformUserAgentHeader(userAgent: string, url: URL | null) {
     if (hostname.endsWith(".whatsapp.com")) {
       removeAppUserAgent = true;
     }
+
+    if (hostname.endsWith("chromewebstore.google.com")) {
+      removeAppUserAgent = true;
+      includeChromeBrowserHeaders = true;
+    }
   }
 
   if (removeElectronUserAgent) {
@@ -44,5 +53,5 @@ export function transformUserAgentHeader(userAgent: string, url: URL | null) {
     userAgent = `${userAgent} ${EDGE_USER_AGENT}`;
   }
 
-  return userAgent;
+  return { userAgent, includeChromeBrowserHeaders };
 }
