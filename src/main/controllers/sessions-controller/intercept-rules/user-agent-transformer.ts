@@ -34,15 +34,9 @@ export function setupUserAgentTransformer(session: Session) {
         }
 
         if (includeChromeBrowserHeaders) {
-          // Normal x-browser-* headers
           for (const [key, value] of Object.entries(generateBrowserClientHeaders(newValue))) {
             newHeaders[key] = value;
           }
-
-          // x-browser-validation header
-          const validationHeader = generateChromeValidationHeader(newValue);
-          newHeaders["x-browser-validation"] = validationHeader;
-
           updated = true;
         }
       }
