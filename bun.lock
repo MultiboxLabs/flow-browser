@@ -10,8 +10,8 @@
         "arktype": "^2.2.0",
         "better-sqlite3": "^12.6.2",
         "drizzle-orm": "^0.45.1",
-        "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.7.5",
-        "electron-chrome-web-store": "npm:@iamevan/electron-chrome-web-store@0.11.2",
+        "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.9.4",
+        "electron-chrome-web-store": "npm:@iamevan/electron-chrome-web-store@0.13.3",
         "electron-context-menu": "^4.0.5",
         "electron-updater": "^6.8.3",
         "electron-webauthn": "^1.2.0",
@@ -1029,9 +1029,9 @@
 
     "electron-builder-squirrel-windows": ["electron-builder-squirrel-windows@26.0.12", "", { "dependencies": { "app-builder-lib": "26.0.12", "builder-util": "26.0.11", "electron-winstaller": "5.4.0" } }, "sha512-kpwXM7c/ayRUbYVErQbsZ0nQZX4aLHQrPEG9C4h9vuJCXylwFH8a7Jgi2VpKIObzCXO7LKHiCw4KdioFLFOgqA=="],
 
-    "electron-chrome-extensions": ["@iamevan/electron-chrome-extensions@4.7.5", "", { "dependencies": { "debug": "^4.3.1" } }, "sha512-cRf/lM1QMdx1sIJWB0emOTwhP5FmneXkwsu+bVXYs99v8m6A2iO35Za0eHt4h+hs38N07bF/RdIKN4+HH4RVlg=="],
+    "electron-chrome-extensions": ["@iamevan/electron-chrome-extensions@4.9.4", "", { "dependencies": { "debug": "^4.3.1" } }, "sha512-JPbNppVGFOctuSFzs6DaKs8CTP67e8ifjhEaJOTNFKGDhSXr3uC1sF6IkQGm47O7HBsockhC11Hr5wGTciMqbA=="],
 
-    "electron-chrome-web-store": ["@iamevan/electron-chrome-web-store@0.11.2", "", { "dependencies": { "@types/chrome": "^0.0.287", "adm-zip": "^0.5.16", "debug": "^4.3.7", "pbf": "^4.0.1" } }, "sha512-qO/4WG1elySAFWpf5KrOZP58jaiAJAGVvaxQPppSQsmiJeNFrOqvB+WEfhTf/UtbIj6sLUgYrjvvN772IPuZvA=="],
+    "electron-chrome-web-store": ["@iamevan/electron-chrome-web-store@0.13.3", "", { "dependencies": { "@types/chrome": "^0.0.287", "adm-zip": "^0.5.16", "debug": "^4.3.7", "pbf": "^4.0.1" } }, "sha512-DactkR+smswJWHsfUqSgujOP72tyyugfmYDapNl2Q+xkKvpXEwtPYMEY+vXCK4AHWQ85t0J6Us9EIkkLZuIi6Q=="],
 
     "electron-context-menu": ["electron-context-menu@4.1.1", "", { "dependencies": { "cli-truncate": "^4.0.0", "electron-dl": "^4.0.0", "electron-is-dev": "^3.0.1" } }, "sha512-kebXha4K2DmR7zrKpO8muzXlUAdhgqQIT7DpPeT4cAKZugwCB/NbuEuT+1SDjOH9vXJYjWK2UQuFvnVw0u0lHg=="],
 
@@ -2221,11 +2221,7 @@
 
     "electron-builder-squirrel-windows/builder-util": ["builder-util@26.0.11", "", { "dependencies": { "7zip-bin": "~5.2.0", "@types/debug": "^4.1.6", "app-builder-bin": "5.0.0-alpha.12", "builder-util-runtime": "9.3.1", "chalk": "^4.1.2", "cross-spawn": "^7.0.6", "debug": "^4.3.4", "fs-extra": "^10.1.0", "http-proxy-agent": "^7.0.0", "https-proxy-agent": "^7.0.0", "is-ci": "^3.0.0", "js-yaml": "^4.1.0", "sanitize-filename": "^1.6.3", "source-map-support": "^0.5.19", "stat-mode": "^1.0.0", "temp-file": "^3.4.0", "tiny-async-pool": "1.3.0" } }, "sha512-xNjXfsldUEe153h1DraD0XvDOpqGR0L5eKFkdReB7eFW5HqysDZFfly4rckda6y9dF39N3pkPlOblcfHKGw+uA=="],
 
-    "electron-chrome-extensions/debug": ["debug@4.4.1", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-KcKCqiftBJcZr++7ykoDIEwSa3XWowTfNPo92BYxjXiyYEVrUQh2aLyhxBCwww+heortUFxEJYcRzosstTEBYQ=="],
-
     "electron-chrome-web-store/@types/chrome": ["@types/chrome@0.0.287", "", { "dependencies": { "@types/filesystem": "*", "@types/har-format": "*" } }, "sha512-wWhBNPNXZHwycHKNYnexUcpSbrihVZu++0rdp6GEk5ZgAglenLx+RwdEouh6FrHS0XQiOxSd62yaujM1OoQlZQ=="],
-
-    "electron-chrome-web-store/debug": ["debug@4.4.1", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-KcKCqiftBJcZr++7ykoDIEwSa3XWowTfNPo92BYxjXiyYEVrUQh2aLyhxBCwww+heortUFxEJYcRzosstTEBYQ=="],
 
     "electron-updater/semver": ["semver@7.7.3", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q=="],
 
