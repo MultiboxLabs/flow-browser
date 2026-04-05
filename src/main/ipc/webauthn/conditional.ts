@@ -1,6 +1,8 @@
 import { handleGetCredential } from "@/ipc/webauthn";
+import { sendMessageToListeners } from "@/ipc/listeners-manager";
 import { ipcMain, type IpcMainInvokeEvent } from "electron";
 import type { AssertCredentialErrorCodes, AssertCredentialResult } from "~/types/fido2-types";
+import type { ConditionalPasskeyRequest } from "~/types/passkey";
 
 interface PendingConditionalMediation {
   publicKeyRequestOptions: PublicKeyCredentialRequestOptions;
@@ -20,10 +22,16 @@ interface PendingConditionalMediation {
 
 const pendingConditionalMediations = new Map<string, PendingConditionalMediation>();
 
-function pendingOperationsChanged(operation: "new" | "updated" | "removed", operationId: string) {
-  // TODO: communicate with main browser UI about the changes
-  void operation;
-  void operationId;
+function getSerializedConditionalRequests(): ConditionalPasskeyRequest[] {
+  return Array.from(pendingConditionalMediations.entries()).map(([operationId, mediation]) => ({
+    operationId,
+    rpId: mediation.publicKeyRequestOptions.rpId ?? "",
+    state: mediation.state
+  }));
+}
+
+function pendingOperationsChanged() {
+  sendMessageToListeners("passkey:on-conditional-requests-updated", getSerializedConditionalRequests());
 }
 
 async function progressConditionalMediation(operationId: string) {
@@ -34,8 +42,8 @@ async function progressConditionalMediation(operationId: string) {
 
   if (pendingConditionalMediation.state === "starting") {
     // Just starting, tell main browser UI about this new operation
-    pendingOperationsChanged("new", operationId);
     pendingConditionalMediation.state = "started";
+    pendingOperationsChanged();
     return true;
   } else if (pendingConditionalMediation.state === "started") {
     // Already started, do nothing
@@ -47,7 +55,7 @@ async function progressConditionalMediation(operationId: string) {
       return false;
     }
     pendingConditionalMediation.state = "processing";
-    pendingOperationsChanged("updated", operationId);
+    pendingOperationsChanged();
     const updatedPublicKeyRequestOptions: PublicKeyCredentialRequestOptions = {
       ...publicKeyRequestOptions,
       allowCredentials: [selectedPasskey]
@@ -57,7 +65,7 @@ async function progressConditionalMediation(operationId: string) {
       // Go back to starting state - pick another passkey
       pendingConditionalMediation.state = "started";
       pendingConditionalMediation.selectedPasskey = null;
-      pendingOperationsChanged("updated", operationId);
+      pendingOperationsChanged();
     } else {
       pendingConditionalMediation.state = "completed";
       pendingConditionalMediation.result = result;
@@ -77,18 +85,19 @@ async function progressConditionalMediation(operationId: string) {
 
     // Clear the pending operation
     pendingConditionalMediations.delete(operationId);
-    pendingOperationsChanged("removed", operationId);
+    pendingOperationsChanged();
     return true;
   } else if (pendingConditionalMediation.state === "cancelled") {
     // Cancelled, clear the pending operation
     pendingConditionalMediations.delete(operationId);
-    pendingOperationsChanged("removed", operationId);
+    pendingOperationsChanged();
     return true;
   } else {
     return false;
   }
 }
 
+// IPCs with WebAuthn Requester //
 ipcMain.on(
   "webauthn:start-conditional-mediation",
   (event, operationId: string, publicKeyRequestOptions: PublicKeyCredentialRequestOptions) => {
@@ -110,4 +119,9 @@ ipcMain.on("webauthn:cancel-conditional-mediation", (_event, operationId: string
   }
   pendingConditionalMediation.state = "cancelled";
   progressConditionalMediation(operationId);
+});
+
+// IPCs with Flow Browser UI //
+ipcMain.handle("passkey:get-conditional-requests", (): ConditionalPasskeyRequest[] => {
+  return getSerializedConditionalRequests();
 });
