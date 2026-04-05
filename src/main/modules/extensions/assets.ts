@@ -15,6 +15,9 @@ export type GetExtensionAssetOptions = {
   session?: Session;
 };
 
+const MAX_PATTERN_LENGTH = 2048;
+const MAX_WILDCARDS = 32;
+
 function findLoadedExtension(extensionId: string, session?: Session): Extension | null {
   if (session) {
     return session.extensions.getExtension(extensionId) ?? null;
@@ -69,11 +72,18 @@ function escapePattern(pattern: string) {
 }
 
 function matchesWildcardPattern(pattern: string, value: string) {
-  if (pattern === "*") {
+  const normalizedPattern = pattern.replace(/\*+/g, "*");
+  const wildcardCount = normalizedPattern.match(/\*/g)?.length ?? 0;
+
+  if (normalizedPattern.length > MAX_PATTERN_LENGTH || wildcardCount > MAX_WILDCARDS) {
+    return false;
+  }
+
+  if (normalizedPattern === "*") {
     return true;
   }
 
-  const regexp = new RegExp(`^${pattern.split("*").map(escapePattern).join(".*")}$`);
+  const regexp = new RegExp(`^${normalizedPattern.split("*").map(escapePattern).join(".*")}$`);
   return regexp.test(value);
 }
 
@@ -91,7 +101,7 @@ function isWebAccessibleForOrigin(extension: Extension, assetPath: string, reque
     return true;
   }
 
-  const manifest = extension.manifest;
+  const manifest: chrome.runtime.Manifest = extension.manifest;
   const sanitizedAssetPath = sanitizeAssetPath(assetPath);
   if (!sanitizedAssetPath) {
     return false;
@@ -111,7 +121,7 @@ function isWebAccessibleForOrigin(extension: Extension, assetPath: string, reque
         return false;
       }
 
-      if ("extension_ids" in entry) {
+      if ("extension_ids" in entry && entry.extension_ids) {
         try {
           const url = new URL(requestUrl);
           return (
@@ -123,7 +133,7 @@ function isWebAccessibleForOrigin(extension: Extension, assetPath: string, reque
         }
       }
 
-      return entry.matches.some((pattern) => {
+      return entry.matches?.some((pattern) => {
         if (pattern === "<all_urls>") {
           return true;
         }
