@@ -14,7 +14,7 @@ type PlatformApiKey = (typeof PLATFORM_API_KEYS)[keyof typeof PLATFORM_API_KEYS]
  * @param apiKey - The API key to use. If not provided, it will be determined based on the user agent.
  * @returns The generated header
  */
-export function generateChromeValidationHeader(userAgent: string, apiKey?: PlatformApiKey | string): string {
+export function generateChromeValidationHeader(userAgent: string, apiKey?: PlatformApiKey | string): string | null {
   if (apiKey == null) {
     const ua = userAgent.toLowerCase();
 
@@ -25,7 +25,8 @@ export function generateChromeValidationHeader(userAgent: string, apiKey?: Platf
     } else if (ua.includes("macintosh") || ua.includes("mac os x")) {
       apiKey = PLATFORM_API_KEYS.macos;
     } else {
-      throw new Error("Unknown OS in user agent. Supply apiKey manually.");
+      console.error("Unknown OS in user agent. Supply apiKey manually. Using null for validation header.");
+      return null;
     }
   }
 

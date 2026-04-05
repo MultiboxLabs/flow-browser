@@ -8,9 +8,14 @@ function generateBrowserClientHeaders(userAgent: string): Record<string, string>
   const BROWSER_CLIENT_HEADERS = {
     "x-browser-channel": "stable",
     "x-browser-copyright": `Copyright ${year} Google LLC. All Rights reserved.`,
-    "x-browser-year": year.toString(),
-    "x-browser-validation": generateChromeValidationHeader(userAgent)
+    "x-browser-year": year.toString()
   };
+
+  const validationHeader = generateChromeValidationHeader(userAgent);
+  if (validationHeader) {
+    BROWSER_CLIENT_HEADERS["x-browser-validation"] = validationHeader;
+  }
+
   return BROWSER_CLIENT_HEADERS;
 }
 
