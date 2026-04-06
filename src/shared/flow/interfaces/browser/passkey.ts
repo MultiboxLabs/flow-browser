@@ -33,4 +33,18 @@ export interface FlowPasskeyAPI {
    * @returns Array of matching passkey credentials
    */
   listPasskeys: (rpId: string) => Promise<PasskeyCredential[]>;
+
+  /**
+   * Select a passkey for an in-progress conditional mediation operation.
+   * @param operationId The ID of the pending conditional mediation operation
+   * @param credentialId The base64url-encoded credential ID to authenticate with
+   * @returns Whether the current operation accepted the selection and moved out of the idle `started` state
+   */
+  selectConditionalPasskey: (operationId: string, credentialId: string) => Promise<boolean>;
+
+  /**
+   * Open the system settings to manage passkeys access.
+   * @returns Whether the system settings were opened
+   */
+  openSystemSettings: () => Promise<boolean>;
 }

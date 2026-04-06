@@ -398,6 +398,12 @@ const passkeyAPI: FlowPasskeyAPI = {
   },
   listPasskeys: async (rpId: string): Promise<PasskeyCredential[]> => {
     return ipcRenderer.invoke("passkey:list-passkeys", rpId);
+  },
+  selectConditionalPasskey: async (operationId: string, credentialId: string): Promise<boolean> => {
+    return ipcRenderer.invoke("passkey:select-conditional-passkey", operationId, credentialId);
+  },
+  openSystemSettings: async () => {
+    return ipcRenderer.invoke("passkey:open-system-settings");
   }
 };
 

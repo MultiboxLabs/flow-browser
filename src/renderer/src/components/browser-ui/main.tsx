@@ -31,6 +31,7 @@ import { PinnedTabsProvider } from "@/components/providers/pinned-tabs-provider"
 import BrowserContent from "@/components/browser-ui/browser-content";
 import { FindInPage } from "@/components/browser-ui/find-in-page";
 import { PasskeyConditionalUI } from "@/components/browser-ui/passkey-conditional-ui";
+import { PasskeysRequestProvider } from "@/components/providers/passkeys-request-provider";
 import { NavigationControls } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
 import { AddressBar } from "@/components/browser-ui/browser-sidebar/_components/address-bar";
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
@@ -332,8 +333,10 @@ export function BrowserUI({ type }: { type: BrowserUIType }) {
                 <PinnedTabsProvider>
                   <BrowserActionProvider>
                     <ExtensionsProviderWithSpaces>
-                      <TabDisabler />
-                      <InternalBrowserUI isReady={isReady} type={type} />
+                      <PasskeysRequestProvider>
+                        <TabDisabler />
+                        <InternalBrowserUI isReady={isReady} type={type} />
+                      </PasskeysRequestProvider>
                     </ExtensionsProviderWithSpaces>
                   </BrowserActionProvider>
                 </PinnedTabsProvider>

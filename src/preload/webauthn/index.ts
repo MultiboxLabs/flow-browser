@@ -18,10 +18,18 @@ async function handleConditionalMediation(options: CredentialRequestOptions) {
 
   const abortSignal = options.signal;
   if (abortSignal) {
-    abortSignal.addEventListener("abort", () => {
-      ipcRenderer.send("webauthn:cancel-conditional-mediation", operationId);
-      resolve("AbortError");
-    });
+    try {
+      abortSignal.addEventListener(
+        "abort",
+        () => {
+          ipcRenderer.send("webauthn:cancel-conditional-mediation", operationId);
+          resolve("AbortError");
+        },
+        { once: true }
+      );
+    } catch (error) {
+      console.error("error adding abort listener", error);
+    }
   }
 
   const onConditionalMediationResult = (
@@ -42,10 +50,26 @@ async function handleConditionalMediation(options: CredentialRequestOptions) {
   });
 }
 
+const abortControllers = new Map<string, AbortController>();
+function createAbortSignal(abortId?: string) {
+  if (typeof abortId !== "string") return null;
+
+  const abortController = new AbortController();
+  const abortSignal = abortController.signal;
+  abortControllers.set(abortId, abortController);
+  return abortSignal;
+}
+
 export function tryPatchPasskeys() {
   const SHOULD_PATCH_PASSKEYS = "navigator" in globalThis && "credentials" in globalThis.navigator;
   if (SHOULD_PATCH_PASSKEYS) {
-    type PatchedCredentialsContainer = Pick<CredentialsContainer, "create" | "get"> & {
+    type PatchedCredentialsContainer = Pick<CredentialsContainer, "create"> & {
+      get: (
+        options: CredentialRequestOptions,
+        abortId?: string
+      ) => Promise<AssertCredentialErrorCodes | PublicKeyCredential | null>;
+      abort: (abortId: string) => void;
+
       isAvailable: () => Promise<boolean>;
       isConditionalMediationAvailable: () => Promise<boolean>;
     };
@@ -68,10 +92,13 @@ export function tryPatchPasskeys() {
         const publicKeyCredential = WebauthnUtils.mapCredentialRegistrationResult(serialized);
         return publicKeyCredential;
       },
-      // @ts-expect-error: just not gonna bother with the error types
-      get: async (options) => {
-        let serialized: AssertCredentialResult | AssertCredentialErrorCodes | null;
+      get: async (options, abortId?: string) => {
+        const abortSignal = createAbortSignal(abortId);
+        if (abortSignal) {
+          options.signal = abortSignal;
+        }
 
+        let serialized: AssertCredentialResult | AssertCredentialErrorCodes | null;
         if (options && options.mediation === "conditional") {
           serialized = await handleConditionalMediation(options);
         } else {
@@ -83,8 +110,19 @@ export function tryPatchPasskeys() {
           return serialized;
         }
 
+        if (abortId) {
+          abortControllers.delete(abortId);
+        }
+
         const publicKeyCredential = WebauthnUtils.mapCredentialAssertResult(serialized);
         return publicKeyCredential;
+      },
+      abort: (abortId: string) => {
+        const abortController = abortControllers.get(abortId);
+        if (abortController) {
+          abortController.abort();
+          abortControllers.delete(abortId);
+        }
       },
       isAvailable: async () => {
         if (isWebauthnAddonAvailablePromise) {
@@ -163,7 +201,25 @@ export function tryPatchPasskeys() {
           credentials.get = async (options) => {
             if (options && (await shouldUseMacOSWebauthnAddon())) {
               if (options.publicKey) {
-                const result = await patchedCredentials.get(options);
+                const abortId = crypto.randomUUID();
+                const abortSignal = options?.signal;
+                if (abortSignal) {
+                  const onAbort = () => {
+                    patchedCredentials.abort(abortId);
+                  };
+
+                  try {
+                    if (abortSignal.aborted) {
+                      onAbort();
+                    } else {
+                      abortSignal.addEventListener("abort", onAbort, { once: true });
+                    }
+                  } catch (error) {
+                    console.error("error adding abort listener", error);
+                  }
+                }
+
+                const result = await patchedCredentials.get(options, abortId);
 
                 // Cannot throw errors in patchedCredentials, so we need to handle the errors here.
                 const errorCode = result as unknown as AssertCredentialErrorCodes;
@@ -183,7 +239,7 @@ export function tryPatchPasskeys() {
                   throw new DOMException("The user agent does not support this operation.", "NotSupportedError");
                 }
 
-                return result;
+                return result as PublicKeyCredential | null;
               }
             }
 

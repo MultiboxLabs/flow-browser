@@ -1,7 +1,10 @@
+export type ConditionalPasskeyRequestState = "started" | "processing";
+
 export interface ConditionalPasskeyRequest {
   operationId: string;
   rpId: string;
-  state: "starting" | "started" | "selected" | "processing" | "completed" | "cancelled";
+  tabId: number | null;
+  state: ConditionalPasskeyRequestState;
 }
 
 export type PasskeyAuthorizationStatus = "authorized" | "denied" | "notDetermined";

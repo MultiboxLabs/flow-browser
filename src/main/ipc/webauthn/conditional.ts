@@ -1,13 +1,15 @@
 import { handleGetCredential } from "@/ipc/webauthn";
 import { sendMessageToListeners } from "@/ipc/listeners-manager";
-import { ipcMain, type IpcMainInvokeEvent } from "electron";
+import { ipcMain, shell, type IpcMainEvent } from "electron";
 import type { AssertCredentialErrorCodes, AssertCredentialResult } from "~/types/fido2-types";
-import type { ConditionalPasskeyRequest } from "~/types/passkey";
+import type { ConditionalPasskeyRequest, ConditionalPasskeyRequestState } from "~/types/passkey";
 import { getWebauthnAddon } from "@/ipc/webauthn/module";
+import { tabsController } from "@/controllers/tabs-controller";
 
 interface PendingConditionalMediation {
   publicKeyRequestOptions: PublicKeyCredentialRequestOptions;
-  event: IpcMainInvokeEvent;
+  event: IpcMainEvent;
+  tabId: number | null;
   selectedPasskey: PublicKeyCredentialDescriptor | null;
   result: AssertCredentialResult | AssertCredentialErrorCodes | null;
   cleanup: () => void;
@@ -24,12 +26,37 @@ interface PendingConditionalMediation {
 
 const pendingConditionalMediations = new Map<string, PendingConditionalMediation>();
 
+function serializeConditionalRequestState(
+  state: PendingConditionalMediation["state"]
+): ConditionalPasskeyRequestState | null {
+  switch (state) {
+    case "starting":
+    case "started":
+    case "selected":
+      return "started";
+    case "processing":
+      return "processing";
+    default:
+      return null;
+  }
+}
+
 function getSerializedConditionalRequests(): ConditionalPasskeyRequest[] {
-  return Array.from(pendingConditionalMediations.entries()).map(([operationId, mediation]) => ({
-    operationId,
-    rpId: mediation.publicKeyRequestOptions.rpId ?? "",
-    state: mediation.state
-  }));
+  return Array.from(pendingConditionalMediations.entries()).flatMap(([operationId, mediation]) => {
+    const state = serializeConditionalRequestState(mediation.state);
+    if (!state) {
+      return [];
+    }
+
+    return [
+      {
+        operationId,
+        rpId: mediation.publicKeyRequestOptions.rpId ?? "",
+        tabId: mediation.tabId,
+        state
+      }
+    ];
+  });
 }
 
 function pendingOperationsChanged() {
@@ -81,10 +108,7 @@ async function progressConditionalMediation(operationId: string) {
     // Return the result
     const { event, result, cleanup } = pendingConditionalMediation;
     cleanup();
-    const senderFrame = event.senderFrame;
-    if (senderFrame) {
-      senderFrame.send("webauthn:conditional-mediation-result", operationId, result);
-    }
+    event.reply("webauthn:conditional-mediation-result", operationId, result);
 
     // Clear the pending operation
     pendingConditionalMediations.delete(operationId);
@@ -119,12 +143,15 @@ ipcMain.on(
     webContents.on("did-navigate", cancelDueToContextLoss);
     webContents.on("destroyed", cancelDueToContextLoss);
 
+    const tabId = tabsController.getTabByWebContents(webContents)?.id ?? null;
+
     pendingConditionalMediations.set(operationId, {
       publicKeyRequestOptions,
       event,
+      tabId,
       selectedPasskey: null,
       result: null,
-      state: "started",
+      state: "starting",
       cleanup: () => {
         webContents.off("did-navigate", cancelDueToContextLoss);
         webContents.off("destroyed", cancelDueToContextLoss);
@@ -185,4 +212,28 @@ ipcMain.handle("passkey:list-passkeys", async (_, rpId: string) => {
     return [];
   }
   return passkeys.credentials;
+});
+
+ipcMain.handle("passkey:select-conditional-passkey", async (_event, operationId: string, credentialId: string) => {
+  const pending = pendingConditionalMediations.get(operationId);
+  if (!pending || pending.state !== "started") return false;
+
+  pending.selectedPasskey = {
+    id: Buffer.from(credentialId, "base64url"),
+    type: "public-key"
+  };
+  pending.state = "selected";
+  await progressConditionalMediation(operationId);
+  return true;
+});
+
+ipcMain.handle("passkey:open-system-settings", async () => {
+  if (process.platform !== "darwin") {
+    return false;
+  }
+
+  await shell.openExternal("x-apple.systempreferences:com.apple.preference.security?Privacy_PasskeyAccess", {
+    activate: true
+  });
+  return true;
 });
