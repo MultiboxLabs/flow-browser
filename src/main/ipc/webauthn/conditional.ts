@@ -3,6 +3,7 @@ import { sendMessageToListeners } from "@/ipc/listeners-manager";
 import { ipcMain, type IpcMainInvokeEvent } from "electron";
 import type { AssertCredentialErrorCodes, AssertCredentialResult } from "~/types/fido2-types";
 import type { ConditionalPasskeyRequest } from "~/types/passkey";
+import { getWebauthnAddon } from "@/ipc/webauthn/module";
 
 interface PendingConditionalMediation {
   publicKeyRequestOptions: PublicKeyCredentialRequestOptions;
@@ -124,4 +125,43 @@ ipcMain.on("webauthn:cancel-conditional-mediation", (_event, operationId: string
 // IPCs with Flow Browser UI //
 ipcMain.handle("passkey:get-conditional-requests", (): ConditionalPasskeyRequest[] => {
   return getSerializedConditionalRequests();
+});
+
+ipcMain.handle("passkey:has-permission-to-list-passkeys", async () => {
+  const webauthn = await getWebauthnAddon();
+  if (!webauthn) {
+    return "denied";
+  }
+
+  const result = await webauthn.getListPasskeyAuthorizationStatus();
+  if (result.success === false) {
+    return "denied";
+  }
+  return result.status;
+});
+
+ipcMain.handle("passkey:request-list-passkeys-permission", async () => {
+  const webauthn = await getWebauthnAddon();
+  if (!webauthn) {
+    return "denied";
+  }
+
+  const result = await webauthn.requestListPasskeyAuthorization();
+  if (result.success === false) {
+    return "denied";
+  }
+  return result.status;
+});
+
+ipcMain.handle("passkey:list-passkeys", async (_, rpId: string) => {
+  const webauthn = await getWebauthnAddon();
+  if (!webauthn) {
+    return [];
+  }
+
+  const passkeys = await webauthn.listPasskeys(rpId);
+  if (passkeys.success === false) {
+    return [];
+  }
+  return passkeys.credentials;
 });

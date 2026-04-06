@@ -41,7 +41,7 @@ import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts
 import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/find-in-page";
 import { FlowHistoryAPI } from "~/flow/interfaces/browser/history";
 import { FlowPasskeyAPI } from "~/flow/interfaces/browser/passkey";
-import type { ConditionalPasskeyRequest } from "~/types/passkey";
+import type { ConditionalPasskeyRequest, PasskeyCredential } from "~/types/passkey";
 
 // const isIFrame = !process.isMainFrame;
 
@@ -389,6 +389,15 @@ const passkeyAPI: FlowPasskeyAPI = {
   },
   onConditionalRequestsUpdated: (callback: (requests: ConditionalPasskeyRequest[]) => void) => {
     return listenOnIPCChannel("passkey:on-conditional-requests-updated", callback);
+  },
+  hasPermissionToListPasskeys: async () => {
+    return ipcRenderer.invoke("passkey:has-permission-to-list-passkeys");
+  },
+  requestPermissionToListPasskeys: async () => {
+    return ipcRenderer.invoke("passkey:request-list-passkeys-permission");
+  },
+  listPasskeys: async (rpId: string): Promise<PasskeyCredential[]> => {
+    return ipcRenderer.invoke("passkey:list-passkeys", rpId);
   }
 };
 
