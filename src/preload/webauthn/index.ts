@@ -9,7 +9,14 @@ import type {
 } from "~/types/fido2-types";
 import { WebauthnUtils } from "./webauthn-utils";
 
+let hasConditionalMediationLock = false;
+
 async function handleConditionalMediation(options: CredentialRequestOptions) {
+  if (hasConditionalMediationLock) {
+    return "OperationError";
+  }
+  hasConditionalMediationLock = true;
+
   const operationId = generateID();
   const publicKeyRequestOptions = options.publicKey;
   ipcRenderer.send("webauthn:start-conditional-mediation", operationId, publicKeyRequestOptions);
@@ -45,6 +52,7 @@ async function handleConditionalMediation(options: CredentialRequestOptions) {
   ipcRenderer.on("webauthn:conditional-mediation-result", onConditionalMediationResult);
 
   return await promise.then((result) => {
+    hasConditionalMediationLock = false;
     ipcRenderer.off("webauthn:conditional-mediation-result", onConditionalMediationResult);
     return result;
   });
@@ -237,6 +245,8 @@ export function tryPatchPasskeys() {
                   throw new DOMException("The operation was aborted.", "AbortError");
                 } else if (errorCode === "NotSupportedError") {
                   throw new DOMException("The user agent does not support this operation.", "NotSupportedError");
+                } else if (errorCode === "OperationError") {
+                  throw new DOMException("A request is already pending.", "OperationError");
                 }
 
                 return result as PublicKeyCredential | null;
