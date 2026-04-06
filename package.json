@@ -86,7 +86,7 @@
     "d3-drag": "^3.0.0",
     "d3-selection": "^3.0.0",
     "drizzle-kit": "^0.31.9",
-    "electron": "https://github.com/castlabs/electron-releases#v41.1.1+wvcus",
+    "electron": "https://github.com/castlabs/electron-releases#v42.0.0-alpha.6+wvcus",
     "electron-builder": "26.8.1",
     "electron-vite": "^5.0.0",
     "eslint": "^9.26.0",
