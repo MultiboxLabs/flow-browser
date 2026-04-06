@@ -50,6 +50,7 @@ These dependencies are either used in the build process, or they are only used i
 - cross-env - Set environment variables cross-platform in npm scripts.
 - drizzle-kit - CLI tooling for Drizzle ORM migrations and schema management.
 - jju - Handles updating JSON while maintaining the current formatting. This is used for several build scripts.
+- node-abi - Handles Electron ABI compatibility. (Required to rebuild native modules for the app)
 
 ### eslint Dependencies
 
