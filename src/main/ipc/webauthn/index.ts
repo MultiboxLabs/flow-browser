@@ -1,6 +1,6 @@
 import { getWebauthnAddon } from "@/ipc/webauthn/module";
 import { isPublicSuffix } from "@/ipc/webauthn/psl-check";
-import { BrowserWindow, ipcMain, type IpcMainInvokeEvent } from "electron";
+import { BrowserWindow, ipcMain, type IpcMainInvokeEvent, type IpcMainEvent } from "electron";
 import type {
   AssertCredentialErrorCodes,
   AssertCredentialResult,
@@ -90,7 +90,7 @@ ipcMain.handle(
 );
 
 export async function handleGetCredential(
-  event: IpcMainInvokeEvent,
+  event: IpcMainInvokeEvent | IpcMainEvent,
   options: CredentialRequestOptions | undefined
 ): Promise<AssertCredentialResult | AssertCredentialErrorCodes | null> {
   const webauthn = await getWebauthnAddon();
@@ -104,7 +104,7 @@ export async function handleGetCredential(
 
   const publicKeyOptions = options.publicKey;
 
-  // Conditional mediation is not supported yet
+  // Conditional mediation handled by `webauthn/conditional.ts`, this should never happen
   if (options.mediation === "conditional") {
     return "NotSupportedError";
   }

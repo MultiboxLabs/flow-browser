@@ -48,10 +48,23 @@ function getSerializedConditionalRequests(): ConditionalPasskeyRequest[] {
       return [];
     }
 
+    let rpId = mediation.publicKeyRequestOptions.rpId;
+    if (!rpId) {
+      const currentOrigin = mediation.event.senderFrame?.origin;
+      if (currentOrigin) {
+        try {
+          const url = new URL(currentOrigin);
+          rpId = url.hostname;
+        } catch {
+          // If the URL is invalid, do nothing
+        }
+      }
+    }
+
     return [
       {
         operationId,
-        rpId: mediation.publicKeyRequestOptions.rpId ?? "",
+        rpId: rpId ?? "",
         tabId: mediation.tabId,
         state
       }
@@ -108,7 +121,11 @@ async function progressConditionalMediation(operationId: string) {
     // Return the result
     const { event, result, cleanup } = pendingConditionalMediation;
     cleanup();
-    event.reply("webauthn:conditional-mediation-result", operationId, result);
+    try {
+      event.reply("webauthn:conditional-mediation-result", operationId, result);
+    } catch {
+      // If the event listener is no longer attached, do nothing
+    }
 
     // Clear the pending operation
     pendingConditionalMediations.delete(operationId);

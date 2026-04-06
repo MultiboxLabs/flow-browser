@@ -25,17 +25,19 @@ async function handleConditionalMediation(options: CredentialRequestOptions) {
 
   const abortSignal = options.signal;
   if (abortSignal) {
-    try {
-      abortSignal.addEventListener(
-        "abort",
-        () => {
-          ipcRenderer.send("webauthn:cancel-conditional-mediation", operationId);
-          resolve("AbortError");
-        },
-        { once: true }
-      );
-    } catch (error) {
-      console.error("error adding abort listener", error);
+    const onAbort = () => {
+      ipcRenderer.send("webauthn:cancel-conditional-mediation", operationId);
+      resolve("AbortError");
+    };
+
+    if (abortSignal.aborted) {
+      onAbort();
+    } else {
+      try {
+        abortSignal.addEventListener("abort", onAbort, { once: true });
+      } catch (error) {
+        console.error("error adding abort listener", error);
+      }
     }
   }
 
@@ -51,11 +53,12 @@ async function handleConditionalMediation(options: CredentialRequestOptions) {
   };
   ipcRenderer.on("webauthn:conditional-mediation-result", onConditionalMediationResult);
 
-  return await promise.then((result) => {
+  // Cleanup when the promise is resolved or rejected
+  promise.finally(() => {
     hasConditionalMediationLock = false;
     ipcRenderer.off("webauthn:conditional-mediation-result", onConditionalMediationResult);
-    return result;
   });
+  return await promise;
 }
 
 const abortControllers = new Map<string, AbortController>();
@@ -113,13 +116,13 @@ export function tryPatchPasskeys() {
           serialized = await ipcRenderer.invoke("webauthn:get", options);
         }
 
+        if (abortId) {
+          abortControllers.delete(abortId);
+        }
+
         if (!serialized) return null;
         if (typeof serialized === "string") {
           return serialized;
-        }
-
-        if (abortId) {
-          abortControllers.delete(abortId);
         }
 
         const publicKeyCredential = WebauthnUtils.mapCredentialAssertResult(serialized);
@@ -209,7 +212,11 @@ export function tryPatchPasskeys() {
           credentials.get = async (options) => {
             if (options && (await shouldUseMacOSWebauthnAddon())) {
               if (options.publicKey) {
+                // Generate abort ID and run `patchedCredentials.get()`
                 const abortId = crypto.randomUUID();
+                const result = await patchedCredentials.get(options, abortId);
+
+                // Handle abort signal
                 const abortSignal = options?.signal;
                 if (abortSignal) {
                   const onAbort = () => {
@@ -226,8 +233,6 @@ export function tryPatchPasskeys() {
                     console.error("error adding abort listener", error);
                   }
                 }
-
-                const result = await patchedCredentials.get(options, abortId);
 
                 // Cannot throw errors in patchedCredentials, so we need to handle the errors here.
                 const errorCode = result as unknown as AssertCredentialErrorCodes;
