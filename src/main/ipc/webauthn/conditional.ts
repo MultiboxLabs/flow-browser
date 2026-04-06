@@ -10,6 +10,7 @@ interface PendingConditionalMediation {
   event: IpcMainInvokeEvent;
   selectedPasskey: PublicKeyCredentialDescriptor | null;
   result: AssertCredentialResult | AssertCredentialErrorCodes | null;
+  cleanup: () => void;
   state: // Starting & Started
     | "starting"
     | "started"
@@ -78,7 +79,8 @@ async function progressConditionalMediation(operationId: string) {
     return true;
   } else if (pendingConditionalMediation.state === "completed") {
     // Return the result
-    const { event, result } = pendingConditionalMediation;
+    const { event, result, cleanup } = pendingConditionalMediation;
+    cleanup();
     const senderFrame = event.senderFrame;
     if (senderFrame) {
       senderFrame.send("webauthn:conditional-mediation-result", operationId, result);
@@ -90,6 +92,7 @@ async function progressConditionalMediation(operationId: string) {
     return true;
   } else if (pendingConditionalMediation.state === "cancelled") {
     // Cancelled, clear the pending operation
+    pendingConditionalMediation.cleanup();
     pendingConditionalMediations.delete(operationId);
     pendingOperationsChanged();
     return true;
@@ -102,12 +105,30 @@ async function progressConditionalMediation(operationId: string) {
 ipcMain.on(
   "webauthn:start-conditional-mediation",
   (event, operationId: string, publicKeyRequestOptions: PublicKeyCredentialRequestOptions) => {
+    const webContents = event.sender;
+
+    // Cancel when the page navigates away, reloads, or the webContents is destroyed —
+    // the window context is gone and can no longer receive results.
+    const cancelDueToContextLoss = () => {
+      const mediation = pendingConditionalMediations.get(operationId);
+      if (mediation) {
+        mediation.state = "cancelled";
+        progressConditionalMediation(operationId);
+      }
+    };
+    webContents.on("did-navigate", cancelDueToContextLoss);
+    webContents.on("destroyed", cancelDueToContextLoss);
+
     pendingConditionalMediations.set(operationId, {
       publicKeyRequestOptions,
       event,
       selectedPasskey: null,
       result: null,
-      state: "started"
+      state: "started",
+      cleanup: () => {
+        webContents.off("did-navigate", cancelDueToContextLoss);
+        webContents.off("destroyed", cancelDueToContextLoss);
+      }
     });
     progressConditionalMediation(operationId);
   }
