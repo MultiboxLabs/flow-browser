@@ -236,7 +236,8 @@ export type AssertCredentialErrorCodes =
   | "SecurityError"
   | "TypeError"
   | "AbortError"
-  | "NotSupportedError";
+  | "NotSupportedError"
+  | "OperationError";
 
 /**
  * A description of a key type and algorithm.

@@ -44,17 +44,17 @@
     "electron-chrome-web-store": "npm:@iamevan/electron-chrome-web-store@0.13.3",
     "electron-context-menu": "^4.0.5",
     "electron-updater": "^6.8.3",
-    "electron-webauthn": "^1.2.0",
+    "electron-webauthn": "^1.3.1",
     "icojs": "^0.20.1",
     "knex": "^3.1.0",
     "mime-types": "^3.0.1",
-    "objcjs-types": "^0.7.1",
+    "objcjs-types": "^0.8.0",
     "posthog-node": "^5.28.2",
     "sharp": "^0.34.5",
     "tldts": "^7.0.25"
   },
   "optionalDependencies": {
-    "objc-js": "^1.3.1"
+    "objc-js": "^1.5.0"
   },
   "devDependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^1.7.9",

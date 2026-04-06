@@ -40,6 +40,8 @@ import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
 import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/find-in-page";
 import { FlowHistoryAPI } from "~/flow/interfaces/browser/history";
+import { FlowPasskeyAPI } from "~/flow/interfaces/browser/passkey";
+import type { ConditionalPasskeyRequest, PasskeyCredential } from "~/types/passkey";
 
 // const isIFrame = !process.isMainFrame;
 
@@ -377,6 +379,31 @@ const historyAPI: FlowHistoryAPI = {
   },
   clearAll: async () => {
     return ipcRenderer.invoke("history:clear-all");
+  }
+};
+
+// PASSKEY API //
+const passkeyAPI: FlowPasskeyAPI = {
+  getConditionalRequests: async (): Promise<ConditionalPasskeyRequest[]> => {
+    return ipcRenderer.invoke("passkey:get-conditional-requests");
+  },
+  onConditionalRequestsUpdated: (callback: (requests: ConditionalPasskeyRequest[]) => void) => {
+    return listenOnIPCChannel("passkey:on-conditional-requests-updated", callback);
+  },
+  hasPermissionToListPasskeys: async () => {
+    return ipcRenderer.invoke("passkey:has-permission-to-list-passkeys");
+  },
+  requestPermissionToListPasskeys: async () => {
+    return ipcRenderer.invoke("passkey:request-list-passkeys-permission");
+  },
+  listPasskeys: async (rpId: string): Promise<PasskeyCredential[]> => {
+    return ipcRenderer.invoke("passkey:list-passkeys", rpId);
+  },
+  selectConditionalPasskey: async (operationId: string, credentialId: string): Promise<boolean> => {
+    return ipcRenderer.invoke("passkey:select-conditional-passkey", operationId, credentialId);
+  },
+  openSystemSettings: async () => {
+    return ipcRenderer.invoke("passkey:open-system-settings");
   }
 };
 
@@ -753,6 +780,7 @@ const flowAPI: typeof flow = {
   page: wrapAPI(pageAPI, "browser"),
   navigation: wrapAPI(navigationAPI, "browser"),
   history: wrapAPI(historyAPI, "browser"),
+  passkey: wrapAPI(passkeyAPI, "browser"),
   interface: wrapAPI(interfaceAPI, "browser", {
     moveWindowTo: "all",
     resizeWindowTo: "all"
