@@ -214,7 +214,7 @@ export function tryPatchPasskeys() {
               if (options.publicKey) {
                 // Generate abort ID and run `patchedCredentials.get()`
                 const abortId = crypto.randomUUID();
-                const result = await patchedCredentials.get(options, abortId);
+                const getPromise = patchedCredentials.get(options, abortId);
 
                 // Handle abort signal
                 const abortSignal = options?.signal;
@@ -233,6 +233,9 @@ export function tryPatchPasskeys() {
                     console.error("error adding abort listener", error);
                   }
                 }
+
+                // Wait for the operation to resolve
+                const result = await getPromise;
 
                 // Cannot throw errors in patchedCredentials, so we need to handle the errors here.
                 const errorCode = result as unknown as AssertCredentialErrorCodes;
