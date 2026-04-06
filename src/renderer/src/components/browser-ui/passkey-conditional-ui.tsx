@@ -330,8 +330,8 @@ function useConditionalPasskeyPanels(conditionalRequests: ConditionalPasskeyRequ
 
       updatePanel(tabId, (panel) => ({
         ...panel,
-        phase: "list",
-        initialized: true
+        phase: "list"
+        // Do not set initialized yet — wait until we know there are passkeys
       }));
 
       const passkeys = await flow.passkey.listPasskeys(request.rpId);
@@ -342,7 +342,10 @@ function useConditionalPasskeyPanels(conditionalRequests: ConditionalPasskeyRequ
       updatePanel(tabId, (panel) => ({
         ...panel,
         phase: "list",
-        passkeys
+        passkeys,
+        // Only make visible if there are passkeys, or the panel was already visible
+        // (e.g. user went through the permission screen first)
+        initialized: panel.initialized || passkeys.length > 0
       }));
     },
     [isCurrentOperation, updatePanel]
