@@ -1,5 +1,6 @@
-import type { DownloadRecord, DownloadState } from "~/types/downloads";
+import type { DownloadRecord } from "~/types/downloads";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { isActive } from "./utils";
 
 interface DownloadsContextValue {
   downloads: DownloadRecord[];
@@ -10,10 +11,6 @@ interface DownloadsContextValue {
 }
 
 const DownloadsContext = createContext<DownloadsContextValue | null>(null);
-
-function isActive(state: DownloadState): boolean {
-  return state === "progressing" || state === "paused";
-}
 
 export function DownloadsProvider({ children }: { children: ReactNode }) {
   const [downloads, setDownloads] = useState<DownloadRecord[]>([]);

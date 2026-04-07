@@ -18,5 +18,6 @@ CREATE TABLE `downloads` (
 	`updated_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE INDEX `idx_downloads_state` ON `downloads` (`state`);--> statement-breakpoint
+CREATE INDEX `idx_downloads_state` ON `downloads` (`state`);
+--> statement-breakpoint
 CREATE INDEX `idx_downloads_updated_at` ON `downloads` (`updated_at`);

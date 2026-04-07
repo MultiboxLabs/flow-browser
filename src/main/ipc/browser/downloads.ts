@@ -60,15 +60,18 @@ ipcMain.handle("downloads:clear-completed", () => {
   if (changed) fireDownloadsChanged();
 });
 
-ipcMain.handle("downloads:check-files-exist", (_event, downloadIds: string[]) => {
-  const result: Record<string, boolean> = {};
-  for (const id of downloadIds) {
-    const record = getDownloadRecord(id);
-    if (!record?.savePath) {
-      result[id] = false;
-    } else {
-      result[id] = fs.existsSync(record.savePath);
-    }
-  }
-  return result;
+ipcMain.handle("downloads:check-files-exist", async (_event, downloadIds: string[]) => {
+  const checks = await Promise.all(
+    downloadIds.map(async (id) => {
+      const record = getDownloadRecord(id);
+      if (!record?.savePath) return [id, false] as const;
+      try {
+        await fs.promises.access(record.savePath);
+        return [id, true] as const;
+      } catch {
+        return [id, false] as const;
+      }
+    })
+  );
+  return Object.fromEntries(checks);
 });

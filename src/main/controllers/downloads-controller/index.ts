@@ -17,6 +17,7 @@ type MacOSProgressModule = typeof import("./macos-progress");
 
 const PROFILES_DIR = path.join(FLOW_DATA_DIR, "Profiles");
 const DOWNLOAD_PROGRESS_PERSIST_INTERVAL_MS = 1000;
+const PENDING_RESUME_TIMEOUT_MS = 30_000;
 
 interface DownloadMetadata {
   downloadId: string;
@@ -41,6 +42,8 @@ interface PendingResumeRequest {
   savePath: string;
   lastUrl: string;
   autoResume: boolean;
+  enqueuedAt: number;
+  timeoutId: ReturnType<typeof setTimeout>;
 }
 
 class DownloadsController {
@@ -136,16 +139,22 @@ class DownloadsController {
         autoResume: true
       });
 
-      targetSession.createInterruptedDownload({
-        path: record.savePath!,
-        urlChain: record.urlChain,
-        mimeType: record.mimeType ?? undefined,
-        offset: record.receivedBytes,
-        length: record.totalBytes,
-        lastModified: record.lastModified ?? undefined,
-        eTag: record.eTag ?? undefined,
-        startTime: Math.floor(record.startTime / 1000)
-      });
+      try {
+        targetSession.createInterruptedDownload({
+          path: record.savePath!,
+          urlChain: record.urlChain,
+          mimeType: record.mimeType ?? undefined,
+          offset: record.receivedBytes,
+          length: record.totalBytes,
+          lastModified: record.lastModified ?? undefined,
+          eTag: record.eTag ?? undefined,
+          startTime: Math.floor(record.startTime / 1000)
+        });
+      } catch (createErr) {
+        // Clean up the pending request since createInterruptedDownload failed synchronously
+        this.removePendingResume(targetSession, downloadId);
+        throw createErr;
+      }
 
       fireDownloadsChanged();
       debugPrint("DOWNLOADS", `Queued interrupted download restore for ${downloadId}`);
@@ -493,13 +502,62 @@ class DownloadsController {
   }
 
   private canRestoreDownload(record: DownloadRow): boolean {
-    return !!record.canResume && !!record.savePath && record.urlChain.length > 0 && record.totalBytes > 0;
+    return (
+      !!record.canResume &&
+      !!record.savePath &&
+      record.urlChain.length > 0 &&
+      record.totalBytes > 0 &&
+      (record.state === "interrupted" || record.state === "paused")
+    );
   }
 
-  private enqueuePendingResume(session: Session, request: PendingResumeRequest): void {
+  private enqueuePendingResume(
+    session: Session,
+    request: Omit<PendingResumeRequest, "enqueuedAt" | "timeoutId">
+  ): void {
     const queue = this.pendingResumeRequests.get(session) ?? [];
-    queue.push(request);
+
+    const timeoutId = setTimeout(() => {
+      this.expirePendingResume(session, request.downloadId);
+    }, PENDING_RESUME_TIMEOUT_MS);
+
+    const fullRequest: PendingResumeRequest = {
+      ...request,
+      enqueuedAt: Date.now(),
+      timeoutId
+    };
+
+    queue.push(fullRequest);
     this.pendingResumeRequests.set(session, queue);
+  }
+
+  private expirePendingResume(session: Session, downloadId: string): void {
+    const queue = this.pendingResumeRequests.get(session);
+    if (!queue) return;
+
+    const index = queue.findIndex((r) => r.downloadId === downloadId);
+    if (index < 0) return;
+
+    const [expired] = queue.splice(index, 1);
+    if (queue.length === 0) {
+      this.pendingResumeRequests.delete(session);
+    }
+
+    debugError(
+      "DOWNLOADS",
+      `Pending resume request for download ${expired.downloadId} timed out after ${PENDING_RESUME_TIMEOUT_MS}ms. ` +
+        `The will-download event was never fired. This may indicate that createInterruptedDownload failed silently.`
+    );
+
+    // Mark the download as failed so the user knows it didn't resume
+    const record = getDownloadRecord(downloadId);
+    if (record && (record.state === "interrupted" || record.state === "paused")) {
+      updateDownloadRecord(downloadId, {
+        canResume: false,
+        updatedAt: Date.now()
+      });
+      fireDownloadsChanged();
+    }
   }
 
   private consumePendingResume(session: Session, item: DownloadItem): PendingResumeRequest | undefined {
@@ -517,6 +575,7 @@ class DownloadsController {
 
     if (matchIndex >= 0) {
       const [match] = queue.splice(matchIndex, 1);
+      clearTimeout(match.timeoutId);
       if (queue.length === 0) {
         this.pendingResumeRequests.delete(session);
       }
@@ -525,11 +584,29 @@ class DownloadsController {
 
     if (queue.length === 1 && item.getState() === "interrupted") {
       const [fallback] = queue.splice(0, 1);
+      clearTimeout(fallback.timeoutId);
       this.pendingResumeRequests.delete(session);
       return fallback;
     }
 
     return undefined;
+  }
+
+  private removePendingResume(session: Session, downloadId: string): boolean {
+    const queue = this.pendingResumeRequests.get(session);
+    if (!queue) return false;
+
+    const index = queue.findIndex((r) => r.downloadId === downloadId);
+    if (index < 0) return false;
+
+    const [removed] = queue.splice(index, 1);
+    clearTimeout(removed.timeoutId);
+
+    if (queue.length === 0) {
+      this.pendingResumeRequests.delete(session);
+    }
+
+    return true;
   }
 
   private getUrlChain(item: DownloadItem): string[] {
