@@ -149,7 +149,7 @@ export interface CreateCredentialResult {
     prf?: {
       enabled?: boolean;
       results: {
-        first?: string; // b64 encoded
+        first: string; // b64 encoded
         second?: string; // b64 encoded
       };
     };

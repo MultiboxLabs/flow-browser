@@ -9,13 +9,13 @@
   ],
   "compilerOptions": {
     "composite": true,
+    "types": ["@types/chrome"],
     "jsx": "react-jsx",
-    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "src/renderer/src/*"
+        "./src/renderer/src/*"
       ],
-      "~/*": ["src/shared/*"]
+      "~/*": ["./src/shared/*"]
     }
   }
 }

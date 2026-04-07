@@ -85,7 +85,9 @@ ipcMain.handle(
       return result.error;
     }
 
-    return result.data;
+    // types error in electron-webauthn (TODO: fix this)
+    // result.data.extensions.prf.first should be `string`, but its `string | undefined` in the package types
+    return result.data as CreateCredentialResult;
   }
 );
 
