@@ -198,21 +198,18 @@ const colorCache = new Map<string, FaviconColors | null>();
  * Hook to extract colors from favicon corners and center for creating position-matched gradients.
  */
 export function useFaviconColors(faviconUrl: string | null | undefined): FaviconColors | null {
-  const [colors, setColors] = useState<FaviconColors | null>(() => {
-    if (!faviconUrl) return null;
-    return colorCache.get(faviconUrl) ?? null;
-  });
+  const [_colors, setColors] = useState<FaviconColors | null>(null);
+
+  const cachedColors = faviconUrl ? colorCache.get(faviconUrl) : null;
+  const colors = faviconUrl ? _colors : null;
 
   useEffect(() => {
     if (!faviconUrl) {
-      setColors(null);
       return;
     }
 
     // Check cache first
-    const cached = colorCache.get(faviconUrl);
-    if (cached !== undefined) {
-      setColors(cached);
+    if (cachedColors) {
       return;
     }
 
@@ -221,7 +218,7 @@ export function useFaviconColors(faviconUrl: string | null | undefined): Favicon
       colorCache.set(faviconUrl, extractedColors);
       setColors(extractedColors);
     });
-  }, [faviconUrl]);
+  }, [faviconUrl, cachedColors]);
 
   return colors;
 }
