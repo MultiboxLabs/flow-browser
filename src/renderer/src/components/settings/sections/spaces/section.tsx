@@ -68,7 +68,6 @@ export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }:
   // Load data on component mount
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Set active space when initialSelectedSpace changes

@@ -113,7 +113,6 @@ function BrowserContent() {
   // topbar, direction). Uses the ref for sidebarWidth since it's always current.
   useLayoutEffect(() => {
     sendLayoutParams(recordedSidebarSizeRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topbarHeight, topbarVisible, sidebarVisible, sidebarSide, isAnimating, contentTopOffset]);
 
   // Subscribe to sidebar resize (drag) events. The callback fires outside
