@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { DownloadFileIcon } from "@/components/downloads/manager/file-icon";
-import { filenameFromRecord, isActive } from "@/components/downloads/manager/utils";
+import { filenameFromRecord, formatBytes, isActive } from "@/components/downloads/manager/utils";
 import type { DownloadRecord } from "~/types/downloads";
-import { DownloadIcon } from "lucide-react";
+import { DownloadIcon, ChevronRight, AlertTriangle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 function relativeTime(ts: number): string {
   const now = Date.now();
@@ -19,10 +20,6 @@ function relativeTime(ts: number): string {
   if (diffHr < 24) return `${diffHr}h ago`;
   const diffDay = Math.floor(diffHr / 24);
   if (diffDay === 1) return "Yesterday";
-  if (diffDay < 7) return `${diffDay}d ago`;
-  const diffWeek = Math.floor(diffDay / 7);
-  if (diffWeek === 1) return "1 week ago";
-  if (diffWeek < 5) return `${diffWeek} weeks ago`;
   return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
@@ -37,6 +34,8 @@ function DownloadRow({
 }) {
   const filename = filenameFromRecord(dl);
   const active = isActive(dl.state);
+  const progress = dl.totalBytes > 0 ? (dl.receivedBytes / dl.totalBytes) * 100 : 0;
+  const showBar = active && dl.totalBytes > 0;
 
   const handleClick = () => {
     if (dl.state === "completed" && !fileMissing) {
@@ -47,37 +46,93 @@ function DownloadRow({
     }
   };
 
+  const statusText = (): string => {
+    if (dl.state === "progressing") {
+      if (dl.totalBytes > 0) return `${formatBytes(dl.receivedBytes)} of ${formatBytes(dl.totalBytes)}`;
+      return formatBytes(dl.receivedBytes);
+    }
+    if (dl.state === "paused") {
+      if (dl.totalBytes > 0) return `${formatBytes(dl.receivedBytes)} of ${formatBytes(dl.totalBytes)}`;
+      return "Paused";
+    }
+    if (dl.state === "completed") {
+      if (fileMissing) return "File deleted";
+      const size = dl.totalBytes > 0 ? formatBytes(dl.totalBytes) : null;
+      const time = relativeTime(dl.endTime ?? dl.startTime);
+      return [size, time].filter(Boolean).join(" · ");
+    }
+    if (dl.state === "interrupted") return "Interrupted";
+    if (dl.state === "cancelled") return "Cancelled";
+    return "";
+  };
+
+  const statusColor =
+    dl.state === "progressing"
+      ? "text-blue-400"
+      : dl.state === "paused"
+        ? "text-amber-400"
+        : dl.state === "interrupted"
+          ? "text-amber-400"
+          : "text-muted-foreground";
+
   return (
-    <div
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={{ duration: 0.15 }}
       onClick={handleClick}
-      className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors"
+      className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-accent/50 transition-colors cursor-default"
     >
-      <DownloadFileIcon
-        record={dl}
-        className="shrink-0 size-10 rounded-lg border border-border/30 flex items-center justify-center overflow-hidden"
-        imageClassName="size-8 object-contain"
-        fallbackClassName="size-8 text-muted-foreground"
-      />
+      {/* File icon */}
+      <div className="relative shrink-0">
+        <DownloadFileIcon
+          record={dl}
+          className="size-9 rounded-lg bg-muted/60 border border-border/30 flex items-center justify-center overflow-hidden"
+          imageClassName="size-7 object-contain"
+          fallbackClassName="size-6 text-muted-foreground"
+        />
+        {dl.state === "progressing" && (
+          <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-blue-500 ring-[1.5px] ring-background animate-pulse" />
+        )}
+        {dl.state === "interrupted" && (
+          <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-amber-400 ring-[1.5px] ring-background" />
+        )}
+      </div>
+
+      {/* Info */}
       <div className="min-w-0 flex-1">
         <p
           className={cn(
-            "text-sm font-medium text-foreground truncate leading-snug",
+            "text-[12.5px] font-medium text-foreground truncate leading-snug",
             (fileMissing || dl.state === "cancelled") && "line-through text-muted-foreground"
           )}
         >
           {filename}
         </p>
-        <p className="text-xs text-muted-foreground mt-0.5 truncate leading-snug">
-          {active
-            ? dl.state === "paused"
-              ? "Paused"
-              : "Downloading…"
-            : fileMissing
-              ? "Deleted"
-              : relativeTime(dl.endTime ?? dl.startTime)}
-        </p>
+
+        {/* Progress bar */}
+        {showBar && (
+          <div className="mt-1.5 h-[3px] w-full rounded-full bg-muted overflow-hidden">
+            <motion.div
+              className={cn("h-full rounded-full", dl.state === "paused" ? "bg-muted-foreground/50" : "bg-blue-500")}
+              initial={false}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            />
+          </div>
+        )}
+
+        <div className={cn("flex items-center gap-1 mt-0.5", showBar && "mt-1")}>
+          {dl.state === "paused" && (
+            <span className="text-[10px] font-medium text-amber-400 leading-none">Paused ·</span>
+          )}
+          {dl.state === "interrupted" && <AlertTriangle className="size-2.5 text-amber-400 shrink-0" />}
+          <p className={cn("text-[11px] truncate leading-snug", statusColor)}>{statusText()}</p>
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -103,7 +158,6 @@ export function DownloadsPopover() {
     }
   }, []);
 
-  // Fetch on open + listen for changes while open
   useEffect(() => {
     if (!open) return;
     void fetchDownloads();
@@ -113,10 +167,9 @@ export function DownloadsPopover() {
     return unsubscribe;
   }, [open, fetchDownloads]);
 
-  const active = downloads.filter((d) => isActive(d.state));
-  const recent = downloads.filter((d) => !isActive(d.state));
-  const shown = [...active, ...recent].slice(0, 5);
-  const hasActive = active.length > 0;
+  const shown = [...downloads].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 5);
+  const activeCount = downloads.filter((d) => isActive(d.state)).length;
+  const hasActive = activeCount > 0;
 
   const openDownloadsPage = () => {
     flow.tabs.newTab("flow://downloads", true);
@@ -128,35 +181,54 @@ export function DownloadsPopover() {
       <PopoverTrigger asChild>
         <Button size="icon" className="size-8 bg-transparent hover:bg-black/10 dark:hover:bg-white/10 relative">
           <DownloadIcon strokeWidth={2} className="w-4 h-4 text-black/80 dark:text-white/80" />
-          {hasActive && <span className="absolute top-1 right-1 size-2 rounded-full bg-blue-500 animate-pulse" />}
+          {hasActive && <span className="absolute top-1 right-1 size-1.5 rounded-full bg-blue-500 animate-pulse" />}
         </Button>
       </PopoverTrigger>
-      <PortalPopover.Content className={cn("w-72 p-0 select-none", spaceInjectedClasses)}>
+
+      <PortalPopover.Content className={cn("w-76 p-0 select-none overflow-hidden", spaceInjectedClasses)}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-3.5 py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-foreground">Downloads</span>
+            {activeCount > 0 && (
+              <span className="inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 leading-none">
+                {activeCount} active
+              </span>
+            )}
+          </div>
+          <button
+            onClick={openDownloadsPage}
+            className="flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            View all
+            <ChevronRight className="size-3" />
+          </button>
+        </div>
+
+        <div className="h-px bg-border" />
+
+        {/* List */}
         {shown.length === 0 ? (
-          <div className="px-3 py-5 text-center">
-            <DownloadIcon className="size-5 mx-auto text-muted-foreground/40 mb-1.5" />
-            <p className="text-xs text-muted-foreground">No downloads</p>
+          <div className="flex flex-col items-center justify-center gap-2.5 py-8">
+            <div className="size-10 rounded-full bg-muted/60 flex items-center justify-center">
+              <DownloadIcon className="size-4.5 text-muted-foreground/50" />
+            </div>
+            <p className="text-xs text-muted-foreground/70">No recent downloads</p>
           </div>
         ) : (
-          <div className="py-1.5 px-1.5 max-h-72 overflow-y-auto flex flex-col gap-0.5">
-            {shown.map((dl) => (
-              <DownloadRow
-                key={dl.id}
-                dl={dl}
-                fileMissing={dl.id in fileExistence && !fileExistence[dl.id]}
-                setOpen={setOpen}
-              />
-            ))}
+          <div className="p-1.5">
+            <AnimatePresence initial={false}>
+              {shown.map((dl) => (
+                <DownloadRow
+                  key={dl.id}
+                  dl={dl}
+                  fileMissing={dl.id in fileExistence && !fileExistence[dl.id]}
+                  setOpen={setOpen}
+                />
+              ))}
+            </AnimatePresence>
           </div>
         )}
-        <div className="border-t border-border/50 px-2 py-1.5">
-          <div
-            onClick={openDownloadsPage}
-            className="flex items-center justify-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground rounded-sm hover:bg-accent cursor-default transition-colors"
-          >
-            Show all downloads
-          </div>
-        </div>
       </PortalPopover.Content>
     </PortalPopover.Root>
   );
