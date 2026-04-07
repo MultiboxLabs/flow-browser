@@ -49,7 +49,7 @@
     "knex": "^3.2.9",
     "mime-types": "^3.0.1",
     "objcjs-types": "^0.8.0",
-    "posthog-node": "^5.28.11",
+    "posthog-node": "^5.29.0",
     "sharp": "^0.34.5",
     "tldts": "^7.0.28"
   },
@@ -93,7 +93,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
-    "hono": "^4.12.11",
+    "hono": "^4.12.12",
     "jju": "^1.4.0",
     "lucide-react": "^1.7.0",
     "motion": "^12.38.0",
@@ -111,7 +111,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tw-animate-css": "^1.2.9",
     "typescript": "^5.8.3",
-    "vite": "^8.0.5"
+    "vite": "^8.0.6"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
