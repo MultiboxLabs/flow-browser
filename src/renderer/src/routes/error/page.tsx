@@ -73,7 +73,6 @@ function Page() {
     } else {
       handleReload();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!url) {
