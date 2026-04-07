@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePDFSlick } from "@pdfslick/react";
 import Toolbar from "./Toolbar";
 import Thumbsbar from "./Thumbsbar";
@@ -8,7 +8,7 @@ type PDFViewerAppProps = {
 };
 
 export function PDFViewerApp({ pdfFilePath }: PDFViewerAppProps) {
-  const [isThumbsbarOpen, setIsThumbsbarOpen] = useState(false);
+  const [_isThumbsbarOpen, setIsThumbsbarOpen] = useState(true);
   const [loadedPerc, setLoadedPerc] = useState(0);
   const { isDocumentLoaded, viewerRef, thumbsRef, usePDFSlickStore, PDFSlickViewer } = usePDFSlick(pdfFilePath, {
     getDocumentParams: {
@@ -23,12 +23,7 @@ export function PDFViewerApp({ pdfFilePath }: PDFViewerAppProps) {
     }
   });
 
-  useEffect(() => {
-    if (isDocumentLoaded) {
-      setIsThumbsbarOpen(true);
-    }
-  }, [isDocumentLoaded]);
-
+  const isThumbsbarOpen = isDocumentLoaded && _isThumbsbarOpen;
   return (
     <>
       <div className="absolute inset-0 dark:bg-slate-800 bg-slate-200/70 flex flex-col pdfSlick">

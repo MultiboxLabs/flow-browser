@@ -83,6 +83,8 @@ export function useBoundingRect<T extends HTMLElement>(
     const keepGoing = loopRef.current || stableFramesRef.current < SETTLE_FRAMES;
 
     if (keepGoing) {
+      // `tick` will never change
+      // eslint-disable-next-line react-hooks/immutability
       rafIdRef.current = requestAnimationFrame(tick);
     } else {
       runningRef.current = false;
