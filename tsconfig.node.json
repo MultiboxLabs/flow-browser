@@ -5,12 +5,11 @@
     "composite": true,
     "moduleResolution": "bundler",
     "types": ["electron-vite/node"],
-    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "src/main/*"
+        "./src/main/*"
       ],
-      "~/*": ["src/shared/*"]
+      "~/*": ["./src/shared/*"]
     }
   }
 }
