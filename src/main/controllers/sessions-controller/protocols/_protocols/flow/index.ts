@@ -1,6 +1,7 @@
 import { registerFaviconRoutes } from "./favicon";
 import { registerAssetsRoutes } from "./assets";
 import { registerExtensionIconRoutes } from "./extension-icon";
+import { registerFileIconRoutes } from "./file-icon";
 import { registerPdfCacheRoutes } from "./pdf-cache";
 import { transformPathForRequest } from "../../utils";
 import { type Protocol } from "electron";
@@ -17,6 +18,7 @@ export type HonoApp = typeof app;
 registerFaviconRoutes(app);
 registerAssetsRoutes(app);
 registerExtensionIconRoutes(app);
+registerFileIconRoutes(app);
 registerPdfCacheRoutes(app);
 
 // Catch-all Route

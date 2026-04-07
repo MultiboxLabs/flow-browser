@@ -1,8 +1,11 @@
+import { downloadsController } from "@/controllers/downloads-controller";
 import { debugPrint } from "@/modules/output";
 import { setAlwaysOpenExternal, shouldAlwaysOpenExternal } from "@/saving/open-external";
 import { app, dialog, OpenExternalPermissionRequest, type Session } from "electron";
 
 export function registerHandlersWithSession(session: Session) {
+  downloadsController.registerSession(session);
+
   session.setPermissionRequestHandler(async (webContents, permission, callback, details) => {
     debugPrint("PERMISSIONS", "permission request", webContents?.getURL() || "unknown-url", permission);
 

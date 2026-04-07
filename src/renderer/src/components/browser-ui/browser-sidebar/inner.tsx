@@ -12,12 +12,11 @@ import {
   SlotMachinePinGrid,
   resetSlotMachine
 } from "@/components/browser-ui/browser-sidebar/_components/pin-grid/slot-machine/main";
-import { DownloadIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { SpaceSwitcher } from "@/components/browser-ui/browser-sidebar/_components/bottom/space-switcher";
 import { SpacePagesCarousel } from "@/components/browser-ui/browser-sidebar/_components/space-pages-carousel";
 import { UpdateBanner } from "@/components/browser-ui/browser-sidebar/_components/update-banner";
 import { BottomExtrasMenu } from "@/components/browser-ui/browser-sidebar/_components/bottom/bottom-extras-menu";
+import { DownloadsPopover } from "@/components/browser-ui/browser-sidebar/_components/bottom/downloads-popover";
 
 function SidebarIcon({ className }: { className?: string }) {
   return (
@@ -82,14 +81,7 @@ export function SidebarInner({ direction, variant }: { direction: AttachedDirect
       <div className="shrink-0 flex items-center justify-between h-4 my-2">
         <BottomExtrasMenu />
         <SpaceSwitcher />
-        <Button
-          size="icon"
-          className="size-8 bg-transparent hover:bg-black/10 dark:hover:bg-white/10"
-          // onClick={() => flow.windows.openSettingsWindow()}
-          disabled
-        >
-          <DownloadIcon strokeWidth={2} className="w-4 h-4 text-black/80 dark:text-white/80" />
-        </Button>
+        <DownloadsPopover />
       </div>
       <div className="h-3" />
     </div>

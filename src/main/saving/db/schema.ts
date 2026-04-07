@@ -1,5 +1,6 @@
 import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { NavigationEntry, TabGroupMode } from "~/types/tabs";
+import type { DownloadState } from "~/types/downloads";
 
 // --- Tabs Table ---
 
@@ -72,6 +73,35 @@ export const pinnedTabs = sqliteTable(
 
 export type PinnedTabRow = typeof pinnedTabs.$inferSelect;
 export type PinnedTabInsert = typeof pinnedTabs.$inferInsert;
+
+// --- Downloads Table ---
+
+export const downloads = sqliteTable(
+  "downloads",
+  {
+    id: text("id").primaryKey(),
+    originProfileId: text("origin_profile_id"),
+    url: text("url").notNull(),
+    urlChain: text("url_chain", { mode: "json" }).$type<string[]>().notNull(),
+    suggestedFilename: text("suggested_filename").notNull(),
+    savePath: text("save_path"),
+    mimeType: text("mime_type"),
+    state: text("state").$type<DownloadState>().notNull(),
+    receivedBytes: integer("received_bytes").notNull().default(0),
+    totalBytes: integer("total_bytes").notNull().default(0),
+    startTime: integer("start_time").notNull(),
+    endTime: integer("end_time"),
+    eTag: text("etag"),
+    lastModified: text("last_modified"),
+    canResume: integer("can_resume", { mode: "boolean" }).notNull().default(false),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull()
+  },
+  (table) => [index("idx_downloads_state").on(table.state), index("idx_downloads_updated_at").on(table.updatedAt)]
+);
+
+export type DownloadRow = typeof downloads.$inferSelect;
+export type DownloadInsert = typeof downloads.$inferInsert;
 
 // --- Browsing history (Chromium-inspired urls + visits; see design/chromium-inspired-browsing-history.md) ---
 

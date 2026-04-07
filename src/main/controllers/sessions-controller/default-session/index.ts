@@ -1,6 +1,7 @@
 import { sleep } from "@/modules/utils";
 import { registerProtocolsWithSession } from "../protocols";
 import { app, session } from "electron";
+import { downloadsController } from "@/controllers/downloads-controller";
 import { setupInterceptRules } from "@/controllers/sessions-controller/intercept-rules";
 import { registerPreloadScripts } from "@/controllers/sessions-controller/preload-scripts";
 
@@ -11,6 +12,7 @@ function initializeDefaultSession() {
 
   setupInterceptRules(defaultSession);
   registerPreloadScripts(defaultSession);
+  downloadsController.registerSession(defaultSession);
 }
 
 export let isDefaultSessionReady = false;
