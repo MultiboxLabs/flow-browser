@@ -1,4 +1,4 @@
-import { useBrowserAction } from "@/components/providers/browser-action-provider";
+import { type ActivateEventType, useBrowserAction } from "@/components/providers/browser-action-provider";
 import { useExtensions } from "@/components/providers/extensions-provider";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { PortalPopover } from "@/components/portal/popover";
@@ -91,20 +91,23 @@ function BrowserAction({
 
   const tabInfo = activeTabId > -1 ? action.tabs[activeTabId] : null;
 
-  const onActivated = useCallback(() => {
-    if (!buttonRef.current) return;
-    activate(action.id, activeTabId, buttonRef.current, alignment);
-  }, [action.id, activeTabId, alignment, activate]);
+  const onActivated = useCallback(
+    (eventType: ActivateEventType) => {
+      if (!buttonRef.current) return;
+      activate(action.id, activeTabId, buttonRef.current, alignment, eventType);
+    },
+    [action.id, activeTabId, alignment, activate]
+  );
 
   const onClick = useCallback(() => {
-    return onActivated();
+    return onActivated("click");
   }, [onActivated]);
 
   const onContextMenu = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
       event.nativeEvent.stopImmediatePropagation();
-      return onActivated();
+      return onActivated("contextmenu");
     },
     [onActivated]
   );

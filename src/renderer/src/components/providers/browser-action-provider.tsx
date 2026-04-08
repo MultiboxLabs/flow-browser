@@ -41,10 +41,18 @@ type __browserAction__ = {
   removeObserver(partition: string): void;
 };
 
+export type ActivateEventType = "click" | "contextmenu";
+
 interface BrowserActionContextType {
   activeTabId?: number;
   actions: Action[];
-  activate: (extensionId: string, tabId: number, element: HTMLElement, alignment: string) => void;
+  activate: (
+    extensionId: string,
+    tabId: number,
+    element: HTMLElement,
+    alignment: string,
+    eventType: ActivateEventType
+  ) => void;
   isLoading: boolean;
   partition: string;
 }
@@ -109,16 +117,16 @@ function InternalBrowserActionProvider({
   }, [browserAction, partition, onActionsUpdate, disabled]);
 
   const activate = useCallback(
-    (extensionId: string, tabId: number, element: HTMLElement, alignment: string) => {
+    (extensionId: string, tabId: number, element: HTMLElement, alignment: string, eventType: string) => {
       if (!browserAction || disabled) return;
 
       const rect = element.getBoundingClientRect();
 
       // Padding adjustment for native frame
-      const Y_PADDING = 20;
+      const Y_PADDING = eventType === "click" ? 25 : 5;
 
       browserAction.activate(partition, {
-        eventType: "click",
+        eventType,
         extensionId,
         tabId,
         alignment,

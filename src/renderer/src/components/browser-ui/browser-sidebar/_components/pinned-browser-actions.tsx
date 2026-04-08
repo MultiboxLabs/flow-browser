@@ -1,4 +1,4 @@
-import { useBrowserAction } from "@/components/providers/browser-action-provider";
+import { type ActivateEventType, useBrowserAction } from "@/components/providers/browser-action-provider";
 import { useExtensions } from "@/components/providers/extensions-provider";
 import { cn } from "@/lib/utils";
 import { PuzzleIcon } from "lucide-react";
@@ -21,7 +21,13 @@ interface PinnedActionProps {
   };
   activeTabId: number | undefined;
   partition: string;
-  activate: (extensionId: string, tabId: number, anchorEl: HTMLElement, alignment: string) => void;
+  activate: (
+    extensionId: string,
+    tabId: number,
+    anchorEl: HTMLElement,
+    alignment: string,
+    eventType: ActivateEventType
+  ) => void;
 }
 
 function PinnedAction({ action, activeTabId, partition, activate }: PinnedActionProps) {
@@ -30,9 +36,9 @@ function PinnedAction({ action, activeTabId, partition, activate }: PinnedAction
   const tabInfo = tabId > -1 ? action.tabs[tabId] : null;
 
   const handleClick = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
+    (event: MouseEvent<HTMLButtonElement>, eventType: ActivateEventType) => {
       event.stopPropagation();
-      activate(action.id, tabId, event.currentTarget, "bottom right");
+      activate(action.id, tabId, event.currentTarget, "bottom right", eventType);
     },
     [action.id, tabId, activate]
   );
@@ -51,7 +57,8 @@ function PinnedAction({ action, activeTabId, partition, activate }: PinnedAction
         "transition-colors duration-150",
         "relative shrink-0"
       )}
-      onClick={handleClick}
+      onClick={(event) => handleClick(event, "click")}
+      onContextMenu={(event) => handleClick(event, "contextmenu")}
       title={action.title}
     >
       {isError ? (
