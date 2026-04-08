@@ -16,10 +16,8 @@ import { quitController } from "@/controllers/quit-controller";
 import { hex_is_light } from "@/modules/utils";
 import { relocateTabsFromClosingWindow } from "@/controllers/tabs-controller/tab-sync";
 import { ViewLayer } from "~/layers";
-import {
-  SidebarInterpolation,
-  SIDEBAR_ANIMATE_DURATION
-} from "@/controllers/windows-controller/utils/browser/sidebar-interpolation";
+import { SidebarInterpolation } from "@/controllers/windows-controller/utils/browser/sidebar-interpolation";
+import { SIDEBAR_ANIMATION_DURATION_MS } from "~/flow/sidebar-animation";
 
 export type BrowserWindowType = "normal" | "popup";
 
@@ -268,10 +266,6 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     const prevParams = this.layoutParams;
     this.layoutParams = params;
 
-    // Compute IPC transit delay so the interpolation can be backdated
-    // to match the CSS transition start time in the renderer.
-    const advanceMs = sentAt ? Math.max(0, Date.now() - sentAt) : 0;
-
     // Compute the target effective sidebar width from the new params.
     const targetWidth = params.sidebarVisible ? params.sidebarWidth : 0;
 
@@ -294,7 +288,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
         this.sidebarInterpolation = new SidebarInterpolation(
           fromWidth,
           targetWidth,
-          SIDEBAR_ANIMATE_DURATION,
+          SIDEBAR_ANIMATION_DURATION_MS,
           () => {
             this.recomputePageBounds();
           },
@@ -304,7 +298,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
             this.recomputePageBounds();
           }
         );
-        this.sidebarInterpolation.start(advanceMs);
+        this.sidebarInterpolation.start(sentAt ?? Date.now());
       } else {
         // from === to: nothing to animate (e.g. duplicate message)
         this.sidebarInterpolation = null;
@@ -346,17 +340,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     // Effective sidebar width (animated or static)
     let effectiveSidebarWidth: number;
     if (this.sidebarInterpolation) {
-      // During animation, subtract a small buffer so the WebContentsView
-      // extends slightly under the sidebar. This hides any residual desync
-      // from IPC delay, setTimeout jitter, and compositor frame misalignment.
-      // The buffer tapers to 0 near the target to avoid a visible snap when
-      // the animation completes. The sidebar's opaque background covers the
-      // overlap, so the user never sees the webcontents underneath.
-      const ANIM_BUFFER = 15;
-      const targetWidth = sidebarVisible ? sidebarWidth : 0;
-      const remaining = Math.abs(this.sidebarInterpolation.currentValue - targetWidth);
-      const buffer = Math.min(ANIM_BUFFER, remaining);
-      effectiveSidebarWidth = Math.max(0, this.sidebarInterpolation.currentValue - buffer);
+      effectiveSidebarWidth = this.sidebarInterpolation.currentValue;
     } else {
       effectiveSidebarWidth = sidebarVisible ? sidebarWidth : 0;
     }

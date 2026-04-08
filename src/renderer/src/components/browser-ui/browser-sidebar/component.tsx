@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { usePresence } from "motion/react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useMount } from "react-use";
 import { type AttachedDirection, useBrowserSidebar, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH } from "./provider";
 import { type SidebarVariant } from "@/components/browser-ui/types";
@@ -10,11 +10,13 @@ import { type ImperativeResizablePanelWrapperHandle, PixelBasedResizablePanel } 
 import { PortalComponent } from "@/components/portal/portal";
 import { SpaceBackgroundStylesheet } from "@/components/providers/spaces-provider";
 import { ViewLayer } from "~/layers";
+import { SIDEBAR_ANIMATION_CSS_EASING, SIDEBAR_ANIMATION_DURATION_MS } from "~/flow/sidebar-animation";
 
 // Component //
-
-const SIDEBAR_ANIMATE_TIME = 100;
-const SIDEBAR_ANIMATE_CLASS = "duration-100 ease-in-out";
+const SIDEBAR_ANIMATION_STYLE: CSSProperties = {
+  transitionDuration: `${SIDEBAR_ANIMATION_DURATION_MS}ms`,
+  transitionTimingFunction: SIDEBAR_ANIMATION_CSS_EASING
+};
 
 export function BrowserSidebar({
   direction,
@@ -123,7 +125,7 @@ export function BrowserSidebar({
           safeToRemove();
           stopAnimation(animId);
         }
-      }, SIDEBAR_ANIMATE_TIME);
+      }, SIDEBAR_ANIMATION_DURATION_MS);
     } else {
       removingRef.current = false;
     }
@@ -137,7 +139,7 @@ export function BrowserSidebar({
     const animId = startAnimation();
     setTimeout(() => {
       stopAnimation(animId);
-    }, SIDEBAR_ANIMATE_TIME);
+    }, SIDEBAR_ANIMATION_DURATION_MS);
   });
 
   // Sidebar Panel Size //
@@ -177,10 +179,10 @@ export function BrowserSidebar({
       className={cn(
         "w-full h-full max-h-screen remove-app-drag",
         "transition-transform",
-        SIDEBAR_ANIMATE_CLASS,
         "flex flex-col",
         isFloating && "rounded-lg border border-sidebar-border/50 sidebar-floating-bg"
       )}
+      style={SIDEBAR_ANIMATION_STYLE}
     >
       {isFloating && <SpaceBackgroundStylesheet selector="[data-space-background-scope]" />}
       <div
@@ -216,10 +218,10 @@ export function BrowserSidebar({
           className={cn(
             "h-full overflow-hidden p-2",
             "transition-transform",
-            SIDEBAR_ANIMATE_CLASS,
             currentlyVisible ? "translate-x-0" : direction === "left" ? "-translate-x-full" : "translate-x-full",
             topbarHeight > 0 && `pt-[max(0px,calc(8px-${topbarHeight}px))]`
           )}
+          style={SIDEBAR_ANIMATION_STYLE}
         >
           {content}
         </div>
@@ -230,7 +232,6 @@ export function BrowserSidebar({
   const attachedClassName = cn(
     "h-full overflow-hidden w-[calc(var(--panel-size)+30px)]",
     "transition-[margin]",
-    SIDEBAR_ANIMATE_CLASS,
     direction === "left" && (currentlyVisible ? "ml-0" : "-ml-[var(--panel-size)]"),
     direction === "right" && (currentlyVisible ? "mr-0" : "-mr-[var(--panel-size)]"),
     // Remove flex so the sidebar hiding animation can play correctly
@@ -238,8 +239,9 @@ export function BrowserSidebar({
   );
 
   const attachedStyle = {
-    "--panel-size": `${recordedSidebarSizeRef.current}px`
-  } as React.CSSProperties;
+    "--panel-size": `${recordedSidebarSizeRef.current}px`,
+    ...SIDEBAR_ANIMATION_STYLE
+  } as CSSProperties;
 
   return (
     <PixelBasedResizablePanel

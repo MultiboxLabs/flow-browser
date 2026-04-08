@@ -3,14 +3,12 @@ import { useSettings } from "@/components/providers/settings-provider";
 import { generateUUID } from "@/lib/utils";
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useMount } from "react-use";
+import { SIDEBAR_ANIMATION_DURATION_MS } from "~/flow/sidebar-animation";
 
 // Configuration //
 export const MIN_SIDEBAR_WIDTH = 150;
 export const DEFAULT_SIDEBAR_SIZE = 200;
 export const MAX_SIDEBAR_WIDTH = 500;
-
-/** Duration of the sidebar open/close CSS transition (ms). Must match SIDEBAR_ANIMATE_TIME in component.tsx. */
-const SIDEBAR_ANIMATE_TIME = 100;
 
 // Helper Functions //
 function getInitialSidebarSize() {
@@ -237,7 +235,7 @@ export function BrowserSidebarProvider({ children, hasSidebar = true }: BrowserS
         // Start animation in the same synchronous call as setVisible.
         // React 18 batches both setState calls into a single render.
         const animId = startAnimation();
-        setTimeout(() => stopAnimation(animId), SIDEBAR_ANIMATE_TIME);
+        setTimeout(() => stopAnimation(animId), SIDEBAR_ANIMATION_DURATION_MS);
       }
       setVisible(newVisible);
     },

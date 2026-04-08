@@ -1351,6 +1351,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
   public handlePageBoundsChanged(windowId: number) {
     const tabsInWindow = this.getTabsInWindow(windowId);
     for (const tab of tabsInWindow) {
+      if (!tab.visible) continue;
       const managers = this.getTabManagers(tab.id);
       managers?.layout.updateLayout();
     }

@@ -1,109 +1,33 @@
-import { performance } from "perf_hooks";
+import { evaluateSidebarAnimationEasing } from "~/flow/sidebar-animation";
 
 /**
  * Tick interval in milliseconds.
  *
- * Sidebar chrome in renderer can only paint once per display frame, so driving
- * WebContentsView resizes faster than that just floods heavy pages with extra
- * layout work. Cap interpolation to ~60fps so main-process bounds updates stay
- * aligned with visible paints instead of attempting ~25 resizes in 100ms.
+ * Heavy sites can spend noticeable time on each viewport resize. Updating the
+ * live WebContentsView on every compositor frame makes renderer chrome and page
+ * fall out of sync. Sample more coarsely so Chromium gets more time to settle
+ * between resizes while sidebar chrome still animates smoothly on top.
  */
 const MS_PER_TICK = 1000 / 60;
 
 /**
- * Duration of the sidebar open/close animation in milliseconds.
- * Must match SIDEBAR_ANIMATE_TIME in the renderer
- * (src/renderer/src/components/browser-ui/browser-sidebar/component.tsx).
- */
-export const SIDEBAR_ANIMATE_DURATION = 100;
-
-// ---------------------------------------------------------------------------
-// Cubic-Bezier(0.4, 0, 0.2, 1) — Tailwind CSS ease-in-out
-// ---------------------------------------------------------------------------
-// IMPORTANT: This must match Tailwind's `ease-in-out` utility, which is
-// cubic-bezier(0.4, 0, 0.2, 1) — NOT the CSS standard `ease-in-out`
-// keyword which is cubic-bezier(0.42, 0, 0.58, 1). The Tailwind curve
-// is front-loaded: at t=0.5 it's already ~78% done, whereas the CSS
-// standard curve would be at exactly 50%.
-//
-// The bezier curve has control points P0=(0,0), P1=(0.4,0), P2=(0.2,1), P3=(1,1).
-//
-// Parametric form (parameter u ∈ [0,1]):
-//   B_x(u) = 3(1-u)²u·x1 + 3(1-u)u²·x2 + u³
-//   B_y(u) = 3(1-u)²u·y1 + 3(1-u)u²·y2 + u³
-//
-// To evaluate easing at progress x (time fraction), we solve B_x(u) = x for u,
-// then return B_y(u).
-
-const BEZ_X1 = 0.4;
-const BEZ_Y1 = 0.0;
-const BEZ_X2 = 0.2;
-const BEZ_Y2 = 1.0;
-
-/** Evaluate B_x(u) for cubic-bezier with given x1, x2. */
-function bezierX(u: number): number {
-  // B_x(u) = 3(1-u)²u·x1 + 3(1-u)u²·x2 + u³
-  const u1 = 1 - u;
-  return 3 * u1 * u1 * u * BEZ_X1 + 3 * u1 * u * u * BEZ_X2 + u * u * u;
-}
-
-/** Evaluate B_x'(u) (derivative) for Newton-Raphson. */
-function bezierXDerivative(u: number): number {
-  // d/du [3(1-u)²u·x1 + 3(1-u)u²·x2 + u³]
-  const u1 = 1 - u;
-  return 3 * u1 * u1 * BEZ_X1 + 6 * u1 * u * (BEZ_X2 - BEZ_X1) + 3 * u * u * (1 - BEZ_X2);
-}
-
-/** Evaluate B_y(u) for cubic-bezier with given y1, y2. */
-function bezierY(u: number): number {
-  const u1 = 1 - u;
-  return 3 * u1 * u1 * u * BEZ_Y1 + 3 * u1 * u * u * BEZ_Y2 + u * u * u;
-}
-
-/**
- * Solve B_x(u) = x using Newton-Raphson, then evaluate B_y(u).
- * This gives the exact Tailwind cubic-bezier(0.4, 0, 0.2, 1) easing.
- *
- * Newton-Raphson converges very quickly for well-behaved cubic beziers
- * (typically 3-5 iterations for ε < 1e-7).
- */
-function cubicBezierEaseInOut(x: number): number {
-  if (x <= 0) return 0;
-  if (x >= 1) return 1;
-
-  // Newton-Raphson: find u such that bezierX(u) = x
-  let u = x; // Initial guess (identity is a good start)
-  for (let i = 0; i < 8; i++) {
-    const diff = bezierX(u) - x;
-    if (Math.abs(diff) < 1e-7) break;
-    const deriv = bezierXDerivative(u);
-    if (Math.abs(deriv) < 1e-12) break; // Avoid division by zero
-    u -= diff / deriv;
-    // Clamp to [0,1] to prevent divergence
-    u = Math.max(0, Math.min(1, u));
-  }
-
-  return bezierY(u);
-}
-
-/**
  * Drives a numeric value from `from` to `to` over `duration` ms using
  * Tailwind's cubic-bezier(0.4, 0, 0.2, 1) timing (the `ease-in-out`
- * utility), ticking via `setTimeout` at ~60fps (~6 ticks per 100ms animation).
+ * utility), ticking via `setTimeout` at ~30fps (~3 ticks per 100ms animation).
  *
  * Used to mirror the CSS sidebar margin transition in the main process
  * so that WebContentsView bounds track the content area without any
  * renderer round-trip during the animation.
  *
- * The `start(advanceMs)` method accepts an offset to backdate the
- * interpolation start, compensating for IPC transit delay so the
- * main-process animation stays synchronized with the CSS transition.
+ * The `start(startWallClockMs)` method accepts renderer's wall-clock
+ * timestamp so main-process progress stays in same clock domain as
+ * renderer's CSS transition.
  *
  * See design/DECLARATIVE_PAGE_BOUNDS.md § "Sidebar Tween Handling".
  */
 export class SidebarInterpolation {
   public currentValue: number;
-  private startTime: number = 0;
+  private startWallClockMs: number = 0;
   private timer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
@@ -117,20 +41,16 @@ export class SidebarInterpolation {
   }
 
   /**
-   * Begin the interpolation.
-   * @param advanceMs — how many milliseconds to backdate the start time.
-   *   This compensates for IPC transit delay: the renderer stamped
-   *   `Date.now()` before sending, and the main process computes
-   *   `advanceMs = Date.now() - sentAt`. The interpolation starts as if
-   *   it began `advanceMs` ago, keeping it in sync with the CSS transition
-   *   that started at paint time in the renderer.
+   * Begin interpolation against shared wall-clock time.
+   * @param startWallClockMs Wall-clock timestamp from renderer (`Date.now()`).
+   *   Main and renderer can both compare against this same clock domain.
    */
-  start(advanceMs: number = 0): void {
-    this.startTime = performance.now() - advanceMs;
+  start(startWallClockMs: number = Date.now()): void {
+    this.startWallClockMs = startWallClockMs;
     this.currentValue = this.from;
 
-    // If advanceMs already puts us past the end, snap immediately.
-    if (advanceMs >= this.duration) {
+    // If wall-clock time already puts us past the end, snap immediately.
+    if (Date.now() - this.startWallClockMs >= this.duration) {
       this.currentValue = this.to;
       this.onTick();
       this.onComplete();
@@ -148,19 +68,19 @@ export class SidebarInterpolation {
   }
 
   private tick = (): void => {
-    const elapsed = performance.now() - this.startTime;
+    const elapsed = Date.now() - this.startWallClockMs;
     const t = Math.min(elapsed / this.duration, 1);
-    const eased = cubicBezierEaseInOut(t);
-    this.currentValue = this.from + (this.to - this.from) * eased;
-    this.onTick();
-
-    if (t < 1) {
-      this.timer = setTimeout(this.tick, MS_PER_TICK);
-    } else {
+    if (t >= 1) {
       this.currentValue = this.to;
       this.onTick();
       this.timer = null;
       this.onComplete();
+      return;
     }
+
+    const eased = evaluateSidebarAnimationEasing(t);
+    this.currentValue = this.from + (this.to - this.from) * eased;
+    this.onTick();
+    this.timer = setTimeout(this.tick, MS_PER_TICK);
   };
 }
