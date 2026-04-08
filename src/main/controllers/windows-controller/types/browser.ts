@@ -39,6 +39,19 @@ interface BrowserWindowEvents extends BaseWindowEvents {
   "leave-full-screen": [];
 }
 
+function roundPageBounds(bounds: PageBounds): PageBounds {
+  return {
+    x: Math.round(bounds.x),
+    y: Math.round(bounds.y),
+    width: Math.round(bounds.width),
+    height: Math.round(bounds.height)
+  };
+}
+
+function isPageBoundsEqual(a: PageBounds, b: PageBounds): boolean {
+  return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+}
+
 export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
   public browserWindowType: BrowserWindowType;
   public viewManager: ViewManager;
@@ -357,7 +370,11 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     const width = Math.max(0, cw - effectiveSidebarWidth - PADDING * 2);
     const height = Math.max(0, ch - padTop - padBottom);
 
-    const newBounds: PageBounds = { x, y, width, height };
+    const newBounds = roundPageBounds({ x, y, width, height });
+    if (isPageBoundsEqual(this.pageBounds, newBounds)) {
+      return;
+    }
+
     this.pageBounds = newBounds;
     this.emit("page-bounds-changed", newBounds);
     tabsController.handlePageBoundsChanged(this.id);

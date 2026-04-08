@@ -1,11 +1,14 @@
 import { performance } from "perf_hooks";
 
 /**
- * Tick interval in milliseconds. ~4ms gives ~25 ticks over a 100ms animation,
- * much smoother than the ~6 ticks at 60fps (16.67ms). Node's setTimeout
- * minimum resolution is ~1ms, so 4ms is achievable.
+ * Tick interval in milliseconds.
+ *
+ * Sidebar chrome in renderer can only paint once per display frame, so driving
+ * WebContentsView resizes faster than that just floods heavy pages with extra
+ * layout work. Cap interpolation to ~60fps so main-process bounds updates stay
+ * aligned with visible paints instead of attempting ~25 resizes in 100ms.
  */
-const MS_PER_TICK = 4;
+const MS_PER_TICK = 1000 / 60;
 
 /**
  * Duration of the sidebar open/close animation in milliseconds.
@@ -86,8 +89,7 @@ function cubicBezierEaseInOut(x: number): number {
 /**
  * Drives a numeric value from `from` to `to` over `duration` ms using
  * Tailwind's cubic-bezier(0.4, 0, 0.2, 1) timing (the `ease-in-out`
- * utility), ticking via `setTimeout` at ~4ms intervals (~25 ticks per
- * 100ms animation).
+ * utility), ticking via `setTimeout` at ~60fps (~6 ticks per 100ms animation).
  *
  * Used to mirror the CSS sidebar margin transition in the main process
  * so that WebContentsView bounds track the content area without any
