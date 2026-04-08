@@ -201,7 +201,7 @@ export function useFaviconColors(faviconUrl: string | null | undefined): Favicon
   const [_colors, setColors] = useState<FaviconColors | null>(null);
 
   const cachedColors = faviconUrl ? colorCache.get(faviconUrl) : null;
-  const colors = faviconUrl ? _colors : null;
+  const colors = cachedColors ? cachedColors : faviconUrl ? _colors : null;
 
   useEffect(() => {
     if (!faviconUrl) {
