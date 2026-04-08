@@ -132,10 +132,19 @@ const SidebarTab = memo(
 
     const VolumeIcon = isMuted ? VolumeX : Volume2;
 
+    const [isPressed, setIsPressed] = useState(false);
     return (
       <motion.div
         onContextMenu={handleContextMenu}
-        whileTap={{ scale: 0.99 }}
+        // motion's whileTap does not work in a different document,
+        // so we have to use our own state.
+        onMouseDown={(e) => {
+          setIsPressed(true);
+          handleMouseDown(e);
+        }}
+        onMouseUp={() => setIsPressed(false)}
+        onMouseLeave={() => setIsPressed(false)}
+        animate={{ scale: isPressed ? 0.99 : 1 }}
         transition={{ scale: { type: "spring", stiffness: 600, damping: 20 } }}
         className={cn(
           "group/tab h-9 w-full rounded-lg overflow-hidden min-w-0",
@@ -144,7 +153,6 @@ const SidebarTab = memo(
           !isFocused && "hover:bg-black/10 dark:hover:bg-white/10",
           isFocused && "bg-white/90 dark:bg-white/15"
         )}
-        onMouseDown={handleMouseDown}
       >
         {/* Left side: favicon + audio + title */}
         <div className="flex flex-row items-center flex-1 min-w-0">

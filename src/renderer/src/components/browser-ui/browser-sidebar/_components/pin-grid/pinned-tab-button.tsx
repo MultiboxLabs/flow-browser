@@ -182,6 +182,7 @@ export function PinnedTabButton({
     [onContextMenu]
   );
 
+  const [isPressed, setIsPressed] = useState(false);
   return (
     <motion.div
       className="relative"
@@ -214,7 +215,15 @@ export function PinnedTabButton({
 
       <motion.div
         ref={ref}
-        whileTap={{ scale: 0.99 }}
+        // motion's whileTap does not work in a different document,
+        // so we have to use our own state.
+        onMouseDown={() => {
+          setIsPressed(true);
+          handleClick();
+        }}
+        onMouseUp={() => setIsPressed(false)}
+        onMouseLeave={() => setIsPressed(false)}
+        animate={{ scale: isPressed ? 0.99 : 1 }}
         transition={{ scale: { type: "spring", stiffness: 600, damping: 20 } }}
         className={cn(
           "w-full h-12 rounded-xl overflow-hidden",
@@ -227,7 +236,6 @@ export function PinnedTabButton({
           isDragging && "opacity-40"
         )}
         style={activeBorderStyle}
-        onMouseDown={handleClick}
         onDoubleClick={onDoubleClick}
         onContextMenu={handleContextMenu}
       >

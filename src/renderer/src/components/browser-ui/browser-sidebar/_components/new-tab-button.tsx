@@ -23,6 +23,8 @@ export function NewTabButton() {
   return (
     <motion.button
       onClick={handleNewTab}
+      // motion's whileTap does not work in a different document,
+      // so we have to use our own state.
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}
