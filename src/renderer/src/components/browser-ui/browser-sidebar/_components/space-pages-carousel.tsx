@@ -94,6 +94,19 @@ export function SpacePagesCarousel() {
   // unrelated programmatic scrolls if setCurrentSpace no-ops or fails.
   const skipScrollForSpaceRef = useRef<string | null>(null);
   const hasInitializedRef = useRef(false);
+  const isProgrammaticScrollRef = useRef(false);
+  const programmaticScrollResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const markProgrammaticScroll = useCallback((settleMs: number) => {
+    isProgrammaticScrollRef.current = true;
+    if (programmaticScrollResetRef.current !== null) {
+      clearTimeout(programmaticScrollResetRef.current);
+    }
+    programmaticScrollResetRef.current = setTimeout(() => {
+      isProgrammaticScrollRef.current = false;
+      programmaticScrollResetRef.current = null;
+    }, settleMs);
+  }, []);
 
   const moveTab = useCallback((tabId: number, newPosition: number) => {
     flow.tabs.moveTab(tabId, newPosition);
@@ -118,9 +131,11 @@ export function SpacePagesCarousel() {
 
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true;
+      // Mount-time alignment should never be treated as a user swipe.
+      markProgrammaticScroll(75);
       container.scrollLeft = currentIndex * container.clientWidth;
     }
-  }, [currentIndex]);
+  }, [currentIndex, markProgrammaticScroll]);
 
   // When current space changes externally (e.g. space switcher click),
   // smooth-scroll to the corresponding page
@@ -138,8 +153,9 @@ export function SpacePagesCarousel() {
     const targetScrollLeft = currentIndex * container.clientWidth;
     if (Math.abs(container.scrollLeft - targetScrollLeft) < 2) return;
 
+    markProgrammaticScroll(300);
     container.scrollTo({ left: targetScrollLeft, behavior: "smooth" });
-  }, [currentIndex, currentSpace?.id]);
+  }, [currentIndex, currentSpace?.id, markProgrammaticScroll]);
 
   // Detect when the user finishes swiping and update the current space.
   // Uses `scrollend` with a debounced `scroll` fallback for robustness.
@@ -150,6 +166,8 @@ export function SpacePagesCarousel() {
     let scrollTimer: ReturnType<typeof setTimeout> | null = null;
 
     const resolveSnap = () => {
+      if (isProgrammaticScrollRef.current) return;
+
       const pageWidth = container.clientWidth;
       if (pageWidth === 0) return;
 
@@ -169,6 +187,12 @@ export function SpacePagesCarousel() {
         clearTimeout(scrollTimer);
         scrollTimer = null;
       }
+
+      if (isProgrammaticScrollRef.current) {
+        isProgrammaticScrollRef.current = false;
+        return;
+      }
+
       resolveSnap();
     };
 
@@ -176,6 +200,15 @@ export function SpacePagesCarousel() {
     // detect scroll settling after 150ms of inactivity
     const handleScroll = () => {
       if (scrollTimer !== null) clearTimeout(scrollTimer);
+
+      if (isProgrammaticScrollRef.current) {
+        scrollTimer = setTimeout(() => {
+          isProgrammaticScrollRef.current = false;
+          scrollTimer = null;
+        }, 150);
+        return;
+      }
+
       scrollTimer = setTimeout(resolveSnap, 150);
     };
 
@@ -203,11 +236,20 @@ export function SpacePagesCarousel() {
       // Only re-snap when the width actually changed (skip the initial observe callback)
       if (Math.abs(newWidth - lastWidth) < 1) return;
       lastWidth = newWidth;
+      markProgrammaticScroll(75);
       container.scrollLeft = currentIndexRef.current * newWidth;
     });
 
     observer.observe(container);
     return () => observer.disconnect();
+  }, [markProgrammaticScroll]);
+
+  useEffect(() => {
+    return () => {
+      if (programmaticScrollResetRef.current !== null) {
+        clearTimeout(programmaticScrollResetRef.current);
+      }
+    };
   }, []);
 
   // If the current space is internal (e.g. incognito), render only that space

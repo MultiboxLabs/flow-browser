@@ -10,6 +10,8 @@ import {
   ElementDropTargetEventBasePayload
 } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { attachClosestEdge, extractClosestEdge, Edge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
+import { preserveOffsetOnSource } from "@atlaskit/pragmatic-drag-and-drop/element/preserve-offset-on-source";
+import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview";
 import { DropIndicator } from "@/components/browser-ui/browser-sidebar/_components/drop-indicator";
 import { isPinnedTabSource } from "@/components/browser-ui/browser-sidebar/_components/drag-utils";
 
@@ -26,6 +28,38 @@ export type TabGroupSourceData = {
   spaceId: string;
   position: number;
 };
+
+function renderTabGroupDragPreview({
+  container,
+  element,
+  isSpaceLight
+}: {
+  container: HTMLElement;
+  element: HTMLElement;
+  isSpaceLight: boolean;
+}) {
+  const clone = element.cloneNode(true) as HTMLElement;
+  const { width, height } = element.getBoundingClientRect();
+
+  Object.assign(container.style, {
+    background: "transparent"
+  });
+  container.classList.toggle("dark", !isSpaceLight);
+
+  Object.assign(clone.style, {
+    width: `${width}px`,
+    height: `${height}px`,
+    margin: "0",
+    transform: "none",
+    pointerEvents: "none"
+  });
+
+  container.append(clone);
+
+  return () => {
+    container.removeChild(clone);
+  };
+}
 
 // --- SidebarTab (memoized) --- //
 
@@ -264,6 +298,16 @@ export const TabGroup = memo(
             position: position
           };
           return data;
+        },
+        onGenerateDragPreview: ({ nativeSetDragImage, location }) => {
+          setCustomNativeDragPreview({
+            nativeSetDragImage,
+            getOffset: preserveOffsetOnSource({
+              element: el,
+              input: location.current.input
+            }),
+            render: ({ container }) => renderTabGroupDragPreview({ container, element: el, isSpaceLight })
+          });
         }
       });
 
