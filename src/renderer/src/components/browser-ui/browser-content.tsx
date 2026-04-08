@@ -5,6 +5,7 @@ import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provi
 import { useAdaptiveTopbar } from "@/components/browser-ui/adaptive-topbar";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import type { TabPlaceholderUpdate } from "~/types/tabs";
+import "./browser-content.css";
 
 const PLACEHOLDER_CLEAR_DELAY_MS = 180;
 
@@ -129,7 +130,16 @@ function BrowserContent() {
   }, [onSidebarResize]);
 
   return (
-    <div className={cn("rounded-lg", "flex-1 relative remove-app-drag", "bg-white/15", "shadow-xl shadow-black/20")}>
+    <div
+      className={cn(
+        "rounded-lg",
+        "flex-1 relative remove-app-drag",
+        "bg-white/15",
+        // Better shadow for the browser content
+        "browser-content-shadow"
+        // "shadow-xl shadow-black/20"
+      )}
+    >
       {placeholderUrl && (
         <img
           src={placeholderUrl}
