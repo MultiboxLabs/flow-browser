@@ -5,6 +5,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { injectBrowserAction } from "electron-chrome-extensions/browser-action";
 import { tryPatchPasskeys } from "./webauthn";
+import { tryPatchPrompts } from "./prompts";
 
 // TYPE IMPORTS //
 import type { ProfileData } from "@/controllers/profiles-controller";
@@ -99,8 +100,9 @@ if (hasPermission("browser")) {
   injectBrowserAction();
 }
 
-// PASSKEYS PATCH //
+// API PATCHES //
 tryPatchPasskeys();
+tryPatchPrompts();
 
 // INTERNAL FUNCTIONS //
 function getOSFromPlatform(platform: NodeJS.Platform) {

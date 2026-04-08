@@ -16,6 +16,7 @@ import "@/ipc/browser/interface";
 import "@/ipc/browser/find-in-page";
 import "@/ipc/window/omnibox";
 import "@/ipc/app/new-tab";
+import "@/ipc/browser/prompts";
 
 // Session APIs
 import "@/ipc/session/profiles";
