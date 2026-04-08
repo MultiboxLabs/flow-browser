@@ -20,7 +20,7 @@ import { BrowserWindow } from "@/controllers/windows-controller/types/browser";
 import type { CursorEdgeEvent } from "~/flow/interfaces/browser/interface";
 
 const POLL_MS = 1000 / 30; // ~30 fps
-const EDGE_THRESHOLD = 10; // px from edge to trigger
+const EDGE_THRESHOLD = 12; // px from edge to trigger
 
 /** Track whether the cursor was inside the window on the last tick. */
 const cursorInsideWindow = new Map<number, boolean>();
@@ -48,7 +48,12 @@ function poll() {
   const localX = cursor.x - bounds.x;
   const localY = cursor.y - bounds.y;
 
-  const isInside = localX >= 0 && localX <= bounds.width && localY >= 0 && localY <= bounds.height;
+  // Be a bit lenient, allow for mouse to be slightly outside of the window bounds
+  const leftEdgeExit = EDGE_THRESHOLD * -22;
+  const rightEdgeExit = EDGE_THRESHOLD * 22;
+
+  const isInside =
+    localX >= leftEdgeExit && localX <= bounds.width + rightEdgeExit && localY >= 0 && localY <= bounds.height;
   const wasInside = cursorInsideWindow.get(focused.id) ?? false;
 
   if (isInside) {

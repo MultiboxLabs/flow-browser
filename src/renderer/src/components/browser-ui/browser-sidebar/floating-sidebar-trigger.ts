@@ -53,8 +53,11 @@ export function useFloatingSidebarTrigger(
         const outThreshold = sidebarWidth + OUT_MARGIN;
 
         const shouldDetach = direction === "left" ? event.x > outThreshold : event.x < window.innerWidth - outThreshold;
+        // Going further than allowed threshold outside of window bounds, so hide the floating sidebar
+        const shouldDetachAsOutsideWindowBounds =
+          event.edge === null && (direction === "left" ? event.x < 0 : event.x > window.innerWidth);
 
-        if (shouldDetach) {
+        if (shouldDetach || shouldDetachAsOutsideWindowBounds) {
           if (!isLockedRef.current) {
             setIsFloating(false);
             clearDwell();
