@@ -5,15 +5,15 @@ import { ActivePrompt } from "~/types/prompts";
 
 export interface FlowPromptsAPI {
   /**
-   * Get all currently pending conditional passkey requests.
-   * @returns Array of pending conditional passkey requests
+   * Get all currently pending prompts.
+   * @returns Array of pending prompts
    */
   getActivePrompts: () => Promise<ActivePrompt[]>;
 
   /**
-   * Subscribe to changes in the list of conditional passkey requests.
-   * Fires whenever a request is added, updated, or removed.
-   * @param callback Receives the full updated list of requests
+   * Subscribe to changes in the list of prompts.
+   * Fires whenever a prompt is added, updated, or removed.
+   * @param callback Receives the full updated list of prompts
    */
   onActivePromptsChanged: IPCListener<[ActivePrompt[]]>;
 

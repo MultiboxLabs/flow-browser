@@ -10,7 +10,7 @@ function normalizeNewlines(text: string): string {
   return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 }
 
-const MAX_DIALOG_STRING_LENGTH = 100;
+const MAX_DIALOG_STRING_LENGTH = 2000;
 /**
  * Optionally truncates a simple dialog string.
  * Per the HTML spec, no UI should be provided to display the elided portion,
