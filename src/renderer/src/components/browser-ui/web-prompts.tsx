@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { PortalComponent } from "@/components/portal/portal";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useFocusedTabId, useTabs } from "@/components/providers/tabs-provider";
@@ -13,6 +13,9 @@ import { ThemeProvider } from "@/components/main/theme";
 import { useActivePrompts } from "@/components/providers/active-prompts-provider";
 import type { ActivePrompt } from "~/types/prompts";
 import type { TabData } from "~/types/tabs";
+import { useMount } from "react-use";
+
+const supressedKeys = new Set<string>();
 
 interface WebPromptsProps {
   anchorRef: React.RefObject<HTMLDivElement | null>;
@@ -31,12 +34,33 @@ function getOriginFromURL(url: string): string {
   }
 }
 
-function JavaScriptDialogCard({ prompt, tab }: { prompt: ActivePrompt; tab: TabData }) {
+function JavaScriptDialogCard({
+  prompt,
+  tab,
+  setShouldAutofocus
+}: {
+  prompt: ActivePrompt;
+  tab: TabData;
+  setShouldAutofocus: (shouldAutofocus: boolean) => void;
+}) {
   const { type } = prompt;
 
   const cardRef = useRef<HTMLDivElement>(null);
   const selectDefaultOnceRef = useRef(true);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [tabStartingUrl] = useState(() => tab.url);
+
+  const supressionKey = `${prompt.tabId}-${getOriginFromURL(tabStartingUrl)}`;
+  const isSupressed = supressedKeys.has(supressionKey);
+  const [suppressChecked, setSuppressChecked] = useState(() => isSupressed);
+
+  const processSupression = useCallback(() => {
+    if (suppressChecked) {
+      supressedKeys.add(supressionKey);
+    } else {
+      supressedKeys.delete(supressionKey);
+    }
+  }, [supressionKey, suppressChecked]);
 
   const cancel = useCallback(() => {
     switch (type) {
@@ -50,7 +74,8 @@ function JavaScriptDialogCard({ prompt, tab }: { prompt: ActivePrompt; tab: TabD
         flow.prompts.confirmPrompt(prompt.id, undefined);
         break;
     }
-  }, [type, prompt.id]);
+    processSupression();
+  }, [type, prompt.id, processSupression]);
 
   const confirm = useCallback(() => {
     const value = inputRef.current?.value;
@@ -65,7 +90,16 @@ function JavaScriptDialogCard({ prompt, tab }: { prompt: ActivePrompt; tab: TabD
         flow.prompts.confirmPrompt(prompt.id, undefined);
         break;
     }
-  }, [type, prompt.id]);
+    processSupression();
+  }, [type, prompt.id, processSupression]);
+
+  useMount(() => {
+    if (isSupressed) {
+      cancel();
+    } else {
+      setShouldAutofocus(true);
+    }
+  });
 
   useEffect(() => {
     const card = cardRef.current;
@@ -96,7 +130,7 @@ function JavaScriptDialogCard({ prompt, tab }: { prompt: ActivePrompt; tab: TabD
       className={cn("w-full max-w-md select-none gap-5", "border border-white/25", "shadow-2xl shadow-black/40")}
     >
       <CardHeader>
-        <CardTitle>{`${getOriginFromURL(tab.url)} says`}</CardTitle>
+        <CardTitle>{`${getOriginFromURL(tabStartingUrl)} says`}</CardTitle>
       </CardHeader>
       <CardContent>
         <FieldGroup className="gap-5">
@@ -125,10 +159,17 @@ function JavaScriptDialogCard({ prompt, tab }: { prompt: ActivePrompt; tab: TabD
             </Field>
           )}
 
-          <Field orientation="horizontal">
-            <Checkbox id="suppress-dialogs" name="suppress-dialogs" />
-            <FieldLabel htmlFor="suppress-dialogs">Prevent this page from creating additional dialogs</FieldLabel>
-          </Field>
+          {(type === "prompt" || type === "confirm" || type === "alert") && (
+            <Field orientation="horizontal">
+              <Checkbox
+                id="suppress-dialogs"
+                name="suppress-dialogs"
+                defaultChecked={suppressChecked}
+                onCheckedChange={(checked) => (checked === true ? setSuppressChecked(true) : setSuppressChecked(false))}
+              />
+              <FieldLabel htmlFor="suppress-dialogs">Prevent this page from creating additional dialogs</FieldLabel>
+            </Field>
+          )}
         </FieldGroup>
       </CardContent>
       <CardFooter className="justify-end flex-row gap-2">
@@ -158,17 +199,19 @@ const TabWebPrompt = memo(function TabWebPrompt({
   prompt: ActivePrompt;
   tab: TabData;
 }) {
+  // don't autofocus on first render, if dialogs are suppressed we don't want the page to lose focus
+  const [shouldAutofocus, setShouldAutofocus] = useState(false);
   return (
     <PortalComponent
       visible={isVisible}
-      autoFocus
+      autoFocus={shouldAutofocus}
       zIndex={ViewLayer.OVERLAY_UNDER}
       className="fixed"
       style={portalStyle}
     >
       <ThemeProvider>
         <div className={cn("w-full h-full", "bg-black/25 rounded-lg", "flex items-center justify-center")}>
-          <JavaScriptDialogCard prompt={prompt} tab={tab} />
+          <JavaScriptDialogCard prompt={prompt} tab={tab} setShouldAutofocus={setShouldAutofocus} />
         </div>
       </ThemeProvider>
     </PortalComponent>
