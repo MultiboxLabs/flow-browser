@@ -23,6 +23,6 @@ ipcMain.handle("prompts:get-active-prompts", () => {
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-ipcMain.on("prompts:confirm", (_event, promptId: string, result: any) => {
+ipcMain.on("prompts:confirm-prompt", (_event, promptId: string, result: any) => {
   promptCompleted(promptId, result);
 });
