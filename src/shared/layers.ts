@@ -21,10 +21,13 @@ export const ViewLayer = {
   /** Glance mode: the foreground tab, rendered on top of the back tab */
   TAB_FRONT: 20,
 
+  /** Overlay, but would block the content area and should be rendered under overlays. */
+  OVERLAY_UNDER: 30,
+
   /** Portal component windows: floating sidebar, toasts, extension popups.
       These are WebContentsViews that render browser chrome UI on top of
       tab content. */
-  OVERLAY: 30,
+  OVERLAY: 31,
 
   /** Portal popovers: context menus, dropdowns anchored to overlay content.
       Must be above OVERLAY so a popover triggered from a portal renders

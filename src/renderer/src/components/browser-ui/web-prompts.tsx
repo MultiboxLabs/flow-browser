@@ -55,7 +55,13 @@ const TabWebPrompt = memo(function TabWebPrompt({
   portalStyle: React.CSSProperties;
 }) {
   return (
-    <PortalComponent visible={isVisible} autoFocus zIndex={ViewLayer.OVERLAY} className="fixed" style={portalStyle}>
+    <PortalComponent
+      visible={isVisible}
+      autoFocus
+      zIndex={ViewLayer.OVERLAY_UNDER}
+      className="fixed"
+      style={portalStyle}
+    >
       <ThemeProvider>
         <div className={cn("w-full h-full", "bg-black/25 rounded-lg", "flex items-center justify-center")}>
           <JavaScriptDialogCard />
