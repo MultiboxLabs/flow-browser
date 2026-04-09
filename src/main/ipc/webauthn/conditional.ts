@@ -1,5 +1,6 @@
 import { handleGetCredential } from "@/ipc/webauthn";
 import { sendMessageToListeners } from "@/ipc/listeners-manager";
+import { onWebFrameDestroyed } from "@/modules/utils";
 import { ipcMain, shell, type IpcMainEvent } from "electron";
 import type { AssertCredentialErrorCodes, AssertCredentialResult } from "~/types/fido2-types";
 import type { ConditionalPasskeyRequest, ConditionalPasskeyRequestState } from "~/types/passkey";
@@ -148,8 +149,11 @@ ipcMain.on(
   (event, operationId: string, publicKeyRequestOptions: PublicKeyCredentialRequestOptions) => {
     const webContents = event.sender;
 
-    // Cancel when the page navigates away, reloads, or the webContents is destroyed —
-    // the window context is gone and can no longer receive results.
+    // The sender frame already cleaned up, it won't be expecting a result, so early-exit.
+    if (!event.senderFrame) {
+      return;
+    }
+
     const cancelDueToContextLoss = () => {
       const mediation = pendingConditionalMediations.get(operationId);
       if (mediation) {
@@ -157,8 +161,10 @@ ipcMain.on(
         progressConditionalMediation(operationId);
       }
     };
-    webContents.on("did-navigate", cancelDueToContextLoss);
-    webContents.on("destroyed", cancelDueToContextLoss);
+
+    // Cancel whenever the originating frame is considered gone (navigation,
+    // crash, WebContents destruction, or top-level navigation wiping child frames).
+    const cancelSubscription = onWebFrameDestroyed(webContents, event.senderFrame, cancelDueToContextLoss);
 
     const tabId = tabsController.getTabByWebContents(webContents)?.id ?? null;
 
@@ -169,10 +175,7 @@ ipcMain.on(
       selectedPasskey: null,
       result: null,
       state: "starting",
-      cleanup: () => {
-        webContents.off("did-navigate", cancelDueToContextLoss);
-        webContents.off("destroyed", cancelDueToContextLoss);
-      }
+      cleanup: cancelSubscription
     });
     progressConditionalMediation(operationId);
   }

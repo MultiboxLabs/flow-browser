@@ -129,3 +129,94 @@ export function hex_is_light(color: string) {
   const brightness = (c_r * 299 + c_g * 587 + c_b * 114) / 1000;
   return brightness > 155;
 }
+
+/**
+ * Registers a one-shot callback that fires when a specific `WebFrameMain`
+ * is considered "destroyed" — meaning it has navigated away, its renderer
+ * process has crashed, the owning `WebContents` was destroyed, or (for child
+ * frames) a top-level navigation silently removed it.
+ *
+ * The callback and all internal listeners are automatically cleaned up after
+ * the first trigger so they never fire more than once.
+ *
+ * @param webContents - The `WebContents` that owns the frame. Used to attach
+ *   the lifecycle event listeners.
+ * @param webFrame - The specific frame to watch. Identified by its
+ *   `processId` / `routingId` pair so the reference remains stable even if
+ *   the frame object becomes stale.
+ * @param callback - Invoked exactly once when the frame is considered
+ *   destroyed.
+ * @returns A cleanup function that cancels the subscription without invoking
+ *   the callback. Call this if you no longer need the notification.
+ */
+export function onWebFrameDestroyed(
+  webContents: Electron.WebContents,
+  webFrame: Electron.WebFrameMain,
+  callback: () => void
+): () => void {
+  // Capture the specific frame's unique identifiers and hierarchy status
+  const { processId, routingId } = webFrame;
+  let isActive = true;
+
+  // 1. Define cleanup first to avoid the Temporal Dead Zone
+  const cleanup = () => {
+    isActive = false;
+
+    // Only attempt to remove listeners if the WebContents still exists
+    if (!webContents.isDestroyed()) {
+      webContents.off("did-frame-navigate", onFrameNavigate);
+      webContents.off("destroyed", onDestroyed);
+      webContents.off("render-process-gone", onProcessGone);
+      webContents.off("did-navigate", onTopLevelNavigate);
+    }
+  };
+
+  // 2. The wrapper ensures the callback and cleanup only run once
+  const triggerCallback = () => {
+    if (!isActive) return;
+    cleanup(); // Safe now, cleanup is already initialized
+    callback();
+  };
+
+  // --- Listeners ---
+
+  // Trigger if this exact frame navigates away or reloads
+  const onFrameNavigate = (
+    _event: Electron.Event,
+    _url: string,
+    _httpResponseCode: number,
+    _httpStatusText: string,
+    _isMain: boolean,
+    frameProcessId: number,
+    frameRoutingId: number
+  ) => {
+    if (frameProcessId === processId && frameRoutingId === routingId) {
+      triggerCallback();
+    }
+  };
+
+  // Trigger if the whole tab/window is closed
+  const onDestroyed = () => triggerCallback();
+
+  // Trigger if the renderer process crashes
+  const onProcessGone = () => triggerCallback();
+
+  // Trigger if a top-level navigation silently wipes out child frames
+  const onTopLevelNavigate = () => triggerCallback();
+
+  // --- Initialization ---
+
+  // Failsafe: If the WebContents is already dead, fire immediately
+  if (webContents.isDestroyed()) {
+    callback(); // No listeners were attached, so just fire the callback
+    return () => {}; // Return a safe no-op cancel function
+  }
+
+  // Attach listeners using .on() consistently for clearer teardown logic
+  webContents.on("did-frame-navigate", onFrameNavigate);
+  webContents.on("destroyed", onDestroyed);
+  webContents.on("render-process-gone", onProcessGone);
+  webContents.on("did-navigate", onTopLevelNavigate);
+
+  return cleanup;
+}
