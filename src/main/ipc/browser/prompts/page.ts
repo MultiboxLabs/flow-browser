@@ -21,7 +21,7 @@ async function processPromptRequest<ResultType>(
   const tabId = tabsController.getTabByWebContents(webContents)?.id ?? null;
   if (!tabId || !webFrame) {
     // not a tab, return null
-    event.returnValue = null;
+    event.returnValue = failedValue;
     return false;
   }
 

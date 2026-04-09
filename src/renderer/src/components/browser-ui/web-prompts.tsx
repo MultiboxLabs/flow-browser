@@ -245,7 +245,7 @@ export function WebPrompts({ anchorRef }: WebPromptsProps) {
 
         return (
           <TabWebPrompt
-            key={tabId}
+            key={prompt.id}
             isVisible={tabId === focusedTabId}
             portalStyle={portalStyle}
             prompt={prompt}

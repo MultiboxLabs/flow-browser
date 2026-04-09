@@ -13,8 +13,8 @@ export function activePromptsChanged() {
   if (activePromptsChangedImmediate) return;
 
   activePromptsChangedImmediate = setImmediate(() => {
-    sendMessageToListeners("prompts:on-active-prompts-changed", getActivePromptsForRenderer());
     cleanupActivePromptsImmediate();
+    sendMessageToListeners("prompts:on-active-prompts-changed", getActivePromptsForRenderer());
   });
 }
 
