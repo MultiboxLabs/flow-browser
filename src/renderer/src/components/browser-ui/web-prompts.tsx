@@ -36,9 +36,11 @@ function JavaScriptDialogCard() {
       <CardFooter className="justify-end flex-row gap-2">
         <Button variant="outline" className="flex-1">
           Cancel
+          <span className="text-xs text-muted-foreground">Esc</span>
         </Button>
         <Button variant="default" className="flex-1">
           OK
+          <span className="text-xs text-muted">↵</span>
         </Button>
       </CardFooter>
     </Card>
