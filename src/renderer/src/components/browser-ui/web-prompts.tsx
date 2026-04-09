@@ -1,4 +1,4 @@
-import { memo, useRef } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import { PortalComponent } from "@/components/portal/portal";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useFocusedTabId, useTabs } from "@/components/providers/tabs-provider";
@@ -34,9 +34,67 @@ function getOriginFromURL(url: string): string {
 function JavaScriptDialogCard({ prompt, tab }: { prompt: ActivePrompt; tab: TabData }) {
   const { type } = prompt;
 
+  const cardRef = useRef<HTMLDivElement>(null);
   const selectDefaultOnceRef = useRef(true);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const cancel = useCallback(() => {
+    switch (type) {
+      case "prompt":
+        flow.prompts.confirmPrompt(prompt.id, null);
+        break;
+      case "confirm":
+        flow.prompts.confirmPrompt(prompt.id, false);
+        break;
+      case "alert":
+        flow.prompts.confirmPrompt(prompt.id, undefined);
+        break;
+    }
+  }, [prompt.id]);
+
+  const confirm = useCallback(() => {
+    const value = inputRef.current?.value;
+    switch (type) {
+      case "prompt":
+        flow.prompts.confirmPrompt(prompt.id, value);
+        break;
+      case "confirm":
+        flow.prompts.confirmPrompt(prompt.id, true);
+        break;
+      case "alert":
+        flow.prompts.confirmPrompt(prompt.id, undefined);
+        break;
+    }
+  }, [prompt.id]);
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const document = card.ownerDocument;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+
+      if (e.key === "Escape") {
+        cancel();
+      }
+      if (e.key === "Enter") {
+        confirm();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [confirm, cancel]);
+
   return (
-    <Card className={cn("w-full max-w-md select-none gap-5", "border border-white/25", "shadow-2xl shadow-black/40")}>
+    <Card
+      ref={cardRef}
+      className={cn("w-full max-w-md select-none gap-5", "border border-white/25", "shadow-2xl shadow-black/40")}
+    >
       <CardHeader>
         <CardTitle>{`${getOriginFromURL(tab.url)} says`}</CardTitle>
       </CardHeader>
@@ -44,12 +102,19 @@ function JavaScriptDialogCard({ prompt, tab }: { prompt: ActivePrompt; tab: TabD
         <FieldGroup className="gap-5">
           {(type === "prompt" || prompt.message.trim()) && (
             <Field>
-              <FieldLabel htmlFor="prompt">{prompt.message.trim()}</FieldLabel>
+              {prompt.message.trim() && (
+                <div className="overflow-y-auto max-h-[30vh] custom-scrollbar">
+                  <FieldLabel htmlFor="prompt" className="whitespace-pre-line wrap-break-word min-w-0">
+                    {prompt.message.trim()}
+                  </FieldLabel>
+                </div>
+              )}
               {type === "prompt" && (
                 <Input
                   id="prompt"
                   autoFocus
                   defaultValue={prompt.defaultValue}
+                  ref={inputRef}
                   onFocus={(e) => {
                     if (!selectDefaultOnceRef.current) return;
                     selectDefaultOnceRef.current = false;
@@ -68,12 +133,12 @@ function JavaScriptDialogCard({ prompt, tab }: { prompt: ActivePrompt; tab: TabD
       </CardContent>
       <CardFooter className="justify-end flex-row gap-2">
         {(type === "prompt" || type === "confirm") && (
-          <Button variant="outline" className="flex-1">
+          <Button variant="outline" className="flex-1" onClick={cancel}>
             Cancel
             <span className="text-xs text-muted-foreground">Esc</span>
           </Button>
         )}
-        <Button variant="default" className="flex-1">
+        <Button variant="default" className="flex-1" onClick={confirm}>
           OK
           <span className="text-xs text-muted">↵</span>
         </Button>
