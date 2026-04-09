@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { IPCListener } from "~/flow/types";
 import { ActivePrompt } from "~/types/prompts";
 
@@ -14,4 +16,11 @@ export interface FlowPromptsAPI {
    * @param callback Receives the full updated list of requests
    */
   onActivePromptsChanged: IPCListener<[ActivePrompt[]]>;
+
+  /**
+   * Confirm a prompt.
+   * @param promptId The ID of the prompt to confirm
+   * @param result The result of the prompt
+   */
+  confirmPrompt: (promptId: string, result: any) => void;
 }

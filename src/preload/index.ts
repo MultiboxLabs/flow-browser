@@ -656,6 +656,10 @@ const promptsAPI: FlowPromptsAPI = {
   },
   onActivePromptsChanged: (callback: (prompts: ActivePrompt[]) => void) => {
     return listenOnIPCChannel("prompts:on-active-prompts-changed", callback);
+  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  confirmPrompt: (promptId: string, result: any) => {
+    return ipcRenderer.send("prompts:confirm", promptId, result);
   }
 };
 
