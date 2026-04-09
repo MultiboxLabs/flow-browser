@@ -1,10 +1,20 @@
 import { tabsController } from "@/controllers/tabs-controller";
 import { queuePrompt } from "@/modules/prompts";
 import { ipcMain } from "electron";
-import { PromptResult } from "~/types/prompts";
+import type { PromptResult, PromptState } from "~/types/prompts";
 
-ipcMain.on("prompts:prompt", async (event, message: string, defaultValue: string) => {
-  const { promise, resolve } = Promise.withResolvers<PromptResult<string | null>>();
+type GeneratePromptState<ResultType> = (
+  promise: Promise<PromptResult<ResultType>>,
+  resolve: (value: PromptResult<ResultType>) => void,
+  tabId: number
+) => PromptState;
+
+async function processPromptRequest<ResultType>(
+  event: Electron.IpcMainEvent,
+  generatePromptState: GeneratePromptState<ResultType>,
+  failedValue: ResultType
+) {
+  const { promise, resolve } = Promise.withResolvers<PromptResult<ResultType>>();
 
   const webContents = event.sender;
   const webFrame = event.senderFrame;
@@ -12,12 +22,26 @@ ipcMain.on("prompts:prompt", async (event, message: string, defaultValue: string
   if (!tabId || !webFrame) {
     // not a tab, return null
     event.returnValue = null;
-    return;
+    return false;
   }
 
-  queuePrompt(
-    {
-      // Will be overridden by the queuePrompt function
+  queuePrompt(generatePromptState(promise, resolve, tabId), {
+    cancelOnWebFrameDetach: { webContents, webFrame }
+  });
+
+  const result = await promise;
+  if (result.success) {
+    event.returnValue = result.result;
+  } else {
+    event.returnValue = failedValue;
+  }
+  return true;
+}
+
+ipcMain.on("prompts:prompt", async (event, message: string, defaultValue: string) => {
+  const generatePromptState: GeneratePromptState<string | null> = (promise, resolve, tabId) => {
+    return {
+      // id will be overridden by the queuePrompt function
       id: "",
       type: "prompt",
       message,
@@ -25,26 +49,37 @@ ipcMain.on("prompts:prompt", async (event, message: string, defaultValue: string
       promise,
       resolver: resolve,
       tabId
-    },
-    {
-      cancelOnWebFrameDetach: { webContents, webFrame }
-    }
-  );
-
-  const result = await promise;
-  if (result.success) {
-    event.returnValue = result.result;
-  } else {
-    event.returnValue = null;
-  }
+    };
+  };
+  return processPromptRequest(event, generatePromptState, null);
 });
 
-/**
 ipcMain.on("prompts:confirm", async (event, message: string) => {
-  // TODO: Implement confirm prompt
+  const generatePromptState: GeneratePromptState<boolean> = (promise, resolve, tabId) => {
+    return {
+      // id will be overridden by the queuePrompt function
+      id: "",
+      type: "confirm",
+      message,
+      promise,
+      resolver: resolve,
+      tabId
+    };
+  };
+  return processPromptRequest(event, generatePromptState, false);
 });
 
 ipcMain.on("prompts:alert", async (event, message: string) => {
-  // TODO: Implement alert prompt
+  const generatePromptState: GeneratePromptState<void> = (promise, resolve, tabId) => {
+    return {
+      // id will be overridden by the queuePrompt function
+      id: "",
+      type: "alert",
+      message,
+      promise,
+      resolver: resolve,
+      tabId
+    };
+  };
+  return processPromptRequest(event, generatePromptState, undefined);
 });
-**/

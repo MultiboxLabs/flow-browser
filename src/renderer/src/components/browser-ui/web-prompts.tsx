@@ -42,21 +42,23 @@ function JavaScriptDialogCard({ prompt, tab }: { prompt: ActivePrompt; tab: TabD
       </CardHeader>
       <CardContent>
         <FieldGroup className="gap-5">
-          <Field>
-            <FieldLabel htmlFor="prompt">{prompt.message}</FieldLabel>
-            {type === "prompt" && (
-              <Input
-                id="prompt"
-                autoFocus
-                defaultValue={prompt.defaultValue}
-                onFocus={(e) => {
-                  if (!selectDefaultOnceRef.current) return;
-                  selectDefaultOnceRef.current = false;
-                  e.currentTarget.select();
-                }}
-              />
-            )}
-          </Field>
+          {(type === "prompt" || prompt.message.trim()) && (
+            <Field>
+              <FieldLabel htmlFor="prompt">{prompt.message.trim()}</FieldLabel>
+              {type === "prompt" && (
+                <Input
+                  id="prompt"
+                  autoFocus
+                  defaultValue={prompt.defaultValue}
+                  onFocus={(e) => {
+                    if (!selectDefaultOnceRef.current) return;
+                    selectDefaultOnceRef.current = false;
+                    e.currentTarget.select();
+                  }}
+                />
+              )}
+            </Field>
+          )}
 
           <Field orientation="horizontal">
             <Checkbox id="suppress-dialogs" name="suppress-dialogs" />
