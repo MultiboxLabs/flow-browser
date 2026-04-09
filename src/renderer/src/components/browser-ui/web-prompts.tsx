@@ -179,10 +179,10 @@ export function WebPrompts({ anchorRef }: WebPromptsProps) {
   const focusedTabId = useFocusedTabId();
   const { tabsData } = useTabs();
   const anchorRect = useBoundingRect(anchorRef);
+  const { activePrompts: allActivePrompts } = useActivePrompts();
 
   if (!tabsData || !anchorRect) return null;
 
-  const { activePrompts: allActivePrompts } = useActivePrompts();
   const activePrompts = allActivePrompts.filter((prompt) => tabsData.tabs.some((tab) => tab.id === prompt.tabId));
 
   const portalStyle: React.CSSProperties = {
