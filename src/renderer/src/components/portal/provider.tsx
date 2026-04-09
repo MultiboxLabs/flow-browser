@@ -160,6 +160,10 @@ function usePortal() {
     let portal = takeAvailablePortal();
     if (!portal) {
       portal = createPortal();
+      if (portal) {
+        window.portals.available.delete(portal.id);
+        window.portals.used.set(portal.id, portal);
+      }
     }
     return portal;
   }, []);
