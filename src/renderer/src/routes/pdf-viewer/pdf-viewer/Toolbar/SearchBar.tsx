@@ -50,6 +50,7 @@ const SearchBar = ({ usePDFSlickStore }: SearchBarProps) => {
         pdfSlick.eventBus.dispatch("findbarclose", {});
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   return (

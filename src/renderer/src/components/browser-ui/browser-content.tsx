@@ -1,4 +1,4 @@
-import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PageLayoutParams } from "~/flow/types";
 import { cn } from "@/lib/utils";
 import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
@@ -97,24 +97,36 @@ function BrowserContent() {
   const sidebarSide = attachedDirection;
 
   // Helper: build and send layout params to the main process.
-  const sendLayoutParams = (sidebarWidth: number) => {
-    const params: PageLayoutParams = {
-      topbarHeight,
-      topbarVisible,
-      sidebarWidth,
-      sidebarSide,
-      sidebarVisible,
-      sidebarAnimating: isAnimating,
-      contentTopOffset
-    };
-    flow.page.setLayoutParams(params);
-  };
+  const sendLayoutParams = useCallback(
+    (sidebarWidth: number) => {
+      const params: PageLayoutParams = {
+        topbarHeight,
+        topbarVisible,
+        sidebarWidth,
+        sidebarSide,
+        sidebarVisible,
+        sidebarAnimating: isAnimating,
+        contentTopOffset
+      };
+      flow.page.setLayoutParams(params);
+    },
+    [contentTopOffset, isAnimating, sidebarSide, sidebarVisible, topbarHeight, topbarVisible]
+  );
 
   // Send layout params whenever reactive state changes (visibility, animation,
   // topbar, direction). Uses the ref for sidebarWidth since it's always current.
   useLayoutEffect(() => {
     sendLayoutParams(recordedSidebarSizeRef.current);
-  }, [topbarHeight, topbarVisible, sidebarVisible, sidebarSide, isAnimating, contentTopOffset]);
+  }, [
+    topbarHeight,
+    topbarVisible,
+    sidebarVisible,
+    sidebarSide,
+    isAnimating,
+    contentTopOffset,
+    sendLayoutParams,
+    recordedSidebarSizeRef
+  ]);
 
   // Subscribe to sidebar resize (drag) events. The callback fires outside
   // the React render cycle, so it doesn't cause re-renders of any consumer.

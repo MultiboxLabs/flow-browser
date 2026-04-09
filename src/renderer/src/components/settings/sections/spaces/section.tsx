@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, GripVertical } from "lucide-react";
@@ -38,7 +38,7 @@ export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }:
   }, [initialSelectedProfile]);
 
   // Fetch spaces and profiles from the API
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [fetchedProfiles, fetchedSpaces] = await Promise.all([
@@ -63,12 +63,12 @@ export function SpacesSettings({ initialSelectedProfile, initialSelectedSpace }:
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [initialSelectedSpace]);
 
   // Load data on component mount
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   // Set active space when initialSelectedSpace changes
   useEffect(() => {

@@ -1,9 +1,9 @@
 import { FrownIcon, RefreshCwIcon, ArrowLeftIcon, Gamepad2Icon } from "lucide-react";
 import { motion } from "motion/react";
-import { useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 function Page() {
-  const params = new URLSearchParams(window.location.search);
+  const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const errorCode = params.get("errorCode") || "-105";
   const url = params.get("url");
 
@@ -52,10 +52,10 @@ function Page() {
 
   const errorInfo = info[errorCode as keyof typeof info] || info["-105"];
 
-  const handleReload = () => {
+  const handleReload = useCallback(() => {
     if (!url) return;
     window.location.replace(url);
-  };
+  }, [url]);
 
   const canGoBack = window.history.length > 1;
 
@@ -73,7 +73,7 @@ function Page() {
     } else {
       handleReload();
     }
-  }, []);
+  }, [handleReload, params]);
 
   if (!url) {
     return null;

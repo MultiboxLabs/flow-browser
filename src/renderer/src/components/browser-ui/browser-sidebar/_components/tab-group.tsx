@@ -361,7 +361,16 @@ export const TabGroup = memo(
         draggableCleanup();
         cleanupDropTarget();
       };
-    }, [moveTab, unpinToTabList, tabGroup.id, position, primaryTabId, tabGroup.spaceId, tabGroup.profileId]);
+    }, [
+      moveTab,
+      unpinToTabList,
+      tabGroup.id,
+      position,
+      primaryTabId,
+      tabGroup.spaceId,
+      tabGroup.profileId,
+      isSpaceLight
+    ]);
 
     return (
       <motion.div
