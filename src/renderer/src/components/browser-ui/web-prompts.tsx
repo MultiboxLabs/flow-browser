@@ -50,7 +50,7 @@ function JavaScriptDialogCard({ prompt, tab }: { prompt: ActivePrompt; tab: TabD
         flow.prompts.confirmPrompt(prompt.id, undefined);
         break;
     }
-  }, [prompt.id]);
+  }, [type, prompt.id]);
 
   const confirm = useCallback(() => {
     const value = inputRef.current?.value;
@@ -65,7 +65,7 @@ function JavaScriptDialogCard({ prompt, tab }: { prompt: ActivePrompt; tab: TabD
         flow.prompts.confirmPrompt(prompt.id, undefined);
         break;
     }
-  }, [prompt.id]);
+  }, [type, prompt.id]);
 
   useEffect(() => {
     const card = cardRef.current;
