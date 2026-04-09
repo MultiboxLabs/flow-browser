@@ -17,6 +17,8 @@ ipcMain.on("prompts:prompt", async (event, message: string, defaultValue: string
 
   queuePrompt(
     {
+      // Will be overridden by the queuePrompt function
+      id: "",
       type: "prompt",
       message,
       defaultValue,
@@ -37,6 +39,7 @@ ipcMain.on("prompts:prompt", async (event, message: string, defaultValue: string
   }
 });
 
+/**
 ipcMain.on("prompts:confirm", async (event, message: string) => {
   // TODO: Implement confirm prompt
 });
@@ -44,3 +47,4 @@ ipcMain.on("prompts:confirm", async (event, message: string) => {
 ipcMain.on("prompts:alert", async (event, message: string) => {
   // TODO: Implement alert prompt
 });
+**/

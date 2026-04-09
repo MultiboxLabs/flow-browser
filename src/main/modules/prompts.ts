@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { activePromptsChanged } from "@/ipc/browser/prompts/browser";
 import { generateID, onWebFrameDestroyed } from "@/modules/utils";
-import type { PromptState } from "~/types/prompts";
+import type { ActivePrompt, PromptState } from "~/types/prompts";
 
 // Prompt Queue Logic //
 const promptQueue: PromptState[] = [];
@@ -27,18 +28,16 @@ function processPromptQueue() {
 
     activePrompts.push(queuedPrompt);
     promptQueue.splice(i, 1);
+    activePromptsChanged();
   }
 }
 
 interface QueuePromptOptions {
   cancelOnWebFrameDetach?: { webContents: Electron.WebContents; webFrame: Electron.WebFrameMain };
 }
-export function queuePrompt(prompt: Omit<PromptState, "id">, options: QueuePromptOptions = {}) {
+export function queuePrompt(prompt: PromptState, options: QueuePromptOptions = {}) {
   const id = generateID();
-  promptQueue.push({
-    id,
-    ...prompt
-  });
+  promptQueue.push({ ...prompt, id });
 
   if (options.cancelOnWebFrameDetach) {
     const { webContents, webFrame } = options.cancelOnWebFrameDetach;
@@ -62,6 +61,7 @@ export function cancelPrompt(id: string) {
 
   const activePrompt = removePromptById(activePrompts, id);
   if (!activePrompt) return;
+  activePromptsChanged();
 
   activePrompt.resolver({ success: false });
   processPromptQueue();
@@ -70,12 +70,41 @@ export function cancelPrompt(id: string) {
 export function promptCompleted(promptId: string, result: any) {
   const activePrompt = removePromptById(activePrompts, promptId);
   if (!activePrompt) return false;
+  activePromptsChanged();
 
-  activePrompt.resolver({
-    success: true,
-    result
-  });
+  switch (activePrompt.type) {
+    case "prompt":
+      activePrompt.resolver({
+        success: true,
+        result
+      });
+      break;
+    case "confirm":
+      activePrompt.resolver({
+        success: true,
+        result
+      });
+      break;
+    case "alert":
+      activePrompt.resolver({
+        success: true,
+        result
+      });
+      break;
+  }
 
   processPromptQueue();
   return true;
+}
+
+// Flow UI Communication //
+export function getActivePromptsForRenderer(): ActivePrompt[] {
+  const activePromptsForRenderer = activePrompts.map((prompt) => {
+    const { promise, resolver, ...rest } = prompt;
+    void promise;
+    void resolver;
+    return rest;
+  });
+  console.log("activePromptsForRenderer", activePromptsForRenderer);
+  return activePromptsForRenderer;
 }

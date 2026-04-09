@@ -43,6 +43,8 @@ import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/f
 import { FlowHistoryAPI } from "~/flow/interfaces/browser/history";
 import { FlowPasskeyAPI } from "~/flow/interfaces/browser/passkey";
 import type { ConditionalPasskeyRequest, PasskeyCredential } from "~/types/passkey";
+import { FlowPromptsAPI } from "~/flow/interfaces/browser/prompts";
+import type { ActivePrompt } from "~/types/prompts";
 
 // const isIFrame = !process.isMainFrame;
 
@@ -647,6 +649,16 @@ const findInPageAPI: FlowFindInPageAPI = {
   }
 };
 
+// PROMPTS API //
+const promptsAPI: FlowPromptsAPI = {
+  getActivePrompts: async () => {
+    return ipcRenderer.invoke("prompts:get-active-prompts");
+  },
+  onActivePromptsChanged: (callback: (prompts: ActivePrompt[]) => void) => {
+    return listenOnIPCChannel("prompts:on-active-prompts-changed", callback);
+  }
+};
+
 // SETTINGS API //
 const settingsAPI: FlowSettingsAPI = {
   getSetting: async (settingId: string) => {
@@ -790,6 +802,7 @@ const flowAPI: typeof flow = {
   omnibox: wrapAPI(omniboxAPI, "browser"),
   newTab: wrapAPI(newTabAPI, "browser"),
   findInPage: wrapAPI(findInPageAPI, "browser"),
+  prompts: wrapAPI(promptsAPI, "browser"),
 
   // Session APIs
   profiles: wrapAPI(profilesAPI, "session", {
