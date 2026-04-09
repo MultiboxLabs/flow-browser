@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { ViewLayer } from "~/layers";
 import { usePasskeyRequests } from "@/components/providers/passkeys-request-provider";
 import type { ConditionalPasskeyRequest, PasskeyCredential } from "~/types/passkey";
-import "@/css/conditional-passkey.css";
 
 const PASSKEY_PANEL_WIDTH = 320;
 const PASSKEY_PANEL_PADDING = 8;
@@ -166,7 +165,7 @@ function PasskeyListContent({
         Choose a passkey for <span className="text-white/70">{relyingPartyLabel}</span>
       </p>
       {/* (48+4) * 4 = 208px */}
-      <div className="flex flex-col gap-1 max-h-[208px] overflow-y-auto passkey-scrollbar">
+      <div className="flex flex-col gap-1 max-h-[208px] overflow-y-auto custom-scrollbar">
         {passkeys.map((passkey) => (
           <button
             key={passkey.id}
