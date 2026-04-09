@@ -105,6 +105,5 @@ export function getActivePromptsForRenderer(): ActivePrompt[] {
     void resolver;
     return rest;
   });
-  console.log("activePromptsForRenderer", activePromptsForRenderer);
   return activePromptsForRenderer;
 }

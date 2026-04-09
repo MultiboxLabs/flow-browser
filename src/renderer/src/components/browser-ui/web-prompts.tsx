@@ -37,11 +37,11 @@ function getOriginFromURL(url: string): string {
 function JavaScriptDialogCard({
   prompt,
   tab,
-  setShouldAutofocus
+  setIsReady
 }: {
   prompt: ActivePrompt;
   tab: TabData;
-  setShouldAutofocus: (shouldAutofocus: boolean) => void;
+  setIsReady: (isReady: boolean) => void;
 }) {
   const { type } = prompt;
 
@@ -97,7 +97,7 @@ function JavaScriptDialogCard({
     if (isSupressed) {
       cancel();
     } else {
-      setShouldAutofocus(true);
+      setIsReady(true);
     }
   });
 
@@ -199,19 +199,20 @@ const TabWebPrompt = memo(function TabWebPrompt({
   prompt: ActivePrompt;
   tab: TabData;
 }) {
-  // don't autofocus on first render, if dialogs are suppressed we don't want the page to lose focus
-  const [shouldAutofocus, setShouldAutofocus] = useState(false);
+  // don't show the dialog on first render, if dialogs are suppressed we don't want the page to lose focus
+  const [isReady, setIsReady] = useState(false);
+
   return (
     <PortalComponent
-      visible={isVisible}
-      autoFocus={shouldAutofocus}
+      visible={isVisible && isReady}
+      autoFocus={isReady}
       zIndex={ViewLayer.OVERLAY_UNDER}
       className="fixed"
       style={portalStyle}
     >
       <ThemeProvider>
         <div className={cn("w-full h-full", "bg-black/25 rounded-lg", "flex items-center justify-center")}>
-          <JavaScriptDialogCard prompt={prompt} tab={tab} setShouldAutofocus={setShouldAutofocus} />
+          <JavaScriptDialogCard prompt={prompt} tab={tab} setIsReady={setIsReady} />
         </div>
       </ThemeProvider>
     </PortalComponent>
