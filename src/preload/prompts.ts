@@ -32,6 +32,16 @@ export function tryPatchPrompts() {
       const message = optionallyTruncate(normalizeNewlines(String(sourceMessage)));
       const defaultValue = optionallyTruncate(String(sourceDefaultValue));
       return ipcRenderer.sendSync("prompts:prompt", message, defaultValue) as string | null;
+    },
+
+    confirm: (sourceMessage: string) => {
+      const message = optionallyTruncate(normalizeNewlines(String(sourceMessage)));
+      return ipcRenderer.sendSync("prompts:confirm", message) as boolean;
+    },
+
+    alert: (sourceMessage: string) => {
+      const message = optionallyTruncate(normalizeNewlines(String(sourceMessage)));
+      return ipcRenderer.sendSync("prompts:alert", message) as void;
     }
   };
   contextBridge.exposeInMainWorld("electronPrompts", electronPromptsContainer);
@@ -41,19 +51,22 @@ export function tryPatchPrompts() {
     const electronPrompts: typeof electronPromptsContainer = globalThis.electronPrompts;
 
     const prompt: typeof window.prompt = (rawMessage, rawDefaultValue) => {
-      const message = String(rawMessage);
+      const message = rawMessage === undefined ? "" : String(rawMessage);
       const defaultValue = rawDefaultValue === undefined ? "" : String(rawDefaultValue);
 
       const result = electronPrompts.prompt(message, defaultValue);
       return result;
     };
-    const confirm: typeof window.confirm = (message) => {
-      void message;
-      return true;
+    const confirm: typeof window.confirm = (rawMessage) => {
+      const message = rawMessage === undefined ? "" : String(rawMessage);
+
+      const result = electronPrompts.confirm(message);
+      return result;
     };
-    const alert: typeof window.alert = (message) => {
-      void message;
-      return undefined;
+    const alert: typeof window.alert = (rawMessage) => {
+      const message = rawMessage === undefined ? "" : String(rawMessage);
+      const result = electronPrompts.alert(message);
+      return result;
     };
     window.prompt = prompt;
     window.confirm = confirm;

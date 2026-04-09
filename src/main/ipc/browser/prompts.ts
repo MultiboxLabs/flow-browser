@@ -36,3 +36,11 @@ ipcMain.on("prompts:prompt", async (event, message: string, defaultValue: string
     event.returnValue = null;
   }
 });
+
+ipcMain.on("prompts:confirm", async (event, message: string) => {
+  // TODO: Implement confirm prompt
+});
+
+ipcMain.on("prompts:alert", async (event, message: string) => {
+  // TODO: Implement alert prompt
+});
