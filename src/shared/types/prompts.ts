@@ -15,6 +15,7 @@ type NormalOrPromise<T> = T | PromiseLike<T>;
 interface BasePromptState<Result> {
   id: string;
   tabId: number;
+  promise: Promise<PromptResult<Result>>;
   resolver: (value: NormalOrPromise<PromptResult<Result>>) => void;
 }
 

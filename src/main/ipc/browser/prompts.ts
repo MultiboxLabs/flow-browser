@@ -7,20 +7,27 @@ ipcMain.on("prompts:prompt", async (event, message: string, defaultValue: string
   const { promise, resolve } = Promise.withResolvers<PromptResult<string | null>>();
 
   const webContents = event.sender;
+  const webFrame = event.senderFrame;
   const tabId = tabsController.getTabByWebContents(webContents)?.id ?? null;
-  if (!tabId) {
+  if (!tabId || !webFrame) {
     // not a tab, return null
     event.returnValue = null;
     return;
   }
 
-  queuePrompt({
-    type: "prompt",
-    message,
-    defaultValue,
-    resolver: resolve,
-    tabId
-  });
+  queuePrompt(
+    {
+      type: "prompt",
+      message,
+      defaultValue,
+      promise,
+      resolver: resolve,
+      tabId
+    },
+    {
+      cancelOnWebFrameDetach: { webContents, webFrame }
+    }
+  );
 
   const result = await promise;
   if (result.success) {

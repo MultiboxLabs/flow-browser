@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { generateID } from "@/modules/utils";
+import { generateID, onWebFrameDestroyed } from "@/modules/utils";
 import type { PromptState } from "~/types/prompts";
 
 // Prompt Queue Logic //
@@ -30,12 +30,23 @@ function processPromptQueue() {
   }
 }
 
-export function queuePrompt(prompt: Omit<PromptState, "id">) {
+interface QueuePromptOptions {
+  cancelOnWebFrameDetach?: { webContents: Electron.WebContents; webFrame: Electron.WebFrameMain };
+}
+export function queuePrompt(prompt: Omit<PromptState, "id">, options: QueuePromptOptions = {}) {
   const id = generateID();
   promptQueue.push({
     id,
     ...prompt
   });
+
+  if (options.cancelOnWebFrameDetach) {
+    const { webContents, webFrame } = options.cancelOnWebFrameDetach;
+    const cleanup = onWebFrameDestroyed(webContents, webFrame, () => {
+      cancelPrompt(id);
+    });
+    prompt.promise.finally(cleanup);
+  }
 
   processPromptQueue();
 
