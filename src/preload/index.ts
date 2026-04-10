@@ -5,6 +5,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { injectBrowserAction } from "electron-chrome-extensions/browser-action";
 import { tryPatchPasskeys } from "./webauthn";
+import { tryPatchPrompts } from "./prompts";
 
 // TYPE IMPORTS //
 import type { ProfileData } from "@/controllers/profiles-controller";
@@ -42,6 +43,8 @@ import { FlowFindInPageAPI, FindInPageResult } from "~/flow/interfaces/browser/f
 import { FlowHistoryAPI } from "~/flow/interfaces/browser/history";
 import { FlowPasskeyAPI } from "~/flow/interfaces/browser/passkey";
 import type { ConditionalPasskeyRequest, PasskeyCredential } from "~/types/passkey";
+import { FlowPromptsAPI } from "~/flow/interfaces/browser/prompts";
+import type { ActivePrompt } from "~/types/prompts";
 
 // const isIFrame = !process.isMainFrame;
 
@@ -99,8 +102,9 @@ if (hasPermission("browser")) {
   injectBrowserAction();
 }
 
-// PASSKEYS PATCH //
+// API PATCHES //
 tryPatchPasskeys();
+tryPatchPrompts();
 
 // INTERNAL FUNCTIONS //
 function getOSFromPlatform(platform: NodeJS.Platform) {
@@ -645,6 +649,20 @@ const findInPageAPI: FlowFindInPageAPI = {
   }
 };
 
+// PROMPTS API //
+const promptsAPI: FlowPromptsAPI = {
+  getActivePrompts: async () => {
+    return ipcRenderer.invoke("prompts:get-active-prompts");
+  },
+  onActivePromptsChanged: (callback: (prompts: ActivePrompt[]) => void) => {
+    return listenOnIPCChannel("prompts:on-active-prompts-changed", callback);
+  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  confirmPrompt: (promptId: string, result: any, suppress: boolean) => {
+    return ipcRenderer.send("prompts:confirm-prompt", promptId, result, suppress);
+  }
+};
+
 // SETTINGS API //
 const settingsAPI: FlowSettingsAPI = {
   getSetting: async (settingId: string) => {
@@ -788,6 +806,7 @@ const flowAPI: typeof flow = {
   omnibox: wrapAPI(omniboxAPI, "browser"),
   newTab: wrapAPI(newTabAPI, "browser"),
   findInPage: wrapAPI(findInPageAPI, "browser"),
+  prompts: wrapAPI(promptsAPI, "browser"),
 
   // Session APIs
   profiles: wrapAPI(profilesAPI, "session", {

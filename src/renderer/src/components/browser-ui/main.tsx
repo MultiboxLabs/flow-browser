@@ -31,7 +31,9 @@ import { PinnedTabsProvider } from "@/components/providers/pinned-tabs-provider"
 import BrowserContent from "@/components/browser-ui/browser-content";
 import { FindInPage } from "@/components/browser-ui/find-in-page";
 import { PasskeyConditionalUI } from "@/components/browser-ui/passkey-conditional-ui";
+import { WebPrompts } from "@/components/browser-ui/web-prompts";
 import { PasskeysRequestProvider } from "@/components/providers/passkeys-request-provider";
+import { ActivePromptsProvider } from "@/components/providers/active-prompts-provider";
 import { NavigationControls } from "@/components/browser-ui/browser-sidebar/_components/navigation-controls";
 import { AddressBar } from "@/components/browser-ui/browser-sidebar/_components/address-bar";
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
@@ -282,6 +284,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
                       {!hasSidebar && <PopupToolbar />}
                       <div className="relative flex-1 min-h-0 flex">
                         <div ref={browserContentAnchorRef} className="absolute inset-0 pointer-events-none" />
+                        <WebPrompts anchorRef={browserContentAnchorRef} />
                         <PasskeyConditionalUI anchorRef={browserContentAnchorRef} />
                         <FindInPage anchorRef={browserContentAnchorRef} />
                         <BrowserContent />
@@ -334,8 +337,10 @@ export function BrowserUI({ type }: { type: BrowserUIType }) {
                   <BrowserActionProvider>
                     <ExtensionsProviderWithSpaces>
                       <PasskeysRequestProvider>
-                        <TabDisabler />
-                        <InternalBrowserUI isReady={isReady} type={type} />
+                        <ActivePromptsProvider>
+                          <TabDisabler />
+                          <InternalBrowserUI isReady={isReady} type={type} />
+                        </ActivePromptsProvider>
                       </PasskeysRequestProvider>
                     </ExtensionsProviderWithSpaces>
                   </BrowserActionProvider>

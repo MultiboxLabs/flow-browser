@@ -1,0 +1,28 @@
+import { sendMessageToListeners } from "@/ipc/listeners-manager";
+import { getActivePromptsForRenderer, promptCompleted } from "@/modules/prompts";
+import { ipcMain } from "electron";
+
+let activePromptsChangedImmediate: NodeJS.Immediate | null = null;
+function cleanupActivePromptsImmediate() {
+  if (activePromptsChangedImmediate) {
+    clearImmediate(activePromptsChangedImmediate);
+    activePromptsChangedImmediate = null;
+  }
+}
+export function activePromptsChanged() {
+  if (activePromptsChangedImmediate) return;
+
+  activePromptsChangedImmediate = setImmediate(() => {
+    cleanupActivePromptsImmediate();
+    sendMessageToListeners("prompts:on-active-prompts-changed", getActivePromptsForRenderer());
+  });
+}
+
+ipcMain.handle("prompts:get-active-prompts", () => {
+  return getActivePromptsForRenderer();
+});
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ipcMain.on("prompts:confirm-prompt", (_event, promptId: string, result: any, suppress: boolean) => {
+  promptCompleted(promptId, result, suppress);
+});
