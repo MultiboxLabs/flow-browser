@@ -74,9 +74,14 @@ export function cancelPrompt(id: string) {
   processPromptQueue();
 }
 
-export function promptCompleted(promptId: string, result: any) {
+export function promptCompleted(promptId: string, result: any, suppress: boolean) {
   const activePrompt = removePromptById(activePrompts, promptId);
   if (!activePrompt) return false;
+
+  if (suppress && activePrompt.suppressionKey) {
+    suppressPrompt(activePrompt.suppressionKey);
+  }
+
   activePromptsChanged();
 
   switch (activePrompt.type) {

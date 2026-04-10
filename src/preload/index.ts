@@ -658,11 +658,8 @@ const promptsAPI: FlowPromptsAPI = {
     return listenOnIPCChannel("prompts:on-active-prompts-changed", callback);
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  confirmPrompt: (promptId: string, result: any) => {
-    return ipcRenderer.send("prompts:confirm-prompt", promptId, result);
-  },
-  suppressPrompt: (suppressionKey: string) => {
-    return ipcRenderer.send("prompts:suppress-prompt", suppressionKey);
+  confirmPrompt: (promptId: string, result: any, suppress: boolean) => {
+    return ipcRenderer.send("prompts:confirm-prompt", promptId, result, suppress);
   }
 };
 

@@ -1,5 +1,5 @@
 import { sendMessageToListeners } from "@/ipc/listeners-manager";
-import { getActivePromptsForRenderer, promptCompleted, suppressPrompt } from "@/modules/prompts";
+import { getActivePromptsForRenderer, promptCompleted } from "@/modules/prompts";
 import { ipcMain } from "electron";
 
 let activePromptsChangedImmediate: NodeJS.Immediate | null = null;
@@ -23,10 +23,6 @@ ipcMain.handle("prompts:get-active-prompts", () => {
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-ipcMain.on("prompts:confirm-prompt", (_event, promptId: string, result: any) => {
-  promptCompleted(promptId, result);
-});
-
-ipcMain.on("prompts:suppress-prompt", (_event, suppressionKey: string) => {
-  suppressPrompt(suppressionKey);
+ipcMain.on("prompts:confirm-prompt", (_event, promptId: string, result: any, suppress: boolean) => {
+  promptCompleted(promptId, result, suppress);
 });

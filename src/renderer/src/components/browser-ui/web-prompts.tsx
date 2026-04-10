@@ -30,42 +30,34 @@ function JavaScriptDialogCard({ prompt }: { prompt: ActivePrompt }) {
   const suppressionKey = prompt.suppressionKey;
   const [suppressChecked, setSuppressChecked] = useState(false);
 
-  const processSupression = useCallback(() => {
-    if (suppressChecked && suppressionKey) {
-      flow.prompts.suppressPrompt(suppressionKey);
-    }
-  }, [suppressionKey, suppressChecked]);
-
   const cancel = useCallback(() => {
     switch (type) {
       case "prompt":
-        flow.prompts.confirmPrompt(prompt.id, null);
+        flow.prompts.confirmPrompt(prompt.id, null, suppressChecked);
         break;
       case "confirm":
-        flow.prompts.confirmPrompt(prompt.id, false);
+        flow.prompts.confirmPrompt(prompt.id, false, suppressChecked);
         break;
       case "alert":
-        flow.prompts.confirmPrompt(prompt.id, undefined);
+        flow.prompts.confirmPrompt(prompt.id, undefined, suppressChecked);
         break;
     }
-    processSupression();
-  }, [type, prompt.id, processSupression]);
+  }, [type, prompt.id, suppressChecked]);
 
   const confirm = useCallback(() => {
     const value = inputRef.current?.value;
     switch (type) {
       case "prompt":
-        flow.prompts.confirmPrompt(prompt.id, value);
+        flow.prompts.confirmPrompt(prompt.id, value, suppressChecked);
         break;
       case "confirm":
-        flow.prompts.confirmPrompt(prompt.id, true);
+        flow.prompts.confirmPrompt(prompt.id, true, suppressChecked);
         break;
       case "alert":
-        flow.prompts.confirmPrompt(prompt.id, undefined);
+        flow.prompts.confirmPrompt(prompt.id, undefined, suppressChecked);
         break;
     }
-    processSupression();
-  }, [type, prompt.id, processSupression]);
+  }, [type, prompt.id, suppressChecked]);
 
   useEffect(() => {
     const card = cardRef.current;
