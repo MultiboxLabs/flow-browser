@@ -2,12 +2,18 @@ import { tabsController } from "@/controllers/tabs-controller";
 import { queuePrompt } from "@/modules/prompts";
 import { ipcMain } from "electron";
 import type { PromptResult, PromptState } from "~/types/prompts";
+import { DistributiveOmit } from "~/types/utils";
+import { getOriginFromURL } from "~/utility";
+
+function generateSuppressionKey(tabId: number, url: string) {
+  return `${tabId}-${getOriginFromURL(url)}`;
+}
 
 type GeneratePromptState<ResultType> = (
   promise: Promise<PromptResult<ResultType>>,
   resolve: (value: PromptResult<ResultType>) => void,
   tabId: number
-) => PromptState;
+) => DistributiveOmit<PromptState, "suppressionKey" | "originUrl">;
 
 async function processPromptRequest<ResultType>(
   event: Electron.IpcMainEvent,
@@ -25,7 +31,17 @@ async function processPromptRequest<ResultType>(
     return false;
   }
 
-  queuePrompt(generatePromptState(promise, resolve, tabId), {
+  const generatedPromptState = generatePromptState(promise, resolve, tabId);
+
+  const originUrl = webFrame.url;
+  const suppressionKey = generateSuppressionKey(tabId, originUrl);
+  const promptState = {
+    ...generatedPromptState,
+    suppressionKey,
+    originUrl
+  };
+
+  queuePrompt(promptState, {
     cancelOnWebFrameDetach: { webContents, webFrame }
   });
 

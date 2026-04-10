@@ -16,6 +16,10 @@ export type PromptResult<Result> = SuccessfulPromptResult<Result> | FailedPrompt
 interface BasePromptState<Result> {
   id: string;
   tabId: number;
+  originUrl?: string;
+  suppressionKey?: string;
+
+  // Promise and Resolver //
   promise: Promise<PromptResult<Result>>;
   resolver: (value: PromptResult<Result>) => void;
 }

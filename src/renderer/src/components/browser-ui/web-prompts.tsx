@@ -12,55 +12,29 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ThemeProvider } from "@/components/main/theme";
 import { useActivePrompts } from "@/components/providers/active-prompts-provider";
 import type { ActivePrompt } from "~/types/prompts";
-import type { TabData } from "~/types/tabs";
-import { useMount } from "react-use";
+import { getOriginFromURL } from "~/utility";
 
-const supressedKeys = new Set<string>();
+const suppressablePromptTypes = ["prompt", "confirm", "alert"] as const satisfies ActivePrompt["type"][];
 
 interface WebPromptsProps {
   anchorRef: React.RefObject<HTMLDivElement | null>;
 }
 
-function getOriginFromURL(url: string): string {
-  try {
-    const urlObject = new URL(url);
-    const protocol = urlObject.protocol.toLowerCase();
-    if (protocol === "http:" || protocol === "https:") {
-      return urlObject.hostname;
-    }
-    return urlObject.origin;
-  } catch {
-    return url;
-  }
-}
-
-function JavaScriptDialogCard({
-  prompt,
-  tab,
-  setIsReady
-}: {
-  prompt: ActivePrompt;
-  tab: TabData;
-  setIsReady: (isReady: boolean) => void;
-}) {
+function JavaScriptDialogCard({ prompt }: { prompt: ActivePrompt }) {
   const { type } = prompt;
 
   const cardRef = useRef<HTMLDivElement>(null);
   const selectDefaultOnceRef = useRef(true);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [tabStartingUrl] = useState(() => tab.url);
 
-  const supressionKey = `${prompt.tabId}-${getOriginFromURL(tabStartingUrl)}`;
-  const isSupressed = supressedKeys.has(supressionKey);
-  const [suppressChecked, setSuppressChecked] = useState(() => isSupressed);
+  const suppressionKey = prompt.suppressionKey;
+  const [suppressChecked, setSuppressChecked] = useState(false);
 
   const processSupression = useCallback(() => {
-    if (suppressChecked) {
-      supressedKeys.add(supressionKey);
-    } else {
-      supressedKeys.delete(supressionKey);
+    if (suppressChecked && suppressionKey) {
+      flow.prompts.suppressPrompt(suppressionKey);
     }
-  }, [supressionKey, suppressChecked]);
+  }, [suppressionKey, suppressChecked]);
 
   const cancel = useCallback(() => {
     switch (type) {
@@ -93,14 +67,6 @@ function JavaScriptDialogCard({
     processSupression();
   }, [type, prompt.id, processSupression]);
 
-  useMount(() => {
-    if (isSupressed) {
-      cancel();
-    } else {
-      setIsReady(true);
-    }
-  });
-
   useEffect(() => {
     const card = cardRef.current;
     if (!card) return;
@@ -130,7 +96,7 @@ function JavaScriptDialogCard({
       className={cn("w-full max-w-md select-none gap-5", "border border-white/25", "shadow-2xl shadow-black/40")}
     >
       <CardHeader>
-        <CardTitle>{`${getOriginFromURL(tabStartingUrl)} says`}</CardTitle>
+        <CardTitle>{`${prompt.originUrl ? getOriginFromURL(prompt.originUrl) : "Unknown website"} says`}</CardTitle>
       </CardHeader>
       <CardContent>
         <FieldGroup className="gap-5">
@@ -159,7 +125,7 @@ function JavaScriptDialogCard({
             </Field>
           )}
 
-          {(type === "prompt" || type === "confirm" || type === "alert") && (
+          {suppressablePromptTypes.includes(type) && suppressionKey && (
             <Field orientation="horizontal">
               <Checkbox
                 id="suppress-dialogs"
@@ -191,28 +157,23 @@ function JavaScriptDialogCard({
 const TabWebPrompt = memo(function TabWebPrompt({
   isVisible,
   portalStyle,
-  prompt,
-  tab
+  prompt
 }: {
   isVisible: boolean;
   portalStyle: React.CSSProperties;
   prompt: ActivePrompt;
-  tab: TabData;
 }) {
-  // don't show the dialog on first render, if dialogs are suppressed we don't want the page to lose focus
-  const [isReady, setIsReady] = useState(false);
-
   return (
     <PortalComponent
-      visible={isVisible && isReady}
-      autoFocus={isReady}
+      visible={isVisible}
+      autoFocus
       zIndex={ViewLayer.OVERLAY_UNDER}
       className="fixed"
       style={portalStyle}
     >
       <ThemeProvider>
         <div className={cn("w-full h-full", "bg-black/25 rounded-lg", "flex items-center justify-center")}>
-          <JavaScriptDialogCard prompt={prompt} tab={tab} setIsReady={setIsReady} />
+          <JavaScriptDialogCard prompt={prompt} />
         </div>
       </ThemeProvider>
     </PortalComponent>
@@ -240,17 +201,8 @@ export function WebPrompts({ anchorRef }: WebPromptsProps) {
     <>
       {activePrompts.map((prompt) => {
         const tabId = prompt.tabId;
-        const tab = tabsData.tabs.find((tab) => tab.id === tabId);
-        if (!tab) return null;
-
         return (
-          <TabWebPrompt
-            key={prompt.id}
-            isVisible={tabId === focusedTabId}
-            portalStyle={portalStyle}
-            prompt={prompt}
-            tab={tab}
-          />
+          <TabWebPrompt key={prompt.id} isVisible={tabId === focusedTabId} portalStyle={portalStyle} prompt={prompt} />
         );
       })}
     </>

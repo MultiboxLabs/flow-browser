@@ -660,6 +660,9 @@ const promptsAPI: FlowPromptsAPI = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   confirmPrompt: (promptId: string, result: any) => {
     return ipcRenderer.send("prompts:confirm-prompt", promptId, result);
+  },
+  suppressPrompt: (suppressionKey: string) => {
+    return ipcRenderer.send("prompts:suppress-prompt", suppressionKey);
   }
 };
 

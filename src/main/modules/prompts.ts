@@ -4,6 +4,8 @@ import { activePromptsChanged } from "@/ipc/browser/prompts/browser";
 import { generateID, onWebFrameDestroyed } from "@/modules/utils";
 import type { ActivePrompt, PromptState } from "~/types/prompts";
 
+const suppressedKeys = new Set<string>();
+
 // Prompt Queue Logic //
 const promptQueue: PromptState[] = [];
 const activePrompts: PromptState[] = [];
@@ -29,6 +31,11 @@ function processPromptQueue() {
     activePrompts.push(queuedPrompt);
     promptQueue.splice(i, 1);
     activePromptsChanged();
+
+    // Prompt is suppressed, cancel it
+    if (queuedPrompt.suppressionKey && suppressedKeys.has(queuedPrompt.suppressionKey)) {
+      cancelPrompt(queuedPrompt.id);
+    }
   }
 }
 
@@ -106,4 +113,10 @@ export function getActivePromptsForRenderer(): ActivePrompt[] {
     return rest;
   });
   return activePromptsForRenderer;
+}
+
+export function suppressPrompt(suppressionKey: string) {
+  if (suppressedKeys.has(suppressionKey)) return false;
+  suppressedKeys.add(suppressionKey);
+  return true;
 }

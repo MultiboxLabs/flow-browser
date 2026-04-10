@@ -23,4 +23,10 @@ export interface FlowPromptsAPI {
    * @param result The result of the prompt
    */
   confirmPrompt: (promptId: string, result: any) => void;
+
+  /**
+   * Suppress a prompt.
+   * @param suppressionKey The key to suppress the prompt by
+   */
+  suppressPrompt: (suppressionKey: string) => void;
 }
