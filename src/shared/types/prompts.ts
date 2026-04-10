@@ -1,5 +1,4 @@
-/** `Omit<T, K>` on a union uses `keyof T` as key intersection; omit each member instead. */
-type DistributiveOmit<T, K extends keyof T> = T extends T ? Omit<T, K> : never;
+import type { DistributiveOmit } from "./utils";
 
 // Prompt Result Types //
 interface SuccessfulPromptResult<Result> {
