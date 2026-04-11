@@ -405,7 +405,7 @@ export function shouldArchiveTab(lastActiveAt: number): boolean {
 
   const now = getCurrentTimestamp();
   const diff = now - lastActiveAt;
-  return diff > archiveTabAfterSeconds;
+  return diff >= archiveTabAfterSeconds;
 }
 
 /**
@@ -420,5 +420,5 @@ export function shouldSleepTab(lastActiveAt: number): boolean {
 
   const now = getCurrentTimestamp();
   const diff = now - lastActiveAt;
-  return diff > sleepTabAfterSeconds;
+  return diff >= sleepTabAfterSeconds;
 }

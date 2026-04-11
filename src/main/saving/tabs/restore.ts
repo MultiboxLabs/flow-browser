@@ -1,5 +1,6 @@
 import { PersistedTabData, PersistedTabGroupData } from "~/types/tabs";
 import { tabPersistenceManager } from "@/saving/tabs";
+import { onSettingsCached } from "@/saving/settings";
 import { tabsController } from "@/controllers/tabs-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { shouldArchiveTab } from "@/saving/tabs";
@@ -13,6 +14,7 @@ import type { BrowserWindowCreationOptions, BrowserWindowType } from "@/controll
  */
 export async function restoreSession(): Promise<boolean> {
   await app.whenReady();
+  await onSettingsCached();
 
   const tabs = await loadAndFilterTabs();
   if (tabs.length > 0) {
