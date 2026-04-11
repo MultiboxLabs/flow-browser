@@ -78,6 +78,8 @@ async function restoreIntoWindow(
   const restoredTab = await tabsController.createTab(window.id, space.profileId, tabData.spaceId, undefined, {
     uniqueId: tabData.uniqueId,
     window,
+    createdAt: tabData.createdAt,
+    lastActiveAt: tabData.lastActiveAt,
     position: tabData.position,
     title: tabData.title,
     faviconURL: tabData.faviconURL ?? undefined,

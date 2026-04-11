@@ -84,6 +84,8 @@ async function createTabsFromPersistedData(tabDatas: PersistedTabData[]): Promis
     for (const tabData of tabs) {
       const tab = await tabsController.createTab(window.id, tabData.profileId, tabData.spaceId, undefined, {
         asleep: true,
+        createdAt: tabData.createdAt,
+        lastActiveAt: tabData.lastActiveAt,
         position: tabData.position,
         navHistory: tabData.navHistory,
         navHistoryIndex: tabData.navHistoryIndex,

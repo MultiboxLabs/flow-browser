@@ -76,6 +76,13 @@ export interface TabCreationOptions {
   window: BrowserWindow;
   webContentsViewOptions?: Electron.WebContentsViewConstructorOptions;
 
+  /**
+   * Persisted timestamps for restored tabs.
+   * Omit for fresh tabs so constructor uses current time.
+   */
+  createdAt?: number;
+  lastActiveAt?: number;
+
   // Options
   url?: string;
   asleep?: boolean;
@@ -241,6 +248,8 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     const {
       window,
       webContentsViewOptions = {},
+      createdAt,
+      lastActiveAt,
       asleep = false,
       position,
       title,
@@ -267,8 +276,9 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     }
 
     // Set creation time
-    this.createdAt = getCurrentTimestamp();
-    this.lastActiveAt = this.createdAt;
+    const now = getCurrentTimestamp();
+    this.createdAt = createdAt ?? now;
+    this.lastActiveAt = lastActiveAt ?? this.createdAt;
 
     // Restore visual states
     if (title) this.title = title;
