@@ -48,7 +48,7 @@ function PortalPopoverContent({ children, ...props }: React.ComponentProps<typeo
     <AnimatePresence mode="wait">
       {open && (
         <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-          <PortalComponent className="w-screen h-screen absolute top-0 left-0" zIndex={ViewLayer.POPOVER}>
+          <PortalComponent autoFocus className="w-screen h-screen absolute top-0 left-0" zIndex={ViewLayer.POPOVER}>
             <PopoverContent {...props} portal={false}>
               <PopoverArrow className="fill-popover h-2 w-4 outline-hidden stroke-border" />
               {children}

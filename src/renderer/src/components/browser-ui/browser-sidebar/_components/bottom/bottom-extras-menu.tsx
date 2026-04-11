@@ -1,45 +1,37 @@
 import { PortalPopover } from "@/components/portal/popover";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { Button } from "@/components/ui/button";
+import { PopoverListboxItem, PopoverListboxList, usePopoverListbox } from "@/components/ui/popover-listbox";
 import { PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { ArchiveIcon, HistoryIcon, SettingsIcon } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
-function BottomExtraItem({
-  target,
-  setOpen,
-  children,
-  className,
-  ...props
-}: {
-  target: string;
-  setOpen: (open: boolean) => void;
-  children: React.ReactNode;
-} & React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      onClick={() => {
-        if (target === "settings_window") {
-          flow.windows.openSettingsWindow();
-        } else {
-          flow.tabs.newTab(target, true);
-        }
-        setOpen(false);
-      }}
-      className={cn("flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm hover:bg-accent", className)}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-}
+const EXTRA_ITEM_COUNT = 2;
 
 export function BottomExtrasMenu() {
   const [open, setOpen] = useState(false);
 
   const { isCurrentSpaceLight } = useSpaces();
   const spaceInjectedClasses = cn(isCurrentSpaceLight ? "" : "dark");
+
+  const onActivate = useCallback((index: number) => {
+    if (index === 0) {
+      flow.tabs.newTab("flow://history", true);
+    } else if (index === 1) {
+      flow.windows.openSettingsWindow();
+    }
+    setOpen(false);
+  }, []);
+
+  const listbox = usePopoverListbox({
+    open,
+    itemCount: EXTRA_ITEM_COUNT,
+    ariaLabel: "Sidebar extras",
+    getOptionId: (i) => `bottom-extra-${i}`,
+    onActivate,
+    initialHighlightedIndex: EXTRA_ITEM_COUNT - 1
+  });
 
   return (
     <PortalPopover.Root open={open} onOpenChange={setOpen}>
@@ -48,15 +40,17 @@ export function BottomExtrasMenu() {
           <ArchiveIcon strokeWidth={2} className="w-4 h-4 text-black/80 dark:text-white/80" />
         </Button>
       </PopoverTrigger>
-      <PortalPopover.Content className={cn("w-56 p-2 select-none", spaceInjectedClasses)}>
-        <BottomExtraItem target="flow://history" setOpen={setOpen}>
-          <HistoryIcon className="w-4 h-4" />
-          <span>History</span>
-        </BottomExtraItem>
-        <BottomExtraItem target="settings_window" setOpen={setOpen}>
-          <SettingsIcon className="w-4 h-4" />
-          <span>Settings</span>
-        </BottomExtraItem>
+      <PortalPopover.Content className={cn("w-56 p-2 select-none", spaceInjectedClasses)} {...listbox.contentProps}>
+        <PopoverListboxList listbox={listbox}>
+          <PopoverListboxItem index={0}>
+            <HistoryIcon className="w-4 h-4 shrink-0" />
+            <span>History</span>
+          </PopoverListboxItem>
+          <PopoverListboxItem index={1}>
+            <SettingsIcon className="w-4 h-4 shrink-0" />
+            <span>Settings</span>
+          </PopoverListboxItem>
+        </PopoverListboxList>
       </PortalPopover.Content>
     </PortalPopover.Root>
   );
