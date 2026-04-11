@@ -612,6 +612,45 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     this.setActiveTab(tabOrGroup);
   }
 
+  private indexOfActiveInOrderedList(windowId: number, spaceId: string, ordered: (Tab | TabGroup)[]): number {
+    const active = this.getActiveTab(windowId, spaceId);
+    if (!active) return -1;
+    return ordered.findIndex((item) => {
+      if (active instanceof Tab) {
+        return item instanceof Tab && item.id === active.id;
+      }
+      return !(item instanceof Tab) && item.groupId === active.groupId;
+    });
+  }
+
+  private activateAdjacentTabInSpace(windowId: number, spaceId: string, delta: 1 | -1): void {
+    const ordered = this.getOrderedTabOrGroups(windowId, spaceId);
+    if (ordered.length <= 1) return;
+
+    const idx = this.indexOfActiveInOrderedList(windowId, spaceId, ordered);
+    if (idx === -1) {
+      this.activateTab(ordered[0]);
+      return;
+    }
+
+    const nextIdx = (idx + delta + ordered.length) % ordered.length;
+    this.activateTab(ordered[nextIdx]);
+  }
+
+  /**
+   * Activate the next tab or group in visual order for a space (wraps).
+   */
+  public activateNextTabInSpace(windowId: number, spaceId: string): void {
+    this.activateAdjacentTabInSpace(windowId, spaceId, 1);
+  }
+
+  /**
+   * Activate the previous tab or group in visual order for a space (wraps).
+   */
+  public activatePreviousTabInSpace(windowId: number, spaceId: string): void {
+    this.activateAdjacentTabInSpace(windowId, spaceId, -1);
+  }
+
   private getActivationContext(tabOrGroup: Tab | TabGroup) {
     let windowId: number;
     let spaceId: string;

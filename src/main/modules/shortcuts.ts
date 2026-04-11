@@ -9,6 +9,18 @@ const typedShortcuts = [
     shortcut: "CommandOrControl+T",
     category: "Tabs"
   },
+  {
+    id: "tabs.next",
+    name: "Next Tab",
+    shortcut: "Control+Tab",
+    category: "Tabs"
+  },
+  {
+    id: "tabs.previous",
+    name: "Previous Tab",
+    shortcut: "Shift+Control+Tab",
+    category: "Tabs"
+  },
 
   // Tab
   {

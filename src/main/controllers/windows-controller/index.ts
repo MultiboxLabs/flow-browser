@@ -10,6 +10,7 @@ import { debugPrint } from "@/modules/output";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { type WebContents } from "electron";
 import "./utils/close-preventer";
+import "./utils/tab-cycle-shortcuts";
 
 export type WindowType = "browser" | "settings" | "onboarding" | "extension-popup";
 

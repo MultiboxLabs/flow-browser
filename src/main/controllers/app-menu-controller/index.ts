@@ -4,6 +4,7 @@ import { createArchiveMenu } from "./menu/items/archive";
 import { createEditMenu } from "./menu/items/edit";
 import { createFileMenu } from "./menu/items/file";
 import { createSpacesMenu } from "./menu/items/spaces";
+import { createTabsMenu } from "./menu/items/tabs";
 import { createViewMenu } from "./menu/items/view";
 import { createWindowMenu } from "./menu/items/window";
 import { MenuItem, MenuItemConstructorOptions } from "electron";
@@ -38,6 +39,7 @@ class AppMenuController {
       createEditMenu(),
       createViewMenu(),
       await createSpacesMenu(),
+      createTabsMenu(),
       createArchiveMenu(),
       createWindowMenu()
     ];
