@@ -121,17 +121,9 @@ function NavigationButton({
 
   const icon =
     direction === "back" ? (
-      <ArrowLeftIcon
-        ref={iconRef as React.RefObject<ArrowLeftIconHandle>}
-        className="size-4 bg-transparent! cursor-default!"
-        asChild
-      />
+      <ArrowLeftIcon ref={iconRef} className="size-4 bg-transparent! cursor-default!" asChild />
     ) : (
-      <ArrowRightIcon
-        ref={iconRef as React.RefObject<ArrowRightIconHandle>}
-        className="size-4 bg-transparent! cursor-default!"
-        asChild
-      />
+      <ArrowRightIcon ref={iconRef} className="size-4 bg-transparent! cursor-default!" asChild />
     );
 
   return (
@@ -148,7 +140,7 @@ function NavigationButton({
       {entries.length > 0 && (
         <PortalPopover.Root open={open} onOpenChange={setOpen}>
           <PopoverTrigger className="absolute inset-0 opacity-0 pointer-events-none" />
-          <PortalPopover.Content className={cn("w-56 p-2", spaceInjectedClasses)}>
+          <PortalPopover.Content className={cn("w-56 p-2", "select-none", spaceInjectedClasses)}>
             {entries.map((entry, index) => (
               <div
                 key={index}
@@ -157,7 +149,7 @@ function NavigationButton({
                   flow.navigation.goToNavigationEntry(focusedTabId, entry.index);
                   setOpen(false);
                 }}
-                className="flex items-center px-2 py-1.5 text-sm rounded-sm hover:bg-accent max-w-full text-ellipsis truncate"
+                className="min-w-0 w-full truncate px-2 py-1.5 text-sm rounded-sm hover:bg-accent"
               >
                 {entry.title || entry.url}
               </div>
