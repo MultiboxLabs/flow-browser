@@ -186,7 +186,10 @@ export function PinnedTabButton({
   return (
     <motion.div
       className="relative"
-      layout="position"
+      // Only opt into layout projection while reorder/create animations run; keeping
+      // `layout` enabled otherwise makes Motion measure every pin on unrelated updates
+      // (e.g. active tab), which adds main-thread + compositor work on top of webview activation.
+      layout={layoutAnimationsEnabled ? "position" : false}
       transition={{
         layout: layoutAnimationsEnabled ? { type: "spring", stiffness: 500, damping: 35 } : { duration: 0 }
       }}
@@ -226,7 +229,7 @@ export function PinnedTabButton({
         animate={{ scale: isPressed ? 0.99 : 1 }}
         transition={{ scale: { type: "spring", stiffness: 600, damping: 20 } }}
         className={cn(
-          "w-full h-12 rounded-xl overflow-hidden",
+          "w-full h-12 rounded-xl overflow-hidden transform-gpu",
           "bg-black/10 hover:bg-black/15",
           "dark:bg-white/15 dark:hover:bg-white/20",
           "transition-[background-color,border-color,opacity] duration-100",
