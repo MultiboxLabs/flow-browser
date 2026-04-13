@@ -1,6 +1,9 @@
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import contextMenu from "electron-context-menu";
+import { dialog, net } from "electron";
+import { writeFile } from "fs/promises";
+import path from "path";
 import { Tab } from "./tab";
 import { TabsController } from "./index";
 
@@ -75,7 +78,7 @@ export function createTabContextMenu(
         searchEngine
       );
       const devItems = createDevItems(defaultActions as MenuActions);
-      const imageItems = createImageItems(parameters, createNewTab, defaultActions as MenuActions);
+      const imageItems = createImageItems(parameters, createNewTab, defaultActions as MenuActions, window);
 
       // Assemble sections in correct order
       const sections: Electron.MenuItemConstructorOptions[][] = [];
@@ -257,16 +260,49 @@ function createDevItems(defaultActions: MenuActions): Electron.MenuItemConstruct
   return [defaultActions.inspect()];
 }
 
+async function downloadImage(url: string, filePath: string): Promise<void> {
+  const response = await net.fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
+  }
+  const buffer = Buffer.from(await response.arrayBuffer());
+  await writeFile(filePath, buffer);
+}
+
 function createImageItems(
   parameters: Electron.ContextMenuParams,
   createNewTab: (url: string) => Promise<void>,
-  defaultActions: MenuActions
+  defaultActions: MenuActions,
+  browserWindow: BrowserWindow
 ): Electron.MenuItemConstructorOptions[] {
   return [
     {
       label: "Open Image in New Tab",
       click: () => {
         createNewTab(parameters.srcURL);
+      }
+    },
+    {
+      label: "Save Image As...",
+      click: async () => {
+        try {
+          const url = new URL(parameters.srcURL);
+          const originalFilename = path.basename(url.pathname) || "image";
+
+          const { filePath } = await dialog.showSaveDialog(browserWindow.browserWindow, {
+            defaultPath: originalFilename,
+            filters: [
+              { name: "Images", extensions: ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp"] },
+              { name: "All Files", extensions: ["*"] }
+            ]
+          });
+
+          if (filePath) {
+            await downloadImage(parameters.srcURL, filePath);
+          }
+        } catch (error) {
+          console.error("Failed to save image:", error);
+        }
       }
     },
     defaultActions.copyImage({}),
