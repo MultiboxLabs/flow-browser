@@ -233,13 +233,21 @@ function createSelectionItems(
   createNewTab: (url: string) => Promise<void>,
   searchEngine: string
 ): Electron.MenuItemConstructorOptions[] {
+  const selectionText = parameters.selectionText;
+
+  let displaySelectionText = selectionText;
+  if (displaySelectionText.length > 45) {
+    const newDisplaySelectionText = selectionText.slice(0, 45).trim() + "...";
+    displaySelectionText = newDisplaySelectionText;
+  }
+
   return [
     defaultActions.copy({}),
     {
-      label: `Search ${searchEngine} for "${parameters.selectionText}"`,
+      label: `Search ${searchEngine} for "${displaySelectionText}"`,
       click: () => {
         const searchURL = new URL("https://www.google.com/search");
-        searchURL.searchParams.set("q", parameters.selectionText);
+        searchURL.searchParams.set("q", selectionText);
         createNewTab(searchURL.toString());
       }
     }
