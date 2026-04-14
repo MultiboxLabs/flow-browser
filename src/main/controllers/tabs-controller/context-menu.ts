@@ -3,6 +3,7 @@ import { BrowserWindow } from "@/controllers/windows-controller/types";
 import contextMenu from "electron-context-menu";
 import { Tab } from "./tab";
 import { TabsController } from "./index";
+import { saveImageAs } from "./save-image-as";
 
 // Define types for navigation history
 interface NavigationHistory {
@@ -73,7 +74,7 @@ export function createTabContextMenu(
         createNewTab,
         searchEngine
       );
-      const imageItems = createImageItems(parameters, createNewTab, defaultActions as MenuActions);
+      const imageItems = createImageItems(parameters, webContents, window, createNewTab, defaultActions as MenuActions);
 
       // Assemble sections in correct order
       const sections: Electron.MenuItemConstructorOptions[][] = [];
@@ -329,6 +330,8 @@ function createDevItems(
 
 function createImageItems(
   parameters: Electron.ContextMenuParams,
+  webContents: Electron.WebContents,
+  window: BrowserWindow,
   createNewTab: (url: string) => Promise<void>,
   defaultActions: MenuActions
 ): Electron.MenuItemConstructorOptions[] {
@@ -337,6 +340,14 @@ function createImageItems(
       label: "Open Image in New Tab",
       click: () => {
         createNewTab(parameters.srcURL);
+      }
+    },
+    {
+      label: "Save Image As...",
+      click: () => {
+        // TODO: use a better way
+        // webContents.saveImageAt - https://github.com/electron/electron/pull/51056
+        void saveImageAs(parameters, webContents, window);
       }
     },
     defaultActions.copyImage({}),
