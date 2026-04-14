@@ -267,17 +267,19 @@ function createDevItems(
   const topFrameUrl = topFrame?.url;
   const currentFrameUrl = currentFrame?.url;
 
-  const devItems: Electron.MenuItemConstructorOptions[] = [
-    {
+  const devItems: Electron.MenuItemConstructorOptions[] = [];
+
+  if (topFrameUrl) {
+    devItems.push({
       label: "View Page Source",
       click: () => {
         createNewTab(`view-source:${topFrameUrl}`);
       },
       visible: noSpecialActions
-    }
-  ];
+    });
+  }
 
-  if (!isTopFrame) {
+  if (!isTopFrame && currentFrameUrl) {
     devItems.push({
       label: "View Frame Source",
       click: () => {
