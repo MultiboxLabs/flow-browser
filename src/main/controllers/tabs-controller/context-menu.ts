@@ -63,7 +63,6 @@ export function createTabContextMenu(
 
       // Create all menu sections
       const openLinkItems = createOpenLinkItems(parameters, createNewTab);
-      const linkItems = createLinkItems(defaultActions as MenuActions);
       const navigationItems = createNavigationItems(navigationHistory, webContents, canGoBack, canGoForward);
       const extensionItems = createExtensionItems(tab, webContents, parameters);
       const textHistoryItems = createTextHistoryItems(webContents);
@@ -83,20 +82,32 @@ export function createTabContextMenu(
         sections.push(dictionarySuggestions);
       }
 
-      let noSpecialActions = false;
       const hasLink = !!parameters.linkURL;
       const hasLookUpSelection = lookUpSelection.visible;
 
+      let noSpecialActions = true;
+      if (hasLookUpSelection && parameters.selectionText.trim()) {
+        sections.push([lookUpSelection]);
+        noSpecialActions = false;
+      }
       if (hasLink) {
         sections.push(openLinkItems);
+
+        const linkItems = createLinkItems(parameters, webContents, defaultActions, true);
         sections.push(linkItems);
-      } else if (hasLookUpSelection && parameters.selectionText.trim()) {
-        sections.push([lookUpSelection]);
-      } else if (parameters.hasImageContents) {
+
+        noSpecialActions = false;
+      }
+      if (parameters.hasImageContents) {
         sections.push(imageItems);
-      } else {
-        noSpecialActions = true;
+        noSpecialActions = false;
+      }
+
+      if (noSpecialActions) {
         sections.push(navigationItems);
+
+        const linkItems = createLinkItems(parameters, webContents, defaultActions, false);
+        sections.push(linkItems);
       }
 
       if (parameters.selectionText.trim() && !parameters.isEditable) {
@@ -140,11 +151,34 @@ function createOpenLinkItems(
   ];
 }
 
-function createLinkItems(defaultActions: MenuActions): Electron.MenuItemConstructorOptions[] {
-  const copyLinkItem = defaultActions.copyLink({});
-  copyLinkItem.label = "Copy Link Address";
-  copyLinkItem.visible = true;
-  return [copyLinkItem];
+function createLinkItems(
+  parameters: Electron.ContextMenuParams,
+  webContents: Electron.WebContents,
+  defaultActions: MenuActions,
+  hasLink: boolean
+): Electron.MenuItemConstructorOptions[] {
+  const items: Electron.MenuItemConstructorOptions[] = [];
+
+  if (hasLink) {
+    const linkURL = parameters.linkURL;
+
+    const saveLinkAs: Electron.MenuItemConstructorOptions = {
+      label: "Save Link As...",
+      click: () => {
+        webContents.downloadURL(linkURL);
+      }
+    };
+    items.push(saveLinkAs);
+
+    const copyLinkItem = defaultActions.copyLink({});
+    copyLinkItem.label = "Copy Link Address";
+    copyLinkItem.visible = true;
+    items.push(copyLinkItem);
+  } else {
+    // TODO: "Save as..." and "Print" items
+  }
+
+  return items;
 }
 
 function createNavigationItems(
