@@ -74,7 +74,6 @@ export function createTabContextMenu(
         createNewTab,
         searchEngine
       );
-      const devItems = createDevItems(defaultActions as MenuActions);
       const imageItems = createImageItems(parameters, createNewTab, defaultActions as MenuActions);
 
       // Assemble sections in correct order
@@ -110,16 +109,9 @@ export function createTabContextMenu(
       }
 
       sections.push(extensionItems);
-      sections.push([
-        {
-          label: "View Page Source",
-          click: () => {
-            createNewTab(`view-source:${webContents.getURL()}`);
-          },
-          visible: noSpecialActions
-        },
-        ...devItems
-      ]);
+
+      const devItems = createDevItems(parameters, defaultActions, createNewTab, noSpecialActions);
+      sections.push(devItems);
 
       // Combine all sections with separators
       return combineSections(sections, defaultActions as MenuActions);
@@ -150,6 +142,7 @@ function createOpenLinkItems(
 
 function createLinkItems(defaultActions: MenuActions): Electron.MenuItemConstructorOptions[] {
   const copyLinkItem = defaultActions.copyLink({});
+  copyLinkItem.label = "Copy Link Address";
   copyLinkItem.visible = true;
   return [copyLinkItem];
 }
@@ -253,8 +246,41 @@ function createSelectionItems(
   ];
 }
 
-function createDevItems(defaultActions: MenuActions): Electron.MenuItemConstructorOptions[] {
-  return [defaultActions.inspect()];
+function createDevItems(
+  parameters: Electron.ContextMenuParams,
+  defaultActions: MenuActions,
+  createNewTab: (url: string) => Promise<void>,
+  noSpecialActions: boolean
+): Electron.MenuItemConstructorOptions[] {
+  const currentFrame = parameters.frame;
+  const topFrame = currentFrame?.top || currentFrame;
+  const isTopFrame = currentFrame === topFrame;
+
+  const topFrameUrl = topFrame?.url;
+  const currentFrameUrl = currentFrame?.url;
+
+  const devItems: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: "View Page Source",
+      click: () => {
+        createNewTab(`view-source:${topFrameUrl}`);
+      },
+      visible: noSpecialActions
+    }
+  ];
+
+  if (!isTopFrame) {
+    devItems.push({
+      label: "View Frame Source",
+      click: () => {
+        createNewTab(`view-source:${currentFrameUrl}`);
+      },
+      visible: noSpecialActions
+    });
+  }
+
+  devItems.push(defaultActions.inspect());
+  return devItems;
 }
 
 function createImageItems(
