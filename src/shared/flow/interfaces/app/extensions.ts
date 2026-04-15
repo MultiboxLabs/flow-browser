@@ -4,6 +4,11 @@ import { SharedExtensionData } from "~/types/extensions";
 // API //
 export interface FlowExtensionsAPI {
   /**
+   * Get all extensions in a specific profile
+   */
+  getAllInProfile: (profileId: string) => Promise<SharedExtensionData[]>;
+
+  /**
    * Get all extensions in the current profile
    */
   getAllInCurrentProfile: () => Promise<SharedExtensionData[]>;

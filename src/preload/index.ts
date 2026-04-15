@@ -708,6 +708,9 @@ const windowsAPI: FlowWindowsAPI = {
 
 // EXTENSIONS API //
 const extensionsAPI: FlowExtensionsAPI = {
+  getAllInProfile: async (profileId: string) => {
+    return ipcRenderer.invoke("extensions:get-all-in-profile", profileId);
+  },
   getAllInCurrentProfile: async () => {
     return ipcRenderer.invoke("extensions:get-all-in-current-profile");
   },

@@ -91,6 +91,13 @@ async function getCurrentProfileIdFromWebContents(webContents: WebContents): Pro
 }
 
 ipcMain.handle(
+  "extensions:get-all-in-profile",
+  async (_event: IpcMainInvokeEvent, profileId: string): Promise<SharedExtensionData[]> => {
+    return getExtensionDataFromProfile(profileId);
+  }
+);
+
+ipcMain.handle(
   "extensions:get-all-in-current-profile",
   async (event: IpcMainInvokeEvent): Promise<SharedExtensionData[]> => {
     const profileId = await getCurrentProfileIdFromWebContents(event.sender);
