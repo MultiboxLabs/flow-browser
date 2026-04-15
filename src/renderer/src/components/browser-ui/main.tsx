@@ -238,7 +238,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
 
   return (
     <FullscreenGuard>
-      <MinimalToastProvider sidebarSide={attachedDirection}>
+      <MinimalToastProvider anchorRef={browserContentAnchorRef} sidebarSide={attachedDirection}>
         <ActionsProvider>
           <WindowTitle />
           <AutoNewTab isReady={isReady} />

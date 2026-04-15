@@ -43,7 +43,7 @@ export const ActionsProvider = ({ children }: ActionsProviderProps) => {
 
     copyTextToClipboard(addressUrl, false).then((success) => {
       if (success) {
-        showToast("Copied to clipboard!");
+        showToast("copyTabUrl");
       }
     });
   }, [addressUrl, showToast]);
