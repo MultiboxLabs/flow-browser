@@ -59,6 +59,9 @@
   </requires>
 
   <releases>
+    <release version="0.12.0" date="2026-04-15">
+      <url type="details">https://flow-browser.com/updates/0.12.0</url>
+    </release>
     <release version="0.11.0" date="2026-03-22">
       <url type="details">https://flow-browser.com/updates/0.11.0</url>
     </release>
