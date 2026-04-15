@@ -1,9 +1,9 @@
 name: Electron Version Updater
 
 on:
-  # Run every hour
-  schedule:
-    - cron: "0 * * * *"
+  # Run every hour (disabled)
+  # schedule:
+  #   - cron: "0 * * * *"
 
   # Allow manual trigger
   workflow_dispatch:
