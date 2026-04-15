@@ -2,7 +2,7 @@
 import { PortalComponent } from "@/components/portal/portal";
 import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { ViewLayer } from "~/layers";
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { SidebarSide } from "@/components/browser-ui/types";
 import { cn } from "@/lib/utils";
@@ -79,11 +79,14 @@ function ToastContainer({
   const [isVisible, setIsVisible] = useState(false);
   const anchorRect = useBoundingRect(anchorRef);
   const currentMessage = activeToast?.message ?? null;
+  const activeToastRef = useRef(activeToast);
+
+  activeToastRef.current = activeToast;
 
   useEffect(() => {
-    if (!currentMessage) return;
+    if (!activeToast) return;
     setIsVisible(true);
-  }, [currentMessage]);
+  }, [activeToast]);
 
   useEffect(() => {
     if (!activeToast) return;
@@ -115,7 +118,14 @@ function ToastContainer({
       }}
     >
       <div className={cn("relative w-full h-full select-none", spaceInjectedClasses)}>
-        <AnimatePresence mode="sync">
+        <AnimatePresence
+          mode="sync"
+          onExitComplete={() => {
+            if (!activeToastRef.current) {
+              setIsVisible(false);
+            }
+          }}
+        >
           {currentMessage && activeToast && (
             <motion.div
               key={activeToast.uid}
