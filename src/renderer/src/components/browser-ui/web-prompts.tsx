@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ThemeProvider } from "@/components/main/theme";
+import { ThemeConsumer } from "@/components/main/theme";
 import { useActivePrompts } from "@/components/providers/active-prompts-provider";
 import type { ActivePrompt } from "~/types/prompts";
 import { getOriginFromURL } from "~/utility";
@@ -163,11 +163,11 @@ const TabWebPrompt = memo(function TabWebPrompt({
       className="fixed"
       style={portalStyle}
     >
-      <ThemeProvider>
+      <ThemeConsumer>
         <div className={cn("w-full h-full", "bg-black/25 rounded-lg", "flex items-center justify-center")}>
           <JavaScriptDialogCard prompt={prompt} />
         </div>
-      </ThemeProvider>
+      </ThemeConsumer>
     </PortalComponent>
   );
 });
