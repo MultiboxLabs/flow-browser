@@ -247,7 +247,7 @@ const TabWebPrompt = memo(function TabWebPrompt({
       style={portalStyle}
     >
       <ThemeConsumer>
-        <div className={cn("w-full h-full", "bg-black/25 rounded-lg", "flex items-center justify-center")}>
+        <div className={cn("w-full h-full", "bg-black/25 rounded-md", "flex items-center justify-center")}>
           {prompt.type === "basic-auth" ? <BasicAuthCard prompt={prompt} /> : <JavaScriptDialogCard prompt={prompt} />}
         </div>
       </ThemeConsumer>

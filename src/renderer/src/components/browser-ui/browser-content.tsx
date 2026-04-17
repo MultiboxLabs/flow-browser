@@ -144,7 +144,7 @@ function BrowserContent() {
   return (
     <div
       className={cn(
-        "rounded-lg",
+        "rounded-md",
         "flex-1 relative remove-app-drag",
         "bg-white/15",
         // Better shadow for the browser content
@@ -158,7 +158,7 @@ function BrowserContent() {
           alt=""
           draggable={false}
           onError={() => setPlaceholderSnapshotId(null)}
-          className="absolute inset-0 w-full h-full rounded-lg object-fill opacity-50 pointer-events-none"
+          className="absolute inset-0 w-full h-full rounded-md object-fill opacity-50 pointer-events-none"
         />
       )}
     </div>
