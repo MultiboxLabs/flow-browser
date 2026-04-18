@@ -168,7 +168,8 @@ export function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12, ease: "easeInOut" }}
             className={cn(
-              "pointer-events-none flex h-full w-full items-end justify-start",
+              "flex h-full w-full items-end justify-start",
+              "pointer-events-none select-none",
               "rounded-full px-2 py-1 text-xs",
               "border border-sidebar-border/25",
               "space-background-dark text-white/80"
