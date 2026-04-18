@@ -120,6 +120,13 @@ function useDelayedUrl(url: string = "", focusedTabId: number | null = null) {
   };
 }
 
+function UnmountDetector({ onUnmount }: { onUnmount: () => void }) {
+  useUnmount(() => {
+    onUnmount();
+  });
+  return null;
+}
+
 /**
  * Chrome-like hover URL preview at the bottom-left of the browser content area.
  * Uses PortalComponent so it stacks above the tab WebContentsView (same pattern as FindInPage).
@@ -206,8 +213,9 @@ export function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
       className="fixed"
       style={lastPortalStyle.current ?? {}}
     >
-      {/* key={focusedTabId} so the component re-creates WITHOUT the animation on tab change */}
+      {/* key={focusedTabId} so the component re-creates WITHOUT the exit animation on tab change */}
       <AnimatePresence key={focusedTabId} onExitComplete={() => setUrlPresent(false)}>
+        <UnmountDetector key="presence-unmount-detector" onUnmount={() => setUrlPresent(false)} />
         {url && (
           <motion.div
             initial={{ opacity: 0 }}
