@@ -128,3 +128,10 @@ export type TabPlaceholderUpdate = {
   generation: number;
   spaceId: string | null;
 };
+
+/** Hover link target URL for the shell UI (not persisted in TabData). */
+export type TabTargetUrlUpdate = {
+  tabId: number;
+  windowId: number;
+  url: string;
+};

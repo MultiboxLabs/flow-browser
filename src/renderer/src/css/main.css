@@ -43,6 +43,10 @@
   background: color-mix(in oklch, var(--space-background-start) 75%, oklch(0.252 0 0) 25%);
 }
 
+.space-background-dark {
+  background: color-mix(in oklch, var(--space-background-start) 50%, oklch(0.18 0 0) 50%);
+}
+
 .space-icon-color {
   color: oklch(from var(--space-background-start) calc(l * 0.3) c h);
 }

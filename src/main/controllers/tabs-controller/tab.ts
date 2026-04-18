@@ -376,6 +376,21 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     // Register with extensions
     const extensions = this.loadedProfile.extensions;
     extensions.addTab(webContents, this.window.browserWindow);
+
+    // Target URL (hover link preview — sent to shell UI, not TabData)
+    this.webContents.on("update-target-url", (_event, url) => {
+      this.sendTargetUrlToRenderer(url);
+    });
+  }
+
+  private sendTargetUrlToRenderer(url: string) {
+    const window = this.getWindow();
+    if (window.destroyed) return;
+    window.sendMessageToCoreWebContents("tabs:on-target-url", {
+      tabId: this.id,
+      windowId: window.id,
+      url
+    });
   }
 
   /**
@@ -384,6 +399,8 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    */
   public teardownView(): void {
     if (!this.view || !this.webContents) return;
+
+    this.sendTargetUrlToRenderer("");
 
     this.removeViewFromWindow();
 
@@ -919,6 +936,8 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    */
   public destroy() {
     if (this.isDestroyed) return;
+
+    this.sendTargetUrlToRenderer("");
 
     this.isDestroyed = true;
     this.emit("destroyed");

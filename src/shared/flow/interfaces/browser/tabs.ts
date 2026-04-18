@@ -1,5 +1,5 @@
 import { IPCListener } from "~/flow/types";
-import { RecentlyClosedTabData, TabData, TabPlaceholderUpdate, WindowTabsData } from "~/types/tabs";
+import { RecentlyClosedTabData, TabData, TabPlaceholderUpdate, TabTargetUrlUpdate, WindowTabsData } from "~/types/tabs";
 
 // API //
 export interface FlowTabsAPI {
@@ -33,6 +33,12 @@ export interface FlowTabsAPI {
    * @param callback Receives the placeholder payload
    */
   onPlaceholderChanged: IPCListener<[TabPlaceholderUpdate]>;
+
+  /**
+   * Hover link target URL updates for the active tab (Chrome-like status bar).
+   * `url` is empty when the cursor leaves a link or the tab is torn down.
+   */
+  onTargetUrlChanged: IPCListener<[TabTargetUrlUpdate]>;
 
   /**
    * Switch to a tab
