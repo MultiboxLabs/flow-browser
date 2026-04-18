@@ -31,10 +31,11 @@ interface TargetUrlIndicatorProps {
 }
 
 type CommonProtocolType = "http" | "mailto";
-function stripCommonProtocols(url: string): { protocolType: CommonProtocolType | null; strippedUrl: string } {
+function improveUrlReadability(url: string): { protocolType: CommonProtocolType | null; strippedUrl: string } {
   let protocolType: CommonProtocolType | null = null;
   let newUrl = url;
 
+  // Strip common protocols + record them
   const strippedHttp = url.replace(/^https?:\/\//i, "");
   const strippedMailto = url.replace(/^mailto:/i, "");
   if (strippedHttp !== url) {
@@ -44,6 +45,9 @@ function stripCommonProtocols(url: string): { protocolType: CommonProtocolType |
     protocolType = "mailto";
     newUrl = strippedMailto;
   }
+
+  // Strip trailing slashes
+  newUrl = newUrl.replace(/\/+$/, "");
 
   return { protocolType, strippedUrl: newUrl };
 }
@@ -59,7 +63,7 @@ function useDelayedUrl(url: string = "", focusedTabId: number | null = null) {
   const lastProtocolType = useRef<CommonProtocolType | null>(null);
   const newUrl = url.trim();
   if (newUrl !== "") {
-    const { protocolType, strippedUrl } = stripCommonProtocols(newUrl);
+    const { protocolType, strippedUrl } = improveUrlReadability(newUrl);
     lastUrl.current = strippedUrl;
     lastProtocolType.current = protocolType;
   }
