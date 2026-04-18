@@ -7,6 +7,7 @@ import { useTabs } from "@/components/providers/tabs-provider";
 import { cn } from "@/lib/utils";
 import { ViewLayer } from "~/layers";
 import type { TabTargetUrlUpdate } from "~/types/tabs";
+import { AnimatePresence, motion } from "motion/react";
 
 const PADDING = 8;
 const BAR_HEIGHT = 28;
@@ -25,6 +26,10 @@ interface TargetUrlIndicatorProps {
   anchorRef: React.RefObject<HTMLDivElement | null>;
 }
 
+function stripHttpProtocol(url: string): string {
+  return url.replace(/^https?:\/\//i, "");
+}
+
 // If there is no current url, show URL after 1 seeconds
 // If there is a current url, switch to new url instantly
 // If there is a current url and new url is empty, wait 1 seconds and then switch to empty url
@@ -34,7 +39,7 @@ function useDelayedUrl(url: string = ""): string {
   const lastUrl = useRef("");
   const newUrl = url.trim();
   if (newUrl !== "") {
-    lastUrl.current = newUrl;
+    lastUrl.current = stripHttpProtocol(newUrl);
   }
 
   const timerRef = useRef<{ timeout: NodeJS.Timeout; type: "show" | "hide" } | null>(null);
@@ -131,21 +136,43 @@ function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
       height: BAR_HEIGHT
     };
   }, [anchorRect, url]);
+  const lastPortalStyle = useRef<CSSProperties | null>(null);
+  if (portalStyle) {
+    lastPortalStyle.current = portalStyle;
+  }
 
-  const isVisible = !!(url && portalStyle);
+  const [urlPresent, setUrlPresent] = useState(false);
+  useEffect(() => {
+    if (url) {
+      setUrlPresent(true);
+    }
+  }, [url]);
+  const isVisible = !!(urlPresent && lastPortalStyle);
   return (
-    <PortalComponent visible={isVisible} zIndex={ViewLayer.OVERLAY} className="fixed" style={portalStyle ?? {}}>
-      <div
-        className={cn(
-          "pointer-events-none flex h-full w-full items-end justify-start",
-          "rounded-full px-2 py-1 text-xs",
-          "border border-sidebar-border/25",
-          "space-background-dark text-white/80"
+    <PortalComponent
+      visible={isVisible}
+      zIndex={ViewLayer.OVERLAY}
+      className="fixed"
+      style={lastPortalStyle.current ?? {}}
+    >
+      <AnimatePresence onExitComplete={() => setUrlPresent(false)}>
+        {url && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12, ease: "easeInOut" }}
+            className={cn(
+              "pointer-events-none flex h-full w-full items-end justify-start",
+              "rounded-full px-2 py-1 text-xs",
+              "border border-sidebar-border/25",
+              "space-background-dark text-white/80"
+            )}
+          >
+            <span className="min-w-0 max-w-full truncate font-semibold">{url}</span>
+          </motion.div>
         )}
-        title={url}
-      >
-        <span className="min-w-0 max-w-full truncate font-semibold">{url}</span>
-      </div>
+      </AnimatePresence>
     </PortalComponent>
   );
 }
