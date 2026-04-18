@@ -60,6 +60,18 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
     // const hasSizeOptions = "width" in options || "height" in options;
     const hasPositionOptions = options.x !== undefined || options.y !== undefined;
 
+    let titleBarOverlayOption: boolean | Electron.TitleBarOverlay | undefined = {
+      height: 30,
+      symbolColor: nativeTheme.shouldUseDarkColors ? "white" : "black",
+      color: "rgba(0,0,0,0)"
+    };
+
+    // titleBarOverlay causes setWindowButtonPosition miscalculation in MacOS Tahoe
+    // see: https://github.com/electron/electron/issues/49183
+    if (process.platform === "darwin") {
+      titleBarOverlayOption = undefined;
+    }
+
     const browserWindow = new ElectronBrowserWindow({
       minWidth: type === "normal" ? 800 : 300,
       minHeight: type === "normal" ? 400 : 200,
@@ -72,11 +84,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       center: hasPositionOptions ? false : true,
 
       titleBarStyle: process.platform === "darwin" || process.platform === "win32" ? "hidden" : undefined,
-      titleBarOverlay: {
-        height: 30,
-        symbolColor: nativeTheme.shouldUseDarkColors ? "white" : "black",
-        color: "rgba(0,0,0,0)"
-      },
+      titleBarOverlay: titleBarOverlayOption,
 
       webPreferences: {
         sandbox: true,
