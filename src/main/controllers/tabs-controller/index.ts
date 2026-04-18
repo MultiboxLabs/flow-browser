@@ -212,7 +212,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
     }
 
     // Get window, and try using profile and space ID from the window first
-    if (!profileId) {
+    if (!profileId || !spaceId) {
       const window = browserWindowsController.getWindowById(windowId);
       if (!window) {
         throw new Error("Window not found");
@@ -222,7 +222,7 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
       if (windowSpaceId) {
         const spaceData = await spacesController.get(windowSpaceId);
         const windowProfileId = spaceData?.profileId;
-        if (windowProfileId) {
+        if (windowProfileId && (!profileId || (profileId && profileId === windowProfileId))) {
           profileId = windowProfileId;
           spaceId = windowSpaceId;
         }
