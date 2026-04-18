@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { ViewLayer } from "~/layers";
 import type { TabTargetUrlUpdate } from "~/types/tabs";
 import { AnimatePresence, motion } from "motion/react";
+import { useUnmount } from "react-use";
 
 const PADDING = 8;
 const BAR_HEIGHT = 28;
@@ -30,9 +31,9 @@ function stripHttpProtocol(url: string): string {
   return url.replace(/^https?:\/\//i, "");
 }
 
-// If there is no current url, show URL after 1 seeconds
+// If there is no current url, show URL after 500ms
 // If there is a current url, switch to new url instantly
-// If there is a current url and new url is empty, wait 1 seconds and then switch to empty url
+// If there is a current url and new url is empty, wait 500ms and then switch to empty url
 function useDelayedUrl(url: string = ""): string {
   const [showing, setShowing] = useState(false);
 
@@ -70,6 +71,10 @@ function useDelayedUrl(url: string = ""): string {
       removeTimer();
     }
   }, [newUrl, showing, removeTimer]);
+
+  useUnmount(() => {
+    removeTimer();
+  });
 
   return showing ? lastUrl.current : "";
 }
@@ -147,7 +152,7 @@ export function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
       setUrlPresent(true);
     }
   }, [url]);
-  const isVisible = !!(urlPresent && lastPortalStyle);
+  const isVisible = !!(urlPresent && lastPortalStyle.current);
   return (
     <PortalComponent
       visible={isVisible}
