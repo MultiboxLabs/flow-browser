@@ -29,7 +29,7 @@ import MinimalToastProvider from "@/components/providers/minimal-toast-provider"
 import { ActionsProvider } from "@/components/providers/actions-provider";
 import { PinnedTabsProvider } from "@/components/providers/pinned-tabs-provider";
 import BrowserContent from "@/components/browser-ui/browser-content";
-import TargetUrlIndicator from "@/components/browser-ui/target-url-indicator";
+import { TargetUrlIndicator } from "@/components/browser-ui/target-url-indicator";
 import { FindInPage } from "@/components/browser-ui/find-in-page";
 import { PasskeyConditionalUI } from "@/components/browser-ui/passkey-conditional-ui";
 import { WebPrompts } from "@/components/browser-ui/web-prompts";

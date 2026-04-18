@@ -1,5 +1,5 @@
 import { measureNaturalWidth, prepareWithSegments } from "@chenglou/pretext";
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { PortalComponent } from "@/components/portal/portal";
 import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { useSpaces } from "@/components/providers/spaces-provider";
@@ -78,7 +78,7 @@ function useDelayedUrl(url: string = ""): string {
  * Chrome-like hover URL preview at the bottom-left of the browser content area.
  * Uses PortalComponent so it stacks above the tab WebContentsView (same pattern as FindInPage).
  */
-function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
+export function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
   const { tabsData, getFocusedTabId } = useTabs();
   const { currentSpace } = useSpaces();
   const [urlsByTabId, setUrlsByTabId] = useState(() => new Map<number, string>());
@@ -176,5 +176,3 @@ function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
     </PortalComponent>
   );
 }
-
-export default memo(TargetUrlIndicator);
