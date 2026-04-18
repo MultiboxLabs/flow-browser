@@ -1,5 +1,5 @@
 import { measureNaturalWidth, prepareWithSegments } from "@chenglou/pretext";
-import { memo, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { PortalComponent } from "@/components/portal/portal";
 import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { useSpaces } from "@/components/providers/spaces-provider";
@@ -23,6 +23,50 @@ const TARGET_URL_HORIZONTAL_CHROME_PX = 16 + 2;
 
 interface TargetUrlIndicatorProps {
   anchorRef: React.RefObject<HTMLDivElement | null>;
+}
+
+// If there is no current url, show URL after 1 seeconds
+// If there is a current url, switch to new url instantly
+// If there is a current url and new url is empty, wait 1 seconds and then switch to empty url
+function useDelayedUrl(url: string = ""): string {
+  const [showing, setShowing] = useState(false);
+
+  const lastUrl = useRef("");
+  const newUrl = url.trim();
+  if (newUrl !== "") {
+    lastUrl.current = newUrl;
+  }
+
+  const timerRef = useRef<{ timeout: NodeJS.Timeout; type: "show" | "hide" } | null>(null);
+  const removeTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current.timeout);
+    }
+    timerRef.current = null;
+  }, []);
+  useEffect(() => {
+    if (!showing && newUrl) {
+      if (!timerRef.current || timerRef.current.type !== "show") {
+        removeTimer();
+        const timeout = setTimeout(() => {
+          setShowing(true);
+        }, 500);
+        timerRef.current = { timeout, type: "show" };
+      }
+    } else if (showing && !newUrl) {
+      if (!timerRef.current || timerRef.current.type !== "hide") {
+        removeTimer();
+        const timeout = setTimeout(() => {
+          setShowing(false);
+        }, 500);
+        timerRef.current = { timeout, type: "hide" };
+      }
+    } else {
+      removeTimer();
+    }
+  }, [newUrl, showing, removeTimer]);
+
+  return showing ? lastUrl.current : "";
 }
 
 /**
@@ -67,7 +111,8 @@ function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
   }, [tabsData]);
 
   const focusedTabId = currentSpace ? getFocusedTabId(currentSpace.id) : null;
-  const url = focusedTabId != null ? urlsByTabId.get(focusedTabId) : undefined;
+  const currentUrl = focusedTabId != null ? urlsByTabId.get(focusedTabId) : undefined;
+  const url = useDelayedUrl(currentUrl);
 
   const portalStyle = useMemo((): CSSProperties | null => {
     if (!anchorRect || !url) return null;
