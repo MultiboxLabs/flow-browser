@@ -253,6 +253,9 @@ const tabsAPI: FlowTabsAPI = {
   onPlaceholderChanged: (callback) => {
     return listenOnIPCChannel("tabs:on-placeholder-changed", callback);
   },
+  onTargetUrlChanged: (callback) => {
+    return listenOnIPCChannel("tabs:on-target-url", callback);
+  },
   switchToTab: async (tabId: number) => {
     return ipcRenderer.invoke("tabs:switch-to-tab", tabId);
   },
