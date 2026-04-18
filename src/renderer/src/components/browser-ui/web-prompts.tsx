@@ -9,18 +9,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ThemeProvider } from "@/components/main/theme";
+import { ThemeConsumer } from "@/components/main/theme";
 import { useActivePrompts } from "@/components/providers/active-prompts-provider";
-import type { ActivePrompt } from "~/types/prompts";
+import type { ActivePrompt, BasicAuthCredentials } from "~/types/prompts";
 import { getOriginFromURL } from "~/utility";
 
 const suppressablePromptTypes = ["prompt", "confirm", "alert"] as const satisfies ActivePrompt["type"][];
+
+type JsDialogActivePrompt = Extract<ActivePrompt, { type: "prompt" | "confirm" | "alert" }>;
+type BasicAuthActivePrompt = Extract<ActivePrompt, { type: "basic-auth" }>;
 
 interface WebPromptsProps {
   anchorRef: React.RefObject<HTMLDivElement | null>;
 }
 
-function JavaScriptDialogCard({ prompt }: { prompt: ActivePrompt }) {
+function JavaScriptDialogCard({ prompt }: { prompt: JsDialogActivePrompt }) {
   const { type } = prompt;
 
   const cardRef = useRef<HTMLDivElement>(null);
@@ -146,6 +149,86 @@ function JavaScriptDialogCard({ prompt }: { prompt: ActivePrompt }) {
   );
 }
 
+function BasicAuthCard({ prompt }: { prompt: BasicAuthActivePrompt }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const usernameRef = useRef<HTMLInputElement | null>(null);
+  const passwordRef = useRef<HTMLInputElement | null>(null);
+
+  const cancel = useCallback(() => {
+    flow.prompts.confirmPrompt(prompt.id, null, false);
+  }, [prompt.id]);
+
+  const confirm = useCallback(() => {
+    const username = usernameRef.current?.value ?? "";
+    const password = passwordRef.current?.value ?? "";
+    const credentials: BasicAuthCredentials = { username, password };
+    flow.prompts.confirmPrompt(prompt.id, credentials, false);
+  }, [prompt.id]);
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const ownerDocument = card.ownerDocument;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+
+      if (e.key === "Escape") {
+        cancel();
+      }
+      if (e.key === "Enter") {
+        confirm();
+      }
+    };
+
+    ownerDocument.addEventListener("keydown", handleKeyDown);
+    return () => {
+      ownerDocument.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [confirm, cancel]);
+
+  const originLabel = prompt.originUrl ? getOriginFromURL(prompt.originUrl) : "This site";
+
+  return (
+    <Card
+      ref={cardRef}
+      className={cn("w-full max-w-md select-none gap-5", "border border-white/25", "shadow-2xl shadow-black/40")}
+    >
+      <CardHeader>
+        <CardTitle>Sign in</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <FieldGroup className="gap-5">
+          <Field>
+            <FieldLabel className="text-muted-foreground">
+              {`${originLabel} is requesting a username and password.`}
+            </FieldLabel>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="basic-auth-user">Username</FieldLabel>
+            <Input id="basic-auth-user" autoFocus autoComplete="username" ref={usernameRef} />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="basic-auth-pass">Password</FieldLabel>
+            <Input id="basic-auth-pass" type="password" autoComplete="current-password" ref={passwordRef} />
+          </Field>
+        </FieldGroup>
+      </CardContent>
+      <CardFooter className="justify-end flex-row gap-2">
+        <Button variant="outline" className="flex-1" onClick={cancel}>
+          Cancel
+          <span className="text-xs text-muted-foreground">Esc</span>
+        </Button>
+        <Button variant="default" className="flex-1" onClick={confirm}>
+          Sign in
+          <span className="text-xs text-muted">↵</span>
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
 const TabWebPrompt = memo(function TabWebPrompt({
   isVisible,
   portalStyle,
@@ -163,11 +246,11 @@ const TabWebPrompt = memo(function TabWebPrompt({
       className="fixed"
       style={portalStyle}
     >
-      <ThemeProvider>
-        <div className={cn("w-full h-full", "bg-black/25 rounded-lg", "flex items-center justify-center")}>
-          <JavaScriptDialogCard prompt={prompt} />
+      <ThemeConsumer>
+        <div className={cn("w-full h-full", "bg-black/25 rounded-md", "flex items-center justify-center")}>
+          {prompt.type === "basic-auth" ? <BasicAuthCard prompt={prompt} /> : <JavaScriptDialogCard prompt={prompt} />}
         </div>
-      </ThemeProvider>
+      </ThemeConsumer>
     </PortalComponent>
   );
 });

@@ -17,6 +17,7 @@ import { initCursorEdgeMonitor } from "@/controllers/windows-controller/utils/cu
 import { cleanupStaleEphemeralProfiles } from "@/controllers/profiles-controller/ephemeral";
 import { initTabSync } from "@/controllers/tabs-controller/tab-sync";
 import { pinnedTabsController } from "@/controllers/pinned-tabs-controller";
+import { setupBasicAuthHandler } from "@/app/basic-auth";
 
 async function bootstrapBrowser() {
   await cleanupStaleEphemeralProfiles().catch((error) => {
@@ -49,6 +50,9 @@ async function bootstrapBrowser() {
 
   // App lifecycle events
   setupAppLifecycle();
+
+  // Handle app.on("login") events (basic auth)
+  setupBasicAuthHandler();
 }
 
 void bootstrapBrowser();
