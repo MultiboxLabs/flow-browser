@@ -34,7 +34,8 @@ function stripHttpProtocol(url: string): string {
 // If there is no current url, show URL after 500ms
 // If there is a current url, switch to new url instantly
 // If there is a current url and new url is empty, wait 500ms and then switch to empty url
-function useDelayedUrl(url: string = ""): string {
+// If the focused tab id changes, update the url immediately
+function useDelayedUrl(url: string = "", focusedTabId: number | null = null): string {
   const [showing, setShowing] = useState(false);
 
   const lastUrl = useRef("");
@@ -44,6 +45,7 @@ function useDelayedUrl(url: string = ""): string {
   }
 
   const timerRef = useRef<{ timeout: NodeJS.Timeout; type: "show" | "hide" } | null>(null);
+  const lastFocusedTabId = useRef<number | null>(null);
   const removeTimer = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current.timeout);
@@ -51,26 +53,42 @@ function useDelayedUrl(url: string = ""): string {
     timerRef.current = null;
   }, []);
   useEffect(() => {
+    const sameTab = lastFocusedTabId.current === focusedTabId;
+    if (!sameTab) {
+      lastFocusedTabId.current = focusedTabId;
+    }
+    const shouldUseTimeout = sameTab;
+
     if (!showing && newUrl) {
       if (!timerRef.current || timerRef.current.type !== "show") {
         removeTimer();
-        const timeout = setTimeout(() => {
+        const callback = () => {
           setShowing(true);
-        }, 500);
-        timerRef.current = { timeout, type: "show" };
+        };
+        if (shouldUseTimeout) {
+          const timeout = setTimeout(callback, 500);
+          timerRef.current = { timeout, type: "show" };
+        } else {
+          callback();
+        }
       }
     } else if (showing && !newUrl) {
       if (!timerRef.current || timerRef.current.type !== "hide") {
         removeTimer();
-        const timeout = setTimeout(() => {
+        const callback = () => {
           setShowing(false);
-        }, 500);
-        timerRef.current = { timeout, type: "hide" };
+        };
+        if (shouldUseTimeout) {
+          const timeout = setTimeout(callback, 500);
+          timerRef.current = { timeout, type: "hide" };
+        } else {
+          callback();
+        }
       }
     } else {
       removeTimer();
     }
-  }, [newUrl, showing, removeTimer]);
+  }, [newUrl, showing, removeTimer, focusedTabId]);
 
   useUnmount(() => {
     removeTimer();
@@ -122,7 +140,7 @@ export function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
 
   const focusedTabId = currentSpace ? getFocusedTabId(currentSpace.id) : null;
   const currentUrl = focusedTabId != null ? urlsByTabId.get(focusedTabId) : undefined;
-  const url = useDelayedUrl(currentUrl);
+  const url = useDelayedUrl(currentUrl, focusedTabId);
 
   const portalStyle = useMemo((): CSSProperties | null => {
     if (!anchorRect || !url) return null;
@@ -160,7 +178,8 @@ export function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
       className="fixed"
       style={lastPortalStyle.current ?? {}}
     >
-      <AnimatePresence onExitComplete={() => setUrlPresent(false)}>
+      {/* key={focusedTabId} so the component re-creates WITHOUT the animation on tab change */}
+      <AnimatePresence key={focusedTabId} onExitComplete={() => setUrlPresent(false)}>
         {url && (
           <motion.div
             initial={{ opacity: 0 }}
