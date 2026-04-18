@@ -9,6 +9,7 @@ import { ViewLayer } from "~/layers";
 import type { TabTargetUrlUpdate } from "~/types/tabs";
 import { AnimatePresence, motion } from "motion/react";
 import { useUnmount } from "react-use";
+import { MailIcon } from "lucide-react";
 
 const PADDING = 8;
 const BAR_HEIGHT = 28;
@@ -23,25 +24,44 @@ const TARGET_URL_INDICATOR_FONT = "600 12px system-ui, Avenir, Helvetica, Arial,
 /** Horizontal padding (`px-2` × 2) + border (1px × 2). */
 const TARGET_URL_HORIZONTAL_CHROME_PX = 16 + 2;
 
+const MAIL_EXTRA_WIDTH = 16 + 6; // MailIcon size (16px) + gap (6px)
+
 interface TargetUrlIndicatorProps {
   anchorRef: React.RefObject<HTMLDivElement | null>;
 }
 
-function stripHttpProtocol(url: string): string {
-  return url.replace(/^https?:\/\//i, "");
+type CommonProtocolType = "http" | "mailto";
+function stripCommonProtocols(url: string): { protocolType: CommonProtocolType | null; strippedUrl: string } {
+  let protocolType: CommonProtocolType | null = null;
+  let newUrl = url;
+
+  const strippedHttp = url.replace(/^https?:\/\//i, "");
+  const strippedMailto = url.replace(/^mailto:/i, "");
+  if (strippedHttp !== url) {
+    protocolType = "http";
+    newUrl = strippedHttp;
+  } else if (strippedMailto !== url) {
+    protocolType = "mailto";
+    newUrl = strippedMailto;
+  }
+
+  return { protocolType, strippedUrl: newUrl };
 }
 
 // If there is no current url, show URL after 500ms
 // If there is a current url, switch to new url instantly
 // If there is a current url and new url is empty, wait 500ms and then switch to empty url
 // If the focused tab id changes, update the url immediately
-function useDelayedUrl(url: string = "", focusedTabId: number | null = null): string {
+function useDelayedUrl(url: string = "", focusedTabId: number | null = null) {
   const [showing, setShowing] = useState(false);
 
   const lastUrl = useRef("");
+  const lastProtocolType = useRef<CommonProtocolType | null>(null);
   const newUrl = url.trim();
   if (newUrl !== "") {
-    lastUrl.current = stripHttpProtocol(newUrl);
+    const { protocolType, strippedUrl } = stripCommonProtocols(newUrl);
+    lastUrl.current = strippedUrl;
+    lastProtocolType.current = protocolType;
   }
 
   const timerRef = useRef<{ timeout: NodeJS.Timeout; type: "show" | "hide" } | null>(null);
@@ -94,7 +114,10 @@ function useDelayedUrl(url: string = "", focusedTabId: number | null = null): st
     removeTimer();
   });
 
-  return showing ? lastUrl.current : "";
+  return {
+    url: showing ? lastUrl.current : "",
+    protocolType: lastProtocolType.current
+  };
 }
 
 /**
@@ -140,14 +163,19 @@ export function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
 
   const focusedTabId = currentSpace ? getFocusedTabId(currentSpace.id) : null;
   const currentUrl = focusedTabId != null ? urlsByTabId.get(focusedTabId) : undefined;
-  const url = useDelayedUrl(currentUrl, focusedTabId);
+  const { url, protocolType } = useDelayedUrl(currentUrl, focusedTabId);
 
   const portalStyle = useMemo((): CSSProperties | null => {
     if (!anchorRect || !url) return null;
 
+    let extraWidth = 0;
+    if (protocolType === "mailto") {
+      extraWidth += MAIL_EXTRA_WIDTH;
+    }
+
     const prepared = prepareWithSegments(url, TARGET_URL_INDICATOR_FONT);
     const textWidth = measureNaturalWidth(prepared);
-    const naturalBarWidth = Math.ceil(textWidth + TARGET_URL_HORIZONTAL_CHROME_PX);
+    const naturalBarWidth = Math.ceil(textWidth + TARGET_URL_HORIZONTAL_CHROME_PX + extraWidth);
     const maxWidth = anchorRect.width * 0.6;
     const barWidth = Math.min(naturalBarWidth, maxWidth);
     if (barWidth <= 0) return null;
@@ -158,7 +186,7 @@ export function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
       width: barWidth,
       height: BAR_HEIGHT
     };
-  }, [anchorRect, url]);
+  }, [anchorRect, url, protocolType]);
   const lastPortalStyle = useRef<CSSProperties | null>(null);
   if (portalStyle) {
     lastPortalStyle.current = portalStyle;
@@ -187,13 +215,14 @@ export function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12, ease: "easeInOut" }}
             className={cn(
-              "flex h-full w-full items-end justify-start",
+              "flex h-full w-full items-end justify-start gap-1.5",
               "pointer-events-none select-none",
               "rounded-full px-2 py-1 text-xs",
               "border border-sidebar-border/25",
               "space-background-dark text-white/80"
             )}
           >
+            {protocolType === "mailto" && <MailIcon className="size-4" />}
             <span className="min-w-0 max-w-full truncate font-semibold">{url}</span>
           </motion.div>
         )}
