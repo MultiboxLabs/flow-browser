@@ -1,3 +1,4 @@
+import { measureNaturalWidth, prepareWithSegments } from "@chenglou/pretext";
 import { memo, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { PortalComponent } from "@/components/portal/portal";
 import { useBoundingRect } from "@/hooks/use-bounding-rect";
@@ -9,6 +10,16 @@ import type { TabTargetUrlUpdate } from "~/types/tabs";
 
 const PADDING = 8;
 const BAR_HEIGHT = 28;
+
+/**
+ * Must match inherited UI text: `:root` in `src/renderer/src/index.css` sets
+ * `system-ui, Avenir, Helvetica, Arial, sans-serif` — Inter is bundled but is
+ * not the default body font. `text-xs` → 12px; `font-semibold` → 600.
+ */
+const TARGET_URL_INDICATOR_FONT = "600 12px system-ui, Avenir, Helvetica, Arial, sans-serif";
+
+/** Horizontal padding (`px-2` × 2) + border (1px × 2). */
+const TARGET_URL_HORIZONTAL_CHROME_PX = 16 + 2;
 
 interface TargetUrlIndicatorProps {
   anchorRef: React.RefObject<HTMLDivElement | null>;
@@ -60,7 +71,14 @@ function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
 
   const portalStyle = useMemo((): CSSProperties | null => {
     if (!anchorRect || !url) return null;
-    const barWidth = Math.max(120, anchorRect.width * 0.6);
+
+    const prepared = prepareWithSegments(url, TARGET_URL_INDICATOR_FONT);
+    const textWidth = measureNaturalWidth(prepared);
+    const naturalBarWidth = Math.ceil(textWidth + TARGET_URL_HORIZONTAL_CHROME_PX);
+    const maxWidth = anchorRect.width * 0.6;
+    const barWidth = Math.min(naturalBarWidth, maxWidth);
+    if (barWidth <= 0) return null;
+
     return {
       left: anchorRect.left + PADDING,
       bottom: window.innerHeight - anchorRect.bottom + PADDING,
