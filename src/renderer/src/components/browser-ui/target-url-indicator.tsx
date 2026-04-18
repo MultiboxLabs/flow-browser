@@ -81,10 +81,10 @@ function useDelayedUrl(url: string = "", focusedTabId: number | null = null) {
     if (!sameTab) {
       lastFocusedTabId.current = focusedTabId;
     }
-    const shouldUseTimeout = sameTab;
 
+    const shouldUseTimeout = sameTab;
     if (!showing && newUrl) {
-      if (!timerRef.current || timerRef.current.type !== "show") {
+      if (!timerRef.current || timerRef.current.type !== "show" || !shouldUseTimeout) {
         removeTimer();
         const callback = () => {
           setShowing(true);
@@ -97,7 +97,7 @@ function useDelayedUrl(url: string = "", focusedTabId: number | null = null) {
         }
       }
     } else if (showing && !newUrl) {
-      if (!timerRef.current || timerRef.current.type !== "hide") {
+      if (!timerRef.current || timerRef.current.type !== "hide" || !shouldUseTimeout) {
         removeTimer();
         const callback = () => {
           setShowing(false);
