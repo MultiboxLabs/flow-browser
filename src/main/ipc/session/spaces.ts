@@ -25,9 +25,7 @@ ipcMain.handle("spaces:update", async (_event, profileId: string, spaceId: strin
   return await spacesController.update(profileId, spaceId, spaceData);
 });
 
-ipcMain.handle("spaces:set-using", async (event, profileId: string, spaceId: string) => {
-  const window = browserWindowsController.getWindowFromWebContents(event.sender);
-
+export async function setUsingSpace(window: BrowserWindow | null, profileId: string, spaceId: string) {
   if (window) {
     const canSwitch = await canUserSwitchWindowSpace(window, profileId, spaceId);
     if (!canSwitch) {
@@ -37,6 +35,10 @@ ipcMain.handle("spaces:set-using", async (event, profileId: string, spaceId: str
   }
 
   return await spacesController.setLastUsed(profileId, spaceId);
+}
+ipcMain.handle("spaces:set-using", async (event, profileId: string, spaceId: string) => {
+  const window = browserWindowsController.getWindowFromWebContents(event.sender);
+  return await setUsingSpace(window, profileId, spaceId);
 });
 
 ipcMain.handle("spaces:get-using", async (event) => {

@@ -2,7 +2,7 @@ import { MenuItemConstructorOptions, nativeImage, NativeImage } from "electron";
 import { getFocusedBrowserWindow } from "../helpers";
 import { settings } from "@/controllers/windows-controller/interfaces/settings";
 import sharp from "sharp";
-import { canUserSwitchWindowSpace, setWindowSpace } from "@/ipc/session/spaces";
+import { setUsingSpace } from "@/ipc/session/spaces";
 import path from "path";
 import { readFile } from "fs/promises";
 import { IconEntry, icons } from "@phosphor-icons/core";
@@ -134,10 +134,7 @@ async function createSpaceMenuItem(
     click: () => {
       const window = getFocusedBrowserWindow();
       if (!window) return;
-      void canUserSwitchWindowSpace(window, space.profileId, space.id).then((canSwitch) => {
-        if (!canSwitch) return;
-        setWindowSpace(window, space.id);
-      });
+      void setUsingSpace(window, space.profileId, space.id);
     },
     ...(iconImage ? { icon: iconImage } : {})
   };
