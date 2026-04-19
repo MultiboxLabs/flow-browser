@@ -152,12 +152,15 @@ function ToastContainer({
               className={cn(
                 "box-border overflow-hidden",
                 "flex items-center",
-                "border border-gray-800/50 dark:border-gray-300/50 rounded-lg",
+                "border rounded-lg",
+                "border-t-gray-800/30 dark:border-t-gray-300/30",
+                "border-x-gray-800/40 dark:border-x-gray-300/40",
+                "border-b-gray-800/50 dark:border-b-gray-300/50",
                 "dimmed-space-background-start"
               )}
               onClick={() => onRemoveToast(activeToast.uid)}
             >
-              <span className="text-white/90 text-center text-[13px] font-medium tracking-[-0.01em] truncate flex-1 leading-none">
+              <span className="text-white/90 text-center text-[13px] font-bold tracking-[-0.01em] truncate flex-1 leading-none">
                 {currentMessage}
               </span>
             </motion.div>
