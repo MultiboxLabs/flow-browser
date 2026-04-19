@@ -16,10 +16,10 @@ const BAR_HEIGHT = 28;
 
 /**
  * Must match inherited UI text: `:root` in `src/renderer/src/index.css` sets
- * `system-ui, Avenir, Helvetica, Arial, sans-serif` — Inter is bundled but is
- * not the default body font. `text-xs` → 12px; `font-semibold` → 600.
+ * `system-ui, Inter, sans-serif` — font defined in `src/renderer/src/index.css`.
+ * `text-xs` → 12px; `font-semibold` → 600.
  */
-const TARGET_URL_INDICATOR_FONT = "600 12px system-ui, Avenir, Helvetica, Arial, sans-serif";
+const TARGET_URL_INDICATOR_FONT = "600 12px system-ui,Inter,sans-serif";
 
 /** Horizontal padding (`px-2` × 2) + border (1px × 2). */
 const TARGET_URL_HORIZONTAL_CHROME_PX = 16 + 2;

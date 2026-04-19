@@ -64,7 +64,7 @@ export const AddressBar = memo(function AddressBar() {
       )}
     >
       {isPlaceholder && <SearchIcon strokeWidth={2} className="h-3.5 shrink-0" />}
-      <p className={cn("font-[inter] text-sm font-medium min-w-0 flex-1 truncate")}>
+      <p className={cn("text-sm font-medium min-w-0 flex-1 truncate")}>
         {isPlaceholder ? "Search or Enter URL..." : simplifiedUrl}
       </p>
       <div className="ml-auto flex items-center gap-0.5 shrink-0">
