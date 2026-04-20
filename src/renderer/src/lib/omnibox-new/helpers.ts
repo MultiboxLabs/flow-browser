@@ -1,5 +1,6 @@
 import { parse as parseTld } from "tldts";
 import type { OmniboxSuggestion } from "./types";
+import { transformUrlToDisplayURL } from "@/lib/url";
 
 export type OmniboxFlush = (items: OmniboxSuggestion[]) => void;
 
@@ -76,8 +77,10 @@ export function isValidUrl(value: string): string | null {
 }
 
 export function generateTitleFromUrl(url: string): string {
+  const displayUrl = transformUrlToDisplayURL(url, false) ?? url;
+
   // strip scheme if it is http or https, `www.` and trailing slashes
-  const trimmed = url.trim();
+  const trimmed = displayUrl.trim();
   if (!trimmed) {
     return "";
   }

@@ -1,3 +1,4 @@
+import { transformPotentialDisplayUrlToUrl } from "@/lib/url";
 import { generateTitleFromUrl } from "./helpers";
 import { getSearchProvider } from "./search-providers";
 import { getCachedUrlTitle } from "./states";
@@ -26,12 +27,13 @@ export function createWebsiteSuggestion(
   overrideTitle: string | null,
   source: OmniboxSuggestionSource
 ): WebsiteSuggestion {
-  const cachedTitle = getCachedUrlTitle(url);
-  const title = overrideTitle ?? cachedTitle ?? generateTitleFromUrl(url);
+  const transformedUrl = transformPotentialDisplayUrlToUrl(url) ?? url;
+  const cachedTitle = getCachedUrlTitle(transformedUrl);
+  const title = overrideTitle ?? cachedTitle ?? generateTitleFromUrl(transformedUrl);
   return {
     type: "website",
     title,
-    url,
+    url: transformedUrl,
     relevance,
     source
   };

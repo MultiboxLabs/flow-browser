@@ -1,3 +1,4 @@
+import { transformUrlToDisplayURL } from "@/lib/url";
 import { FrownIcon, RefreshCwIcon, ArrowLeftIcon, Gamepad2Icon } from "lucide-react";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useMemo } from "react";
@@ -6,6 +7,7 @@ function Page() {
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const errorCode = params.get("errorCode") || "-105";
   const url = params.get("url");
+  const displayUrl = transformUrlToDisplayURL(url ?? "", false) ?? url;
 
   const info = {
     "-6": {
@@ -15,12 +17,12 @@ function Page() {
     },
     "-10": {
       title: "This site can't be reached",
-      description: `The webpage at <b>${url}</b> might be temporarily down or it may have moved permanently to a new web address.`,
+      description: `The webpage at <b>${displayUrl}</b> might be temporarily down or it may have moved permanently to a new web address.`,
       code: "ERR_ACCESS_DENIED"
     },
     "-105": {
       title: "This site can't be reached",
-      description: `<b>${url}</b>'s server IP address could not be found.`,
+      description: `<b>${displayUrl}</b>'s server IP address could not be found.`,
       code: "ERR_NAME_NOT_RESOLVED"
     },
     "-106": {
@@ -30,22 +32,22 @@ function Page() {
     },
     "-108": {
       title: "This site can't be reached",
-      description: `The webpage at <b>${url}</b> might be temporarily down or it may have moved permanently to a new web address.`,
+      description: `The webpage at <b>${displayUrl}</b> might be temporarily down or it may have moved permanently to a new web address.`,
       code: "ERR_ADDRESS_INVALID"
     },
     "-109": {
       title: "This site can't be reached",
-      description: `<b>${url}</b> is unreachable.`,
+      description: `<b>${displayUrl}</b> is unreachable.`,
       code: "ERR_ADDRESS_UNREACHABLE"
     },
     "-300": {
       title: "This site can't be reached",
-      description: `The webpage at <b>${url}</b> might be temporarily down or it may have moved permanently to a new web address.`,
+      description: `The webpage at <b>${displayUrl}</b> might be temporarily down or it may have moved permanently to a new web address.`,
       code: "ERR_INVALID_URL"
     },
     "-379": {
       title: "This site can't be reached",
-      description: `The webpage at <b>${url}</b> might be temporarily down or it may have moved permanently to a new web address.`,
+      description: `The webpage at <b>${displayUrl}</b> might be temporarily down or it may have moved permanently to a new web address.`,
       code: "ERR_HTTP_RESPONSE_CODE_FAILURE"
     }
   };
@@ -81,7 +83,7 @@ function Page() {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-zinc-900 text-gray-800 dark:text-zinc-200 flex flex-col items-center pt-24 px-4 transition-colors duration-300">
-      <title>{url || "Error"}</title>
+      <title>{displayUrl || "Error"}</title>
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}

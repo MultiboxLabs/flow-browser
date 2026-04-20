@@ -1,5 +1,5 @@
 import { useSpaces } from "@/components/providers/spaces-provider";
-import { transformUrl } from "@/lib/url";
+import { transformUrlToDisplayURL } from "@/lib/url";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { TabData, TabGroupData, WindowTabsData } from "~/types/tabs";
 
@@ -361,7 +361,7 @@ export const TabsProvider = ({ children }: TabsProviderProps) => {
   const addressUrl = useMemo(() => {
     if (!focusedTab) return "";
 
-    const transformedUrl = transformUrl(focusedTab.url);
+    const transformedUrl = transformUrlToDisplayURL(focusedTab.url);
     if (transformedUrl === null) {
       return focusedTab.url;
     } else {
