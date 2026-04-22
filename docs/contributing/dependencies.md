@@ -81,6 +81,7 @@ These dependencies are either used in the build process, or they are only used i
 - nuqs - Use for managing query parameters in the URL.
 - @tanstack/react-query - React Query for the frontend.
 - @chenglou/pretext - Calculate text width for the frontend.
+- @base-ui/react - UI Components for the frontend.
 
 ## Tailwind CSS Dependencies for the Frontend
 
