@@ -4,8 +4,8 @@ import { memo, useCallback, useRef, type MouseEvent } from "react";
 import { useAddressUrl, useFocusedTabId } from "@/components/providers/tabs-provider";
 import { simplifyUrl } from "@/lib/url";
 import { PinnedBrowserActions } from "./pinned-browser-actions";
-import { BrowserActionList } from "@/components/browser-ui/browser-sidebar/_components/browser-action-list";
 import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
+import { SiteControls } from "@/components/browser-ui/browser-sidebar/_components/site-controls";
 
 export const AddressBar = memo(function AddressBar() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -70,7 +70,7 @@ export const AddressBar = memo(function AddressBar() {
       <div className="ml-auto flex items-center gap-0.5 shrink-0">
         <PinnedBrowserActions />
         <div>
-          <BrowserActionList />
+          <SiteControls />
         </div>
       </div>
     </div>

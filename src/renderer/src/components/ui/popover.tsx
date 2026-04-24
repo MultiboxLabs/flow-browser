@@ -5,12 +5,14 @@ import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
 
 import { cn } from "@/lib/utils";
 
-export function ArrowSvg(props: React.ComponentProps<"svg">) {
+export type PopoverVariants = "default" | "translucent";
+
+export function ArrowSvg({ variant, ...props }: React.ComponentProps<"svg"> & { variant: PopoverVariants }) {
   return (
     <svg width="20" height="10" viewBox="0 0 20 10" fill="none" {...props}>
       <path
         d="M9.66437 2.60207L4.80758 6.97318C4.07308 7.63423 3.11989 8 2.13172 8H0V10H20V8H18.5349C17.5468 8 16.5936 7.63423 15.8591 6.97318L11.0023 2.60207C10.622 2.2598 10.0447 2.25979 9.66437 2.60207Z"
-        className="fill-popover"
+        className={cn(variant === "default" ? "fill-popover" : "fill-popover/65")}
       />
       {/* Light mode border */}
       <path
@@ -41,12 +43,14 @@ function PopoverContent({
   side = "bottom",
   sideOffset = 4,
   children,
+  variant = "default",
   positionerClassName,
   portalContainer,
   arrow = true,
   ...props
 }: PopoverPrimitive.Popup.Props &
   Pick<PopoverPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset"> & {
+    variant?: PopoverVariants;
     positionerClassName?: string;
     portalContainer?: React.ComponentProps<typeof PopoverPrimitive.Portal>["container"];
     arrow?: boolean;
@@ -58,29 +62,44 @@ function PopoverContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
-        className={cn("isolate z-50", positionerClassName)}
+        className={cn("isolate z-50", variant === "translucent" && "dark", positionerClassName)}
       >
         <PopoverPrimitive.Popup
           data-slot="popover-content"
           className={cn(
             "z-50 w-72",
-            "bg-popover text-popover-foreground",
-            "origin-(--transform-origin) rounded-lg",
+            "text-popover-foreground",
+            "origin-(--transform-origin)",
             "transition-[transform,scale,opacity] duration-150",
             "data-ending-style:scale-90 data-ending-style:opacity-0",
             "data-starting-style:scale-90 data-starting-style:opacity-0",
             "dark:-outline-offset-1",
+            // Rounded corners
+            variant === "default" && "rounded-lg",
+            variant === "translucent" && "rounded-3xl",
+            // Background
+            variant === "default" && "bg-popover",
+            variant === "translucent" && "bg-popover/65 backdrop-blur-sm",
             // Outline
             "outline-1 outline-border dark:outline-gray-500",
             // Shadow
             "shadow-lg shadow-black/25",
+            // Others
+            variant === "translucent" && "p-2.5",
             className
           )}
           {...props}
         >
           {arrow && (
-            <PopoverPrimitive.Arrow className="data-[side=bottom]:top-[-8px] data-[side=left]:right-[-13px] data-[side=left]:rotate-90 data-[side=right]:left-[-13px] data-[side=right]:-rotate-90 data-[side=top]:bottom-[-8px] data-[side=top]:rotate-180">
-              <ArrowSvg />
+            <PopoverPrimitive.Arrow
+              className={cn(
+                "data-[side=bottom]:top-[-8px]",
+                "data-[side=left]:right-[-13px] data-[side=left]:rotate-90",
+                "data-[side=right]:left-[-13px] data-[side=right]:-rotate-90",
+                "data-[side=top]:bottom-[-8px] data-[side=top]:rotate-180"
+              )}
+            >
+              <ArrowSvg variant={variant} />
             </PopoverPrimitive.Arrow>
           )}
           {children}

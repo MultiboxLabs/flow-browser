@@ -11,7 +11,7 @@ import ExtensionDetails from "./components/extension-details";
 import { ExtensionsProvider, useExtensions } from "@/components/providers/extensions-provider";
 import { useQueryState } from "nuqs";
 
-const CHROME_WEB_STORE_URL = "https://chromewebstore.google.com/category/extensions?utm_source=ext_sidebar";
+export const CHROME_WEB_STORE_URL = "https://chromewebstore.google.com/category/extensions?utm_source=ext_sidebar";
 
 function ExtensionsPage() {
   const [isDeveloperMode, setIsDeveloperMode] = useState(false);
