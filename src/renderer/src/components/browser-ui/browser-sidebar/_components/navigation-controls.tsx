@@ -3,9 +3,9 @@ import { ArrowLeftIcon, ArrowLeftIconHandle } from "@/components/icons/arrow-lef
 import { ArrowRightIcon, ArrowRightIconHandle } from "@/components/icons/arrow-right";
 import { useAddressUrl, useFocusedTabId, useFocusedTabLoading } from "@/components/providers/tabs-provider";
 import { useSpaces } from "@/components/providers/spaces-provider";
-import { PortalPopover } from "@/components/portal/popover";
-import { PopoverTrigger } from "@/components/ui/popover";
-import { PopoverListboxItem, PopoverListboxList, usePopoverListbox } from "@/components/ui/popover-listbox";
+import { BubbleEvent } from "@/components/logic/bubble-event";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/portal/baseui-popover";
+import { Command, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { XIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -99,27 +99,18 @@ function NavigationButton({
 }) {
   const { isCurrentSpaceLight } = useSpaces();
   const iconRef = useRef<ArrowLeftIconHandle | ArrowRightIconHandle>(null);
+  const commandRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const { handleMouseDown, handleMouseUp } = usePressAnimation(iconRef);
 
   const onActivateHistory = useCallback(
-    (index: number) => {
+    (entry: NavigationEntryWithIndex) => {
       if (!focusedTabId) return;
-      const entry = entries[index];
-      if (!entry) return;
       flow.navigation.goToNavigationEntry(focusedTabId, entry.index);
       setOpen(false);
     },
-    [entries, focusedTabId]
+    [focusedTabId]
   );
-
-  const listbox = usePopoverListbox({
-    open,
-    itemCount: entries.length,
-    ariaLabel: direction === "back" ? "Back history" : "Forward history",
-    getOptionId: (i) => `nav-history-${direction}-${entries[i]!.index}`,
-    onActivate: onActivateHistory
-  });
 
   const navigate = useCallback(() => {
     if (!focusedTabId || entries.length === 0) return;
@@ -158,21 +149,25 @@ function NavigationButton({
       />
 
       {entries.length > 0 && (
-        <PortalPopover.Root open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger className="absolute inset-0 opacity-0 pointer-events-none" />
-          <PortalPopover.Content
-            className={cn("w-56 p-2", "select-none", spaceInjectedClasses)}
-            {...listbox.contentProps}
-          >
-            <PopoverListboxList listbox={listbox}>
-              {entries.map((entry, index) => (
-                <PopoverListboxItem key={entry.index} index={index}>
-                  <span className="truncate">{entry.title || entry.url}</span>
-                </PopoverListboxItem>
-              ))}
-            </PopoverListboxList>
-          </PortalPopover.Content>
-        </PortalPopover.Root>
+          <PopoverContent className={cn("w-56 p-2 select-none")} positionerClassName={spaceInjectedClasses}>
+            <Command ref={commandRef} loop>
+              <BubbleEvent targetRef={commandRef} eventType="keydown" />
+              <CommandList>
+                {entries.map((entry) => (
+                  <CommandItem
+                    key={entry.index}
+                    value={entry.index.toString()}
+                    onSelect={() => onActivateHistory(entry)}
+                  >
+                    <span className="truncate">{entry.title || entry.url}</span>
+                  </CommandItem>
+                ))}
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       )}
     </div>
   );
