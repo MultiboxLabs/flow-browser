@@ -4,8 +4,29 @@ import { useSpaces } from "@/components/providers/spaces-provider";
 import { Button } from "@/components/ui/button";
 import { Command, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { ArchiveIcon, HistoryIcon, SettingsIcon } from "lucide-react";
+import { ArchiveIcon, HistoryIcon, LucideIcon, SettingsIcon } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+
+function BottomExtrasMenuItem({
+  id,
+  Icon,
+  label,
+  url,
+  onItemSelected
+}: {
+  id: string;
+  Icon: LucideIcon;
+  label: string;
+  url: string;
+  onItemSelected: (url: string) => void;
+}) {
+  return (
+    <CommandItem value={id} onSelect={() => onItemSelected(url)} className="text-black dark:text-white">
+      <Icon className="size-4 text-black dark:text-white" />
+      {label}
+    </CommandItem>
+  );
+}
 
 export function BottomExtrasMenu() {
   const [open, setOpen] = useState(false);
@@ -33,14 +54,20 @@ export function BottomExtrasMenu() {
         <Command ref={commandRef} loop>
           <BubbleEvent targetRef={commandRef} eventType="keydown" />
           <CommandList>
-            <CommandItem value="history" onSelect={() => onItemSelected("flow://history")}>
-              <HistoryIcon className="size-4 text-white" />
-              History
-            </CommandItem>
-            <CommandItem value="settings" onSelect={() => onItemSelected("internal://settings")}>
-              <SettingsIcon className="size-4 text-white" />
-              Settings
-            </CommandItem>
+            <BottomExtrasMenuItem
+              id="history"
+              Icon={HistoryIcon}
+              label="History"
+              url="flow://history"
+              onItemSelected={onItemSelected}
+            />
+            <BottomExtrasMenuItem
+              id="settings"
+              Icon={SettingsIcon}
+              label="Settings"
+              url="internal://settings"
+              onItemSelected={onItemSelected}
+            />
           </CommandList>
         </Command>
       </PopoverContent>
