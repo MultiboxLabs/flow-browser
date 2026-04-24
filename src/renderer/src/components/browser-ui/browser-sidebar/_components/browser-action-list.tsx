@@ -1,8 +1,7 @@
 import { type ActivateEventType, useBrowserAction } from "@/components/providers/browser-action-provider";
 import { useExtensions } from "@/components/providers/extensions-provider";
 import { useSpaces } from "@/components/providers/spaces-provider";
-import { PortalPopover } from "@/components/portal/popover";
-import { PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/portal/baseui-popover";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { CogIcon, LayersIcon, PackageXIcon, PinIcon, PinOffIcon, PuzzleIcon, Settings2Icon } from "lucide-react";
@@ -168,32 +167,30 @@ export function BrowserActionList() {
 
   if (!focusedTab) return null;
   return (
-    <PortalPopover.Root open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        className={cn(
+          "size-6 flex items-center justify-center rounded-md",
+          "hover:bg-black/15 dark:hover:bg-white/20",
+          "transition-colors duration-150",
+          "relative shrink-0"
+        )}
+        onClick={(event) => {
+          event.stopPropagation();
+        }}
+      >
+        <div
           className={cn(
-            "size-6 flex items-center justify-center rounded-md",
-            "hover:bg-black/15 dark:hover:bg-white/20",
-            "transition-colors duration-150",
-            "relative shrink-0"
+            "size-4 border rounded-[4px]",
+            "border-black/80 dark:border-white/80",
+            "text-black/80 dark:text-white/80",
+            "flex items-center justify-center"
           )}
-          onClick={(event) => {
-            event.stopPropagation();
-          }}
         >
-          <div
-            className={cn(
-              "size-4 border rounded-[4px]",
-              "border-black/80 dark:border-white/80",
-              "text-black/80 dark:text-white/80",
-              "flex items-center justify-center"
-            )}
-          >
-            <Settings2Icon strokeWidth={2} className="size-3" />
-          </div>
-        </button>
+          <Settings2Icon strokeWidth={2} className="size-3" />
+        </div>
       </PopoverTrigger>
-      <PortalPopover.Content className={cn("w-56 p-2 select-none", spaceInjectedClasses)}>
+      <PopoverContent className={cn("w-56 p-2 select-none")} positionerClassName={spaceInjectedClasses}>
         {!noActiveTab &&
           !noActions &&
           actions.map((action) => (
@@ -225,7 +222,7 @@ export function BrowserActionList() {
           <CogIcon className="size-4 shrink-0" />
           <span className="font-medium truncate">Manage Extensions</span>
         </button>
-      </PortalPopover.Content>
-    </PortalPopover.Root>
+      </PopoverContent>
+    </Popover>
   );
 }
