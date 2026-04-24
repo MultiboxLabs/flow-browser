@@ -1,5 +1,5 @@
 import { BubbleEvent } from "@/components/logic/bubble-event";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/portal/baseui-popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/portal/popover";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { Button } from "@/components/ui/button";
 import { Command, CommandItem, CommandList } from "@/components/ui/command";

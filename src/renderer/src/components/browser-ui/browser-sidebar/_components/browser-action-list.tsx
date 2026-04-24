@@ -1,7 +1,7 @@
 import { type ActivateEventType, useBrowserAction } from "@/components/providers/browser-action-provider";
 import { useExtensions } from "@/components/providers/extensions-provider";
 import { useSpaces } from "@/components/providers/spaces-provider";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/portal/baseui-popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/portal/popover";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { CogIcon, LayersIcon, PackageXIcon, PinIcon, PinOffIcon, PuzzleIcon, Settings2Icon } from "lucide-react";

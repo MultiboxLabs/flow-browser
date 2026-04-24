@@ -4,7 +4,7 @@ import { ArrowRightIcon, ArrowRightIconHandle } from "@/components/icons/arrow-r
 import { useAddressUrl, useFocusedTabId, useFocusedTabLoading } from "@/components/providers/tabs-provider";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { BubbleEvent } from "@/components/logic/bubble-event";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/portal/baseui-popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/portal/popover";
 import { Command, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { XIcon } from "lucide-react";

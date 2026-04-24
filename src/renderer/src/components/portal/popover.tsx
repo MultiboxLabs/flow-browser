@@ -1,11 +1,11 @@
 import { useOptionalBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
 import { PortalComponent } from "@/components/portal/portal";
-import { Popover as BasePopover, PopoverContent as BasePopoverContent } from "@/components/ui/baseui-popover";
+import { Popover as BasePopover, PopoverContent as BasePopoverContent } from "@/components/ui/popover";
 import { type PopoverRootChangeEventDetails } from "@base-ui/react";
 import { createContext, useContext, useEffect, useId, useRef, useState } from "react";
 import { ViewLayer } from "~/layers";
 
-export { PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger } from "@/components/ui/baseui-popover";
+export { PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
 
 interface PopoverContextType {
   open: boolean;
