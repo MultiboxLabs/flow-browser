@@ -31,6 +31,7 @@ import { PinnedTabsProvider } from "@/components/providers/pinned-tabs-provider"
 import BrowserContent from "@/components/browser-ui/browser-content";
 import { TargetUrlIndicator } from "@/components/browser-ui/target-url-indicator";
 import { TabCycleOverlay } from "@/components/browser-ui/tab-cycle-overlay";
+import { PortalComponent } from "@/components/portal/portal";
 import { FindInPage } from "@/components/browser-ui/find-in-page";
 import { PasskeyConditionalUI } from "@/components/browser-ui/passkey-conditional-ui";
 import { WebPrompts } from "@/components/browser-ui/web-prompts";
@@ -42,6 +43,7 @@ import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-contr
 import { usePlatform } from "@/components/main/platform";
 import type { BrowserUIType } from "./types";
 import type { TabCycleOverlayPayload } from "~/types/tabs";
+import { ViewLayer } from "~/layers";
 
 function SidebarResizeHandle() {
   const [isDown, setIsDown] = useState(false);
@@ -260,7 +262,11 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
               "app-drag"
             )}
           >
-            {tabCycleOverlay && <TabCycleOverlay overlay={tabCycleOverlay} />}
+            {tabCycleOverlay && (
+              <PortalComponent visible zIndex={ViewLayer.OVERLAY} className="fixed inset-0 w-screen h-screen">
+                <TabCycleOverlay overlay={tabCycleOverlay} />
+              </PortalComponent>
+            )}
             <ResizablePanelGroupWithProvider direction="horizontal" className="flex-1 flex flex-col!">
               <AdaptiveTopbar />
               <div

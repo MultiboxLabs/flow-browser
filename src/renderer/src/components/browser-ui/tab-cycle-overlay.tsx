@@ -14,7 +14,7 @@ export function TabCycleOverlay({ overlay }: TabCycleOverlayProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/45 backdrop-blur-[2px] pointer-events-none"
+      className="flex h-full w-full items-center justify-center bg-black/45 backdrop-blur-[2px] pointer-events-none"
       aria-hidden
     >
       <div
