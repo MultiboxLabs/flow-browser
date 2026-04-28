@@ -267,7 +267,8 @@ export function portalTabCycleStep(windowId: number, backward: boolean): void {
 }
 
 export function portalTabCycleControlReleased(windowId: number): void {
-  if (!sessions.has(windowId)) return;
+  const session = sessions.get(windowId);
+  if (!session?.uiShown) return;
   endTabCycleSession(windowId, { activate: true });
 }
 
@@ -297,8 +298,9 @@ function attachTabCycleHandlers(wc: WebContents) {
 
       const session = sessions.get(window.id);
       if (session?.uiShown) {
-        // Tab cycling while overlay is focused: handled by portal DOM + IPC.
+        // Overlay is open but focus may still be on the tab WebContents — cycle here too.
         event.preventDefault();
+        portalTabCycleStep(window.id, input.shift);
         return;
       }
 

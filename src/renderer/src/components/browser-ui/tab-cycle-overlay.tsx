@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { TabCycleOverlayPayload } from "~/types/tabs";
-import { useEffect, useRef } from "react";
+import { useCallback, useRef } from "react";
 
 type TabCycleOverlayProps = {
   overlay: TabCycleOverlayPayload;
@@ -20,18 +20,22 @@ function isControlKeyRelease(e: KeyboardEvent): boolean {
 }
 
 /**
- * Listens on the portal `window` (via a node in the portal tree: `ref.current.ownerDocument.defaultView`)
- * so Control keyup is visible — `before-input-event` on the tab does not fire while the portal has focus.
+ * When focus is in the portal child window, key events are delivered there — not to the
+ * tab WebContents. Attach capture listeners on that window (via ref in the portaled tree).
+ * If `ownerDocument` is still the opener, skip (listeners would duplicate the parent).
  */
 export function TabCycleOverlay({ overlay }: TabCycleOverlayProps) {
   const { tabs, cycleIndex } = overlay;
   const selectedIndex = ((cycleIndex % tabs.length) + tabs.length) % tabs.length;
-  const rootRef = useRef<HTMLDivElement>(null);
+  const detachRef = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
-    const el = rootRef.current;
-    const portalWindow = el?.ownerDocument?.defaultView;
-    if (!portalWindow) return;
+  const attachToPortalRoot = useCallback((el: HTMLDivElement | null) => {
+    detachRef.current?.();
+    detachRef.current = null;
+    if (!el) return;
+
+    const portalWindow = el.ownerDocument.defaultView;
+    if (!portalWindow || portalWindow === window) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
@@ -51,7 +55,7 @@ export function TabCycleOverlay({ overlay }: TabCycleOverlayProps) {
     portalWindow.addEventListener("keydown", onKeyDown, true);
     portalWindow.addEventListener("keyup", onKeyUp, true);
 
-    return () => {
+    detachRef.current = () => {
       portalWindow.removeEventListener("keydown", onKeyDown, true);
       portalWindow.removeEventListener("keyup", onKeyUp, true);
     };
@@ -59,7 +63,7 @@ export function TabCycleOverlay({ overlay }: TabCycleOverlayProps) {
 
   return (
     <div
-      ref={rootRef}
+      ref={attachToPortalRoot}
       tabIndex={-1}
       className="flex h-full w-full items-center justify-center bg-black/45 backdrop-blur-[2px] outline-none"
       aria-hidden
