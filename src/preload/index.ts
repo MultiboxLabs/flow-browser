@@ -13,7 +13,7 @@ import type { SpaceData } from "@/controllers/spaces-controller";
 
 // SHARED TYPES //
 import type { SharedExtensionData } from "~/types/extensions";
-import type { TabData, WindowTabsData } from "~/types/tabs";
+import type { TabCycleOverlayPayload, TabData, WindowTabsData } from "~/types/tabs";
 import type { PinnedTabData } from "~/types/pinned-tabs";
 import type { UpdateStatus } from "~/types/updates";
 import type { WindowState } from "~/flow/types";
@@ -255,6 +255,9 @@ const tabsAPI: FlowTabsAPI = {
   },
   onTargetUrlChanged: (callback) => {
     return listenOnIPCChannel("tabs:on-target-url", callback);
+  },
+  onTabCycleOverlay: (callback: (payload: TabCycleOverlayPayload | null) => void) => {
+    return listenOnIPCChannel("tabs:tab-cycle-overlay", callback);
   },
   switchToTab: async (tabId: number) => {
     return ipcRenderer.invoke("tabs:switch-to-tab", tabId);

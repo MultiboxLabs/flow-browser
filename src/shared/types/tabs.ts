@@ -135,3 +135,19 @@ export type TabTargetUrlUpdate = {
   windowId: number;
   url: string;
 };
+
+/** Ctrl+Tab MRU switcher row item (main process → core renderer). */
+export type TabCycleOverlayTab = {
+  tabId: number;
+  title: string;
+  faviconURL: string | null;
+  snapshotUrl: string | null;
+};
+
+export type TabCycleOverlayPayload = {
+  windowId: number;
+  spaceId: string;
+  mruTabIds: number[];
+  cycleIndex: number;
+  tabs: TabCycleOverlayTab[];
+};

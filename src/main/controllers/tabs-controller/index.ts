@@ -1072,6 +1072,10 @@ class TabsController extends TypedEventEmitter<TabsControllerEvents> {
    * Get activatable items in visual order for a window-space.
    * Grouped tabs are represented by their group, not as standalone tabs.
    */
+  public getOrderedActivatableItems(windowId: number, spaceId: string): (Tab | TabGroup)[] {
+    return this.getOrderedTabOrGroups(windowId, spaceId);
+  }
+
   private getOrderedTabOrGroups(windowId: number, spaceId: string): (Tab | TabGroup)[] {
     const groupsInSpace = this.getTabGroupsInWindow(windowId).filter(
       (group) => group.spaceId === spaceId && !group.isDestroyed && group.tabs.length > 0

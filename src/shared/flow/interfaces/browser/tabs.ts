@@ -1,5 +1,12 @@
 import { IPCListener } from "~/flow/types";
-import { RecentlyClosedTabData, TabData, TabPlaceholderUpdate, TabTargetUrlUpdate, WindowTabsData } from "~/types/tabs";
+import {
+  RecentlyClosedTabData,
+  TabCycleOverlayPayload,
+  TabData,
+  TabPlaceholderUpdate,
+  TabTargetUrlUpdate,
+  WindowTabsData
+} from "~/types/tabs";
 
 // API //
 export interface FlowTabsAPI {
@@ -39,6 +46,11 @@ export interface FlowTabsAPI {
    * `url` is empty when the cursor leaves a link or the tab is torn down.
    */
   onTargetUrlChanged: IPCListener<[TabTargetUrlUpdate]>;
+
+  /**
+   * Ctrl+Tab MRU switcher overlay (null clears). Fired from the main process.
+   */
+  onTabCycleOverlay: IPCListener<[TabCycleOverlayPayload | null]>;
 
   /**
    * Switch to a tab

@@ -30,6 +30,7 @@ import { ActionsProvider } from "@/components/providers/actions-provider";
 import { PinnedTabsProvider } from "@/components/providers/pinned-tabs-provider";
 import BrowserContent from "@/components/browser-ui/browser-content";
 import { TargetUrlIndicator } from "@/components/browser-ui/target-url-indicator";
+import { TabCycleOverlay } from "@/components/browser-ui/tab-cycle-overlay";
 import { FindInPage } from "@/components/browser-ui/find-in-page";
 import { PasskeyConditionalUI } from "@/components/browser-ui/passkey-conditional-ui";
 import { WebPrompts } from "@/components/browser-ui/web-prompts";
@@ -40,6 +41,7 @@ import { AddressBar } from "@/components/browser-ui/browser-sidebar/_components/
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
 import { usePlatform } from "@/components/main/platform";
 import type { BrowserUIType } from "./types";
+import type { TabCycleOverlayPayload } from "~/types/tabs";
 
 function SidebarResizeHandle() {
   const [isDown, setIsDown] = useState(false);
@@ -234,6 +236,12 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
   const { mode: sidebarMode, attachedDirection } = useBrowserSidebar();
   const { topbarVisible, topbarHeight } = useAdaptiveTopbar();
   const browserContentAnchorRef = useRef<HTMLDivElement>(null);
+  const [tabCycleOverlay, setTabCycleOverlay] = useState<TabCycleOverlayPayload | null>(null);
+
+  useEffect(() => {
+    if (!flow) return;
+    return flow.tabs.onTabCycleOverlay(setTabCycleOverlay);
+  }, []);
 
   const hasSidebar = type === "main";
 
@@ -252,6 +260,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
               "app-drag"
             )}
           >
+            {tabCycleOverlay && <TabCycleOverlay overlay={tabCycleOverlay} />}
             <ResizablePanelGroupWithProvider direction="horizontal" className="flex-1 flex flex-col!">
               <AdaptiveTopbar />
               <div
