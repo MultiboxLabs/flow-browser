@@ -1,9 +1,11 @@
 // Ctrl+Tab MRU tab switcher: first Tab while Control is held defers activation until
 // Control is released (instant tap switches once with no overlay). A second Tab opens
 // the overlay and cycles; releasing Control activates the selected tab.
+//
+// When the overlay uses PortalComponent, focus moves to the portal WebContents — we
+// register the same before-input handlers there (see registerTabCycleWebContents).
 
-import { app, webContents, type WebContents } from "electron";
-import { getFocusedBrowserWindow } from "@/controllers/app-menu-controller/menu/helpers";
+import { app, webContents, type WebContents, type Input } from "electron";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { tabsController } from "@/controllers/tabs-controller";
 import { Tab } from "@/controllers/tabs-controller/tab";
@@ -132,8 +134,8 @@ export function endTabCycleSession(windowId: number, opts: { activate: boolean }
 
   clearSnapshotIds(session);
   sessions.delete(windowId);
-  const win = getFocusedBrowserWindow();
-  if (win?.id === windowId) {
+  const win = browserWindowsController.getWindowById(windowId) as BrowserWindow | null;
+  if (win && !win.destroyed) {
     sendOverlayUpdate(win, null);
   }
 }
@@ -237,56 +239,69 @@ function startOrContinueSession(window: BrowserWindow, spaceId: string, backward
   void ensureUiPayload(window, session);
 }
 
-function onControlReleased(wc: WebContents) {
+function onControlReleasedFromSender(wc: WebContents) {
   const windowFromSender = browserWindowsController.getWindowFromWebContents(wc);
-  if (!windowFromSender) return;
+  if (!windowFromSender || windowFromSender.type !== "browser") return;
 
-  const session = sessions.get(windowFromSender.id);
-  if (!session) return;
+  const browserWin = windowFromSender as BrowserWindow;
+  if (!sessions.has(browserWin.id)) return;
 
-  endTabCycleSession(windowFromSender.id, { activate: true });
+  endTabCycleSession(browserWin.id, { activate: true });
 }
 
-function registerTabCycleSessionHandlers(wc: WebContents) {
+function attachTabCycleHandlers(wc: WebContents) {
+  const onBeforeInput = (event: { preventDefault: () => void }, input: Input) => {
+    if (input.type === "keyDown" && input.key === "Tab" && input.control && !input.meta) {
+      if (input.isAutoRepeat) {
+        return;
+      }
+
+      const baseWindow = browserWindowsController.getWindowFromWebContents(wc);
+      if (!baseWindow || baseWindow.type !== "browser") return;
+
+      const window = baseWindow as BrowserWindow;
+      const spaceId = window.currentSpaceId;
+      if (!spaceId) return;
+
+      event.preventDefault();
+      startOrContinueSession(window, spaceId, input.shift);
+      return;
+    }
+
+    if (input.type === "keyUp" && input.key === "Control" && input.control) {
+      const win = browserWindowsController.getWindowFromWebContents(wc);
+      if (!win || win.type !== "browser") return;
+      if (!sessions.has(win.id)) return;
+      event.preventDefault();
+      onControlReleasedFromSender(wc);
+    }
+  };
+
+  wc.on("before-input-event", onBeforeInput);
+
+  wc.once("destroyed", () => {
+    wc.removeListener("before-input-event", onBeforeInput);
+    registeredWebContentIds.delete(wc.id);
+  });
+}
+
+/**
+ * Register Ctrl+Tab / Control-release handlers on this WebContents (tab page,
+ * main chrome, or portal overlay). Idempotent per wc.id.
+ */
+export function registerTabCycleWebContents(wc: WebContents) {
   if (registeredWebContentIds.has(wc.id)) return;
   registeredWebContentIds.add(wc.id);
-
-  wc.on("before-input-event", (event, input) => {
-    if (input.type !== "keyDown" || input.key !== "Tab" || !input.control || input.meta) {
-      return;
-    }
-
-    if (input.isAutoRepeat) {
-      return;
-    }
-
-    const window = getFocusedBrowserWindow();
-    const spaceId = window?.currentSpaceId;
-    if (!window || !spaceId) return;
-
-    event.preventDefault();
-
-    startOrContinueSession(window, spaceId, input.shift);
-  });
-
-  wc.on("before-input-event", (event, input) => {
-    if (input.type !== "keyUp" || input.key !== "Control" || !input.control) {
-      return;
-    }
-    const win = browserWindowsController.getWindowFromWebContents(wc);
-    if (!win || !sessions.has(win.id)) return;
-    event.preventDefault();
-    onControlReleased(wc);
-  });
+  attachTabCycleHandlers(wc);
 }
 
 function scan() {
   webContents.getAllWebContents().forEach((wc) => {
-    registerTabCycleSessionHandlers(wc);
+    registerTabCycleWebContents(wc);
   });
 }
 
 scan();
 app.on("web-contents-created", (_event, wc) => {
-  registerTabCycleSessionHandlers(wc);
+  registerTabCycleWebContents(wc);
 });
