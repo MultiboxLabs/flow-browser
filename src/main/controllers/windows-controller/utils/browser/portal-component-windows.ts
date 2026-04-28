@@ -1,5 +1,4 @@
 import { BrowserWindow } from "@/controllers/windows-controller/types";
-import { registerTabCycleWebContents } from "@/controllers/windows-controller/utils/tab-cycle-session";
 import { debugPrint } from "@/modules/output";
 import { ViewLayer } from "~/layers";
 import { ipcMain, IpcMainEvent, WebContentsView } from "electron";
@@ -56,7 +55,6 @@ export function initializePortalComponentWindows(browserWindow: BrowserWindow) {
         });
 
         componentViews[componentId] = componentView;
-        registerTabCycleWebContents(webContents);
         return webContents;
       }
     };

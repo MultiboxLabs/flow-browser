@@ -53,6 +53,16 @@ export interface FlowTabsAPI {
   onTabCycleOverlay: IPCListener<[TabCycleOverlayPayload | null]>;
 
   /**
+   * While the tab-cycle overlay is open: advance MRU (portal DOM forwards Ctrl+Tab).
+   */
+  tabCyclePortalStep: (backward: boolean) => Promise<boolean>;
+
+  /**
+   * While the tab-cycle overlay is open: user released Control (portal DOM).
+   */
+  tabCyclePortalControlReleased: () => Promise<boolean>;
+
+  /**
    * Switch to a tab
    * @param tabId The id of the tab to switch to
    */

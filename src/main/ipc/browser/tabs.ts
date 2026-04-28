@@ -15,6 +15,10 @@ import {
   moveTabOrGroupToWindow,
   runTabSyncMutation
 } from "@/controllers/tabs-controller/tab-sync";
+import {
+  portalTabCycleControlReleased,
+  portalTabCycleStep
+} from "@/controllers/windows-controller/utils/tab-cycle-session";
 
 // IPC Handlers //
 function getWindowTabsData(window: BrowserWindow) {
@@ -523,5 +527,21 @@ ipcMain.handle("tabs:batch-move-tabs", async (event, tabIds: number[], spaceId: 
   // Normalize positions after batch reorder to prevent drift
   tabsController.normalizePositions(window.id, spaceId);
 
+  return true;
+});
+
+/** Portal overlay (DOM) → main: MRU step while Ctrl+Tab overlay is visible */
+ipcMain.handle("tabs:tab-cycle-portal-step", async (event, backward: boolean) => {
+  const win = browserWindowsController.getWindowFromWebContents(event.sender);
+  if (!win || win.type !== "browser") return false;
+  portalTabCycleStep(win.id, backward === true);
+  return true;
+});
+
+/** Portal overlay (DOM) → main: Control released */
+ipcMain.handle("tabs:tab-cycle-portal-control-released", async (event) => {
+  const win = browserWindowsController.getWindowFromWebContents(event.sender);
+  if (!win || win.type !== "browser") return false;
+  portalTabCycleControlReleased(win.id);
   return true;
 });

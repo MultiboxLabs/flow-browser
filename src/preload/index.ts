@@ -259,6 +259,12 @@ const tabsAPI: FlowTabsAPI = {
   onTabCycleOverlay: (callback: (payload: TabCycleOverlayPayload | null) => void) => {
     return listenOnIPCChannel("tabs:tab-cycle-overlay", callback);
   },
+  tabCyclePortalStep: async (backward: boolean) => {
+    return ipcRenderer.invoke("tabs:tab-cycle-portal-step", backward);
+  },
+  tabCyclePortalControlReleased: async () => {
+    return ipcRenderer.invoke("tabs:tab-cycle-portal-control-released");
+  },
   switchToTab: async (tabId: number) => {
     return ipcRenderer.invoke("tabs:switch-to-tab", tabId);
   },

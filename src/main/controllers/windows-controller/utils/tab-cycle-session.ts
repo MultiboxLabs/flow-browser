@@ -2,8 +2,9 @@
 // Control is released (instant tap switches once with no overlay). A second Tab opens
 // the overlay and cycles; releasing Control activates the selected tab.
 //
-// When the overlay uses PortalComponent, focus moves to the portal WebContents — we
-// register the same before-input handlers there (see registerTabCycleWebContents).
+// While the MRU overlay is open (PortalComponent), key repeat is handled in the portal
+// renderer via DOM listeners (ownerDocument.defaultView) and IPC — see
+// tab-cycle-overlay.tsx and portalTabCycleStep / portalTabCycleControlReleased.
 
 import { app, webContents, type WebContents, type Input } from "electron";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
@@ -239,6 +240,37 @@ function startOrContinueSession(window: BrowserWindow, spaceId: string, backward
   void ensureUiPayload(window, session);
 }
 
+/**
+ * Advance MRU selection while the overlay is visible (portal DOM sends Tab; we must not
+ * bump tabPressCount — that is only for the tab WebContents Ctrl+Tab sequence).
+ */
+export function portalTabCycleStep(windowId: number, backward: boolean): void {
+  const window = browserWindowsController.getWindowById(windowId) as BrowserWindow | null;
+  if (!window || window.destroyed) return;
+
+  const session = sessions.get(windowId);
+  if (!session?.uiShown) return;
+
+  const spaceId = window.currentSpaceId;
+  if (!spaceId || session.spaceId !== spaceId) return;
+
+  const n = session.mruTabIds.length;
+  if (n <= 1) return;
+
+  if (backward) {
+    session.cycleIndex = (session.cycleIndex - 1 + n) % n;
+  } else {
+    session.cycleIndex = (session.cycleIndex + 1) % n;
+  }
+
+  void ensureUiPayload(window, session);
+}
+
+export function portalTabCycleControlReleased(windowId: number): void {
+  if (!sessions.has(windowId)) return;
+  endTabCycleSession(windowId, { activate: true });
+}
+
 function onControlReleasedFromSender(wc: WebContents) {
   const windowFromSender = browserWindowsController.getWindowFromWebContents(wc);
   if (!windowFromSender || windowFromSender.type !== "browser") return;
@@ -262,6 +294,13 @@ function attachTabCycleHandlers(wc: WebContents) {
       const window = baseWindow as BrowserWindow;
       const spaceId = window.currentSpaceId;
       if (!spaceId) return;
+
+      const session = sessions.get(window.id);
+      if (session?.uiShown) {
+        // Tab cycling while overlay is focused: handled by portal DOM + IPC.
+        event.preventDefault();
+        return;
+      }
 
       event.preventDefault();
       startOrContinueSession(window, spaceId, input.shift);
