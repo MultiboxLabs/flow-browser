@@ -70,11 +70,11 @@ export function TabCycleOverlay({ overlay }: TabCycleOverlayProps) {
     >
       <div
         className={cn(
-          "pointer-events-none max-w-[min(96vw,1200px)] rounded-3xl border border-white/12",
-          "bg-zinc-900/85 px-6 py-5 shadow-2xl shadow-black/50"
+          "pointer-events-none max-w-[min(96vw,1200px)] rounded-4xl border border-white/12",
+          "bg-zinc-900/85 p-4 shadow-2xl shadow-black/50"
         )}
       >
-        <div className="flex flex-row items-end justify-center gap-3 overflow-x-auto pb-1">
+        <div className="flex flex-row items-end justify-center gap-3 overflow-x-auto p-0.5">
           {tabs.map((tab, index) => {
             const selected = index === selectedIndex;
             return (

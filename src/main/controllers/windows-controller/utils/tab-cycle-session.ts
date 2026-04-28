@@ -299,8 +299,8 @@ function attachTabCycleHandlers(wc: WebContents) {
       const session = sessions.get(window.id);
       if (session?.uiShown) {
         // Overlay is open but focus may still be on the tab WebContents — cycle here too.
-        event.preventDefault();
-        portalTabCycleStep(window.id, input.shift);
+        // event.preventDefault();
+        // portalTabCycleStep(window.id, input.shift);
         return;
       }
 

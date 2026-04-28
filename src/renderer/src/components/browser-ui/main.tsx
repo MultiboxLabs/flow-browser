@@ -263,7 +263,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
             )}
           >
             {tabCycleOverlay && (
-              <PortalComponent visible zIndex={ViewLayer.OVERLAY} className="fixed inset-0 h-screen w-screen">
+              <PortalComponent visible autoFocus zIndex={ViewLayer.OVERLAY} className="fixed inset-0 h-screen w-screen">
                 <TabCycleOverlay overlay={tabCycleOverlay} />
               </PortalComponent>
             )}
