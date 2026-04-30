@@ -141,9 +141,9 @@ function NavigationButton({
 
   const icon =
     direction === "back" ? (
-      <ArrowLeftIcon ref={iconRef} className="size-4 bg-transparent! cursor-default!" asChild />
+      <ArrowLeftIcon ref={iconRef} className="size-4.5 bg-transparent! cursor-default!" asChild />
     ) : (
-      <ArrowRightIcon ref={iconRef} className="size-4 bg-transparent! cursor-default!" asChild />
+      <ArrowRightIcon ref={iconRef} className="size-4.5 bg-transparent! cursor-default!" asChild />
     );
 
   return (
@@ -185,7 +185,7 @@ function ReloadButton({ disabled, onReload }: { disabled: boolean; onReload: () 
 
   return (
     <NavButton
-      icon={<RefreshCWIcon ref={iconRef} className="size-4 bg-transparent! cursor-default!" asChild />}
+      icon={<RefreshCWIcon ref={iconRef} className="size-4.5 bg-transparent! cursor-default!" asChild />}
       disabled={disabled}
       onClick={onReload}
       onMouseDown={handleMouseDown}
@@ -205,7 +205,7 @@ function StopLoadingButton({ onStop }: { onStop: () => void }) {
           exit={{ opacity: 0, scale: 0.8 }}
           transition={{ duration: 0.2 }}
         >
-          <XIcon className="w-4 h-4" />
+          <XIcon className="size-4.5" />
         </motion.div>
       }
       onClick={onStop}
