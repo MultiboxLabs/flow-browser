@@ -76,7 +76,7 @@ function PopoverContent({
             "dark:-outline-offset-1",
             // Rounded corners
             variant === "default" && "rounded-lg",
-            variant === "translucent" && "rounded-3xl",
+            variant === "translucent" && "rounded-2xl",
             // Background
             variant === "default" && "bg-popover",
             variant === "translucent" && "bg-popover/65 backdrop-blur-sm",
