@@ -5,7 +5,8 @@ import { useAddressUrl, useFocusedTabId } from "@/components/providers/tabs-prov
 import { simplifyUrl } from "@/lib/url";
 import { PinnedBrowserActions } from "./pinned-browser-actions";
 import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
-import { SiteControls } from "@/components/browser-ui/browser-sidebar/_components/site-controls";
+import { BrowserActionList } from "@/components/browser-ui/browser-sidebar/_components/browser-action-list";
+// import { SiteControls } from "@/components/browser-ui/browser-sidebar/_components/site-controls";
 
 export const AddressBar = memo(function AddressBar() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -70,7 +71,9 @@ export const AddressBar = memo(function AddressBar() {
       <div className="ml-auto flex items-center gap-0.5 shrink-0">
         <PinnedBrowserActions />
         <div>
-          <SiteControls />
+          <BrowserActionList />
+          {/* TODO: Add site controls */}
+          {/* <SiteControls /> */}
         </div>
       </div>
     </div>
