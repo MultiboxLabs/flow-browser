@@ -353,7 +353,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       effectiveSidebarWidth = sidebarVisible ? sidebarWidth : 0;
     }
 
-    const PADDING = 12;
+    const PADDING = 10;
     const padTop = (topbarVisible ? topbarHeight : PADDING) + (contentTopOffset ?? 0);
     const padBottom = PADDING;
 

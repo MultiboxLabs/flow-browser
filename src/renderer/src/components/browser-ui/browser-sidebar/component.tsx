@@ -187,7 +187,7 @@ export function BrowserSidebar({
       {isFloating && <SpaceBackgroundStylesheet selector="[data-space-background-scope]" />}
       <div
         className={cn(
-          "m-3 mb-0 flex-1 min-h-0",
+          "m-2.5 mb-0 flex-1 min-h-0",
           "flex flex-col",
           "select-none",
           direction === "left" && !isFloating && "mr-0",

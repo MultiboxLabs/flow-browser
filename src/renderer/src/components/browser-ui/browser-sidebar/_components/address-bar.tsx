@@ -60,7 +60,7 @@ export const AddressBar = memo(function AddressBar() {
         hasSidebar && "hover:bg-black/15 dark:hover:bg-white/20",
         "transition-[background-color] duration-100",
         "flex items-center p-2 px-3 gap-1 overflow-hidden",
-        isPlaceholder ? "text-black/60 dark:text-white/60" : "text-black dark:text-white"
+        isPlaceholder ? "text-black/50 dark:text-white/50" : "text-black/80 dark:text-white/80"
       )}
     >
       {isPlaceholder && <SearchIcon strokeWidth={2} className="h-3.5 shrink-0" />}

@@ -140,7 +140,7 @@ export class TabLayoutManager {
     } else {
       pageBounds = window.pageBounds;
     }
-    const borderRadius = tab.fullScreen ? 0 : 8;
+    const borderRadius = tab.fullScreen ? 0 : 6;
     if (borderRadius !== this.lastBorderRadius && tab.view) {
       tab.view.setBorderRadius(borderRadius);
       this.lastBorderRadius = borderRadius;

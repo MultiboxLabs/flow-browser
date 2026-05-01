@@ -45,7 +45,7 @@ function SidebarResizeHandle() {
   const [isDown, setIsDown] = useState(false);
 
   return (
-    <div className="w-3 h-full remove-app-drag py-4 px-1 group">
+    <div className="w-2.5 h-full remove-app-drag py-2 px-[3px] group">
       <ResizableHandle
         className={cn(
           "w-full h-full rounded-full",
@@ -271,11 +271,11 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
                 <ResizablePanel
                   id="main"
                   order={2}
-                  className={cn("min-w-0 flex-1 h-full py-3 overflow-visible!", topbarVisible && "pt-0")}
+                  className={cn("min-w-0 flex-1 h-full py-2.5 overflow-visible!", topbarVisible && "pt-0")}
                 >
                   <div className="w-full min-w-0 h-full flex items-center justify-center remove-app-drag">
                     {sidebarMode !== "attached-left" ? (
-                      <div className="w-3 shrink-0" />
+                      <div className="w-2.5 shrink-0" />
                     ) : (
                       <SidebarResizeHandle key="left-sidebar-resize-handle" />
                     )}
@@ -294,7 +294,7 @@ function InternalBrowserUI({ isReady, type }: { isReady: boolean; type: BrowserU
                     </div>
 
                     {sidebarMode !== "attached-right" ? (
-                      <div className="w-3 shrink-0" />
+                      <div className="w-2.5 shrink-0" />
                     ) : (
                       <SidebarResizeHandle key="right-sidebar-resize-handle" />
                     )}
