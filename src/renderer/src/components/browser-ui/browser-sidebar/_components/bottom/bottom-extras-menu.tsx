@@ -1,57 +1,76 @@
-import { PortalPopover } from "@/components/portal/popover";
+import { BubbleEvent } from "@/components/logic/bubble-event";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/portal/popover";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { Button } from "@/components/ui/button";
-import { PopoverListboxItem, PopoverListboxList, usePopoverListbox } from "@/components/ui/popover-listbox";
-import { PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { ArchiveIcon, HistoryIcon, SettingsIcon } from "lucide-react";
-import { useCallback, useState } from "react";
+import { ArchiveIcon, HistoryIcon, LucideIcon, SettingsIcon } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 
-const EXTRA_ITEM_COUNT = 2;
+function BottomExtrasMenuItem({
+  id,
+  Icon,
+  label,
+  url,
+  onItemSelected
+}: {
+  id: string;
+  Icon: LucideIcon;
+  label: string;
+  url: string;
+  onItemSelected: (url: string) => void;
+}) {
+  return (
+    <CommandItem value={id} onSelect={() => onItemSelected(url)} className="text-black dark:text-white">
+      <Icon className="size-4 text-black dark:text-white" />
+      {label}
+    </CommandItem>
+  );
+}
 
 export function BottomExtrasMenu() {
   const [open, setOpen] = useState(false);
+  const commandRef = useRef<HTMLDivElement>(null);
 
-  const { isCurrentSpaceLight } = useSpaces();
-  const spaceInjectedClasses = cn(isCurrentSpaceLight ? "" : "dark");
-
-  const onActivate = useCallback((index: number) => {
-    if (index === 0) {
-      flow.tabs.newTab("flow://history", true);
-    } else if (index === 1) {
+  const onItemSelected = useCallback((url: string) => {
+    if (url === "internal://settings") {
       flow.windows.openSettingsWindow();
+    } else {
+      flow.tabs.newTab(url, true);
     }
     setOpen(false);
   }, []);
 
-  const listbox = usePopoverListbox({
-    open,
-    itemCount: EXTRA_ITEM_COUNT,
-    ariaLabel: "Sidebar extras",
-    getOptionId: (i) => `bottom-extra-${i}`,
-    onActivate,
-    initialHighlightedIndex: EXTRA_ITEM_COUNT - 1
-  });
-
+  const { isCurrentSpaceLight } = useSpaces();
+  const spaceInjectedClasses = cn(isCurrentSpaceLight ? "" : "dark");
   return (
-    <PortalPopover.Root open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button size="icon" className="size-8 bg-transparent hover:bg-black/10 dark:hover:bg-white/10">
+    <Popover open={open} onOpenChange={setOpen}>
+      <Button size="icon" className="size-8 bg-transparent hover:bg-black/10 dark:hover:bg-white/10" asChild>
+        <PopoverTrigger nativeButton={true}>
           <ArchiveIcon strokeWidth={2} className="w-4 h-4 text-black/80 dark:text-white/80" />
-        </Button>
-      </PopoverTrigger>
-      <PortalPopover.Content className={cn("w-56 p-2 select-none", spaceInjectedClasses)} {...listbox.contentProps}>
-        <PopoverListboxList listbox={listbox}>
-          <PopoverListboxItem index={0}>
-            <HistoryIcon className="w-4 h-4 shrink-0" />
-            <span>History</span>
-          </PopoverListboxItem>
-          <PopoverListboxItem index={1}>
-            <SettingsIcon className="w-4 h-4 shrink-0" />
-            <span>Settings</span>
-          </PopoverListboxItem>
-        </PopoverListboxList>
-      </PortalPopover.Content>
-    </PortalPopover.Root>
+        </PopoverTrigger>
+      </Button>
+      <PopoverContent className={cn("w-56 p-2 select-none")} positionerClassName={spaceInjectedClasses}>
+        <Command ref={commandRef} loop>
+          <BubbleEvent targetRef={commandRef} eventType="keydown" />
+          <CommandList>
+            <BottomExtrasMenuItem
+              id="history"
+              Icon={HistoryIcon}
+              label="History"
+              url="flow://history"
+              onItemSelected={onItemSelected}
+            />
+            <BottomExtrasMenuItem
+              id="settings"
+              Icon={SettingsIcon}
+              label="Settings"
+              url="internal://settings"
+              onItemSelected={onItemSelected}
+            />
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }

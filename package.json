@@ -59,6 +59,7 @@
   "devDependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^1.7.10",
     "@atlaskit/pragmatic-drag-and-drop-react-drop-indicator": "^3.2.15",
+    "@base-ui/react": "^1.4.1",
     "@chenglou/pretext": "^0.0.5",
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
     "@electron-toolkit/eslint-config-ts": "^3.1.0",

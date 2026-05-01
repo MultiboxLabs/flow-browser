@@ -1,23 +1,22 @@
-import { PortalComponent } from "@/components/portal/portal";
-import { Popover, PopoverContent } from "@/components/ui/popover";
 import { useOptionalBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
+import { PortalComponent } from "@/components/portal/portal";
+import { Popover as BasePopover, PopoverContent as BasePopoverContent } from "@/components/ui/popover";
+import { type PopoverRootChangeEventDetails } from "@base-ui/react";
+import { createContext, useContext, useEffect, useId, useRef, useState } from "react";
 import { ViewLayer } from "~/layers";
-import { createContext, useContext, useEffect, useId, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { PopoverArrow } from "@radix-ui/react-popover";
 
-type PopoverContextType = {
+export { PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
+
+interface PopoverContextType {
   open: boolean;
-  setOpen: ((open: boolean) => void) | undefined;
-};
-
+  setOpen: ((open: boolean, eventDetails: PopoverRootChangeEventDetails) => void) | undefined;
+}
 const PopoverContext = createContext<PopoverContextType | undefined>(undefined);
-
-function PortalPopoverRoot({
+export function Popover({
   open: userOpen,
   onOpenChange: userSetOpen,
   ...props
-}: React.ComponentProps<typeof Popover>) {
+}: React.ComponentProps<typeof BasePopover>) {
   const [internalOpen, internalSetOpen] = useState(false);
 
   const useUser = userOpen !== undefined;
@@ -36,34 +35,57 @@ function PortalPopoverRoot({
 
   return (
     <PopoverContext.Provider value={{ open, setOpen }}>
-      <Popover {...props} open={open} onOpenChange={setOpen} />
+      <BasePopover {...props} open={open} onOpenChange={setOpen} />
     </PopoverContext.Provider>
   );
 }
 
-function PortalPopoverContent({ children, ...props }: React.ComponentProps<typeof PopoverContent>) {
-  const { open } = usePopover();
+/**
+ * Set open to true instantly, but wait the given delay before setting open to false to delay removing of the popover.
+ * @param value - The value to delay.
+ * @param delay - The delay in milliseconds.
+ * @returns The delayed value.
+ */
+function useDelayedOpenValue(value: boolean, delay: number): boolean {
+  const [delayedValue, setDelayedValue] = useState(value);
 
-  return (
-    <AnimatePresence mode="wait">
-      {open && (
-        <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-          <PortalComponent autoFocus className="w-screen h-screen absolute top-0 left-0" zIndex={ViewLayer.POPOVER}>
-            <PopoverContent {...props} portal={false}>
-              <PopoverArrow className="fill-popover h-2 w-4 outline-hidden stroke-border" />
-              {children}
-            </PopoverContent>
-          </PortalComponent>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+  useEffect(() => {
+    if (value === true) {
+      setDelayedValue(value);
+      return () => {};
+    } else {
+      const timer = setTimeout(() => {
+        setDelayedValue(value);
+      }, delay);
+
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+  }, [value, delay]);
+
+  return delayedValue;
 }
 
-export const PortalPopover = {
-  Root: PortalPopoverRoot,
-  Content: PortalPopoverContent
-};
+export function PopoverContent({ ...props }: Omit<React.ComponentProps<typeof BasePopoverContent>, "portalContainer">) {
+  const { open } = usePopover();
+  const delayedOpen = useDelayedOpenValue(open, 200);
+  const portalContainerRef = useRef<HTMLDivElement>(null);
+  if (!delayedOpen) return null;
+
+  return (
+    <>
+      <BasePopoverContent {...props} portalContainer={portalContainerRef} />
+      <PortalComponent
+        visible={delayedOpen}
+        autoFocus
+        className="w-screen h-screen absolute top-0 left-0"
+        zIndex={ViewLayer.POPOVER}
+        portalBodyRef={portalContainerRef}
+      />
+    </>
+  );
+}
 
 // Hook to use the popover context
 export const usePopover = () => {
