@@ -4,7 +4,7 @@ import { useSpaces } from "@/components/providers/spaces-provider";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/portal/popover";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { CogIcon, LayersIcon, PackageXIcon, PinIcon, PinOffIcon, PuzzleIcon, Settings2Icon } from "lucide-react";
+import { CogIcon, LayersIcon, PackageXIcon, PinIcon, PinOffIcon, PuzzleIcon } from "lucide-react";
 import { MouseEvent, useCallback, useMemo, useRef, useState } from "react";
 import { useFocusedTab } from "@/components/providers/tabs-provider";
 
@@ -179,16 +179,7 @@ export function BrowserActionList() {
           event.stopPropagation();
         }}
       >
-        <div
-          className={cn(
-            "size-4 border rounded-[4px]",
-            "border-black/80 dark:border-white/80",
-            "text-black/80 dark:text-white/80",
-            "flex items-center justify-center"
-          )}
-        >
-          <Settings2Icon strokeWidth={2} className="size-3" />
-        </div>
+        <PuzzleIcon strokeWidth={2} className="size-4 text-black/80 dark:text-white/80" />
       </PopoverTrigger>
       <PopoverContent className={cn("w-56 p-2 select-none")} positionerClassName={spaceInjectedClasses}>
         {!noActiveTab &&
