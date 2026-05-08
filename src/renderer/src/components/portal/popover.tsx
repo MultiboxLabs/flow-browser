@@ -2,7 +2,7 @@ import { useOptionalBrowserSidebar } from "@/components/browser-ui/browser-sideb
 import { PortalComponent } from "@/components/portal/portal";
 import { Popover as BasePopover, PopoverContent as BasePopoverContent } from "@/components/ui/popover";
 import { type PopoverRootChangeEventDetails } from "@base-ui/react";
-import { createContext, useContext, useEffect, useId, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useId, useState } from "react";
 import { ViewLayer } from "~/layers";
 
 export { PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
@@ -70,18 +70,18 @@ function useDelayedOpenValue(value: boolean, delay: number): boolean {
 export function PopoverContent({ ...props }: Omit<React.ComponentProps<typeof BasePopoverContent>, "portalContainer">) {
   const { open } = usePopover();
   const delayedOpen = useDelayedOpenValue(open, 200);
-  const portalContainerRef = useRef<HTMLDivElement>(null);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
   if (!delayedOpen) return null;
 
   return (
     <>
-      <BasePopoverContent {...props} portalContainer={portalContainerRef} />
+      {portalContainer && <BasePopoverContent {...props} portalContainer={portalContainer} />}
       <PortalComponent
         visible={delayedOpen}
         autoFocus
         className="w-screen h-screen absolute top-0 left-0"
         zIndex={ViewLayer.POPOVER}
-        portalBodyRef={portalContainerRef}
+        portalBodyRef={setPortalContainer}
       />
     </>
   );

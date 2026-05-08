@@ -105,7 +105,7 @@ function ExtensionButtonContainer({
   return (
     <button
       className={cn(
-        "relative flex items-center justify-center rounded-md group/button",
+        "relative flex items-center justify-center rounded-md",
         "w-11.5 h-8 shrink-0",
         "bg-black/10 dark:bg-white/10",
         "hover:bg-black/20 dark:hover:bg-white/20",
@@ -154,15 +154,17 @@ function ExtensionGridTile({
     (event: MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
       event.nativeEvent.stopImmediatePropagation();
-      return onActivated("contextmenu");
+      onActivated("contextmenu");
     },
     [onActivated]
   );
 
   return (
-    <ExtensionButtonContainer ref={buttonRef} title={action.title} onClick={onClick} onContextMenu={onContextMenu}>
-      <BrowserActionIcon action={action} activeTabId={activeTabId} tabInfo={tabInfo} partitionId={partition} />
-      <Badge color={tabInfo?.color} text={tabInfo?.text} />
+    <div className="relative group/button">
+      <ExtensionButtonContainer ref={buttonRef} title={action.title} onClick={onClick} onContextMenu={onContextMenu}>
+        <BrowserActionIcon action={action} activeTabId={activeTabId} tabInfo={tabInfo} partitionId={partition} />
+        <Badge color={tabInfo?.color} text={tabInfo?.text} />
+      </ExtensionButtonContainer>
       <button
         className={cn(
           "-bottom-0.5 -right-0.5",
@@ -178,7 +180,7 @@ function ExtensionGridTile({
       >
         <RotatedPinInCircle className={cn("size-3.5", isPinned ? "opacity-100" : "opacity-50")} />
       </button>
-    </ExtensionButtonContainer>
+    </div>
   );
 }
 

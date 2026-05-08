@@ -1,5 +1,9 @@
 import { useEffect, type RefObject } from "react";
 
+function isKeyboardEvent(eventType: string): eventType is "keydown" | "keyup" | "keypress" {
+  return eventType === "keydown" || eventType === "keyup" || eventType === "keypress";
+}
+
 /**
  * Forwards document-level events into a target element so that components
  * scoped to that subtree receive events that would otherwise only fire on the
@@ -36,7 +40,7 @@ export function BubbleEvent<EventType extends keyof DocumentEventMap>({
 
     const handler = (event: DocumentEventMap[EventType]) => {
       if (bubbleTarget.contains(event.target as Node)) return;
-      const cloned = new KeyboardEvent(event.type, event);
+      const cloned = isKeyboardEvent(eventType) ? new KeyboardEvent(event.type, event) : new Event(event.type, event);
       bubbleTarget.dispatchEvent(cloned);
     };
 

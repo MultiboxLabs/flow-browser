@@ -8,8 +8,10 @@ import { ViewLayer } from "~/layers";
 import { createContext, RefObject, useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 
+type PortalBodyRef = RefObject<HTMLElement | null> | ((body: HTMLElement | null) => void);
+
 interface PortalComponentProps extends React.ComponentProps<"div"> {
-  portalBodyRef?: RefObject<HTMLElement | null>;
+  portalBodyRef?: PortalBodyRef;
   visible?: boolean;
   zIndex?: number;
   autoFocus?: boolean;
@@ -67,7 +69,15 @@ export function PortalComponent({
   useEffect(() => {
     if (!portal?.window) return;
     if (!portalBodyRef) return;
-    portalBodyRef.current = portal.window.document.body;
+    const body = portal.window.document.body;
+    if (typeof portalBodyRef === "function") {
+      portalBodyRef(body);
+      return () => portalBodyRef(null);
+    }
+    portalBodyRef.current = body;
+    return () => {
+      portalBodyRef.current = null;
+    };
   }, [portal, portalBodyRef]);
 
   const portalChildren = useMemo(() => {
