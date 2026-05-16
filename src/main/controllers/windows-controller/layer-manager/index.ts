@@ -97,6 +97,8 @@ export class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
 
   private layers: Layer[] = [];
   private oldLayers: Layer[] = [];
+  private readonly layersWithDestroyListener = new WeakSet<Layer>();
+
   constructor(window: BrowserWindow) {
     super();
 
@@ -105,6 +107,15 @@ export class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
 
   public getModalLayersFor(zIndex: number): Layer[] {
     return this.layers.filter((layer) => layer.modalTo(zIndex)).toSorted((a, b) => b.zIndex - a.zIndex);
+  }
+
+  private isLayerUsable(layer: Layer): boolean {
+    if (!layer.isWebContentsView()) {
+      return true;
+    }
+
+    const webContents = layer.view.webContents;
+    return webContents !== undefined && !webContents.isDestroyed();
   }
 
   private _layersChanged() {
@@ -175,10 +186,36 @@ export class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
     this.emit("layer-removed", layer);
   }
 
+  private removeDestroyedLayer(layer: Layer) {
+    const hadLayer = this.layers.includes(layer) || this.oldLayers.includes(layer);
+    this.layers = this.layers.filter((l) => l !== layer);
+    this.oldLayers = this.oldLayers.filter((l) => l !== layer);
+
+    if (hadLayer) {
+      this.emit("layer-removed", layer);
+      setImmediate(() => this.reallocateFocus());
+    }
+  }
+
+  private ensureDestroyListener(layer: Layer) {
+    if (!layer.isWebContentsView() || this.layersWithDestroyListener.has(layer)) {
+      return;
+    }
+
+    this.layersWithDestroyListener.add(layer);
+    layer.view.webContents.once("destroyed", () => {
+      this.removeDestroyedLayer(layer);
+    });
+  }
+
   public push(layer: Layer) {
+    if (!this.isLayerUsable(layer)) {
+      return false;
+    }
     if (this.layers.includes(layer)) {
       return false;
     }
+    this.ensureDestroyListener(layer);
     this.layers.push(layer);
     this._layersChanged();
     this._layerAdded(layer);
