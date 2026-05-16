@@ -1,27 +1,40 @@
-import { usePlatform } from "@/components/main/platform";
-import { useFocusedContext } from "@/components/settings/settings-layout";
+import {
+  useSettingsNavigationCanGoBack,
+  useSettingsNavigationCanGoForward,
+  useSettingsWindowContext
+} from "@/components/settings/context";
 import { getLiquidGlassLikeStyles } from "@/components/settings/sidebar";
 import { cn } from "@/lib/utils";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
-function NavigationButton({ direction }: { direction: "left" | "right" }) {
+interface NavigationButtonProps {
+  direction: "left" | "right";
+  disabled?: boolean;
+  onClick?: () => void;
+}
+function NavigationButton({ direction, disabled, onClick }: NavigationButtonProps) {
   const ChevronIcon = direction === "left" ? ChevronLeftIcon : ChevronRightIcon;
   return (
-    <div
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
       className={cn(
         "size-7",
         "rounded-full",
-        "hover:bg-black/5 hover:dark:bg-white/5",
-        "flex items-center justify-center"
+        "flex items-center justify-center",
+        disabled ? "opacity-40 cursor-default" : "hover:bg-black/5 hover:dark:bg-white/5"
       )}
     >
       <ChevronIcon className="size-6" />
-    </div>
+    </button>
   );
 }
 
 function NavigationButtons({ isMac }: { isMac: boolean }) {
-  const isFocused = useFocusedContext();
+  const { isFocused, navigationHistoryIndex, goTo } = useSettingsWindowContext();
+  const canGoBack = useSettingsNavigationCanGoBack();
+  const canGoForward = useSettingsNavigationCanGoForward();
 
   return (
     <div
@@ -34,16 +47,23 @@ function NavigationButtons({ isMac }: { isMac: boolean }) {
         isMac && getLiquidGlassLikeStyles(isFocused)
       )}
     >
-      <NavigationButton direction="left" />
+      <NavigationButton
+        direction="left"
+        disabled={!canGoBack}
+        onClick={canGoBack ? () => goTo(navigationHistoryIndex - 1) : undefined}
+      />
       {isMac && <div className={cn("w-px h-5 group-hover:hidden", "bg-gray-400/25 dark:bg-white/5")} />}
-      <NavigationButton direction="right" />
+      <NavigationButton
+        direction="right"
+        disabled={!canGoForward}
+        onClick={canGoForward ? () => goTo(navigationHistoryIndex + 1) : undefined}
+      />
     </div>
   );
 }
 
 export function SettingsContentHeader() {
-  const { platform } = usePlatform();
-  const isMac = platform === "darwin";
+  const { isMac } = useSettingsWindowContext();
 
   return (
     <div

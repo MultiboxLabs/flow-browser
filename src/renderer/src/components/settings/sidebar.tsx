@@ -1,8 +1,8 @@
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
-import { usePlatform } from "@/components/main/platform";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Section, useFocusedContext } from "./settings-layout";
+import { Section } from "./settings-layout";
+import { useSettingsWindowContext } from "./context";
 
 interface SettingsSidebarSectionButtonProps {
   section: Section;
@@ -48,10 +48,7 @@ interface SettingsSidebarProps {
   setActiveSection: (section: Section["id"]) => void;
 }
 export function SettingsSidebar({ sections, activeSection, setActiveSection }: SettingsSidebarProps) {
-  const { platform } = usePlatform();
-  const isMac = platform === "darwin";
-
-  const isFocused = useFocusedContext();
+  const { isMac, isFocused } = useSettingsWindowContext();
 
   return (
     <ScrollArea
