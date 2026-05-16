@@ -2,7 +2,7 @@ import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { BrowserWindow } from "../types/browser";
 import { WebContentsView } from "electron";
 
-class Layer<ViewType extends Electron.View = Electron.View> {
+export class Layer<ViewType extends Electron.View = Electron.View> {
   private readonly manager: LayerManager;
 
   public readonly view: ViewType;
@@ -15,7 +15,7 @@ class Layer<ViewType extends Electron.View = Electron.View> {
     view: ViewType,
     zIndex: number,
     focusPriority: number,
-    modalTo: (zIndex: number) => boolean
+    modalTo: (zIndex: number) => boolean = () => false
   ) {
     this.manager = manager;
 
@@ -71,6 +71,13 @@ class Layer<ViewType extends Electron.View = Electron.View> {
     this._visibilityChanged(oldVisible, visible);
     this.view.setVisible(visible);
   }
+
+  public addThisAsChildView(parentView: Electron.View) {
+    parentView.addChildView(this.view);
+  }
+  public removeThisFromParentView(parentView: Electron.View) {
+    parentView.removeChildView(this.view);
+  }
 }
 
 type LayerManagerEvents = {
@@ -78,7 +85,7 @@ type LayerManagerEvents = {
   "layer-removed": [layer: Layer];
 };
 
-class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
+export class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
   private readonly window: BrowserWindow;
   private readonly parentView: Electron.View;
 
@@ -106,7 +113,7 @@ class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
     const adjustedOldLayers: Layer[] = [];
     for (const oldLayer of oldLayers) {
       if (!newLayers.includes(oldLayer)) {
-        this.parentView.removeChildView(oldLayer.view);
+        oldLayer.removeThisFromParentView(this.parentView);
       } else {
         adjustedOldLayers.push(oldLayer);
       }
@@ -124,7 +131,8 @@ class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
     }
 
     for (let i = prefix; i < newLayers.length; i++) {
-      this.parentView.addChildView(newLayers[i].view);
+      const newLayer = newLayers[i];
+      newLayer.addThisAsChildView(this.parentView);
     }
 
     this.oldLayers = [...newLayers];

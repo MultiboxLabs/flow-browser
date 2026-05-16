@@ -87,3 +87,22 @@ export const UILayer = {
 } as const;
 
 export type UILayerValue = (typeof UILayer)[keyof typeof UILayer];
+
+// For LayerManager
+export const zIndexes = {
+  // Overlays
+  popover: 99,
+  floatingSidebar: 30,
+
+  // Tab Overlays
+  webPrompt: 22,
+  passkeyConditionalUI: 21,
+  findInPage: 20,
+
+  // Tab Content
+  tabTargetUrlIndicator: 11,
+  tab: 10,
+
+  // Browser UI
+  browserUI: 0
+} as const satisfies Record<string, number>;
