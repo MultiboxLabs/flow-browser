@@ -62,7 +62,7 @@ function NavigationButtons({ isMac }: { isMac: boolean }) {
   );
 }
 
-export function SettingsContentHeader() {
+export function SettingsContentHeader({ sectionLabel }: { sectionLabel: string | null }) {
   const { isMac } = useSettingsWindowContext();
 
   return (
@@ -70,7 +70,7 @@ export function SettingsContentHeader() {
       className={cn("absolute top-0 left-0 z-20 h-9 px-2", "flex items-center justify-between gap-2", !isMac && "pt-2")}
     >
       <NavigationButtons isMac={isMac} />
-      <span className="font-medium">Icons</span>
+      <span className="font-medium">{sectionLabel}</span>
     </div>
   );
 }

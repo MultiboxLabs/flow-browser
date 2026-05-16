@@ -87,11 +87,13 @@ function InnerSettingsLayout() {
   const { platform } = usePlatform();
 
   const { navigationHistory, navigationHistoryIndex, push } = useSettingsWindowContext();
-  const currentSection = navigationHistory[navigationHistoryIndex];
-
-  const activeSection = currentSection
-    ? (sections.find((section) => section.section === currentSection)?.id ?? null)
+  const currentSectionNode = navigationHistory[navigationHistoryIndex];
+  const sectionData = currentSectionNode
+    ? (sections.find((section) => section.section === currentSectionNode) ?? null)
     : null;
+  const sectionId = sectionData ? sectionData.id : null;
+  const sectionLabel = sectionData ? sectionData.label : null;
+
   const setActiveSection = useCallback(
     (sectionId: Section["id"]) => {
       const section = sections.find((section) => section.id === sectionId);
@@ -110,14 +112,14 @@ function InnerSettingsLayout() {
             {platform !== "darwin" && <SettingsTitlebar />}
             {platform === "darwin" && <div className="absolute top-0 w-full h-12 app-drag -z-10" />}
             <div className={cn("flex-1 min-h-0 flex flex-row", platform === "darwin" && "m-2")}>
-              <SettingsSidebar sections={sections} activeSection={activeSection} setActiveSection={setActiveSection} />
+              <SettingsSidebar sections={sections} activeSection={sectionId} setActiveSection={setActiveSection} />
               <div className="relative flex-1 h-full min-w-0">
                 <ScrollArea
                   className={cn("h-full px-2", "mask-[linear-gradient(to_bottom,transparent_36px,black_44px)]")}
                 >
-                  <div className="flex flex-col gap-2 pt-11">{currentSection}</div>
+                  <div className="flex flex-col gap-2 pt-11">{currentSectionNode}</div>
                 </ScrollArea>
-                <SettingsContentHeader />
+                <SettingsContentHeader sectionLabel={sectionLabel} />
               </div>
             </div>
           </div>
