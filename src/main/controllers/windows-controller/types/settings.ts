@@ -1,30 +1,39 @@
 import { BaseWindow } from "@/controllers/windows-controller/types/base";
 import { sessionsController } from "@/controllers/sessions-controller";
-import { BrowserWindow, nativeTheme } from "electron";
+import { app, BrowserWindow, nativeTheme } from "electron";
 
 export class SettingsWindow extends BaseWindow {
   constructor() {
+    let titleBarOverlayOption: boolean | Electron.TitleBarOverlay | undefined = {
+      height: 30,
+      symbolColor: nativeTheme.shouldUseDarkColors ? "white" : "black",
+      color: "rgba(0,0,0,0)"
+    };
+
+    if (process.platform === "darwin") {
+      titleBarOverlayOption = undefined;
+    }
+
     const browserWindow = new BrowserWindow({
       width: 800,
+      maxWidth: 800,
       minWidth: 800,
-      height: 600,
-      minHeight: 600,
+
+      height: 850,
+      minHeight: 435,
 
       center: true,
       show: false,
       frame: false,
       roundedCorners: true,
+      fullscreenable: false,
 
       // On Linux, "hidden" combined with frame:false prevents
       // ready-to-show from firing. Match BrowserWindow's pattern and
       // leave it undefined on Linux.
       titleBarStyle:
         process.platform === "darwin" ? "hiddenInset" : process.platform === "win32" ? "hidden" : undefined,
-      titleBarOverlay: {
-        height: 40,
-        symbolColor: nativeTheme.shouldUseDarkColors ? "white" : "black",
-        color: "rgba(0,0,0,0)"
-      },
+      titleBarOverlay: titleBarOverlayOption,
 
       // Match BrowserWindow's webPreferences so the renderer initializes
       // identically on all platforms (especially Linux where missing
@@ -34,6 +43,8 @@ export class SettingsWindow extends BaseWindow {
         nodeIntegration: false,
         contextIsolation: true
       },
+
+      vibrancy: "under-window",
 
       // Explicit background color ensures the compositor has an initial paint
       // on Linux, which is required for ready-to-show to fire for frameless
@@ -49,6 +60,10 @@ export class SettingsWindow extends BaseWindow {
     // call can fail on Linux if the protocol hasn't been registered yet.
     sessionsController.whenDefaultSessionReady().then(() => {
       browserWindow.loadURL("flow-internal://settings/");
+
+      if (!app.isPackaged && !!process.env.BROWSER_WINDOW_DEVTOOLS) {
+        browserWindow.webContents.openDevTools({ mode: "detach" });
+      }
     });
 
     // Fallback: On Linux, ready-to-show may never fire for frameless

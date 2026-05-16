@@ -1,80 +1,121 @@
-import { useState, useMemo } from "react";
-import { SettingsSidebar } from "./settings-sidebar";
 import { SettingsTitlebar } from "./settings-titlebar";
-import { GeneralSettings } from "@/components/settings/sections/general/section";
-import { IconSettings } from "@/components/settings/sections/icon/section";
-import { AboutSettings } from "@/components/settings/sections/about/section";
-import { ProfilesSettings } from "@/components/settings/sections/profiles/section";
-import { SpacesSettings } from "@/components/settings/sections/spaces/section";
-import { ExternalAppsSettings } from "@/components/settings/sections/external-apps/section";
-import { ShortcutsSettings } from "@/components/settings/sections/shortcuts/section";
 import { SettingsProvider } from "@/components/providers/settings-provider";
 import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
-import { Globe, DockIcon, UsersIcon, OrbitIcon, BlocksIcon, Info, KeyboardIcon } from "lucide-react";
 import { ShortcutsProvider } from "@/components/providers/shortcuts-provider";
+import { usePlatform } from "@/components/main/platform";
+import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { SettingsSidebar } from "./sidebar";
+import { BlocksIcon, UsersIcon, KeyboardIcon, Info, LucideIcon, DockIcon, OrbitIcon, CogIcon } from "lucide-react";
+
+export interface Section {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  borderCN?: string;
+  backgroundCN?: string;
+  iconCN?: string;
+}
+const sections: Section[] = [
+  {
+    id: "general",
+    label: "General",
+    icon: CogIcon,
+    backgroundCN: cn("bg-linear-to-b from-gray-300 to-gray-400"),
+    borderCN: cn("border border-gray-400/80"),
+    iconCN: cn("text-black")
+  },
+  {
+    id: "icons",
+    label: "Icon",
+    icon: DockIcon,
+    backgroundCN: cn("bg-linear-to-b from-orange-400 to-orange-500"),
+    borderCN: cn("border border-orange-600/60"),
+    iconCN: cn("text-white")
+  },
+  {
+    id: "profiles",
+    label: "Profiles",
+    icon: UsersIcon,
+    backgroundCN: cn("bg-linear-to-b from-blue-400 to-blue-600"),
+    borderCN: cn("border border-blue-700/60"),
+    iconCN: cn("text-white")
+  },
+  {
+    id: "spaces",
+    label: "Spaces",
+    icon: OrbitIcon,
+    backgroundCN: cn("bg-linear-to-b from-violet-400 to-purple-600"),
+    borderCN: cn("border border-purple-700/60"),
+    iconCN: cn("text-white")
+  },
+  {
+    id: "external-apps",
+    label: "External Apps",
+    icon: BlocksIcon,
+    backgroundCN: cn("bg-linear-to-b from-emerald-400 to-green-600"),
+    borderCN: cn("border border-green-700/60"),
+    iconCN: cn("text-white")
+  },
+  {
+    id: "shortcuts",
+    label: "Shortcuts",
+    icon: KeyboardIcon,
+    backgroundCN: cn("bg-linear-to-b from-pink-400 to-rose-500"),
+    borderCN: cn("border border-rose-600/60"),
+    iconCN: cn("text-white")
+  },
+  {
+    id: "about",
+    label: "About",
+    icon: Info,
+    backgroundCN: cn("bg-linear-to-b from-sky-400 to-cyan-500"),
+    borderCN: cn("border border-cyan-600/60"),
+    iconCN: cn("text-white")
+  }
+];
 
 export function SettingsLayout() {
-  const [activeSection, setActiveSection] = useState("general");
-  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
-  const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
+  const { platform } = usePlatform();
 
-  const sections = [
-    { id: "general", label: "General", icon: <Globe className="h-4 w-4 mr-2" /> },
-    { id: "icons", label: "Icon", icon: <DockIcon className="h-4 w-4 mr-2" /> },
-    { id: "profiles", label: "Profiles", icon: <UsersIcon className="h-4 w-4 mr-2" /> },
-    { id: "spaces", label: "Spaces", icon: <OrbitIcon className="h-4 w-4 mr-2" /> },
-    { id: "external-apps", label: "External Apps", icon: <BlocksIcon className="h-4 w-4 mr-2" /> },
-    { id: "shortcuts", label: "Shortcuts", icon: <KeyboardIcon className="h-4 w-4 mr-2" /> },
-    { id: "about", label: "About", icon: <Info className="h-4 w-4 mr-2" /> }
-  ];
+  const [activeSection, setActiveSection] = useState<Section["id"] | null>(null);
 
-  const navigateToSpaces = (profileId: string) => {
-    setSelectedProfileId(profileId);
-    setSelectedSpaceId(null);
-    setActiveSection("spaces");
-  };
-
-  const navigateToSpace = (profileId: string, spaceId: string) => {
-    setSelectedProfileId(profileId);
-    setSelectedSpaceId(spaceId);
-    setActiveSection("spaces");
-  };
-
-  const ActiveSectionComponent = useMemo(() => {
-    switch (activeSection) {
-      case "general":
-        return <GeneralSettings />;
-      case "icons":
-        return <IconSettings />;
-      case "about":
-        return <AboutSettings />;
-      case "profiles":
-        return <ProfilesSettings navigateToSpaces={navigateToSpaces} navigateToSpace={navigateToSpace} />;
-      case "spaces":
-        return <SpacesSettings initialSelectedProfile={selectedProfileId} initialSelectedSpace={selectedSpaceId} />;
-      case "external-apps":
-        return <ExternalAppsSettings />;
-      case "shortcuts":
-        return <ShortcutsSettings />;
-      default:
-        return <GeneralSettings />;
+  // Whether the settings window is focused, for focus ring etc.
+  // This is window-global, so safe to hoist.
+  const [isFocused, setIsFocused] = useState(true);
+  useEffect(() => {
+    function handleFocus() {
+      setIsFocused(true);
     }
-  }, [activeSection, selectedProfileId, selectedSpaceId]);
+    function handleBlur() {
+      setIsFocused(false);
+    }
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("blur", handleBlur);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, []);
 
   return (
     <AppUpdatesProvider>
+      <title>Flow Settings</title>
       <ShortcutsProvider>
         <SettingsProvider>
-          <div className="select-none flex flex-col h-screen bg-background text-gray-600 dark:text-gray-300">
-            <title>Flow Settings</title>
-            <SettingsTitlebar />
-            <div className="flex flex-1 overflow-hidden">
-              <SettingsSidebar activeSection={activeSection} setActiveSection={setActiveSection} sections={sections} />
-              <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
-                <div className="flex-1 overflow-auto p-6 md:p-8">
-                  <div className="mx-auto max-w-4xl">{ActiveSectionComponent}</div>
-                </div>
-              </main>
+          <div className="select-none flex flex-col h-screen overflow-hidden bg-background/50 text-gray-600 dark:text-gray-300">
+            {platform !== "darwin" && <SettingsTitlebar />}
+            {platform === "darwin" && <div className="absolute top-0 w-full h-12 app-drag -z-10" />}
+            <div className={cn("flex-1 min-h-0 flex flex-row", platform === "darwin" && "m-2")}>
+              <SettingsSidebar
+                isFocused={isFocused}
+                sections={sections}
+                activeSection={activeSection}
+                setActiveSection={setActiveSection}
+              />
+              <div id="content" className={cn("flex-1 h-full", "px-2 flex flex-col")}>
+                <div className="flex-1"></div>
+              </div>
             </div>
           </div>
         </SettingsProvider>
