@@ -106,3 +106,44 @@ export const zIndexes = {
   // Browser UI
   browserUI: 0
 } as const satisfies Record<string, number>;
+
+type LayerName = keyof typeof zIndexes;
+
+export const focusPriorities = {
+  // Overlays
+  popover: 99,
+  floatingSidebar: 0,
+
+  // Tab Overlays
+  webPrompt: 22,
+  passkeyConditionalUI: 0,
+  findInPage: 20,
+
+  // Tab Content
+  tabTargetUrlIndicator: 0,
+  tab: 10,
+
+  // Browser UI
+  browserUI: 0
+} as const satisfies Record<LayerName, number>;
+
+export function createModalTo(layerName: LayerName) {
+  switch (layerName) {
+    case "popover":
+      return () => true;
+    case "webPrompt":
+      // Web Prompts are modal to tab layers
+      return (zIndex: number) => {
+        const modalToLayers: LayerName[] = ["passkeyConditionalUI", "findInPage", "tabTargetUrlIndicator", "tab"];
+        for (const layer of modalToLayers) {
+          const layerZIndex = zIndexes[layer];
+          if (layerZIndex === zIndex) {
+            return true;
+          }
+        }
+        return false;
+      };
+    default:
+      return () => false;
+  }
+}
