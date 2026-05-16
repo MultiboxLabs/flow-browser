@@ -4,9 +4,33 @@ import { AppUpdatesProvider } from "@/components/providers/app-updates-provider"
 import { ShortcutsProvider } from "@/components/providers/shortcuts-provider";
 import { usePlatform } from "@/components/main/platform";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { SettingsSidebar } from "./sidebar";
 import { BlocksIcon, UsersIcon, KeyboardIcon, Info, LucideIcon, DockIcon, OrbitIcon, CogIcon } from "lucide-react";
+import { IconSection } from "@/components/settings/new-sections/icon";
+
+const FocusedContext = createContext<boolean>(true);
+export function useFocusedContext() {
+  return useContext(FocusedContext);
+}
+function useIsFocused() {
+  const [isFocused, setIsFocused] = useState(true);
+  useEffect(() => {
+    function handleFocus() {
+      setIsFocused(true);
+    }
+    function handleBlur() {
+      setIsFocused(false);
+    }
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("blur", handleBlur);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, []);
+  return isFocused;
+}
 
 export interface Section {
   id: string;
@@ -82,44 +106,31 @@ export function SettingsLayout() {
 
   // Whether the settings window is focused, for focus ring etc.
   // This is window-global, so safe to hoist.
-  const [isFocused, setIsFocused] = useState(true);
-  useEffect(() => {
-    function handleFocus() {
-      setIsFocused(true);
-    }
-    function handleBlur() {
-      setIsFocused(false);
-    }
-    window.addEventListener("focus", handleFocus);
-    window.addEventListener("blur", handleBlur);
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-      window.removeEventListener("blur", handleBlur);
-    };
-  }, []);
+  const isFocused = useIsFocused();
 
   return (
-    <AppUpdatesProvider>
-      <title>Flow Settings</title>
-      <ShortcutsProvider>
-        <SettingsProvider>
-          <div className="select-none flex flex-col h-screen overflow-hidden bg-background/50 text-gray-600 dark:text-gray-300">
-            {platform !== "darwin" && <SettingsTitlebar />}
-            {platform === "darwin" && <div className="absolute top-0 w-full h-12 app-drag -z-10" />}
-            <div className={cn("flex-1 min-h-0 flex flex-row", platform === "darwin" && "m-2")}>
-              <SettingsSidebar
-                isFocused={isFocused}
-                sections={sections}
-                activeSection={activeSection}
-                setActiveSection={setActiveSection}
-              />
-              <div id="content" className={cn("flex-1 h-full", "px-2 flex flex-col")}>
-                <div className="flex-1"></div>
+    <FocusedContext.Provider value={isFocused}>
+      <AppUpdatesProvider>
+        <title>Flow Settings</title>
+        <ShortcutsProvider>
+          <SettingsProvider>
+            <div className="select-none flex flex-col h-screen overflow-hidden bg-background/50 text-gray-600 dark:text-gray-300">
+              {platform !== "darwin" && <SettingsTitlebar />}
+              {platform === "darwin" && <div className="absolute top-0 w-full h-12 app-drag -z-10" />}
+              <div className={cn("flex-1 min-h-0 flex flex-row", platform === "darwin" && "m-2")}>
+                <SettingsSidebar
+                  sections={sections}
+                  activeSection={activeSection}
+                  setActiveSection={setActiveSection}
+                />
+                <div id="content" className={cn("flex-1 h-full", "px-2 flex flex-col")}>
+                  <IconSection />
+                </div>
               </div>
             </div>
-          </div>
-        </SettingsProvider>
-      </ShortcutsProvider>
-    </AppUpdatesProvider>
+          </SettingsProvider>
+        </ShortcutsProvider>
+      </AppUpdatesProvider>
+    </FocusedContext.Provider>
   );
 }

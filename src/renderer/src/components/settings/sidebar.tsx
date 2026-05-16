@@ -2,7 +2,7 @@ import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-contr
 import { usePlatform } from "@/components/main/platform";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Section } from "./settings-layout";
+import { Section, useFocusedContext } from "./settings-layout";
 
 interface SettingsSidebarSectionButtonProps {
   section: Section;
@@ -35,15 +35,23 @@ function SettingsSidebarSectionButton({ section, activeSection, setActiveSection
   );
 }
 
+export function getLiquidGlassLikeStyles(isFocused: boolean) {
+  return cn(
+    isFocused ? "border-white dark:border-border" : "border-transparent",
+    isFocused ? "bg-background/50 dark:bg-background/20" : "bg-black/5 dark:bg-white/5"
+  );
+}
+
 interface SettingsSidebarProps {
-  isFocused: boolean;
   sections: Section[];
   activeSection: Section["id"] | null;
   setActiveSection: (section: Section["id"]) => void;
 }
-export function SettingsSidebar({ isFocused, sections, activeSection, setActiveSection }: SettingsSidebarProps) {
+export function SettingsSidebar({ sections, activeSection, setActiveSection }: SettingsSidebarProps) {
   const { platform } = usePlatform();
   const isMac = platform === "darwin";
+
+  const isFocused = useFocusedContext();
 
   return (
     <ScrollArea
@@ -52,8 +60,7 @@ export function SettingsSidebar({ isFocused, sections, activeSection, setActiveS
         "w-56.5 h-full",
         isMac ? "rounded-2xl border" : "border-r",
         "overflow-hidden",
-        isMac && (isFocused ? "border-white dark:border-border" : "border-transparent"),
-        isMac && (isFocused ? "bg-background/50 dark:bg-background/20" : "bg-black/5 dark:bg-white/5")
+        isMac && getLiquidGlassLikeStyles(isFocused)
       )}
     >
       <div className="p-2 flex flex-col gap-2">
