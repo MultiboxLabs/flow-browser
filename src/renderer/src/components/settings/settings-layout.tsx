@@ -10,7 +10,7 @@ import { BlocksIcon, UsersIcon, KeyboardIcon, Info, LucideIcon, DockIcon, OrbitI
 import { IconSection } from "./new-sections/icon";
 import { GeneralSection } from "./new-sections/general";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SettingsContentHeader } from "./content/header";
+import { SettingsContentHeader } from "./components/content/header";
 import { SettingsWindowProvider, useSettingsWindowContext } from "./context";
 
 export interface Section {
