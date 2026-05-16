@@ -38,7 +38,7 @@ function SettingsSidebarSectionButton({ section, activeSection, setActiveSection
 export function getLiquidGlassLikeStyles(isFocused: boolean) {
   return cn(
     isFocused ? "border-white dark:border-border" : "border-transparent",
-    isFocused ? "bg-background/50 dark:bg-background/20" : "bg-black/5 dark:bg-white/5"
+    isFocused ? "bg-background/50 dark:bg-background/20" : "bg-black/10 dark:bg-white/5"
   );
 }
 

@@ -23,7 +23,8 @@ function NavigationButton({ direction, disabled, onClick }: NavigationButtonProp
         "size-7",
         "rounded-full",
         "flex items-center justify-center",
-        disabled ? "opacity-40 cursor-default" : "hover:bg-black/5 hover:dark:bg-white/5"
+        disabled ? "opacity-40 cursor-default" : "hover:bg-black/10 hover:dark:bg-white/10",
+        !disabled && "active:bg-black/5 dark:active:bg-white/5"
       )}
     >
       <ChevronIcon className="size-6" />

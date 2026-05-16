@@ -117,7 +117,7 @@ function InnerSettingsLayout() {
                 <ScrollArea
                   className={cn("h-full px-2", "mask-[linear-gradient(to_bottom,transparent_36px,black_44px)]")}
                 >
-                  <div className="flex flex-col gap-2 pt-11">{currentSectionNode}</div>
+                  <div className="flex flex-col gap-2 pt-11 px-2">{currentSectionNode}</div>
                 </ScrollArea>
                 <SettingsContentHeader sectionLabel={sectionLabel} />
               </div>

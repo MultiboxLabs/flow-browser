@@ -1,11 +1,21 @@
+import { SunIcon } from "lucide-react";
+import { Container, ContainerItem } from "../components/basic/container";
+
 export function IconSection() {
   return (
     <>
-      {new Array(100).fill(0).map((_, index) => (
-        <div key={index} className="h-10 w-10 bg-red-500">
-          {index}
-        </div>
-      ))}
+      <Container withSeparators>
+        {new Array(100).fill(0).map((_, index) => (
+          <>
+            <ContainerItem
+              key={`item-${index}`}
+              icon={<SunIcon name="icon" />}
+              title="Title"
+              description="Description"
+            />
+          </>
+        ))}
+      </Container>
     </>
   );
 }
