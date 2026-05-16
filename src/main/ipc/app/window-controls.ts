@@ -4,7 +4,7 @@
 // handlers in ipc/browser/interface.ts.
 
 import { BrowserWindow, ipcMain } from "electron";
-import { windowsController } from "@/controllers/windows-controller";
+import { windowsController, type WindowType } from "@/controllers/windows-controller";
 import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
 import type { WindowState } from "~/flow/types";
 
@@ -15,9 +15,13 @@ function getWindowState(win: BrowserWindow): WindowState {
   };
 }
 
-function fireGenericWindowStateChanged(win: BrowserWindow) {
+function fireGenericWindowStateChanged(win: BrowserWindow, windowType: WindowType) {
   const state = getWindowState(win);
   sendMessageToListenersWithWebContents([win.webContents], "window:state-changed", state);
+  // Browser windows already receive `interface:window-state-changed` from BrowserWindow max/fullscreen hooks.
+  if (windowType !== "browser") {
+    sendMessageToListenersWithWebContents([win.webContents], "interface:window-state-changed", state);
+  }
 }
 
 // Minimize
@@ -64,7 +68,7 @@ windowsController.on("window-added", (_id, baseWindow) => {
 
   const notify = () => {
     if (!bw.isDestroyed()) {
-      fireGenericWindowStateChanged(bw);
+      fireGenericWindowStateChanged(bw, baseWindow.type);
     }
   };
 

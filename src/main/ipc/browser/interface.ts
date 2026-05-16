@@ -14,6 +14,11 @@ ipcMain.on("window-button:set-visibility", (event, visible: boolean) => {
   const tabbedWindow = browserWindowsController.getWindowFromWebContents(event.sender);
   if (tabbedWindow) {
     tabbedWindow.setMacOSTrafficLights(visible);
+    return;
+  }
+  const win = ElectronWindow.fromWebContents(event.sender);
+  if (win && "setWindowButtonVisibility" in win) {
+    win.setWindowButtonVisibility(visible);
   }
 });
 
@@ -98,6 +103,13 @@ ipcMain.handle("interface:get-window-state", (event) => {
   const win = browserWindowsController.getWindowFromWebContents(event.sender);
   if (win) {
     return getWindowState(win);
+  }
+  const electronWin = ElectronWindow.fromWebContents(event.sender);
+  if (electronWin) {
+    return {
+      isMaximized: electronWin.isMaximized(),
+      isFullscreen: electronWin.isFullScreen()
+    };
   }
   return false;
 });

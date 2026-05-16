@@ -812,7 +812,12 @@ const flowAPI: typeof flow = {
   passkey: wrapAPI(passkeyAPI, "browser"),
   interface: wrapAPI(interfaceAPI, "browser", {
     moveWindowTo: "all",
-    resizeWindowTo: "all"
+    resizeWindowTo: "all",
+    // Settings/onboarding/etc. use flow-internal (app scope) but need traffic-light layout + state.
+    getWindowState: "app",
+    onWindowStateChanged: "app",
+    setWindowButtonPosition: "app",
+    setWindowButtonVisibility: "app"
   }),
   omnibox: wrapAPI(omniboxAPI, "browser"),
   newTab: wrapAPI(newTabAPI, "browser"),
