@@ -439,8 +439,8 @@ const interfaceAPI: FlowInterfaceAPI = {
   setComponentWindowVisible: (...[componentId, visible]: Parameters<FlowInterfaceAPI["setComponentWindowVisible"]>) => {
     return ipcRenderer.send("interface:set-component-window-visible", componentId, visible);
   },
-  disposeComponentWindow: (componentId: string) => {
-    return ipcRenderer.send("interface:dispose-component-window", componentId);
+  releaseComponentWindow: (componentId: string) => {
+    return ipcRenderer.send("interface:release-component-window", componentId);
   },
   focusComponentWindow: (componentId: string) => {
     return ipcRenderer.send("interface:focus-component-window", componentId);

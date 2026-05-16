@@ -48,7 +48,8 @@ export function PortalComponent({
 }: PortalComponentProps) {
   const { usePortal } = usePortalsProvider();
   const portal = usePortal();
-  const initialVisibleRef = useRef(visible);
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
 
   const holderRef = useRef<HTMLDivElement>(null);
   const mergedRef = mergeRefs([ref, holderRef]);
@@ -104,11 +105,12 @@ export function PortalComponent({
     if (!portal?.window || portal.window.closed) return;
 
     try {
-      flow.interface.allocateComponentWindow(portal.id, layerType, initialVisibleRef.current);
+      // layerType is fixed for the lifetime of an allocated portal window.
+      flow.interface.allocateComponentWindow(portal.id, layerType, visibleRef.current);
     } catch (error) {
       console.warn("Failed to allocate portal:", error);
     }
-  }, [portal, layerType]);
+  }, [portal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update visibility of the portal
   useLayoutEffect(() => {

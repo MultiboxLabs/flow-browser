@@ -22,6 +22,10 @@ export class FakeWebContentsViewLayer extends Layer<Electron.WebContentsView> {
   public override isVisible(): boolean {
     return true;
   }
+  public override setVisible(visible: boolean) {
+    // no-op: not a real view
+    void visible;
+  }
 
   public override addThisAsChildView(parentView: Electron.View) {
     // no-op: not a real view

@@ -105,8 +105,15 @@ export class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
     this.parentView = window.browserWindow.contentView;
   }
 
+  /**
+   * Get all layers that are modal to the given zIndex.
+   * @param zIndex - The zIndex to get modal layers for.
+   * @returns The modal layers.
+   */
   public getModalLayersFor(zIndex: number): Layer[] {
-    return this.layers.filter((layer) => layer.modalTo(zIndex)).toSorted((a, b) => b.zIndex - a.zIndex);
+    return this.layers
+      .filter((layer) => layer.modalTo(zIndex) && layer.isVisible() && layer.zIndex > zIndex)
+      .toSorted((a, b) => b.zIndex - a.zIndex);
   }
 
   private isLayerUsable(layer: Layer): boolean {
@@ -163,9 +170,6 @@ export class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
 
     for (const layer of layers) {
       if (layer.focus()) {
-        if (layer.isWebContentsView()) {
-          console.log("reallocated focus to layer", layer.view.webContents.getURL());
-        }
         return;
       }
     }
@@ -187,13 +191,14 @@ export class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
   }
 
   private removeDestroyedLayer(layer: Layer) {
-    const hadLayer = this.layers.includes(layer) || this.oldLayers.includes(layer);
+    const hadLayer = this.layers.includes(layer);
     this.layers = this.layers.filter((l) => l !== layer);
     this.oldLayers = this.oldLayers.filter((l) => l !== layer);
 
     if (hadLayer) {
       this.emit("layer-removed", layer);
       setImmediate(() => this.reallocateFocus());
+      layer.removeThisFromParentView(this.parentView);
     }
   }
 

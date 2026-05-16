@@ -100,7 +100,18 @@ class ComponentsManager {
       return;
     }
 
-    this.take(componentId, layerType)?.setVisible(visible);
+    const instance = this.take(componentId, layerType);
+    if (instance == null) {
+      debugPrint(
+        "PORTAL_COMPONENTS",
+        "Portal allocate skipped: missing standby window (timing/registration?):",
+        componentId,
+        layerType
+      );
+      return;
+    }
+
+    instance.setVisible(visible);
   }
 
   public setVisible(componentId: string, visible: boolean) {
@@ -113,7 +124,7 @@ class ComponentsManager {
     this.standbyWindows.get(componentId)?.view.setVisible(false);
   }
 
-  public dispose(componentId: string) {
+  public release(componentId: string) {
     const component = this.components.get(componentId);
     if (!component) {
       this.standbyWindows.get(componentId)?.view.setVisible(false);
@@ -241,11 +252,11 @@ export function initializePortalComponentWindows(browserWindow: BrowserWindow) {
   };
   ipcMain.on("interface:set-component-window-visible", setComponentWindowVisible);
 
-  const disposeComponentWindow = (_event: IpcMainEvent, componentId: string) => {
-    debugPrint("PORTAL_COMPONENTS", "Dispose Portal Window:", componentId);
-    componentsManager.dispose(componentId);
+  const releaseComponentWindow = (_event: IpcMainEvent, componentId: string) => {
+    debugPrint("PORTAL_COMPONENTS", "Release Portal Window:", componentId);
+    componentsManager.release(componentId);
   };
-  ipcMain.on("interface:dispose-component-window", disposeComponentWindow);
+  ipcMain.on("interface:release-component-window", releaseComponentWindow);
 
   const focusComponentWindow = (_event: IpcMainEvent, componentId: string) => {
     debugPrint("PORTAL_COMPONENTS", "Focus Portal Window:", componentId);
@@ -258,7 +269,7 @@ export function initializePortalComponentWindows(browserWindow: BrowserWindow) {
     ipcMain.off("interface:set-component-window-bounds", setComponentWindowBounds);
     ipcMain.off("interface:allocate-component-window", allocateComponentWindow);
     ipcMain.off("interface:set-component-window-visible", setComponentWindowVisible);
-    ipcMain.off("interface:dispose-component-window", disposeComponentWindow);
+    ipcMain.off("interface:release-component-window", releaseComponentWindow);
     ipcMain.off("interface:focus-component-window", focusComponentWindow);
   };
   return destroy;

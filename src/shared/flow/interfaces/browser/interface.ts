@@ -42,6 +42,9 @@ export interface FlowInterfaceAPI {
    */
   setComponentWindowBounds: (componentId: string, bounds: PageBounds) => void;
 
+  /**
+   * Allocates a free component window
+   */
   allocateComponentWindow: (componentId: string, layerType: LayerType, visible?: boolean) => void;
 
   /**
@@ -49,7 +52,10 @@ export interface FlowInterfaceAPI {
    */
   setComponentWindowVisible: (componentId: string, visible: boolean) => void;
 
-  disposeComponentWindow: (componentId: string) => void;
+  /**
+   * Releases a component window back to the pool (does not tear down BrowserWindow lifecycle).
+   */
+  releaseComponentWindow: (componentId: string) => void;
 
   /**
    * Focuses a component window's webContents so it receives keyboard input
