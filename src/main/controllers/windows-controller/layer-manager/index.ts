@@ -8,15 +8,21 @@ class Layer<ViewType extends Electron.View = Electron.View> {
   public readonly view: ViewType;
   public readonly zIndex: number;
   public readonly focusPriority: number;
-  public readonly modal: boolean;
+  public readonly modalTo: (zIndex: number) => boolean;
 
-  constructor(manager: LayerManager, view: ViewType, zIndex: number, focusPriority: number, modal: boolean) {
+  constructor(
+    manager: LayerManager,
+    view: ViewType,
+    zIndex: number,
+    focusPriority: number,
+    modalTo: (zIndex: number) => boolean
+  ) {
     this.manager = manager;
 
     this.view = view;
     this.zIndex = zIndex;
     this.focusPriority = focusPriority;
-    this.modal = modal;
+    this.modalTo = modalTo;
 
     // Non-web contents views are not focusable, so they have the lowest priority
     if (!this.isWebContentsView()) {
@@ -37,7 +43,7 @@ class Layer<ViewType extends Electron.View = Electron.View> {
   public focus() {
     if (this.isWebContentsView()) {
       // check if its focusable (there might be modal layers on top blocking it)
-      const modalLayers = this.manager.getModalLayersOnTopOf(this.zIndex);
+      const modalLayers = this.manager.getModalLayersFor(this.zIndex);
       if (modalLayers.length > 0) {
         return false;
       }
@@ -86,8 +92,8 @@ class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
     this.parentView = window.browserWindow.contentView;
   }
 
-  public getModalLayersOnTopOf(zIndex: number): Layer[] {
-    return this.layers.filter((layer) => layer.modal && layer.zIndex > zIndex).toSorted((a, b) => b.zIndex - a.zIndex);
+  public getModalLayersFor(zIndex: number): Layer[] {
+    return this.layers.filter((layer) => layer.modalTo(zIndex)).toSorted((a, b) => b.zIndex - a.zIndex);
   }
 
   private _layersChanged() {
