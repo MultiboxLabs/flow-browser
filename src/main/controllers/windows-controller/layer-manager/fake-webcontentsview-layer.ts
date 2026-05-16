@@ -1,15 +1,25 @@
 import { Layer, LayerManager } from "@/controllers/windows-controller/layer-manager";
 
 export class FakeWebContentsViewLayer extends Layer<Electron.WebContentsView> {
-  constructor(manager: LayerManager, webContents: Electron.WebContents, zIndex: number, focusPriority: number) {
+  constructor(
+    manager: LayerManager,
+    webContents: Electron.WebContents,
+    zIndex: number,
+    focusPriority: number,
+    modalTo?: (zIndex: number) => boolean
+  ) {
     const fakeView: Pick<Electron.WebContentsView, "webContents"> = {
       webContents: webContents
     };
 
-    super(manager, fakeView as Electron.WebContentsView, zIndex, focusPriority);
+    super(manager, fakeView as Electron.WebContentsView, zIndex, focusPriority, modalTo);
   }
 
   public override isWebContentsView(): this is Layer<Electron.WebContentsView> {
+    return true;
+  }
+
+  public override isVisible(): boolean {
     return true;
   }
 

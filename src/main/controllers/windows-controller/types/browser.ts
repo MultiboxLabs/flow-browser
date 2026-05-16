@@ -3,7 +3,8 @@ import { app, BrowserWindow as ElectronBrowserWindow, nativeTheme, WebContents }
 import { type PageBounds } from "@/ipc/browser/page";
 import { type PageLayoutParams } from "~/flow/types";
 import { appMenuController } from "@/controllers/app-menu-controller";
-import { ViewManager } from "@/controllers/windows-controller/utils/view-manager";
+import { LayerManager } from "@/controllers/windows-controller/layer-manager";
+import { FakeWebContentsViewLayer } from "@/controllers/windows-controller/layer-manager/fake-webcontentsview-layer";
 import { Omnibox } from "@/controllers/windows-controller/utils/browser/omnibox";
 import { initializePortalComponentWindows } from "@/controllers/windows-controller/utils/browser/portal-component-windows";
 import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
@@ -15,7 +16,7 @@ import { tabPersistenceManager } from "@/saving/tabs";
 import { quitController } from "@/controllers/quit-controller";
 import { hex_is_light } from "@/modules/utils";
 import { relocateTabsFromClosingWindow } from "@/controllers/tabs-controller/tab-sync";
-import { ViewLayer } from "~/layers";
+import { createModalTo, focusPriorities, zIndexes } from "~/layers";
 import { SidebarInterpolation } from "@/controllers/windows-controller/utils/browser/sidebar-interpolation";
 import { SIDEBAR_ANIMATION_DURATION_MS } from "~/flow/sidebar-animation";
 
@@ -52,7 +53,7 @@ function isPageBoundsEqual(a: PageBounds, b: PageBounds): boolean {
 
 export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
   public browserWindowType: BrowserWindowType;
-  public viewManager: ViewManager;
+  public layerManager: LayerManager;
   public coreWebContents: WebContents[];
   public omnibox: Omnibox;
 
@@ -175,13 +176,21 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       this.recomputePageBounds();
     });
 
-    // View Manager //
-    this.viewManager = new ViewManager(browserWindow.contentView);
+    // Layer Manager //
+    this.layerManager = new LayerManager(this);
+    this.layerManager.push(
+      new FakeWebContentsViewLayer(
+        this.layerManager,
+        browserWindow.webContents,
+        zIndexes.browserUI,
+        focusPriorities.browserUI,
+        createModalTo("browserUI")
+      )
+    );
     this.coreWebContents = [browserWindow.webContents];
 
     // Omnibox //
-    this.omnibox = new Omnibox(browserWindow, type);
-    this.viewManager.addOrUpdateView(this.omnibox.view, ViewLayer.OMNIBOX);
+    this.omnibox = new Omnibox(this, type);
     this.coreWebContents.push(this.omnibox.webContents);
     browserWindow.on("focus", () => {
       if (!this.omnibox.isVisible()) {
@@ -415,7 +424,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       }
 
       this.omnibox.destroy();
-      this.viewManager.destroy();
+      this.layerManager.destroy();
     }
     return result;
   }

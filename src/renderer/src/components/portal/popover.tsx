@@ -3,7 +3,6 @@ import { PortalComponent } from "@/components/portal/portal";
 import { Popover as BasePopover, PopoverContent as BasePopoverContent } from "@/components/ui/popover";
 import { type PopoverRootChangeEventDetails } from "@base-ui/react";
 import { createContext, useContext, useEffect, useId, useState } from "react";
-import { ViewLayer } from "~/layers";
 
 export { PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
 
@@ -80,7 +79,7 @@ export function PopoverContent({ ...props }: Omit<React.ComponentProps<typeof Ba
         visible={delayedOpen}
         autoFocus
         className="w-screen h-screen absolute top-0 left-0"
-        zIndex={ViewLayer.POPOVER}
+        layerType="popover"
         portalBodyRef={setPortalContainer}
       />
     </>

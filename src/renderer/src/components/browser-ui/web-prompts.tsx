@@ -4,7 +4,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { useFocusedTabId, useTabs } from "@/components/providers/tabs-provider";
 import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { cn } from "@/lib/utils";
-import { ViewLayer } from "~/layers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -239,13 +238,7 @@ const TabWebPrompt = memo(function TabWebPrompt({
   prompt: ActivePrompt;
 }) {
   return (
-    <PortalComponent
-      visible={isVisible}
-      autoFocus
-      zIndex={ViewLayer.OVERLAY_UNDER}
-      className="fixed"
-      style={portalStyle}
-    >
+    <PortalComponent visible={isVisible} autoFocus layerType="webPrompt" className="fixed" style={portalStyle}>
       <ThemeConsumer>
         <div className={cn("w-full h-full", "bg-black/25 rounded-md", "flex items-center justify-center")}>
           {prompt.type === "basic-auth" ? <BasicAuthCard prompt={prompt} /> : <JavaScriptDialogCard prompt={prompt} />}

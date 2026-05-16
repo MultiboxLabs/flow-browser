@@ -7,11 +7,12 @@ import { cacheFavicon } from "@/modules/favicons";
 import { FLAGS } from "@/modules/flags";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { NavigationEntry, Session, WebContents, WebContentsView, WebPreferences } from "electron";
+import { Layer } from "@/controllers/windows-controller/layer-manager";
 import { createTabContextMenu } from "./context-menu";
 import { generateID, getCurrentTimestamp } from "@/modules/utils";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import { LoadedProfile } from "@/controllers/loaded-profiles-controller";
-import { ViewLayer } from "~/layers";
+import { createModalTo, focusPriorities, type LayerType, zIndexes } from "~/layers";
 import { type TabsController } from "./index";
 
 export const SLEEP_MODE_URL = "about:blank?sleep=true";
@@ -212,6 +213,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
   // View & content objects — nullable (null when tab is asleep)
   public view: PatchedWebContentsView | null = null;
   public webContents: WebContents | null = null;
+  public layer: Layer<PatchedWebContentsView> | null = null;
 
   // Private properties
   private readonly session: Session;
@@ -313,7 +315,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
       // Create view, webContents, listeners, context menu, extensions
       this.initializeView();
 
-      // Add view to window's ViewManager
+      // Add view to window's LayerManager
       this.setWindow(window);
 
       // Restore navigation history (deferred to let managers wire up)
@@ -358,6 +360,13 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     this.view = webContentsView;
     this.webContents = webContents;
+    this.layer = new Layer(
+      this.window.layerManager,
+      webContentsView,
+      zIndexes.tab,
+      focusPriorities.tab,
+      createModalTo("tab")
+    );
 
     // Apply muted state if tab was muted before sleeping
     if (this.muted) {
@@ -410,6 +419,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
 
     this.view = null;
     this.webContents = null;
+    this.layer = null;
   }
 
   /**
@@ -726,8 +736,8 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    */
   private removeViewFromWindow() {
     const oldWindow = this.window;
-    if (oldWindow && this.view) {
-      oldWindow.viewManager.removeView(this.view);
+    if (oldWindow && this.layer) {
+      oldWindow.layerManager.pop(this.layer);
       return true;
     }
     return false;
@@ -737,7 +747,7 @@ export class Tab extends TypedEventEmitter<TabEvents> {
    * Sets the window for the tab and adds the view to it.
    * If the tab is sleeping (no view), only updates the window reference.
    */
-  public setWindow(window: BrowserWindow, index: number = ViewLayer.TAB) {
+  public setWindow(window: BrowserWindow, layerType: LayerType = "tab") {
     const oldWindowId = this.window?.id;
     const windowChanged = this.window !== window;
     if (windowChanged) {
@@ -747,10 +757,22 @@ export class Tab extends TypedEventEmitter<TabEvents> {
     if (window) {
       this.window = window;
       // Only add view if it exists (sleeping tabs have no view)
-      if (this.view) {
-        // addOrUpdateView has internal change detection and will skip
-        // if the view is already registered at the same z-index
-        window.viewManager.addOrUpdateView(this.view, index);
+      if (this.view && this.layer) {
+        if (
+          windowChanged ||
+          this.layer.zIndex !== zIndexes[layerType] ||
+          this.layer.focusPriority !== focusPriorities[layerType]
+        ) {
+          window.layerManager.pop(this.layer);
+          this.layer = new Layer(
+            window.layerManager,
+            this.view,
+            zIndexes[layerType],
+            focusPriorities[layerType],
+            createModalTo(layerType)
+          );
+        }
+        window.layerManager.push(this.layer);
       }
     }
 

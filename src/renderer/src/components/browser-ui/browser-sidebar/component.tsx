@@ -9,7 +9,6 @@ import { SidebarInner } from "./inner";
 import { type ImperativeResizablePanelWrapperHandle, PixelBasedResizablePanel } from "@/components/ui/resizable-extras";
 import { PortalComponent } from "@/components/portal/portal";
 import { SpaceBackgroundStylesheet } from "@/components/providers/spaces-provider";
-import { ViewLayer } from "~/layers";
 import { SIDEBAR_ANIMATION_CSS_EASING, SIDEBAR_ANIMATION_DURATION_MS } from "~/flow/sidebar-animation";
 
 // Component //
@@ -210,7 +209,7 @@ export function BrowserSidebar({
           height: `calc(100vh - ${topbarHeight}px)`
         }}
         visible={true}
-        zIndex={ViewLayer.OVERLAY}
+        layerType="floatingSidebar"
       >
         <div
           ref={animatedRef}

@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PortalComponent } from "@/components/portal/portal";
 import { useBoundingRect } from "@/hooks/use-bounding-rect";
-import { ViewLayer } from "~/layers";
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { SidebarSide } from "@/components/browser-ui/types";
@@ -106,7 +105,7 @@ function ToastContainer({
   return (
     <PortalComponent
       visible={isVisible}
-      zIndex={ViewLayer.OVERLAY}
+      layerType="floatingSidebar"
       className="fixed"
       style={{
         top: anchorRect.y,

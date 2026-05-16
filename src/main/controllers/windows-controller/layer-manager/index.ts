@@ -1,5 +1,5 @@
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
-import { BrowserWindow } from "../types/browser";
+import type { BrowserWindow } from "../types/browser";
 import { WebContentsView } from "electron";
 
 export class Layer<ViewType extends Electron.View = Electron.View> {
@@ -54,9 +54,16 @@ export class Layer<ViewType extends Electron.View = Electron.View> {
     return false;
   }
 
-  private _visibilityChanged(oldVisible: boolean, newVisible: boolean) {
-    if (oldVisible === true && newVisible === false && this.isFocused()) {
-      this.manager.reallocateFocus();
+  private _visibilityChanging(oldVisible: boolean, newVisible: boolean) {
+    const wasFocused = this.isFocused();
+    const focusedLayer = this.manager.getFocusedLayer();
+    const shouldReallocate =
+      oldVisible === true &&
+      newVisible === false &&
+      (wasFocused || !focusedLayer || (focusedLayer !== this && this.modalTo(focusedLayer.zIndex)));
+    if (shouldReallocate) {
+      // wait for layer to be hidden
+      setImmediate(() => this.manager.reallocateFocus());
     }
   }
 
@@ -68,7 +75,7 @@ export class Layer<ViewType extends Electron.View = Electron.View> {
     if (oldVisible === visible) {
       return;
     }
-    this._visibilityChanged(oldVisible, visible);
+    this._visibilityChanging(oldVisible, visible);
     this.view.setVisible(visible);
   }
 
@@ -86,16 +93,13 @@ type LayerManagerEvents = {
 };
 
 export class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
-  private readonly window: BrowserWindow;
   private readonly parentView: Electron.View;
 
   private layers: Layer[] = [];
   private oldLayers: Layer[] = [];
-
   constructor(window: BrowserWindow) {
     super();
 
-    this.window = window;
     this.parentView = window.browserWindow.contentView;
   }
 
@@ -119,7 +123,7 @@ export class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
       }
     }
 
-    // addChildView moves a sibling to the top. Matching ViewManager (low z → high z),
+    // addChildView moves a sibling to the top. Matching LayerManager (low z → high z),
     // a full reorder is equivalent to addChildView for every layer in that order. The
     // bottom stack that already matches can be skipped: from the first index where the
     // old survivor order diverges, re-add through the end (e.g. old L1,L2,L4 → new
@@ -142,10 +146,17 @@ export class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
    * The focused layer is no longer there, so we need to find a new one to focus.
    */
   public reallocateFocus() {
-    const layers = this.layers.toSorted((a, b) => b.focusPriority - a.focusPriority);
-    const prioritisedLayer = layers[0];
-    if (prioritisedLayer) {
-      prioritisedLayer.focus();
+    const layers = this.layers
+      .filter((layer) => layer.isVisible())
+      .toSorted((a, b) => b.focusPriority - a.focusPriority);
+
+    for (const layer of layers) {
+      if (layer.focus()) {
+        if (layer.isWebContentsView()) {
+          console.log("reallocated focus to layer", layer.view.webContents.getURL());
+        }
+        return;
+      }
     }
   }
 
@@ -158,7 +169,8 @@ export class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
   }
   private _layerRemoving(layer: Layer) {
     if (layer.isFocused()) {
-      this.reallocateFocus();
+      // wait for layer to be removed
+      setImmediate(() => this.reallocateFocus());
     }
     this.emit("layer-removed", layer);
   }
@@ -180,5 +192,20 @@ export class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
     this._layerRemoving(layer);
     this._layersChanged();
     return true;
+  }
+
+  public destroy(dontRemoveViews: boolean = false) {
+    if (!dontRemoveViews) {
+      for (const layer of this.layers) {
+        try {
+          layer.removeThisFromParentView(this.parentView);
+        } catch (error) {
+          console.warn(`Failed to remove view ${layer.view} during destroy:`, error);
+        }
+      }
+    }
+
+    this.layers = [];
+    this.oldLayers = [];
   }
 }

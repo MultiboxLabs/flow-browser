@@ -1,46 +1,3 @@
-// ─── ViewLayer (Electron-level view stacking) ───────────────────────────
-//
-// Controls the ordering of WebContentsView children within a BrowserWindow.
-// Managed by the ViewManager. Values are spaced by 10 to leave room for
-// future layers without renumbering.
-//
-// Band ranges:
-//   Tabs   (0–29)   — Tab content variants (back, normal, front, split, pip)
-//   Chrome (30–59)  — UI surfaces above tabs (overlays, popovers, panels)
-//   System (60–100) — System-level surfaces (omnibox, devtools overlays)
-//
-// Invariants: TAB_BACK < TAB < TAB_FRONT < OVERLAY < POPOVER < OMNIBOX
-
-export const ViewLayer = {
-  /** Glance mode: the background tab, rendered behind the active tab */
-  TAB_BACK: 0,
-
-  /** Standard tab web content (the page the user is browsing) */
-  TAB: 10,
-
-  /** Glance mode: the foreground tab, rendered on top of the back tab */
-  TAB_FRONT: 20,
-
-  /** Overlay, but would block the content area and should be rendered under overlays. */
-  OVERLAY_UNDER: 30,
-
-  /** Portal component windows: floating sidebar, toasts, extension popups.
-      These are WebContentsViews that render browser chrome UI on top of
-      tab content. */
-  OVERLAY: 31,
-
-  /** Portal popovers: context menus, dropdowns anchored to overlay content.
-      Must be above OVERLAY so a popover triggered from a portal renders
-      on top of its parent portal. */
-  POPOVER: 40,
-
-  /** The omnibox / command palette. Always the topmost view in the window.
-      Nothing should be added above this layer. */
-  OMNIBOX: 100
-} as const;
-
-export type ViewLayerValue = (typeof ViewLayer)[keyof typeof ViewLayer];
-
 // ─── UILayer (CSS-level stacking within a renderer) ─────────────────────
 //
 // Controls z-index of elements within any single renderer process. Every
@@ -91,6 +48,7 @@ export type UILayerValue = (typeof UILayer)[keyof typeof UILayer];
 // For LayerManager
 export const zIndexes = {
   // Overlays
+  omnibox: 100,
   popover: 99,
   floatingSidebar: 30,
 
@@ -102,15 +60,17 @@ export const zIndexes = {
   // Tab Content
   tabTargetUrlIndicator: 11,
   tab: 10,
+  tabBack: 9,
 
   // Browser UI
   browserUI: 0
 } as const satisfies Record<string, number>;
 
-type LayerName = keyof typeof zIndexes;
+export type LayerType = keyof typeof zIndexes;
 
 export const focusPriorities = {
   // Overlays
+  omnibox: 100,
   popover: 99,
   floatingSidebar: 0,
 
@@ -122,19 +82,31 @@ export const focusPriorities = {
   // Tab Content
   tabTargetUrlIndicator: 0,
   tab: 10,
+  tabBack: 9,
 
   // Browser UI
   browserUI: 0
-} as const satisfies Record<LayerName, number>;
+} as const satisfies Record<LayerType, number>;
 
-export function createModalTo(layerName: LayerName) {
-  switch (layerName) {
+export function createModalTo(layerType: LayerType) {
+  switch (layerType) {
     case "popover":
-      return () => true;
+      return (zIndex: number) => {
+        if (zIndex === zIndexes.omnibox) {
+          return false;
+        }
+        return true;
+      };
     case "webPrompt":
       // Web Prompts are modal to tab layers
       return (zIndex: number) => {
-        const modalToLayers: LayerName[] = ["passkeyConditionalUI", "findInPage", "tabTargetUrlIndicator", "tab"];
+        const modalToLayers: LayerType[] = [
+          "passkeyConditionalUI",
+          "findInPage",
+          "tabTargetUrlIndicator",
+          "tab",
+          "tabBack"
+        ];
         for (const layer of modalToLayers) {
           const layerZIndex = zIndexes[layer];
           if (layerZIndex === zIndex) {

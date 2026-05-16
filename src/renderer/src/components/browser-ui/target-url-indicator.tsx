@@ -5,7 +5,6 @@ import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { useTabs } from "@/components/providers/tabs-provider";
 import { cn } from "@/lib/utils";
-import { ViewLayer } from "~/layers";
 import type { TabTargetUrlUpdate } from "~/types/tabs";
 import { AnimatePresence, motion } from "motion/react";
 import { useUnmount } from "react-use";
@@ -213,7 +212,7 @@ export function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
   return (
     <PortalComponent
       visible={isVisible}
-      zIndex={ViewLayer.OVERLAY}
+      layerType="tabTargetUrlIndicator"
       className="fixed"
       style={lastPortalStyle.current ?? {}}
     >

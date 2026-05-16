@@ -431,11 +431,16 @@ const interfaceAPI: FlowInterfaceAPI = {
   setComponentWindowBounds: (componentId: string, bounds: Electron.Rectangle) => {
     return ipcRenderer.send("interface:set-component-window-bounds", componentId, bounds);
   },
-  setComponentWindowZIndex: (componentId: string, zIndex: number) => {
-    return ipcRenderer.send("interface:set-component-window-z-index", componentId, zIndex);
+  allocateComponentWindow: (
+    ...[componentId, layerType, visible]: Parameters<FlowInterfaceAPI["allocateComponentWindow"]>
+  ) => {
+    return ipcRenderer.send("interface:allocate-component-window", componentId, layerType, visible);
   },
-  setComponentWindowVisible: (componentId: string, visible: boolean) => {
+  setComponentWindowVisible: (...[componentId, visible]: Parameters<FlowInterfaceAPI["setComponentWindowVisible"]>) => {
     return ipcRenderer.send("interface:set-component-window-visible", componentId, visible);
+  },
+  disposeComponentWindow: (componentId: string) => {
+    return ipcRenderer.send("interface:dispose-component-window", componentId);
   },
   focusComponentWindow: (componentId: string) => {
     return ipcRenderer.send("interface:focus-component-window", componentId);

@@ -5,7 +5,6 @@ import { ChevronUp, ChevronDown, X } from "lucide-react";
 import { PortalComponent } from "@/components/portal/portal";
 import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { useFocusedTabId, useTabs } from "@/components/providers/tabs-provider";
-import { ViewLayer } from "~/layers";
 
 const FIND_BAR_WIDTH = 380;
 const FIND_BAR_HEIGHT = 44;
@@ -208,7 +207,7 @@ const TabFindInPage = memo(function TabFindInPage({
     <PortalComponent
       visible={isFocused}
       autoFocus={isFocused}
-      zIndex={ViewLayer.OVERLAY}
+      layerType="findInPage"
       className="fixed"
       style={portalStyle}
     >

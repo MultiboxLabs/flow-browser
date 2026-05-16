@@ -3,7 +3,7 @@ import { TabBoundsController, isRectangleEqual } from "./bounds";
 import { TabLifecycleManager } from "./tab-lifecycle";
 import { getCurrentTimestamp } from "@/modules/utils";
 import { TabGroupMode } from "~/types/tabs";
-import { ViewLayer } from "~/layers";
+import { type LayerType } from "~/layers";
 import { Rectangle } from "electron";
 import { type TabsController } from "./index";
 
@@ -87,9 +87,9 @@ export class TabLayoutManager {
     const window = tab.getWindow();
 
     // Sync view visibility (only if view exists — sleeping tabs have no view)
-    const wasVisible = tab.view ? tab.view.getVisible() : false;
-    if (tab.view && wasVisible !== visible) {
-      tab.view.setVisible(visible);
+    const wasVisible = tab.layer ? tab.layer.isVisible() : false;
+    if (tab.layer && wasVisible !== visible) {
+      tab.layer.setVisible(visible);
 
       // Handle PiP transitions on visibility change
       if (visible) {
@@ -151,7 +151,7 @@ export class TabLayoutManager {
     const lastTabGroupMode = this.lastTabGroupMode;
     let newBounds: Rectangle | null = null;
     let newTabGroupMode: TabGroupMode | null = null;
-    let zIndex: number = ViewLayer.TAB;
+    let layerType: LayerType = "tab";
 
     if (!tabGroup) {
       newTabGroupMode = "normal";
@@ -161,14 +161,14 @@ export class TabLayoutManager {
       const isFront = tabGroup.frontTabId === tab.id;
       newBounds = this.calculateGlanceBounds(pageBounds, isFront);
 
-      zIndex = isFront ? ViewLayer.TAB_FRONT : ViewLayer.TAB_BACK;
+      layerType = isFront ? "tab" : "tabBack";
     } else if (tabGroup.mode === "split") {
       newTabGroupMode = "split";
       // TODO: Implement split tab group layout
     }
 
     // Update z-index via setWindow
-    tab.setWindow(window, zIndex);
+    tab.setWindow(window, layerType);
 
     // Track mode changes
     if (newTabGroupMode !== lastTabGroupMode) {

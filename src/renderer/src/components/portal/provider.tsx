@@ -145,7 +145,7 @@ function releasePortal(portal: Portal) {
   window.portals.used.delete(portal.id);
   window.portals.available.set(portal.id, portal);
 
-  flow.interface.setComponentWindowVisible(portal.id, false);
+  flow.interface.disposeComponentWindow(portal.id);
 }
 
 function removePortal(portal: Portal) {

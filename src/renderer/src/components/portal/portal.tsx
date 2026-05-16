@@ -4,7 +4,7 @@ import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { useCopyStyles } from "@/hooks/use-copy-styles";
 import { mergeRefs } from "@/lib/merge-refs";
 import { cn } from "@/lib/utils";
-import { ViewLayer } from "~/layers";
+import { type LayerType } from "~/layers";
 import { createContext, RefObject, useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 
@@ -13,7 +13,7 @@ type PortalBodyRef = RefObject<HTMLElement | null> | ((body: HTMLElement | null)
 interface PortalComponentProps extends React.ComponentProps<"div"> {
   portalBodyRef?: PortalBodyRef;
   visible?: boolean;
-  zIndex?: number;
+  layerType?: LayerType;
   autoFocus?: boolean;
 }
 
@@ -38,7 +38,7 @@ export function usePortalContext() {
 
 export function PortalComponent({
   visible = true,
-  zIndex = ViewLayer.OVERLAY,
+  layerType = "floatingSidebar",
   autoFocus = false,
   className,
   children,
@@ -48,6 +48,7 @@ export function PortalComponent({
 }: PortalComponentProps) {
   const { usePortal } = usePortalsProvider();
   const portal = usePortal();
+  const initialVisibleRef = useRef(visible);
 
   const holderRef = useRef<HTMLDivElement>(null);
   const mergedRef = mergeRefs([ref, holderRef]);
@@ -99,6 +100,16 @@ export function PortalComponent({
     );
   }, [children, bounds]);
 
+  useLayoutEffect(() => {
+    if (!portal?.window || portal.window.closed) return;
+
+    try {
+      flow.interface.allocateComponentWindow(portal.id, layerType, initialVisibleRef.current);
+    } catch (error) {
+      console.warn("Failed to allocate portal:", error);
+    }
+  }, [portal, layerType]);
+
   // Update visibility of the portal
   useLayoutEffect(() => {
     if (!portal?.window || portal.window.closed) return;
@@ -124,17 +135,6 @@ export function PortalComponent({
       console.warn("Failed to focus portal:", error);
     }
   }, [portal, visible, autoFocus]);
-
-  // Update z-index of the portal
-  useLayoutEffect(() => {
-    if (!portal?.window || portal.window.closed) return;
-
-    try {
-      flow.interface.setComponentWindowZIndex(portal.id, zIndex);
-    } catch (error) {
-      console.warn("Failed to set portal z-index:", error);
-    }
-  }, [portal, zIndex]);
 
   // Update bounds of the portal
   useLayoutEffect(() => {
