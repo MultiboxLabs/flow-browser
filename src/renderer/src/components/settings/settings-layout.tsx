@@ -70,7 +70,7 @@ export function SettingsLayout() {
             <SettingsTitlebar />
             <div className="flex flex-1 overflow-hidden">
               <SettingsSidebar activeSection={activeSection} setActiveSection={setActiveSection} sections={sections} />
-              <main className="flex-1 flex flex-col overflow-hidden">
+              <main className="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
                 <div className="flex-1 overflow-auto p-6 md:p-8">
                   <div className="mx-auto max-w-4xl">{ActiveSectionComponent}</div>
                 </div>
