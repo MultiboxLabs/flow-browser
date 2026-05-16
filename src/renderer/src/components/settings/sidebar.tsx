@@ -64,14 +64,14 @@ export function SettingsSidebar({ sections, activeSection, setActiveSection }: S
       )}
     >
       <div className="p-2 flex flex-col gap-2">
-        <div className="sticky top-2 z-20">
-          {/* Window controls */}
-          {isMac && (
+        {isMac && (
+          <div className="sticky top-2 z-20">
+            {/* Window controls */}
             <div className="h-4.5 w-full shrink-0 flex items-center gap-2 px-[3px]">
               <SidebarWindowControlsMacOS />
             </div>
-          )}
-        </div>
+          </div>
+        )}
         {/* Sidebar content */}
         <div className="flex flex-col gap-px">
           {sections.map((section) => (

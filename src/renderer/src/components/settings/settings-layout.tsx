@@ -7,7 +7,9 @@ import { cn } from "@/lib/utils";
 import { createContext, useContext, useEffect, useState } from "react";
 import { SettingsSidebar } from "./sidebar";
 import { BlocksIcon, UsersIcon, KeyboardIcon, Info, LucideIcon, DockIcon, OrbitIcon, CogIcon } from "lucide-react";
-import { IconSection } from "@/components/settings/new-sections/icon";
+import { IconSection } from "./new-sections/icon";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { SettingsContentHeader } from "./content/header";
 
 const FocusedContext = createContext<boolean>(true);
 export function useFocusedContext() {
@@ -123,8 +125,15 @@ export function SettingsLayout() {
                   activeSection={activeSection}
                   setActiveSection={setActiveSection}
                 />
-                <div id="content" className={cn("flex-1 h-full", "px-2 flex flex-col")}>
-                  <IconSection />
+                <div className="relative flex-1 h-full min-w-0">
+                  <ScrollArea
+                    className={cn("h-full px-2", "mask-[linear-gradient(to_bottom,transparent_36px,black_44px)]")}
+                  >
+                    <div className="flex flex-col gap-2 pt-11">
+                      <IconSection />
+                    </div>
+                  </ScrollArea>
+                  <SettingsContentHeader />
                 </div>
               </div>
             </div>
