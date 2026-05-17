@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
+const DEBUG_FORCE_PLATFORM: Platform | undefined = undefined;
+
 /**
  * Supported platform types that the application can detect and run on.
  */
@@ -98,7 +100,7 @@ export function PlatformProvider({ children }: { children: React.ReactNode }) {
     // Because of electron preload scripts not running in iframes
     // https://www.google.com/search?q=electron+preload+not+working+in+iframe
     try {
-      const foundPlatform = flow.app.getPlatform();
+      const foundPlatform = DEBUG_FORCE_PLATFORM ?? flow.app.getPlatform();
 
       if (foundPlatform === "win32") {
         setPlatform("win32");
