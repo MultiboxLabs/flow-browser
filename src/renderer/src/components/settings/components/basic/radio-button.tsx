@@ -7,7 +7,7 @@ export function RadioButton({ active }: { active: boolean }) {
   const activeClass = isFocused ? "bg-[#147dff]" : "bg-[#4a4749]";
 
   return (
-    <div
+    <button
       className={cn(
         "size-4 rounded-full",
         active ? activeClass : "bg-black/10 dark:bg-white/10",
@@ -15,6 +15,6 @@ export function RadioButton({ active }: { active: boolean }) {
       )}
     >
       {active && <div className={cn("rounded-full bg-white", isMac ? "size-1.5" : "size-2.5")} />}
-    </div>
+    </button>
   );
 }

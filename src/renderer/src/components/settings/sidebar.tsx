@@ -10,13 +10,18 @@ interface SettingsSidebarSectionButtonProps {
   setActiveSection: (section: Section["id"]) => void;
 }
 function SettingsSidebarSectionButton({ section, activeSection, setActiveSection }: SettingsSidebarSectionButtonProps) {
+  const isActive = activeSection === section.id;
   return (
-    <div
+    <button
+      tabIndex={-1}
       className={cn(
         "h-8 rounded-lg",
         "flex items-center gap-2",
         "px-2",
-        activeSection === section.id && "bg-black/5 dark:bg-white/3"
+        isActive && "bg-black/5 dark:bg-white/5",
+        isActive && "group-focus-visible:bg-black/10 group-focus-visible:dark:bg-white/10",
+        isActive && "group-focus-visible:ring-1 group-focus-visible:ring-ring/50",
+        isActive && "group-focus-within:bg-black/10 group-focus-within:dark:bg-white/10"
       )}
       onClick={() => setActiveSection(section.id)}
     >
@@ -31,7 +36,7 @@ function SettingsSidebarSectionButton({ section, activeSection, setActiveSection
         <section.icon className={cn("size-3.5", section.iconCN ?? "text-black")} />
       </div>
       <span className="text-sm text-black dark:text-white">{section.label}</span>
-    </div>
+    </button>
   );
 }
 
@@ -57,8 +62,26 @@ export function SettingsSidebar({ sections, activeSection, setActiveSection }: S
         "w-56.5 h-full",
         isMac ? "rounded-[18px] border" : "border-r",
         "overflow-hidden",
+        "group focus-visible:outline-none",
         isMac && getLiquidGlassLikeStyles(isFocused)
       )}
+      tabIndex={0}
+      disableTabFocus
+      onKeyDown={(e) => {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          const nextSection = sections.findIndex((section) => section.id === activeSection) + 1;
+          if (nextSection < sections.length) {
+            setActiveSection(sections[nextSection].id);
+          }
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          const previousSection = sections.findIndex((section) => section.id === activeSection) - 1;
+          if (previousSection >= 0) {
+            setActiveSection(sections[previousSection].id);
+          }
+        }
+      }}
     >
       <div className="p-2 flex flex-col gap-2">
         {isMac && (

@@ -19,6 +19,7 @@ function NavigationButton({ direction, disabled, onClick }: NavigationButtonProp
       type="button"
       disabled={disabled}
       onClick={onClick}
+      tabIndex={-1}
       className={cn(
         "size-7",
         "rounded-full",

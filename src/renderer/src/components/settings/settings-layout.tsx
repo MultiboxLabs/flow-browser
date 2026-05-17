@@ -126,6 +126,7 @@ function InnerSettingsLayout() {
               <div className="relative flex-1 h-full min-w-0">
                 <ScrollArea
                   className={cn("h-full px-2", "mask-[linear-gradient(to_bottom,transparent_36px,black_44px)]")}
+                  disableTabFocus
                 >
                   <div className="flex flex-col gap-2 pt-11 px-2 pb-4">{currentSectionNode}</div>
                 </ScrollArea>
