@@ -97,13 +97,14 @@ function InnerSettingsLayout() {
     (nextSectionId: Section["id"]) => {
       const section = sections.find((s) => s.id === nextSectionId);
       if (!section) return;
+      if (currentEntry.section === nextSectionId && currentEntry.isSectionRoot) return;
       push({
         section: section.id,
         component: section.section,
         isSectionRoot: true
       });
     },
-    [push]
+    [push, currentEntry]
   );
 
   return (
