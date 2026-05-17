@@ -108,7 +108,13 @@ function InnerSettingsLayout() {
       <title>Flow Settings</title>
       <ShortcutsProvider>
         <SettingsProvider>
-          <div className="select-none flex flex-col h-screen overflow-hidden bg-background/50 text-gray-600 dark:text-gray-300">
+          <div
+            className={cn(
+              "select-none subpixel-antialiased",
+              "flex flex-col h-screen overflow-hidden",
+              "bg-background/50 text-gray-600 dark:text-gray-300"
+            )}
+          >
             {platform !== "darwin" && <SettingsTitlebar />}
             {platform === "darwin" && <div className="absolute top-0 w-full h-12 app-drag -z-10" />}
             <div className={cn("flex-1 min-h-0 flex flex-row", platform === "darwin" && "m-2")}>
