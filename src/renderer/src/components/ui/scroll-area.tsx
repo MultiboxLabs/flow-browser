@@ -9,11 +9,16 @@ function ScrollArea({
   className,
   children,
   disableTabFocus,
+  viewportRef,
   ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.Root> & { disableTabFocus?: boolean }) {
+}: React.ComponentProps<typeof ScrollAreaPrimitive.Root> & {
+  disableTabFocus?: boolean;
+  viewportRef?: React.Ref<HTMLDivElement>;
+}) {
   return (
     <ScrollAreaPrimitive.Root data-slot="scroll-area" className={cn("relative", className)} {...props}>
       <ScrollAreaPrimitive.Viewport
+        ref={viewportRef}
         data-slot="scroll-area-viewport"
         className="ring-ring/10 dark:ring-ring/20 dark:outline-ring/40 outline-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] focus-visible:ring-4 focus-visible:outline-1"
         tabIndex={disableTabFocus ? -1 : undefined}

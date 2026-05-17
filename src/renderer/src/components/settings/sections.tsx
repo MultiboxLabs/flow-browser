@@ -12,6 +12,7 @@ export interface Section {
   backgroundCN?: string;
   iconCN?: string;
   section?: React.ReactNode;
+  sectionHeaderTitleMode?: "none" | "showOnScroll" | "showAlways";
 }
 
 export const sections: Section[] = [
@@ -22,7 +23,8 @@ export const sections: Section[] = [
     backgroundCN: cn("bg-linear-to-b from-gray-300 to-gray-400"),
     borderCN: cn("border border-gray-400/80"),
     iconCN: cn("text-black"),
-    section: <GeneralSection />
+    section: <GeneralSection />,
+    sectionHeaderTitleMode: "showOnScroll"
   },
   {
     id: "icons",
@@ -31,7 +33,8 @@ export const sections: Section[] = [
     backgroundCN: cn("bg-linear-to-b from-orange-400 to-orange-500"),
     borderCN: cn("border border-orange-600/60"),
     iconCN: cn("text-white"),
-    section: <IconSection />
+    section: <IconSection />,
+    sectionHeaderTitleMode: "none"
   },
   {
     id: "profiles",

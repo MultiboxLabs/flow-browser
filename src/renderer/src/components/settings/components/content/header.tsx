@@ -6,6 +6,7 @@ import {
 import { getLiquidGlassLikeStyles } from "@/components/settings/sidebar";
 import { cn } from "@/lib/utils";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 
 interface NavigationButtonProps {
   direction: "left" | "right";
@@ -78,7 +79,19 @@ export function SettingsContentHeader({ sectionLabel }: { sectionLabel: string |
       className={cn("absolute top-0 left-0 z-20 h-9 px-2", "flex items-center justify-between gap-2", !isMac && "pt-2")}
     >
       <NavigationButtons isMac={isMac} />
-      <span className="font-medium">{sectionLabel}</span>
+      <AnimatePresence>
+        {sectionLabel && (
+          <motion.span
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.2 }}
+            className="font-medium"
+          >
+            {sectionLabel}
+          </motion.span>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

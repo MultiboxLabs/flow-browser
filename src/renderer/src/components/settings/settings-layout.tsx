@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { SettingsContentHeader } from "./components/content/header";
 import { SettingsWindowProvider, useSettingsWindowContext } from "./context";
 import { sections, type Section } from "./sections";
+import { useSettingsHeaderTitleScroll } from "./use-settings-header-title-scroll";
 
 function InnerSettingsLayout() {
   const { platform } = usePlatform();
@@ -18,8 +19,24 @@ function InnerSettingsLayout() {
   const currentEntry = navigationHistory[navigationHistoryIndex];
   const sectionData = currentEntry ? (sections.find((s) => s.id === currentEntry.section) ?? null) : null;
   const sectionId = currentEntry ? currentEntry.section : null;
+  const sectionHeaderTitleMode = sectionData?.sectionHeaderTitleMode ?? "showOnScroll";
   const sectionLabel = sectionData ? sectionData.label : null;
   const currentSectionNode = currentEntry?.component;
+
+  const { viewportRef: scrollViewportRef, headerTitleFromScroll } = useSettingsHeaderTitleScroll({
+    sectionHeaderTitleMode,
+    sectionId,
+    currentSectionNode
+  });
+
+  const contentHeaderSectionLabel =
+    sectionLabel == null || sectionHeaderTitleMode === "none"
+      ? null
+      : sectionHeaderTitleMode === "showAlways"
+        ? sectionLabel
+        : headerTitleFromScroll
+          ? sectionLabel
+          : null;
 
   const setActiveSection = useCallback(
     (nextSectionId: Section["id"]) => {
@@ -55,10 +72,11 @@ function InnerSettingsLayout() {
                 <ScrollArea
                   className={cn("h-full px-2", "mask-[linear-gradient(to_bottom,transparent_36px,black_44px)]")}
                   disableTabFocus
+                  viewportRef={scrollViewportRef}
                 >
                   <div className="flex flex-col gap-2 pt-11 px-2 pb-4">{currentSectionNode}</div>
                 </ScrollArea>
-                <SettingsContentHeader sectionLabel={sectionLabel} />
+                <SettingsContentHeader sectionLabel={contentHeaderSectionLabel} />
               </div>
             </div>
           </div>
