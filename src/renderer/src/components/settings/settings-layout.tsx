@@ -113,7 +113,7 @@ function InnerSettingsLayout() {
         <SettingsProvider>
           <div
             className={cn(
-              "select-none subpixel-antialiased",
+              "select-none",
               "flex flex-col h-screen overflow-hidden",
               "bg-background/50 text-gray-600 dark:text-gray-300"
             )}

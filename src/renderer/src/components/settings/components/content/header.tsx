@@ -77,7 +77,7 @@ export function SettingsContentHeader({ sectionLabel }: { sectionLabel: string |
       className={cn("absolute top-0 left-0 z-20 h-9 px-2", "flex items-center justify-between gap-2", !isMac && "pt-2")}
     >
       <NavigationButtons isMac={isMac} />
-      <span className="font-medium">{sectionLabel}</span>
+      <span className="font-medium text-black dark:text-white">{sectionLabel}</span>
     </div>
   );
 }
