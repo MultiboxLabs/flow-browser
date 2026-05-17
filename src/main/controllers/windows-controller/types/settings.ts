@@ -52,6 +52,13 @@ export class SettingsWindow extends BaseWindow {
       backgroundColor: process.platform === "darwin" ? "#00000000" : "#000000"
     });
 
+    if (process.platform === "darwin") {
+      import("@/modules/macos").then(({ addAppKitSidebarEffect }) => {
+        // makes border radius of the window match the sidebar
+        addAppKitSidebarEffect(browserWindow);
+      });
+    }
+
     super("settings", browserWindow, { deferShowUntilAfterLoad: true });
 
     // Wait for default session (and its protocol handlers) to be ready
