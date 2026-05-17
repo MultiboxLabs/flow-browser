@@ -87,18 +87,21 @@ function InnerSettingsLayout() {
   const { platform } = usePlatform();
 
   const { navigationHistory, navigationHistoryIndex, push } = useSettingsWindowContext();
-  const currentSectionNode = navigationHistory[navigationHistoryIndex];
-  const sectionData = currentSectionNode
-    ? (sections.find((section) => section.section === currentSectionNode) ?? null)
-    : null;
-  const sectionId = sectionData ? sectionData.id : null;
+  const currentEntry = navigationHistory[navigationHistoryIndex];
+  const sectionData = currentEntry ? (sections.find((s) => s.id === currentEntry.section) ?? null) : null;
+  const sectionId = currentEntry ? currentEntry.section : null;
   const sectionLabel = sectionData ? sectionData.label : null;
+  const currentSectionNode = currentEntry?.component;
 
   const setActiveSection = useCallback(
-    (sectionId: Section["id"]) => {
-      const section = sections.find((section) => section.id === sectionId);
+    (nextSectionId: Section["id"]) => {
+      const section = sections.find((s) => s.id === nextSectionId);
       if (!section) return;
-      push(section.section);
+      push({
+        section: section.id,
+        component: section.section,
+        isSectionRoot: true
+      });
     },
     [push]
   );
@@ -137,7 +140,13 @@ function InnerSettingsLayout() {
 
 export function SettingsLayout() {
   return (
-    <SettingsWindowProvider initialNode={sections[0].section}>
+    <SettingsWindowProvider
+      initialItem={{
+        section: sections[0].id,
+        component: sections[0].section,
+        isSectionRoot: true
+      }}
+    >
       <InnerSettingsLayout />
     </SettingsWindowProvider>
   );

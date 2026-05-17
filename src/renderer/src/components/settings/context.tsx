@@ -1,17 +1,23 @@
 import { usePlatform } from "@/components/main/platform";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
+export interface NavigationHistoryItem {
+  section: string;
+  component: ReactNode;
+  isSectionRoot: boolean;
+}
+
 interface SettingsWindowContextValue {
   isMac: boolean;
   isFocused: boolean;
 
   // Navigation
-  navigationHistory: ReactNode[];
+  navigationHistory: NavigationHistoryItem[];
   navigationHistoryIndex: number;
 
-  push(node: ReactNode): void;
-  pop(): ReactNode | undefined;
-  replace(node: ReactNode): void;
+  push(item: NavigationHistoryItem): void;
+  pop(): NavigationHistoryItem | undefined;
+  replace(item: NavigationHistoryItem): void;
   goTo(index: number): void;
 }
 
@@ -45,20 +51,20 @@ export function useSettingsWindowContext() {
 }
 
 interface SettingsWindowProviderProps {
-  initialNode?: ReactNode;
+  initialItem?: NavigationHistoryItem;
   children: ReactNode;
 }
 
-export function SettingsWindowProvider({ initialNode, children }: SettingsWindowProviderProps) {
+export function SettingsWindowProvider({ initialItem, children }: SettingsWindowProviderProps) {
   const { platform } = usePlatform();
   const isMac = platform === "darwin";
   const isFocused = useIsFocused();
 
-  const [navigationHistory, setNavigationHistory] = useState<ReactNode[]>(() =>
-    initialNode !== undefined ? [initialNode] : []
+  const [navigationHistory, setNavigationHistory] = useState<NavigationHistoryItem[]>(() =>
+    initialItem !== undefined ? [initialItem] : []
   );
   const [navigationHistoryIndex, setNavigationHistoryIndex] = useState<number>(() =>
-    initialNode !== undefined ? 0 : -1
+    initialItem !== undefined ? 0 : -1
   );
 
   // Keep refs in sync so callbacks remain stable.
@@ -71,17 +77,17 @@ export function SettingsWindowProvider({ initialNode, children }: SettingsWindow
     indexRef.current = navigationHistoryIndex;
   }, [navigationHistoryIndex]);
 
-  const push = useCallback((node: ReactNode) => {
+  const push = useCallback((item: NavigationHistoryItem) => {
     const currentIndex = indexRef.current;
     const truncated = historyRef.current.slice(0, currentIndex + 1);
-    const next = [...truncated, node];
+    const next = [...truncated, item];
     historyRef.current = next;
     indexRef.current = next.length - 1;
     setNavigationHistory(next);
     setNavigationHistoryIndex(next.length - 1);
   }, []);
 
-  const pop = useCallback((): ReactNode | undefined => {
+  const pop = useCallback((): NavigationHistoryItem | undefined => {
     const currentIndex = indexRef.current;
     if (currentIndex < 0) return undefined;
     const current = historyRef.current;
@@ -95,11 +101,11 @@ export function SettingsWindowProvider({ initialNode, children }: SettingsWindow
     return removed;
   }, []);
 
-  const replace = useCallback((node: ReactNode) => {
+  const replace = useCallback((item: NavigationHistoryItem) => {
     const currentIndex = indexRef.current;
     const current = historyRef.current;
     if (currentIndex < 0) {
-      const next = [node];
+      const next = [item];
       historyRef.current = next;
       indexRef.current = 0;
       setNavigationHistory(next);
@@ -107,7 +113,7 @@ export function SettingsWindowProvider({ initialNode, children }: SettingsWindow
       return;
     }
     const next = current.slice();
-    next[currentIndex] = node;
+    next[currentIndex] = item;
     historyRef.current = next;
     setNavigationHistory(next);
   }, []);
@@ -138,7 +144,7 @@ export function SettingsWindowProvider({ initialNode, children }: SettingsWindow
   return <SettingsWindowContext.Provider value={value}>{children}</SettingsWindowContext.Provider>;
 }
 
-export function useSettingsNavigationCurrent(): ReactNode | undefined {
+export function useSettingsNavigationCurrent(): NavigationHistoryItem | undefined {
   const { navigationHistory, navigationHistoryIndex } = useSettingsWindowContext();
   if (navigationHistoryIndex < 0) return undefined;
   return navigationHistory[navigationHistoryIndex];
