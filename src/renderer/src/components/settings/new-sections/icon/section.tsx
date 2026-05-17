@@ -1,5 +1,5 @@
 import { SunIcon } from "lucide-react";
-import { Container, ContainerItem } from "../components/basic/container";
+import { Container, ContainerItem } from "../../components/basic/container";
 import { RadioButton } from "@/components/settings/components/basic/radio-button";
 import { useState } from "react";
 

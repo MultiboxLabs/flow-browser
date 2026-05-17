@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { useCallback } from "react";
 import { SettingsSidebar } from "./sidebar";
 import { BlocksIcon, UsersIcon, KeyboardIcon, Info, LucideIcon, DockIcon, OrbitIcon, CogIcon } from "lucide-react";
-import { IconSection } from "./new-sections/icon";
+import { IconSection } from "./new-sections/icon/section";
 import { GeneralSection } from "./new-sections/general";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SettingsContentHeader } from "./components/content/header";
