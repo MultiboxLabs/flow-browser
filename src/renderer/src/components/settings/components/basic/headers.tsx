@@ -19,3 +19,11 @@ export function SectionHeader({
     </div>
   );
 }
+
+export function SubsectionHeader({ title }: { title: string }) {
+  return (
+    <div className="h-8 flex items-center gap-2 ml-2.5">
+      <span className="text-sm font-medium">{title}</span>
+    </div>
+  );
+}

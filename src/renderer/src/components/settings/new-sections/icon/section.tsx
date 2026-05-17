@@ -1,6 +1,6 @@
 import { Container, ContainerItem } from "../../components/basic/container";
 import { RadioButton } from "@/components/settings/components/basic/radio-button";
-import { SectionHeader } from "@/components/settings/components/basic/section-header";
+import { SectionHeader } from "@/components/settings/components/basic/headers";
 import { IconProvider, useIconContext } from "@/components/settings/new-sections/icon/provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
