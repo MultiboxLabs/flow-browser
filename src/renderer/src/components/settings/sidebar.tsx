@@ -1,7 +1,7 @@
 import { SidebarWindowControlsMacOS } from "@/components/browser-ui/window-controls/macos";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Section } from "./settings-layout";
+import { Section } from "./sections";
 import { useSettingsWindowContext } from "./context";
 
 interface SettingsSidebarSectionButtonProps {
