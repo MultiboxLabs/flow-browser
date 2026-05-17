@@ -116,7 +116,7 @@ function InnerSettingsLayout() {
             className={cn(
               "select-none",
               "flex flex-col h-screen overflow-hidden",
-              "bg-background/50 text-gray-600 dark:text-gray-300"
+              "bg-background/50 text-black dark:text-white"
             )}
           >
             {platform !== "darwin" && <SettingsTitlebar />}

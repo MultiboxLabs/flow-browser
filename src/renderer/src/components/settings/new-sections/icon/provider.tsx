@@ -99,7 +99,7 @@ export function IconProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        toast.success("Icon updated!");
+        // toast.success("Icon updated!");
         setSelectedIconId(iconId);
         setIcons((previousIcons) =>
           previousIcons.map((icon) => ({
@@ -109,7 +109,7 @@ export function IconProvider({ children }: { children: ReactNode }) {
         );
       } catch (error) {
         console.error("Failed to update icon:", error);
-        toast.error("Failed to update icon!");
+        // toast.error("Failed to update icon!");
       } finally {
         setIsUpdating(false);
       }

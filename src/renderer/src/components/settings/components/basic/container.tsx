@@ -1,4 +1,5 @@
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { Children } from "react";
 
@@ -16,13 +17,17 @@ export function ContainerItem({
   description,
   action,
 
+  skeleton = false,
+
   clickEffect,
   className,
   ...props
 }: {
   icon?: React.ReactNode;
   title: string;
-  description: string;
+  description?: string;
+
+  skeleton?: boolean;
 
   clickEffect?: boolean;
   action?: React.ReactNode;
@@ -38,8 +43,16 @@ export function ContainerItem({
     >
       {icon}
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate text-sm font-medium leading-tight">{title}</span>
-        <span className="truncate text-xs leading-tight text-muted-foreground">{description}</span>
+        {skeleton ? (
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 bg-black/10 dark:bg-white/10 rounded-full">
+              <span className="truncate text-sm font-medium leading-tight text-transparent">{title}</span>
+            </Skeleton>
+          </div>
+        ) : (
+          <span className="truncate text-sm font-medium leading-tight">{title}</span>
+        )}
+        {description && <span className="truncate text-xs leading-tight text-muted-foreground">{description}</span>}
       </div>
       {action}
     </div>
