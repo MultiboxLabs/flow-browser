@@ -27,7 +27,13 @@ function NavigationButton({ direction, disabled, onClick }: NavigationButtonProp
         !disabled && "active:bg-black/5 dark:active:bg-white/5"
       )}
     >
-      <ChevronIcon className="size-6" />
+      <ChevronIcon
+        strokeWidth={1.5}
+        className={cn(
+          "relative size-6.5 text-black dark:text-white",
+          direction === "left" ? "-left-0.5" : "-right-0.5"
+        )}
+      />
     </button>
   );
 }

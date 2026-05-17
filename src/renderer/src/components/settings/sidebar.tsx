@@ -55,7 +55,7 @@ export function SettingsSidebar({ sections, activeSection, setActiveSection }: S
       id="sidebar"
       className={cn(
         "w-56.5 h-full",
-        isMac ? "rounded-2xl border" : "border-r",
+        isMac ? "rounded-[18px] border" : "border-r",
         "overflow-hidden",
         isMac && getLiquidGlassLikeStyles(isFocused)
       )}

@@ -40,7 +40,18 @@ export function hasLiquidGlass() {
   return isAtLeast(macOS.Tahoe);
 }
 
-export function addAppKitSidebarEffect(window: Electron.BaseWindow, sidebarWidth = defaultAppKitSidebarWidth) {
+/**
+ * Adds a hidden (collapsed) macOS AppKit sidebar to the window.
+ * This is used to make macOS use a different border radius meant for windows with sidebars.
+ * @param window - The window to add the sidebar effect to.
+ * @param sidebarWidth - The width of the sidebar.
+ * @returns True if the sidebar effect was added, false otherwise.
+ */
+export function addAppKitSidebarEffect(
+  window: Electron.BaseWindow,
+  hidden = true,
+  sidebarWidth = defaultAppKitSidebarWidth
+) {
   if (window.isDestroyed()) return false;
   if (appKitSidebarHosts.has(window)) return true;
 
@@ -88,7 +99,9 @@ export function addAppKitSidebarEffect(window: Electron.BaseWindow, sidebarWidth
   const sidebarItem = NSSplitViewItem.sidebarWithViewController$(sidebarViewController);
   sidebarItem.setMinimumThickness$(width);
   sidebarItem.setMaximumThickness$(width);
-  sidebarItem.setCollapsed$(true);
+  if (hidden) {
+    sidebarItem.setCollapsed$(true);
+  }
   sidebarItem.setCanCollapse$(false);
 
   const contentItem = NSSplitViewItem.splitViewItemWithViewController$(contentViewController);
