@@ -14,6 +14,7 @@ import { useSettingsHeaderTitleScroll } from "./use-settings-header-title-scroll
 
 function InnerSettingsLayout() {
   const { platform } = usePlatform();
+  const isMac = platform === "darwin";
 
   const { navigationHistory, navigationHistoryIndex, push } = useSettingsWindowContext();
   const currentEntry = navigationHistory[navigationHistoryIndex];
@@ -55,6 +56,16 @@ function InnerSettingsLayout() {
   return (
     <AppUpdatesProvider>
       <title>Flow Settings</title>
+      {!isMac && (
+        // Smaller border radius for Windows & Linux
+        <style>
+          {`
+          :root {
+            --radius: 0.45rem;
+          }
+          `}
+        </style>
+      )}
       <ShortcutsProvider>
         <SettingsProvider>
           <div

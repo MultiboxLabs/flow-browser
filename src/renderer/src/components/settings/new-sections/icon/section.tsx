@@ -30,7 +30,7 @@ function IconsContainer() {
     return (
       <Container withSeparators>
         <ContainerItem
-          icon={<ImageComp src={`flow://asset/icons/default.png`} className="size-10" />}
+          icon={<ImageComp src={`flow://asset/icons/default.png`} className="size-10 rounded-md" />}
           title="Icon customization is not supported on this platform."
         />
       </Container>
