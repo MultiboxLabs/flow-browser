@@ -1,6 +1,6 @@
 import { BaseWindow } from "@/controllers/windows-controller/types/base";
 import { sessionsController } from "@/controllers/sessions-controller";
-import { app, BrowserWindow, nativeTheme } from "electron";
+import { app, BrowserWindow, nativeTheme, shell } from "electron";
 
 export class SettingsWindow extends BaseWindow {
   constructor() {
@@ -71,6 +71,11 @@ export class SettingsWindow extends BaseWindow {
       if (!app.isPackaged && !!process.env.BROWSER_WINDOW_DEVTOOLS) {
         browserWindow.webContents.openDevTools({ mode: "detach" });
       }
+    });
+
+    browserWindow.webContents.on("will-navigate", (event) => {
+      event.preventDefault();
+      shell.openExternal(event.url);
     });
 
     // Fallback: On Linux, ready-to-show may never fire for frameless

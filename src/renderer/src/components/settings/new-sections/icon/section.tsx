@@ -3,11 +3,7 @@ import { RadioButton } from "@/components/settings/components/basic/radio-button
 import { SectionHeader } from "@/components/settings/components/basic/headers";
 import { IconProvider, useIconContext } from "@/components/settings/new-sections/icon/provider";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-
-function IconComp({ src, className }: { src: string; className?: string }) {
-  return <img src={src} className={cn("pointer-events-none", className)} />;
-}
+import { ImageComp } from "../../components/basic/image";
 
 function IconsContainer() {
   const { icons, selectedIconId, isLoading, isSupported, isUpdating, selectIcon } = useIconContext();
@@ -34,7 +30,7 @@ function IconsContainer() {
     return (
       <Container withSeparators>
         <ContainerItem
-          icon={<IconComp src={`flow://asset/icons/default.png`} className="size-10" />}
+          icon={<ImageComp src={`flow://asset/icons/default.png`} className="size-10" />}
           title="Icon customization is not supported on this platform."
         />
       </Container>
@@ -47,7 +43,7 @@ function IconsContainer() {
         <>
           <ContainerItem
             key={icon.id}
-            icon={<IconComp src={`flow://asset/icons/${icon.imageId}`} className="size-10" />}
+            icon={<ImageComp src={`flow://asset/icons/${icon.imageId}`} className="size-10" />}
             title={icon.name}
             description={icon.author}
             action={<RadioButton active={selectedIconId === icon.id} />}
@@ -65,7 +61,7 @@ export function InnerIconSection() {
       <SectionHeader
         title="App Icon"
         description="Customize Flow's app icon."
-        icon={<IconComp src={`flow://asset/liquid-glass-icon.png`} className="size-full" />}
+        icon={<ImageComp src={`flow://asset/liquid-glass-icon.png`} className="size-full" />}
       />
       <IconsContainer />
     </>

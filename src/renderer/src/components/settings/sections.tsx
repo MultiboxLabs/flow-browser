@@ -1,5 +1,6 @@
 import { GeneralSection } from "@/components/settings/new-sections/general";
 import { IconSection } from "@/components/settings/new-sections/icon/section";
+import { AboutSection } from "./new-sections/about/section";
 
 import { BlocksIcon, UsersIcon, KeyboardIcon, Info, LucideIcon, DockIcon, OrbitIcon, CogIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -74,6 +75,8 @@ export const sections: Section[] = [
     icon: Info,
     backgroundCN: cn("bg-linear-to-b from-sky-400 to-cyan-500"),
     borderCN: cn("border border-cyan-600/60"),
-    iconCN: cn("text-white")
+    iconCN: cn("text-white"),
+    section: <AboutSection />,
+    sectionHeaderTitleMode: "showOnScroll"
   }
 ];
