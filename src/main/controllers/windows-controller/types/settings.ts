@@ -5,18 +5,19 @@ import { app, BrowserWindow, nativeTheme, shell } from "electron";
 export class SettingsWindow extends BaseWindow {
   constructor() {
     let titleBarOverlayOption: boolean | Electron.TitleBarOverlay | undefined = {
-      height: 30,
+      height: 40,
       symbolColor: nativeTheme.shouldUseDarkColors ? "white" : "black",
       color: "rgba(0,0,0,0)"
     };
 
-    if (process.platform === "darwin") {
+    const isMacOS = process.platform === "darwin";
+    if (isMacOS) {
       titleBarOverlayOption = undefined;
     }
 
     const browserWindow = new BrowserWindow({
       width: 800,
-      maxWidth: 800,
+      maxWidth: isMacOS ? 800 : undefined,
       minWidth: 800,
 
       height: 850,
@@ -44,11 +45,12 @@ export class SettingsWindow extends BaseWindow {
       },
 
       vibrancy: "under-window",
+      backgroundMaterial: "auto",
 
       // Explicit background color ensures the compositor has an initial paint
       // on Linux, which is required for ready-to-show to fire for frameless
       // windows.
-      backgroundColor: process.platform === "darwin" ? "#00000000" : "#000000"
+      backgroundColor: process.platform === "darwin" ? "#00000000" : "#00000000"
     });
 
     if (process.platform === "darwin") {

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-const DEBUG_FORCE_PLATFORM: Platform | undefined = "win32";
+const DEBUG_FORCE_PLATFORM: Platform | undefined = undefined;
 
 /**
  * Supported platform types that the application can detect and run on.
