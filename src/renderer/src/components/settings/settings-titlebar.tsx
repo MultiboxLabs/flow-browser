@@ -5,7 +5,7 @@ import { WindowControls } from "@/components/window-controls";
 export function SettingsTitlebar() {
   return (
     <div className="relative w-full h-7.5 border-b px-4 flex items-center app-drag">
-      <span className="absolute inset-0 pl-3 flex items-center justify-start pointer-events-none text-sm">
+      <span className="absolute inset-0 pl-3 flex items-center justify-start pointer-events-none text-xs">
         Flow Settings
       </span>
       <div className="ml-auto">

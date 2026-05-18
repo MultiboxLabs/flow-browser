@@ -35,7 +35,7 @@ export const sections: Section[] = [
     borderCN: cn("border border-orange-600/60"),
     iconCN: cn("text-white"),
     section: <IconSection />,
-    sectionHeaderTitleMode: "none"
+    sectionHeaderTitleMode: "showOnScroll"
   },
   {
     id: "profiles",
