@@ -28,7 +28,7 @@ export class SettingsWindow extends BaseWindow {
       frame: false,
       roundedCorners: true,
       fullscreenable: false,
-      maximizable: false,
+      maximizable: isMacOS ? true : false,
 
       // On Linux, "hidden" combined with frame:false prevents
       // ready-to-show from firing. Match BrowserWindow's pattern and
