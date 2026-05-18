@@ -45,12 +45,11 @@ export class SettingsWindow extends BaseWindow {
       },
 
       vibrancy: "under-window",
-      backgroundMaterial: "auto",
 
       // Explicit background color ensures the compositor has an initial paint
       // on Linux, which is required for ready-to-show to fire for frameless
       // windows.
-      backgroundColor: process.platform === "darwin" ? "#00000000" : "#00000000"
+      backgroundColor: process.platform === "darwin" ? "#00000000" : "#000000"
     });
 
     if (process.platform === "darwin") {
