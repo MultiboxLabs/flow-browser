@@ -5,7 +5,7 @@ import { app, BrowserWindow, nativeTheme, shell } from "electron";
 export class SettingsWindow extends BaseWindow {
   constructor() {
     let titleBarOverlayOption: boolean | Electron.TitleBarOverlay | undefined = {
-      height: 40,
+      height: 36,
       symbolColor: nativeTheme.shouldUseDarkColors ? "white" : "black",
       color: "rgba(0,0,0,0)"
     };
@@ -27,6 +27,8 @@ export class SettingsWindow extends BaseWindow {
       show: false,
       frame: false,
       roundedCorners: true,
+      fullscreenable: false,
+      maximizable: false,
 
       // On Linux, "hidden" combined with frame:false prevents
       // ready-to-show from firing. Match BrowserWindow's pattern and
