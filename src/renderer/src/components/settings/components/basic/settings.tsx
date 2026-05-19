@@ -1,6 +1,6 @@
 import { useSettings } from "@/components/providers/settings-provider";
 import { ContainerItem } from "./container";
-import { Switch } from "../../components/basic/switch";
+import { Switch } from "./actions/switch";
 
 export function ContainerBasicSettingItem({ settingId }: { settingId: string }) {
   const { settings, getSetting, setSetting } = useSettings();
