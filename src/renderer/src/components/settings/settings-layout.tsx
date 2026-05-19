@@ -1,6 +1,5 @@
 import { SettingsTitlebar } from "./settings-titlebar";
 import { SettingsProvider } from "@/components/providers/settings-provider";
-import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
 import { ShortcutsProvider } from "@/components/providers/shortcuts-provider";
 import { usePlatform } from "@/components/main/platform";
 import { cn } from "@/lib/utils";
@@ -54,7 +53,7 @@ function InnerSettingsLayout() {
   );
 
   return (
-    <AppUpdatesProvider>
+    <>
       <title>Flow Settings</title>
       {!isMac && (
         // Smaller border radius for Windows & Linux
@@ -93,7 +92,7 @@ function InnerSettingsLayout() {
           </div>
         </SettingsProvider>
       </ShortcutsProvider>
-    </AppUpdatesProvider>
+    </>
   );
 }
 

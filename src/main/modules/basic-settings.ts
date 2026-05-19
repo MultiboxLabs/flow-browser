@@ -36,7 +36,7 @@ export const BasicSettings: BasicSetting[] = [
   // [GENERAL] Auto Update
   {
     id: "autoUpdate",
-    name: "Auto Update",
+    name: "Auto Download Updates",
     showName: true,
     type: "boolean",
     defaultValue: true

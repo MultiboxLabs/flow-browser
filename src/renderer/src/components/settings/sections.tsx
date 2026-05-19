@@ -1,4 +1,4 @@
-import { GeneralSection } from "@/components/settings/new-sections/general";
+import { GeneralSection } from "@/components/settings/new-sections/general/section";
 import { IconSection } from "@/components/settings/new-sections/icon/section";
 import { AboutSection } from "./new-sections/about/section";
 
