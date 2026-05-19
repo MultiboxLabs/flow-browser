@@ -54,7 +54,8 @@ export const BasicSettings: BasicSetting[] = [
   // [GENERAL] Content Blocking
   {
     id: "contentBlocker",
-    name: "Content Blocker (Built-In Adblocker)",
+    name: "Content Blocker",
+    description: "Built-In Adblocker",
     showName: true,
     type: "enum",
     defaultValue: "disabled",

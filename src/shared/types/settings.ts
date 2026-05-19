@@ -25,6 +25,7 @@ export type SettingType = SettingTypeBoolean | SettingTypeEnum;
 export type BasicSetting = {
   id: string;
   name: string;
+  description?: string;
   showName?: boolean;
 } & SettingType;
 

@@ -1,15 +1,15 @@
 import { AppUpdatesProvider } from "@/components/providers/app-updates-provider";
 import { UpdateContainer } from "./update-container";
+import { Container } from "@/components/settings/components/basic/container";
+import { ContainerBasicSettingItem } from "@/components/settings/components/basic/settings";
 
 export function GeneralSection() {
   return (
     <AppUpdatesProvider>
       <UpdateContainer />
-      {new Array(100).fill(0).map((_, index) => (
-        <div key={index} className="h-10 w-10 bg-green-500">
-          {index}
-        </div>
-      ))}
+      <Container>
+        <ContainerBasicSettingItem settingId="contentBlocker" />
+      </Container>
     </AppUpdatesProvider>
   );
 }
