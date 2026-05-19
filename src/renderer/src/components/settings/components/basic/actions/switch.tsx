@@ -5,7 +5,7 @@ export function Switch({ active, onToggle }: { active: boolean; onToggle?: () =>
   const { isMac } = useSettingsWindowContext();
 
   return (
-    <div
+    <button
       className={cn(
         "relative h-4 rounded-full",
         isMac ? "w-9" : "w-7.5",
@@ -23,6 +23,6 @@ export function Switch({ active, onToggle }: { active: boolean; onToggle?: () =>
           active && (isMac ? "translate-x-3" : "translate-x-3")
         )}
       />
-    </div>
+    </button>
   );
 }
