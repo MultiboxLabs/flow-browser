@@ -42,8 +42,8 @@ export function Select({
         value={value}
         onChange={(e) => onValueChange(e.target.value)}
         className={cn(
-          "absolute inset-0 w-full h-full opacity-0",
-          "pointer-events-none select-none appearance-none outline-none"
+          "absolute inset-0 w-full h-full ml-2 opacity-0",
+          "pointer-events-none select-none appearance-none outline-none text-sm"
         )}
         tabIndex={-1}
       >
