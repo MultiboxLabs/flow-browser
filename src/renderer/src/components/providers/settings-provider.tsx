@@ -43,7 +43,10 @@ export const SettingsProvider = ({ children }: SettingsProviderProps) => {
 
     const promises = fetchedSettings.map(async (setting) => {
       const value = await flow.settings.getSetting(setting.id);
-      setSettingsValues((prev) => ({ ...prev, [setting.id]: value }));
+      setSettingsValues((prev) => ({
+        ...prev,
+        [setting.id]: value ?? setting.defaultValue
+      }));
     });
 
     await Promise.all(promises);

@@ -20,7 +20,7 @@ export function ContainerBasicSettingItem({ settingId }: { settingId: string }) 
   }
 
   if (setting.type === "enum") {
-    const settingValue = getSetting<string>(setting.id);
+    const settingValue = getSetting<string>(setting.id) ?? setting.defaultValue;
     return (
       <ContainerItem
         title={setting.name}
