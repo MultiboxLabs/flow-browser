@@ -138,10 +138,18 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  :where(:focus-visible) {
+    outline: 1px solid var(--color-black);
+    outline-offset: 2px;
+  }
+  :where(.dark *) :where(:focus-visible) {
+    outline-color: var(--color-white);
   }
 }
 

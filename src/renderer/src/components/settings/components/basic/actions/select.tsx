@@ -13,7 +13,7 @@ const triggerClassName = cn(
   "flex items-center gap-2",
   "py-0.5 px-2 rounded-md",
   "hover:border hover:m-0 m-px",
-  "focus-visible:border focus-visible:m-0",
+  "focus-visible:border focus-visible:border-black! focus-visible:dark:border-white! focus-visible:m-0",
   "border-black/20 dark:border-white/20",
   "outline-none cursor-default"
 );

@@ -10,8 +10,7 @@ export function Switch({ active, onToggle }: { active: boolean; onToggle?: () =>
         "relative h-4 rounded-full",
         isMac ? "w-9" : "w-7.5",
         active ? "bg-[#147dff]" : "bg-black/10 dark:bg-white/10",
-        "transition-colors duration-150",
-        "focus-visible:outline-muted-foreground"
+        "transition-colors duration-150"
       )}
       onClick={onToggle}
     >
