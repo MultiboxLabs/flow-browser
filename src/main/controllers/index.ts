@@ -18,7 +18,6 @@ import "./posthog-controller";
 import "./quit-controller";
 import "./auto-update-controller";
 import "./loaded-profiles-controller";
-import "./tabs-controller";
-import "./pinned-tabs-controller";
+
 import "./handoff-controller";
 import "./sessions-controller";

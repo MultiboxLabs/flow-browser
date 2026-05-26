@@ -9,13 +9,14 @@ import { Omnibox } from "@/controllers/windows-controller/utils/browser/omnibox"
 import { initializePortalComponentWindows } from "@/controllers/windows-controller/utils/browser/portal-component-windows";
 import { sendMessageToListenersWithWebContents } from "@/ipc/listeners-manager";
 import { fireWindowStateChanged } from "@/ipc/browser/interface";
-import { tabsController } from "@/controllers/tabs-controller";
+import { tabService } from "@/services/tab-service";
 import { sessionsController } from "@/controllers/sessions-controller";
 import { spacesController } from "@/controllers/spaces-controller";
-import { tabPersistenceManager } from "@/saving/tabs";
+import { tabPersistenceService } from "@/services/tab-service";
+import { relocateTabsFromClosingWindow } from "@/services/tab-service/tab-sync";
 import { quitController } from "@/controllers/quit-controller";
 import { hex_is_light } from "@/modules/utils";
-import { relocateTabsFromClosingWindow } from "@/controllers/tabs-controller/tab-sync";
+
 import { createModalTo, focusPriorities, zIndexes } from "~/layers";
 import { SidebarInterpolation } from "@/controllers/windows-controller/utils/browser/sidebar-interpolation";
 import { SIDEBAR_ANIMATION_DURATION_MS } from "~/flow/sidebar-animation";
@@ -153,7 +154,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       if (boundsDebounceTimer) clearTimeout(boundsDebounceTimer);
       boundsDebounceTimer = setTimeout(() => {
         const bounds = browserWindow.getBounds();
-        tabPersistenceManager.markWindowStateDirty(`w-${this.id}`, {
+        tabPersistenceService.markWindowStateDirty(`w-${this.id}`, {
           width: bounds.width,
           height: bounds.height,
           x: bounds.x,
@@ -338,7 +339,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
   public setPageBounds(bounds: PageBounds) {
     this.pageBounds = bounds;
     this.emit("page-bounds-changed", bounds);
-    tabsController.handlePageBoundsChanged(this.id);
+    tabService.handlePageBoundsChanged(this.id);
   }
 
   /**
@@ -378,17 +379,18 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
 
     this.pageBounds = newBounds;
     this.emit("page-bounds-changed", newBounds);
-    tabsController.handlePageBoundsChanged(this.id);
+    tabService.handlePageBoundsChanged(this.id);
   }
 
   // Current Space //
   public currentSpaceId: string | null = null;
 
   setCurrentSpace(spaceId: string) {
+    const oldSpaceId = this.currentSpaceId;
     this.currentSpaceId = spaceId;
     this.emit("current-space-changed", spaceId);
     appMenuController.render();
-    tabsController.setCurrentWindowSpace(this.id, spaceId);
+    tabService.setCurrentWindowSpace(this.id, spaceId, oldSpaceId);
   }
 
   // Override Destroy Method to Cleanup Window //
@@ -400,20 +402,18 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
       this.sidebarInterpolation = null;
     }
 
-    const closingWindowTabs = tabsController.getTabsInWindow(this.id);
-    // relocateTabsFromClosingWindow returns null when sync is off or no surviving
-    // windows exist, otherwise the list of ephemeral tabs that were NOT relocated.
-    const unrelocatedTabs = !quitController.isQuitting ? relocateTabsFromClosingWindow(this, closingWindowTabs) : null;
+    const closingWindowTabs = tabService.getTabsInWindow(this.id);
 
     const result = super.destroy(...args);
     if (result) {
       // Skip during quit — the process is dying and the database is already closed,
       // so calling tab.destroy() would crash when it tries to access SQLite.
-      if (!quitController.isQuitting) {
-        // Determine which tabs still need destruction:
-        // - null  → sync was off / no surviving windows; destroy all tabs
-        // - array → only the unrelocated (ephemeral) tabs need destroying
-        const tabsToDestroy = unrelocatedTabs ?? closingWindowTabs;
+      if (!quitController.isQuitting && closingWindowTabs.length > 0) {
+        // Try to relocate tabs to surviving windows (when sync is enabled)
+        const unrelocatable = relocateTabsFromClosingWindow(this, closingWindowTabs);
+
+        // Destroy tabs that couldn't be relocated (or all if sync is disabled)
+        const tabsToDestroy = unrelocatable ?? closingWindowTabs;
         if (tabsToDestroy.length > 0) {
           setTimeout(() => {
             for (const tab of tabsToDestroy) {
@@ -423,6 +423,7 @@ export class BrowserWindow extends BaseWindow<BrowserWindowEvents> {
         }
       }
 
+      tabService.removeAllLayoutsForWindow(this.id);
       this.omnibox.destroy();
       this.layerManager.destroy();
     }

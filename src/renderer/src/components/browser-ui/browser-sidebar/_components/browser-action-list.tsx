@@ -156,7 +156,7 @@ export function BrowserActionList() {
   const alignment = useMemo(() => "right bottom", []);
 
   const openExtensionsPage = useCallback(() => {
-    flow.tabs.newTab("flow://extensions", true);
+    flow.tabService.newTab("flow://extensions", true);
     setOpen(false);
   }, []);
 

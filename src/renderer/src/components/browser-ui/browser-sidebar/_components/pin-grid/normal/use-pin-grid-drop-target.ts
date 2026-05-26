@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
-import { isPinnedTabSource, isTabGroupSource } from "@/components/browser-ui/browser-sidebar/_components/drag-utils";
+import {
+  isPinnedTabSource,
+  isTabLayoutNodeSource
+} from "@/components/browser-ui/browser-sidebar/_components/drag-utils";
 import { findClosestPinEdge, type GridIndicator } from "./find-closest-pin-edge";
 
 interface UsePinGridDropTargetOptions {
@@ -14,7 +17,7 @@ interface UsePinGridDropTargetOptions {
 
 /**
  * Manages all drag-and-drop state and behaviour for the pin grid:
- * - drop target registration (accepts pinned-tab reorders & tab-group creates)
+ * - drop target registration (accepts pinned-tab reorders & layout-node pin creates)
  * - grid-level indicator (cursor in the gap between pins)
  * - child-level indicator (cursor directly over a PinnedTabButton)
  * - unified `activeIndicator` (child takes priority)
@@ -83,14 +86,14 @@ export function usePinGridDropTarget({
         if (isPinnedTabSource(data)) {
           return data.profileId === profileId;
         }
-        if (isTabGroupSource(data)) {
+        if (isTabLayoutNodeSource(data)) {
           if (profileId && data.profileId !== profileId) return false;
           return true;
         }
         return false;
       },
       onDragEnter: ({ location, source }) => {
-        if (isTabGroupSource(source.data)) {
+        if (isTabLayoutNodeSource(source.data)) {
           setIsDragOver(true);
         }
         const { input, dropTargets } = location.current;
@@ -139,7 +142,7 @@ export function usePinGridDropTarget({
         const targets = location.current.dropTargets;
         if (targets.length > 1 && targets[0].element !== el) return;
 
-        if (isTabGroupSource(data)) {
+        if (isTabLayoutNodeSource(data)) {
           if (indicator) {
             const position = indicator.edge === "left" ? indicator.index - 0.5 : indicator.index + 0.5;
             handleCreateFromTab(data.primaryTabId, position);

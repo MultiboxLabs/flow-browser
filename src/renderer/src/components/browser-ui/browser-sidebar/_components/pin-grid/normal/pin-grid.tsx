@@ -87,7 +87,7 @@ export function PinGrid({ profileId }: PinGridProps) {
               key={pinnedTab.uniqueId}
               pinnedTab={pinnedTab}
               profileId={profileId}
-              isActive={currentSpace !== null && pinnedTab.associatedTabIdsBySpace[currentSpace.id] === focusedTabId}
+              isActive={currentSpace !== null && pinnedTab.associatedTabIds[currentSpace.id] === focusedTabId}
               onClick={() => click(pinnedTab.uniqueId)}
               onDoubleClick={() => doubleClick(pinnedTab.uniqueId)}
               onContextMenu={() => showContextMenu(pinnedTab.uniqueId)}

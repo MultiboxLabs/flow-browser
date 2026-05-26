@@ -1,4 +1,4 @@
-import { tabsController } from "@/controllers/tabs-controller";
+import { tabService } from "@/services/tab-service";
 import { browserWindowsManager, windowsController } from "@/controllers/windows-controller";
 import { BaseWindow } from "@/controllers/windows-controller/types";
 import { WebContents } from "electron";
@@ -29,7 +29,7 @@ export const getTab = (window?: BaseWindow) => {
   const spaceId = window.currentSpaceId;
   if (!spaceId) return null;
 
-  const tab = tabsController.getFocusedTab(windowId, spaceId);
+  const tab = tabService.getFocusedTab(windowId, spaceId);
   if (!tab) return null;
   return tab;
 };

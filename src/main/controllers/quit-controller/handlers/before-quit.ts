@@ -1,5 +1,5 @@
 import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
-import { tabPersistenceManager } from "@/saving/tabs";
+import { tabPersistenceService } from "@/services/tab-service";
 import { closeDatabase } from "@/saving/db";
 import { closeFaviconsDatabase } from "@/modules/favicons";
 import { sleep } from "@/modules/utils";
@@ -31,7 +31,7 @@ async function flushSessionsData() {
 // If the handler returns false, the quit will be cancelled
 export function beforeQuit(): boolean | Promise<boolean> {
   // Flush all pending tab saves before quitting
-  const flushTabsPromise = tabPersistenceManager
+  const flushTabsPromise = tabPersistenceService
     .stop()
     .then(() => {
       // Close the database connection cleanly after tabs are flushed

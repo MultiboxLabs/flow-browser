@@ -127,7 +127,7 @@ function HistoryPage() {
   const grouped = useMemo(() => groupVisitsByDay(visits), [visits]);
 
   const openInNewTab = (url: string) => {
-    void flow.tabs.newTab(url, true);
+    void flow.tabService.newTab(url, true);
   };
 
   const copyLinkAddress = (url: string) => {

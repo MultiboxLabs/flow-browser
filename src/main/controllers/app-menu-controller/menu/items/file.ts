@@ -5,8 +5,7 @@ import { getCurrentShortcut } from "@/modules/shortcuts";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { createIncognitoWindow } from "@/modules/incognito/windows";
 import { FLAGS } from "@/modules/flags";
-import { recentlyClosedManager } from "@/controllers/tabs-controller/recently-closed-manager";
-import { restoreMostRecentClosedTabInWindow } from "@/controllers/tabs-controller/recently-closed";
+import { tabService } from "@/services/tab-service";
 
 export const createFileMenu = (): MenuItemConstructorOptions => ({
   label: "File",
@@ -23,13 +22,16 @@ export const createFileMenu = (): MenuItemConstructorOptions => ({
     {
       label: "Reopen Closed Tab",
       accelerator: getCurrentShortcut("tab.reopenClosed"),
-      enabled: recentlyClosedManager.hasEntries(),
+      enabled: tabService.recentlyClosed.hasEntries(),
       click: () => {
         const window = getFocusedBrowserWindow();
         if (!window) return;
-        void restoreMostRecentClosedTabInWindow(window).catch((error) => {
-          console.error("Failed to restore most recent closed tab:", error);
-        });
+        const mostRecent = tabService.recentlyClosed.getAll()[0];
+        if (mostRecent) {
+          void tabService.restoreRecentlyClosed(mostRecent.tabData.uniqueId, window).catch((error) => {
+            console.error("Failed to restore most recent closed tab:", error);
+          });
+        }
       }
     },
     {

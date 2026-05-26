@@ -49,7 +49,6 @@ async function getImageResourceFromSession(
     credentials: "include",
     referrer: getFetchReferrer(parameters.referrerPolicy),
     referrerPolicy: getFetchReferrerPolicy(parameters.referrerPolicy),
-    // abort after 10 seconds
     signal: AbortSignal.timeout(10000)
   });
 

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import type { PinnedTabData } from "~/types/pinned-tabs";
+import type { PinnedTabData } from "~/types/tab-service";
 
 interface PinnedTabsContextValue {
   /** All pinned tabs grouped by profile ID */
@@ -45,11 +45,11 @@ export const PinnedTabsProvider = ({ children }: PinnedTabsProviderProps) => {
   // before getData resolves, the stale getData result is discarded.
   useEffect(() => {
     let settled = false;
-    const unsub = flow.pinnedTabs.onChanged((data) => {
+    const unsub = flow.tabService.onPinnedTabsChanged((data) => {
       settled = true;
       setPinnedTabsByProfile(data);
     });
-    flow.pinnedTabs.getData().then((data) => {
+    flow.tabService.getPinnedTabs().then((data) => {
       if (!settled) {
         setPinnedTabsByProfile(data);
       }
@@ -65,19 +65,19 @@ export const PinnedTabsProvider = ({ children }: PinnedTabsProviderProps) => {
   );
 
   const createFromTab = useCallback(async (tabId: number, position?: number) => {
-    return flow.pinnedTabs.createFromTab(tabId, position);
+    return flow.tabService.createPinnedTabFromTab(tabId, position);
   }, []);
 
   const click = useCallback(async (pinnedTabId: string) => {
-    return flow.pinnedTabs.click(pinnedTabId);
+    return flow.tabService.clickPinnedTab(pinnedTabId);
   }, []);
 
   const doubleClick = useCallback(async (pinnedTabId: string) => {
-    return flow.pinnedTabs.doubleClick(pinnedTabId);
+    return flow.tabService.doubleClickPinnedTab(pinnedTabId);
   }, []);
 
   const unpinToTabList = useCallback(async (pinnedTabId: string, position?: number) => {
-    return flow.pinnedTabs.unpinToTabList(pinnedTabId, position);
+    return flow.tabService.unpinToTabList(pinnedTabId, position);
   }, []);
 
   const reorder = useCallback(async (pinnedTabId: string, newPosition: number) => {
@@ -99,11 +99,11 @@ export const PinnedTabsProvider = ({ children }: PinnedTabsProviderProps) => {
       return next;
     });
 
-    return flow.pinnedTabs.reorder(pinnedTabId, newPosition);
+    return flow.tabService.reorderPinnedTab(pinnedTabId, newPosition);
   }, []);
 
   const showContextMenu = useCallback((pinnedTabId: string) => {
-    flow.pinnedTabs.showContextMenu(pinnedTabId);
+    flow.tabService.showPinnedTabContextMenu(pinnedTabId);
   }, []);
 
   const contextValue = useMemo(

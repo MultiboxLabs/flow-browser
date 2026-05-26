@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
-import { NavigationEntry, TabGroupMode } from "~/types/tabs";
+import { NavigationEntry, TabLayoutNodeMode } from "~/types/tab-service";
 
 // --- Tabs Table ---
 
@@ -31,7 +31,7 @@ export type TabInsert = typeof tabs.$inferInsert;
 
 export const tabGroups = sqliteTable("tab_groups", {
   groupId: text("group_id").primaryKey(),
-  mode: text("mode").$type<Exclude<TabGroupMode, "normal">>().notNull(),
+  mode: text("mode").$type<Exclude<TabLayoutNodeMode, "single">>().notNull(),
   profileId: text("profile_id").notNull(),
   spaceId: text("space_id").notNull(),
   tabUniqueIds: text("tab_unique_ids", { mode: "json" }).$type<string[]>().notNull(),

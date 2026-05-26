@@ -5,7 +5,7 @@ import { ipcMain, shell, type IpcMainEvent } from "electron";
 import type { AssertCredentialErrorCodes, AssertCredentialResult } from "~/types/fido2-types";
 import type { ConditionalPasskeyRequest, ConditionalPasskeyRequestState } from "~/types/passkey";
 import { getWebauthnAddon } from "@/ipc/webauthn/module";
-import { tabsController } from "@/controllers/tabs-controller";
+import { tabService } from "@/services/tab-service";
 
 interface PendingConditionalMediation {
   publicKeyRequestOptions: PublicKeyCredentialRequestOptions;
@@ -166,7 +166,7 @@ ipcMain.on(
     // crash, WebContents destruction, or top-level navigation wiping child frames).
     const cancelSubscription = onWebFrameDestroyed(webContents, event.senderFrame, cancelDueToContextLoss);
 
-    const tabId = tabsController.getTabByWebContents(webContents)?.id ?? null;
+    const tabId = tabService.getTabByWebContents(webContents)?.id ?? null;
 
     pendingConditionalMediations.set(operationId, {
       publicKeyRequestOptions,

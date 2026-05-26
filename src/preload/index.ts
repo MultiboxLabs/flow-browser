@@ -13,8 +13,6 @@ import type { SpaceData } from "@/controllers/spaces-controller";
 
 // SHARED TYPES //
 import type { SharedExtensionData } from "~/types/extensions";
-import type { TabData, WindowTabsData } from "~/types/tabs";
-import type { PinnedTabData } from "~/types/pinned-tabs";
 import type { UpdateStatus } from "~/types/updates";
 import type { WindowState } from "~/flow/types";
 
@@ -34,8 +32,7 @@ import type { FlowOmniboxAPI, OmniboxOpenParams } from "~/flow/interfaces/browse
 import { FlowSettingsAPI } from "~/flow/interfaces/settings/settings";
 import { FlowWindowsAPI } from "~/flow/interfaces/app/windows";
 import { FlowExtensionsAPI } from "~/flow/interfaces/app/extensions";
-import { FlowTabsAPI } from "~/flow/interfaces/browser/tabs";
-import { FlowPinnedTabsAPI } from "~/flow/interfaces/browser/pinned-tabs";
+
 import { FlowUpdatesAPI } from "~/flow/interfaces/app/updates";
 import { FlowActionsAPI } from "~/flow/interfaces/app/actions";
 import { FlowShortcutsAPI, ShortcutsData } from "~/flow/interfaces/app/shortcuts";
@@ -45,6 +42,7 @@ import { FlowPasskeyAPI } from "~/flow/interfaces/browser/passkey";
 import type { ConditionalPasskeyRequest, PasskeyCredential } from "~/types/passkey";
 import { FlowPromptsAPI } from "~/flow/interfaces/browser/prompts";
 import type { ActivePrompt } from "~/types/prompts";
+import { createTabServicePreloadAPI } from "@/services/tab-service/ipc/preload-api";
 
 // const isIFrame = !process.isMainFrame;
 
@@ -236,105 +234,6 @@ const browserAPI: FlowBrowserAPI = {
   },
   createIncognitoWindow: () => {
     return ipcRenderer.send("browser:create-incognito-window");
-  }
-};
-
-// TABS API //
-const tabsAPI: FlowTabsAPI = {
-  getData: async () => {
-    return ipcRenderer.invoke("tabs:get-data");
-  },
-  onDataUpdated: (callback: (data: WindowTabsData) => void) => {
-    return listenOnIPCChannel("tabs:on-data-changed", callback);
-  },
-  onTabsContentUpdated: (callback: (tabs: TabData[]) => void) => {
-    return listenOnIPCChannel("tabs:on-tabs-content-updated", callback);
-  },
-  onPlaceholderChanged: (callback) => {
-    return listenOnIPCChannel("tabs:on-placeholder-changed", callback);
-  },
-  onTargetUrlChanged: (callback) => {
-    return listenOnIPCChannel("tabs:on-target-url", callback);
-  },
-  switchToTab: async (tabId: number) => {
-    return ipcRenderer.invoke("tabs:switch-to-tab", tabId);
-  },
-  closeTab: async (tabId: number) => {
-    return ipcRenderer.invoke("tabs:close-tab", tabId);
-  },
-
-  showContextMenu: (tabId: number) => {
-    return ipcRenderer.send("tabs:show-context-menu", tabId);
-  },
-
-  moveTab: async (tabId: number, newPosition: number) => {
-    return ipcRenderer.invoke("tabs:move-tab", tabId, newPosition);
-  },
-
-  moveTabToWindowSpace: async (tabId: number, spaceId: string, newPosition?: number) => {
-    return ipcRenderer.invoke("tabs:move-tab-to-window-space", tabId, spaceId, newPosition);
-  },
-
-  // Special Exception: This is allowed for all internal protocols.
-  newTab: async (url?: string, isForeground?: boolean, spaceId?: string, typedFromAddressBar?: boolean) => {
-    return ipcRenderer.invoke("tabs:new-tab", url, isForeground, spaceId, typedFromAddressBar);
-  },
-
-  // Special Exception: This is allowed on every tab, but very tightly secured.
-  // It will only work if the tab is currently in Picture-in-Picture mode.
-  disablePictureInPicture: async (goBackToTab: boolean) => {
-    return ipcRenderer.invoke("tabs:disable-picture-in-picture", goBackToTab);
-  },
-
-  setTabMuted: async (tabId: number, muted: boolean) => {
-    return ipcRenderer.invoke("tabs:set-tab-muted", tabId, muted);
-  },
-
-  batchMoveTabs: async (tabIds: number[], spaceId: string, newPositionStart?: number) => {
-    return ipcRenderer.invoke("tabs:batch-move-tabs", tabIds, spaceId, newPositionStart);
-  },
-
-  getRecentlyClosed: async () => {
-    return ipcRenderer.invoke("tabs:get-recently-closed");
-  },
-
-  restoreRecentlyClosed: async (uniqueId: string) => {
-    return ipcRenderer.invoke("tabs:restore-recently-closed", uniqueId);
-  },
-
-  clearRecentlyClosed: async () => {
-    return ipcRenderer.invoke("tabs:clear-recently-closed");
-  }
-};
-
-// PINNED TABS API //
-const pinnedTabsAPI: FlowPinnedTabsAPI = {
-  getData: async () => {
-    return ipcRenderer.invoke("pinned-tabs:get-data");
-  },
-  onChanged: (callback: (data: Record<string, PinnedTabData[]>) => void) => {
-    return listenOnIPCChannel("pinned-tabs:on-changed", callback);
-  },
-  createFromTab: async (tabId: number, position?: number) => {
-    return ipcRenderer.invoke("pinned-tabs:create-from-tab", tabId, position);
-  },
-  click: async (pinnedTabId: string) => {
-    return ipcRenderer.invoke("pinned-tabs:click", pinnedTabId);
-  },
-  doubleClick: async (pinnedTabId: string) => {
-    return ipcRenderer.invoke("pinned-tabs:double-click", pinnedTabId);
-  },
-  remove: async (pinnedTabId: string) => {
-    return ipcRenderer.invoke("pinned-tabs:remove", pinnedTabId);
-  },
-  unpinToTabList: async (pinnedTabId: string, position?: number) => {
-    return ipcRenderer.invoke("pinned-tabs:unpin-to-tab-list", pinnedTabId, position);
-  },
-  reorder: async (pinnedTabId: string, newPosition: number) => {
-    return ipcRenderer.invoke("pinned-tabs:reorder", pinnedTabId, newPosition);
-  },
-  showContextMenu: (pinnedTabId: string) => {
-    return ipcRenderer.send("pinned-tabs:show-context-menu", pinnedTabId);
   }
 };
 
@@ -801,11 +700,7 @@ const flowAPI: typeof flow = {
 
   // Browser APIs
   browser: wrapAPI(browserAPI, "browser"),
-  tabs: wrapAPI(tabsAPI, "browser", {
-    newTab: "app",
-    disablePictureInPicture: "all"
-  }),
-  pinnedTabs: wrapAPI(pinnedTabsAPI, "browser"),
+
   page: wrapAPI(pageAPI, "browser"),
   navigation: wrapAPI(navigationAPI, "browser"),
   history: wrapAPI(historyAPI, "browser"),
@@ -818,6 +713,10 @@ const flowAPI: typeof flow = {
   newTab: wrapAPI(newTabAPI, "browser"),
   findInPage: wrapAPI(findInPageAPI, "browser"),
   prompts: wrapAPI(promptsAPI, "browser"),
+  tabService: wrapAPI(createTabServicePreloadAPI(ipcRenderer, listenOnIPCChannel), "browser", {
+    newTab: "app",
+    disablePictureInPicture: "all"
+  }),
 
   // Session APIs
   profiles: wrapAPI(profilesAPI, "session", {

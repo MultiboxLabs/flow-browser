@@ -3,8 +3,7 @@ import { FlowWindowsAPI } from "~/flow/interfaces/app/windows";
 import { FlowExtensionsAPI } from "~/flow/interfaces/app/extensions";
 
 import { FlowBrowserAPI } from "~/flow/interfaces/browser/browser";
-import { FlowTabsAPI } from "~/flow/interfaces/browser/tabs";
-import { FlowPinnedTabsAPI } from "~/flow/interfaces/browser/pinned-tabs";
+
 import { FlowPageAPI } from "~/flow/interfaces/browser/page";
 import { FlowNavigationAPI } from "~/flow/interfaces/browser/navigation";
 import { FlowInterfaceAPI } from "~/flow/interfaces/browser/interface";
@@ -14,6 +13,7 @@ import { FlowFindInPageAPI } from "~/flow/interfaces/browser/find-in-page";
 import { FlowHistoryAPI } from "~/flow/interfaces/browser/history";
 import { FlowPasskeyAPI } from "~/flow/interfaces/browser/passkey";
 import { FlowPromptsAPI } from "~/flow/interfaces/browser/prompts";
+import { FlowTabServiceAPI } from "~/flow/interfaces/browser/tab-service";
 
 import { FlowProfilesAPI } from "~/flow/interfaces/sessions/profiles";
 import { FlowSpacesAPI } from "~/flow/interfaces/sessions/spaces";
@@ -42,8 +42,6 @@ declare global {
 
     // Browser APIs
     browser: FlowBrowserAPI;
-    tabs: FlowTabsAPI;
-    pinnedTabs: FlowPinnedTabsAPI;
     page: FlowPageAPI;
     navigation: FlowNavigationAPI;
     history: FlowHistoryAPI;
@@ -53,6 +51,7 @@ declare global {
     newTab: FlowNewTabAPI;
     findInPage: FlowFindInPageAPI;
     prompts: FlowPromptsAPI;
+    tabService: FlowTabServiceAPI;
 
     // Session APIs
     profiles: FlowProfilesAPI;

@@ -5,7 +5,7 @@ import { useBoundingRect } from "@/hooks/use-bounding-rect";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { useTabs } from "@/components/providers/tabs-provider";
 import { cn } from "@/lib/utils";
-import type { TabTargetUrlUpdate } from "~/types/tabs";
+import type { TabTargetUrlUpdate } from "~/types/tab-service";
 import { AnimatePresence, motion } from "motion/react";
 import { useUnmount } from "react-use";
 import { MailIcon } from "lucide-react";
@@ -142,7 +142,7 @@ export function TargetUrlIndicator({ anchorRef }: TargetUrlIndicatorProps) {
   const anchorRect = useBoundingRect(anchorRef);
 
   useEffect(() => {
-    return flow.tabs.onTargetUrlChanged((update: TabTargetUrlUpdate) => {
+    return flow.tabService.onTargetUrlChanged((update: TabTargetUrlUpdate) => {
       setUrlsByTabId((prev) => {
         const next = new Map(prev);
         if (update.url) {

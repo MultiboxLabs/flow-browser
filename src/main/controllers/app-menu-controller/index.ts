@@ -9,7 +9,7 @@ import { createViewMenu } from "./menu/items/view";
 import { createWindowMenu } from "./menu/items/window";
 import { MenuItem, MenuItemConstructorOptions } from "electron";
 import { shortcutsEmitter } from "@/saving/shortcuts";
-import { recentlyClosedManager } from "@/controllers/tabs-controller/recently-closed-manager";
+import { tabService } from "@/services/tab-service";
 import { spacesController } from "@/controllers/spaces-controller";
 import { windowsController } from "@/controllers/windows-controller";
 
@@ -22,7 +22,7 @@ class AppMenuController {
     spacesController.on("space-deleted", this.render);
 
     shortcutsEmitter.on("shortcuts-changed", this.render);
-    recentlyClosedManager.on("changed", this.render);
+    tabService.recentlyClosed.on("changed", this.render);
 
     // This module hasn't loaded yet, so we have to wait
     setImmediate(() => {

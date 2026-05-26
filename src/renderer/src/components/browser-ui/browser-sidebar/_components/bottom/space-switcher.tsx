@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { useSpaces } from "@/components/providers/spaces-provider";
 import { SpaceIcon } from "@/lib/phosphor-icons";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { TabGroupSourceData } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
+import type { TabLayoutNodeSourceData } from "@/components/browser-ui/browser-sidebar/_components/tab-layout-node";
 import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { AnimatePresence, motion } from "motion/react";
 
@@ -67,8 +67,8 @@ function SpaceButton({ space, isActive, compact }: SpaceButtonProps) {
     return dropTargetForElements({
       element,
       canDrop: (args) => {
-        const sourceData = args.source.data as TabGroupSourceData;
-        if (sourceData.type !== "tab-group") return false;
+        const sourceData = args.source.data as TabLayoutNodeSourceData;
+        if (sourceData.type !== "tab-layout-node") return false;
 
         const sourceProfileId = sourceData.profileId;
         const targetProfileId = space.profileId;
@@ -88,9 +88,9 @@ function SpaceButton({ space, isActive, compact }: SpaceButtonProps) {
         stopDragging();
 
         // Move the tab to this space (no specific position — append to end)
-        const sourceData = args.source.data as TabGroupSourceData;
+        const sourceData = args.source.data as TabLayoutNodeSourceData;
         const sourceTabId = sourceData.primaryTabId;
-        flow.tabs.moveTabToWindowSpace(sourceTabId, space.id);
+        flow.tabService.moveTabToSpace(sourceTabId, space.id);
       }
     });
   }, [onClick, removeDraggingTimeout, space.profileId, space.id]);

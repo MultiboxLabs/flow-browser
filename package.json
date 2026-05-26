@@ -40,7 +40,7 @@
     "arktype": "^2.2.0",
     "better-sqlite3": "^12.9.0",
     "drizzle-orm": "^0.45.2",
-    "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.9.4",
+    "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.9.5",
     "electron-chrome-web-store": "npm:@iamevan/electron-chrome-web-store@0.13.3",
     "electron-context-menu": "^4.1.2",
     "electron-updater": "^6.8.3",

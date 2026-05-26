@@ -1,4 +1,4 @@
-import { TabGroupSourceData } from "@/components/browser-ui/browser-sidebar/_components/tab-group";
+import { TabLayoutNodeSourceData } from "@/components/browser-ui/browser-sidebar/_components/tab-layout-node";
 import { DropIndicator } from "@/components/browser-ui/browser-sidebar/_components/drop-indicator";
 import { useEffect, useRef, useState } from "react";
 import { Space } from "~/flow/interfaces/sessions/spaces";
@@ -40,16 +40,16 @@ export function TabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex }
         return;
       }
 
-      const tabGroupData = sourceData as TabGroupSourceData;
-      const sourceTabId = tabGroupData.primaryTabId;
+      const layoutNodeData = sourceData as TabLayoutNodeSourceData;
+      const sourceTabId = layoutNodeData.primaryTabId;
 
       const newPos = biggestIndex + 1;
 
-      if (tabGroupData.spaceId !== spaceData.id) {
-        if (tabGroupData.profileId !== spaceData.profileId) {
+      if (layoutNodeData.spaceId !== spaceData.id) {
+        if (layoutNodeData.profileId !== spaceData.profileId) {
           // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
         } else {
-          flow.tabs.moveTabToWindowSpace(sourceTabId, spaceData.id, newPos);
+          flow.tabService.moveTabToSpace(sourceTabId, spaceData.id, newPos);
         }
       } else {
         moveTab(sourceTabId, newPos);
@@ -70,12 +70,12 @@ export function TabDropTarget({ spaceData, isSpaceLight, moveTab, biggestIndex }
           return sourceData.profileId === spaceData.profileId;
         }
 
-        // Accept tab group drags (existing behavior)
-        const tabGroupData = sourceData as TabGroupSourceData;
-        if (tabGroupData.type !== "tab-group") {
+        // Accept layout-node drags (sidebar tab reorder / cross-space move)
+        const layoutNodeData = sourceData as TabLayoutNodeSourceData;
+        if (layoutNodeData.type !== "tab-layout-node") {
           return false;
         }
-        if (tabGroupData.profileId !== spaceData.profileId) {
+        if (layoutNodeData.profileId !== spaceData.profileId) {
           // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
           return false;
         }

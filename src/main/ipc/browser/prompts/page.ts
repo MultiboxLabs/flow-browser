@@ -1,4 +1,4 @@
-import { tabsController } from "@/controllers/tabs-controller";
+import { tabService } from "@/services/tab-service";
 import { queuePrompt } from "@/modules/prompts";
 import { ipcMain } from "electron";
 import type { PromptResult, PromptState } from "~/types/prompts";
@@ -24,7 +24,7 @@ async function processPromptRequest<ResultType>(
 
   const webContents = event.sender;
   const webFrame = event.senderFrame;
-  const tabId = tabsController.getTabByWebContents(webContents)?.id ?? null;
+  const tabId = tabService.getTabByWebContents(webContents)?.id ?? null;
   if (!tabId || !webFrame) {
     // not a tab, return null
     event.returnValue = failedValue;

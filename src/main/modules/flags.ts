@@ -12,6 +12,7 @@ type Flags = {
   GLANCE_ENABLED: boolean;
   FAVICONS_REMOVE_PATH: boolean;
   INCOGNITO_ENABLED: boolean;
+  ACTIVATE_TAB_ON_SPACE_SWITCH: boolean;
 };
 
 export const FLAGS: Flags = {
@@ -40,5 +41,8 @@ export const FLAGS: Flags = {
   FAVICONS_REMOVE_PATH: true,
 
   // Incognito: Enable incognito windows
-  INCOGNITO_ENABLED: true
+  INCOGNITO_ENABLED: true,
+
+  // Tab Service: Auto-activate the most recently active tab when switching spaces
+  ACTIVATE_TAB_ON_SPACE_SWITCH: false
 };

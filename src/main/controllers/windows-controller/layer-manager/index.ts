@@ -49,6 +49,7 @@ export class Layer<ViewType extends Electron.View = Electron.View> {
       }
 
       this.view.webContents.focus();
+      this.manager.clearPendingFocusReallocation();
       return true;
     }
     return false;
@@ -94,15 +95,30 @@ type LayerManagerEvents = {
 
 export class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
   private readonly parentView: Electron.View;
+  private readonly browserWindow: Electron.BrowserWindow;
 
   private layers: Layer[] = [];
   private oldLayers: Layer[] = [];
   private readonly layersWithDestroyListener = new WeakSet<Layer>();
 
+  // Deferred focus reallocation: when reallocateFocus is called while the
+  // window is NOT focused, we defer until the window regains focus. This
+  // prevents webContents.focus() from stealing OS focus to a background window.
+  private _focusReallocatePending = false;
+
   constructor(window: BrowserWindow) {
     super();
 
     this.parentView = window.browserWindow.contentView;
+    this.browserWindow = window.browserWindow;
+
+    // When the window gains focus, run deferred focus reallocation (once)
+    this.browserWindow.on("focus", () => {
+      if (this._focusReallocatePending) {
+        this._focusReallocatePending = false;
+        this.reallocateFocus();
+      }
+    });
   }
 
   /**
@@ -162,8 +178,19 @@ export class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
 
   /**
    * The focused layer is no longer there, so we need to find a new one to focus.
+   * If the window is not currently focused, defers until it regains focus to avoid
+   * stealing OS focus from the active window via webContents.focus().
    */
   public reallocateFocus() {
+    if (this.browserWindow.isDestroyed()) return;
+
+    if (!this.browserWindow.isFocused()) {
+      this._focusReallocatePending = true;
+      return;
+    }
+
+    this._focusReallocatePending = false;
+
     const layers = this.layers
       .filter((layer) => layer.isVisible())
       .toSorted((a, b) => b.focusPriority - a.focusPriority);
@@ -173,6 +200,10 @@ export class LayerManager extends TypedEventEmitter<LayerManagerEvents> {
         return;
       }
     }
+  }
+
+  public clearPendingFocusReallocation(): void {
+    this._focusReallocatePending = false;
   }
 
   public getFocusedLayer(): Layer | null {

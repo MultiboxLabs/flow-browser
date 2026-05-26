@@ -1,6 +1,6 @@
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { spacesController } from "@/controllers/spaces-controller";
-import { tabsController } from "@/controllers/tabs-controller";
+import { tabService } from "@/services/tab-service";
 import {
   clearBrowsingHistoryForProfile,
   deleteBrowsingUrlRowForProfile,
@@ -50,7 +50,7 @@ ipcMain.handle("history:delete-visit", async (event, visitId: number) => {
   const url = getBrowsingVisitUrlForProfile(profileId, visitId);
   const deleted = deleteBrowsingVisitForProfile(profileId, visitId);
   if (deleted) {
-    tabsController.clearBrowsingHistoryDedupingForProfile(profileId, url ?? undefined);
+    tabService.clearBrowsingHistoryDedupingForProfile(profileId, url ?? undefined);
   }
   return deleted;
 });
@@ -61,7 +61,7 @@ ipcMain.handle("history:delete-url", async (event, urlRowId: number) => {
   const url = getBrowsingUrlValueForProfile(profileId, urlRowId);
   const deleted = deleteBrowsingUrlRowForProfile(profileId, urlRowId);
   if (deleted) {
-    tabsController.clearBrowsingHistoryDedupingForProfile(profileId, url ?? undefined);
+    tabService.clearBrowsingHistoryDedupingForProfile(profileId, url ?? undefined);
   }
   return deleted;
 });
@@ -70,5 +70,5 @@ ipcMain.handle("history:clear-all", async (event) => {
   const profileId = await profileIdFromSender(event.sender);
   if (!profileId) return;
   clearBrowsingHistoryForProfile(profileId);
-  tabsController.clearBrowsingHistoryDedupingForProfile(profileId);
+  tabService.clearBrowsingHistoryDedupingForProfile(profileId);
 });
