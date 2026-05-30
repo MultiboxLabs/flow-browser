@@ -10,6 +10,7 @@ import { SettingsContentHeader } from "./components/content/header";
 import { SettingsWindowProvider, useSettingsWindowContext } from "./context";
 import { sections, type Section } from "./sections";
 import { useSettingsHeaderTitleScroll } from "./use-settings-header-title-scroll";
+import "./settings.css";
 
 function InnerSettingsLayout() {
   const { platform } = usePlatform();
@@ -78,13 +79,14 @@ function InnerSettingsLayout() {
             {platform === "darwin" && <div className="absolute top-0 w-full h-12 app-drag -z-10" />}
             <div className={cn("flex-1 min-h-0 flex flex-row", platform === "darwin" && "m-2")}>
               <SettingsSidebar sections={sections} activeSection={sectionId} setActiveSection={setActiveSection} />
-              <div className="relative flex-1 h-full min-w-0">
+              <div className="settings-scroll-region relative flex-1 h-full min-w-0">
                 <ScrollArea
-                  className={cn("h-full px-2", "mask-[linear-gradient(to_bottom,transparent_36px,black_44px)]")}
+                  className={cn("h-full px-2")}
+                  viewportClassName={cn("settings-scroll-area-mask")}
                   disableTabFocus
                   viewportRef={scrollViewportRef}
                 >
-                  <div className="flex flex-col gap-2 pt-11 px-2 pb-4">{currentSectionNode}</div>
+                  <div className="flex flex-col gap-2 px-2 pb-4 pt-11">{currentSectionNode}</div>
                 </ScrollArea>
                 <SettingsContentHeader sectionLabel={contentHeaderSectionLabel} />
               </div>

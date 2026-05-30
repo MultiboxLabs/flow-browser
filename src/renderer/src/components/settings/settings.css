@@ -1,0 +1,35 @@
+@property --settings-scroll-mask-opacity {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+.settings-scroll-area-mask {
+  --settings-scroll-mask-height: 120px;
+  --settings-scroll-mask-opacity: 0;
+
+  -webkit-mask:
+    linear-gradient(
+        to bottom,
+        rgb(0 0 0 / calc(var(--settings-scroll-mask-opacity) * 0.95)) 0,
+        rgb(0 0 0 / calc(var(--settings-scroll-mask-opacity) * 0.82)) 18%,
+        rgb(0 0 0 / calc(var(--settings-scroll-mask-opacity) * 0.46)) 46%,
+        rgb(0 0 0 / calc(var(--settings-scroll-mask-opacity) * 0.14)) 76%,
+        rgb(0 0 0 / 0) 100%
+      )
+      top / 100% var(--settings-scroll-mask-height) no-repeat,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(
+        to bottom,
+        rgb(0 0 0 / calc(var(--settings-scroll-mask-opacity) * 0.95)) 0,
+        rgb(0 0 0 / calc(var(--settings-scroll-mask-opacity) * 0.82)) 18%,
+        rgb(0 0 0 / calc(var(--settings-scroll-mask-opacity) * 0.46)) 46%,
+        rgb(0 0 0 / calc(var(--settings-scroll-mask-opacity) * 0.14)) 76%,
+        rgb(0 0 0 / 0) 100%
+      )
+      top / 100% var(--settings-scroll-mask-height) no-repeat,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
