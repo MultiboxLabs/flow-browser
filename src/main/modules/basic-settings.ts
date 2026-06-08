@@ -83,9 +83,51 @@ export const BasicSettings: BasicSetting[] = [
     id: "searchEngine",
     name: "Search Engine",
     showName: true,
+    description: "Pick a built-in engine or switch to a custom URL template.",
     type: "enum",
     defaultValue: "google",
     options: [
+      {
+        id: "google",
+        name: "Google"
+      },
+      {
+        id: "duckduckgo",
+        name: "DuckDuckGo"
+      },
+      {
+        id: "yandex",
+        name: "Yandex"
+      },
+      {
+        id: "custom",
+        name: "Custom Search Engine"
+      }
+    ]
+  },
+
+  {
+    id: "customSearchUrlTemplate",
+    name: "Search URL Template",
+    showName: true,
+    description: "Use {{query}} where Flow should insert the search text.",
+    type: "string",
+    defaultValue: "",
+    placeholder: "https://www.google.com/search?q={{query}}"
+  },
+
+  {
+    id: "customSearchSuggestionsProvider",
+    name: "Suggestions Source",
+    showName: true,
+    description: "Autocomplete can be disabled or powered by a built-in engine.",
+    type: "enum",
+    defaultValue: "none",
+    options: [
+      {
+        id: "none",
+        name: "None"
+      },
       {
         id: "google",
         name: "Google"
@@ -296,7 +338,7 @@ export const BasicSettingCards: BasicSettingCard[] = [
   {
     title: "Search Engine",
     subtitle: "Choose your default search engine",
-    settings: ["searchEngine"]
+    settings: ["searchEngine", "customSearchUrlTemplate", "customSearchSuggestionsProvider"]
   },
 
   // Sidebar Settings Card

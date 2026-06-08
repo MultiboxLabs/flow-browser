@@ -1,5 +1,6 @@
 import { duckduckgoSearchProvider } from "./duckduckgo";
 import { googleSearchProvider } from "./google";
+import { buildCustomSearchUrl } from "./custom-utils";
 import { yandexSearchProvider } from "./yandex";
 import type { SearchProvider } from "./types";
 
@@ -10,14 +11,43 @@ export const searchProviders = {
 } satisfies Record<string, SearchProvider>;
 
 export type SearchProviderId = keyof typeof searchProviders;
+export type SearchEngineSettingId = SearchProviderId | "custom";
+export type CustomSearchSuggestionsProviderId = "none" | SearchProviderId;
 
 const DEFAULT_SEARCH_PROVIDER_ID: SearchProviderId = "google";
+const DEFAULT_SEARCH_ENGINE_SETTING_ID: SearchEngineSettingId = DEFAULT_SEARCH_PROVIDER_ID;
+const DEFAULT_CUSTOM_SEARCH_SUGGESTIONS_PROVIDER_ID: CustomSearchSuggestionsProviderId = "none";
 
-let selectedSearchProviderId: SearchProviderId = DEFAULT_SEARCH_PROVIDER_ID;
+let selectedSearchEngineSettingId: SearchEngineSettingId = DEFAULT_SEARCH_ENGINE_SETTING_ID;
+let customSearchUrlTemplate = "";
+let customSearchSuggestionsProviderId: CustomSearchSuggestionsProviderId =
+  DEFAULT_CUSTOM_SEARCH_SUGGESTIONS_PROVIDER_ID;
 let hasInitializedSearchProviderSetting = false;
 
-function isSearchProviderId(value: unknown): value is SearchProviderId {
+export function isSearchProviderId(value: unknown): value is SearchProviderId {
   return typeof value === "string" && value in searchProviders;
+}
+
+export function isSearchEngineSettingId(value: unknown): value is SearchEngineSettingId {
+  return value === "custom" || isSearchProviderId(value);
+}
+
+export function isCustomSearchSuggestionsProviderId(value: unknown): value is CustomSearchSuggestionsProviderId {
+  return value === "none" || isSearchProviderId(value);
+}
+
+function createCustomSearchProvider(): SearchProvider {
+  const suggestionsProvider =
+    customSearchSuggestionsProviderId !== "none" ? searchProviders[customSearchSuggestionsProviderId] : null;
+
+  return {
+    id: "custom",
+    label: "Custom Search Engine",
+    buildSearchUrl(query: string): string {
+      return buildCustomSearchUrl(customSearchUrlTemplate, query) ?? searchProviders.google.buildSearchUrl(query);
+    },
+    getSuggestions: suggestionsProvider?.getSuggestions?.bind(suggestionsProvider)
+  };
 }
 
 async function refreshSelectedSearchProvider(): Promise<void> {
@@ -26,14 +56,21 @@ async function refreshSelectedSearchProvider(): Promise<void> {
   }
 
   const settingValue = await flow.settings.getSetting("searchEngine").catch(() => undefined);
-  if (isSearchProviderId(settingValue)) {
-    selectedSearchProviderId = settingValue;
-    return;
+  if (isSearchEngineSettingId(settingValue)) {
+    selectedSearchEngineSettingId = settingValue;
+  } else {
+    selectedSearchEngineSettingId = DEFAULT_SEARCH_ENGINE_SETTING_ID;
   }
 
-  // Backward-compatibility with a previous duplicate setting id.
-  const legacySettingValue = await flow.settings.getSetting("selectedSearchEngine").catch(() => undefined);
-  selectedSearchProviderId = isSearchProviderId(legacySettingValue) ? legacySettingValue : DEFAULT_SEARCH_PROVIDER_ID;
+  const customTemplateValue = await flow.settings.getSetting("customSearchUrlTemplate").catch(() => undefined);
+  customSearchUrlTemplate = typeof customTemplateValue === "string" ? customTemplateValue : "";
+
+  const suggestionsProviderValue = await flow.settings
+    .getSetting("customSearchSuggestionsProvider")
+    .catch(() => undefined);
+  customSearchSuggestionsProviderId = isCustomSearchSuggestionsProviderId(suggestionsProviderValue)
+    ? suggestionsProviderValue
+    : DEFAULT_CUSTOM_SEARCH_SUGGESTIONS_PROVIDER_ID;
 }
 
 function initializeSearchProviderSetting() {
@@ -55,11 +92,13 @@ initializeSearchProviderSetting();
  * @param id Optional ID of the search provider to retrieve. If not provided, the function returns the currently selected search provider based on user settings.
  * @returns The search provider corresponding to the provided ID or the currently selected search provider if no ID is given.
  */
-export function getSearchProvider(id?: SearchProviderId): SearchProvider {
+export function getSearchProvider(id?: SearchEngineSettingId): SearchProvider {
   if (id) {
-    return searchProviders[id];
+    return id === "custom" ? createCustomSearchProvider() : searchProviders[id];
   }
 
   initializeSearchProviderSetting();
-  return searchProviders[selectedSearchProviderId];
+  return selectedSearchEngineSettingId === "custom"
+    ? createCustomSearchProvider()
+    : searchProviders[selectedSearchEngineSettingId];
 }

@@ -24,6 +24,9 @@ function validateSettingValue<T extends SettingType>(setting: T, value: unknown)
   if (setting.type === "enum") {
     return setting.options.some((option) => option.id === value);
   }
+  if (setting.type === "string") {
+    return typeof value === "string";
+  }
   return false;
 }
 

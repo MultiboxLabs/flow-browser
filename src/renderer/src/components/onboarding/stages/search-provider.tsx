@@ -1,6 +1,12 @@
 import { OnboardingAdvanceCallback } from "@/components/onboarding/main";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
-import type { SearchProviderId } from "@/lib/omnibox-new/search-providers";
+import { CustomSearchEngineFields } from "@/components/search/custom-search-engine-fields";
+import type {
+  CustomSearchSuggestionsProviderId,
+  SearchEngineSettingId,
+  SearchProviderId
+} from "@/lib/omnibox-new/search-providers";
+import { validateCustomSearchUrlTemplate } from "@/lib/omnibox-new/search-providers/custom-utils";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/components/providers/settings-provider";
@@ -29,6 +35,10 @@ function isSearchProviderId(value: unknown): value is SearchProviderId {
   return value === "google" || value === "duckduckgo" || value === "yandex";
 }
 
+function isSearchEngineSettingId(value: unknown): value is SearchEngineSettingId {
+  return value === "custom" || isSearchProviderId(value);
+}
+
 const SEARCH_PROVIDER_TILES: SearchProviderTile[] = [
   {
     kind: "provider",
@@ -54,7 +64,7 @@ const SEARCH_PROVIDER_TILES: SearchProviderTile[] = [
   {
     kind: "custom",
     id: "custom",
-    name: "Custom",
+    name: "Custom Search Engine",
     icon: <SearchCode className="size-9" />
   }
 ];
@@ -62,9 +72,14 @@ const SEARCH_PROVIDER_TILES: SearchProviderTile[] = [
 export function OnboardingSearchProvider({ advance }: { advance: OnboardingAdvanceCallback }) {
   const { getSetting, setSetting } = useSettings();
   const selectedProvider = getSetting<unknown>("searchEngine");
-  const selectedProviderId = isSearchProviderId(selectedProvider) ? selectedProvider : null;
+  const selectedProviderId = isSearchEngineSettingId(selectedProvider) ? selectedProvider : "google";
+  const customSearchUrlTemplate = getSetting<string>("customSearchUrlTemplate") ?? "";
+  const customSearchSuggestionsProvider =
+    (getSetting<string>("customSearchSuggestionsProvider") as CustomSearchSuggestionsProviderId | undefined) ?? "none";
+  const customSearchTemplateValidation = validateCustomSearchUrlTemplate(customSearchUrlTemplate);
+  const canContinue = selectedProviderId !== "custom" || customSearchTemplateValidation.valid;
 
-  const handleSelectProvider = (providerId: SearchProviderId) => {
+  const handleSelectProvider = (providerId: SearchEngineSettingId) => {
     if (providerId === selectedProviderId) {
       return;
     }
@@ -96,24 +111,16 @@ export function OnboardingSearchProvider({ advance }: { advance: OnboardingAdvan
       >
         <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2">
           {SEARCH_PROVIDER_TILES.map((provider) => {
-            const isSelected = provider.kind === "provider" && provider.id === selectedProviderId;
-            const isAvailable = provider.kind === "provider";
+            const isSelected = provider.id === selectedProviderId;
 
             return (
               <button
                 key={provider.id}
                 type="button"
-                onClick={() => {
-                  if (provider.kind === "provider") {
-                    handleSelectProvider(provider.id);
-                  }
-                }}
-                disabled={!isAvailable}
+                onClick={() => handleSelectProvider(provider.id)}
                 className={cn(
                   "group remove-app-drag relative flex min-h-52 flex-col items-center justify-center rounded-3xl border bg-white/3 px-6 py-8 text-white transition-all duration-200",
-                  isAvailable
-                    ? "cursor-pointer border-white/10 hover:border-white/25 hover:bg-white/6"
-                    : "cursor-not-allowed border-white/8 opacity-60",
+                  "cursor-pointer border-white/10 hover:border-white/25 hover:bg-white/6",
                   isSelected && "border-[#9BFFB0] bg-[#9BFFB0]/8 shadow-[0_0_0_1px_rgba(155,255,176,0.25)]"
                 )}
               >
@@ -136,13 +143,39 @@ export function OnboardingSearchProvider({ advance }: { advance: OnboardingAdvan
 
                 <span className="text-xl font-semibold tracking-tight">{provider.name}</span>
 
-                <span className={cn("mt-2 text-sm", isAvailable ? "text-white/55" : "text-white/40")}>
-                  {isAvailable ? (isSelected ? "Selected" : "Set as default") : "Coming soon"}
+                <span className="mt-2 text-sm text-white/55">
+                  {isSelected
+                    ? "Selected"
+                    : provider.kind === "custom"
+                      ? "Use your own URL template"
+                      : "Set as default"}
                 </span>
               </button>
             );
           })}
         </div>
+
+        {selectedProviderId === "custom" && (
+          <motion.div
+            className="mx-auto mt-4 w-full max-w-3xl"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            <CustomSearchEngineFields
+              appearance="onboarding"
+              template={customSearchUrlTemplate}
+              onTemplateChange={(value) => {
+                void setSetting("customSearchUrlTemplate", value);
+              }}
+              suggestionsProvider={customSearchSuggestionsProvider}
+              onSuggestionsProviderChange={(value) => {
+                void setSetting("customSearchSuggestionsProvider", value);
+              }}
+            />
+          </motion.div>
+        )}
       </motion.div>
 
       {/* Continue Button */}
@@ -155,12 +188,18 @@ export function OnboardingSearchProvider({ advance }: { advance: OnboardingAdvan
         >
           <Button
             onClick={advance}
+            disabled={!canContinue}
             className="cursor-pointer px-10 py-6 text-lg bg-[#0066FF]/10 hover:bg-[#0066FF]/20 text-white backdrop-blur-md border border-[#0066FF]/30 gap-2"
           >
             Continue
             <ArrowRight className="h-5 w-5" />
           </Button>
         </motion.div>
+        {!canContinue && (
+          <p className="mt-3 text-center text-sm text-amber-200/80">
+            Enter a valid custom search URL template before continuing.
+          </p>
+        )}
       </div>
     </>
   );
