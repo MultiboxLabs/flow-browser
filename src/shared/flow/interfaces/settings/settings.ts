@@ -2,6 +2,11 @@ import { IPCListener } from "~/flow/types";
 import type { BasicSetting, BasicSettingCard } from "~/types/settings";
 import type { SearchSettingsSnapshot } from "~/search/search-settings";
 
+export interface SettingsChangedEvent {
+  changedSettingIds: string[];
+  searchSettingsSnapshot?: SearchSettingsSnapshot;
+}
+
 // API //
 export interface FlowSettingsAPI {
   /**
@@ -35,5 +40,5 @@ export interface FlowSettingsAPI {
 
   /**
    * Listens for changes to the settings */
-  onSettingsChanged: IPCListener<[void]>;
+  onSettingsChanged: IPCListener<[SettingsChangedEvent]>;
 }

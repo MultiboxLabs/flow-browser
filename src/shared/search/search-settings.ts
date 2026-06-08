@@ -1,14 +1,19 @@
 import { buildCustomSearchUrl, CUSTOM_SEARCH_QUERY_TOKEN, validateCustomSearchUrlTemplate } from "./custom-search";
 
+export interface SearchUrlBuildOptions {
+  duckduckgoAiEnabled?: boolean;
+}
+
 function buildGoogleSearchUrl(query: string): string {
   const url = new URL("https://www.google.com/search");
   url.searchParams.set("q", query);
   return url.toString();
 }
 
-function buildDuckDuckGoSearchUrl(query: string, aiEnabled: boolean = true): string {
-  const url = new URL("https://www.duckduckgo.com");
+function buildDuckDuckGoSearchUrl(query: string, options?: SearchUrlBuildOptions): string {
+  const url = new URL("https://duckduckgo.com");
   url.searchParams.set("q", query);
+  const aiEnabled = options?.duckduckgoAiEnabled ?? true;
   if (!aiEnabled) {
     url.searchParams.set("ia", "web");
     url.searchParams.set("assist", "false");
@@ -45,6 +50,7 @@ export interface SearchSettingsSnapshot {
   searchEngine: SearchEngineSettingId;
   customSearchUrlTemplate: string;
   customSearchSuggestionsProvider: CustomSearchSuggestionsProviderId;
+  duckduckgoAiEnabled: boolean;
 }
 
 export type SearchSettingsSnapshotKey = keyof SearchSettingsSnapshot;
@@ -54,7 +60,8 @@ export const DEFAULT_SEARCH_PROVIDER_ID: SearchProviderId = "google";
 export const DEFAULT_SEARCH_SETTINGS_SNAPSHOT: SearchSettingsSnapshot = {
   searchEngine: DEFAULT_SEARCH_PROVIDER_ID,
   customSearchUrlTemplate: "",
-  customSearchSuggestionsProvider: "none"
+  customSearchSuggestionsProvider: "none",
+  duckduckgoAiEnabled: true
 };
 
 export const SEARCH_PROVIDER_OPTIONS: Array<{ id: SearchProviderId; name: string }> = [
@@ -76,7 +83,8 @@ export const CUSTOM_SEARCH_SUGGESTION_PROVIDER_OPTIONS: Array<{
 const SEARCH_SETTINGS_KEYS: SearchSettingsSnapshotKey[] = [
   "searchEngine",
   "customSearchUrlTemplate",
-  "customSearchSuggestionsProvider"
+  "customSearchSuggestionsProvider",
+  "duckduckgoAiEnabled"
 ];
 
 export function getDefaultSearchSettingsSnapshot(): SearchSettingsSnapshot {
@@ -105,8 +113,12 @@ export function getSearchProviderLabel(id: SearchProviderId): string {
   return SEARCH_PROVIDER_METADATA[id].label;
 }
 
-export function buildSearchUrlFromProviderId(providerId: SearchProviderId, query: string): string {
-  return SEARCH_PROVIDER_METADATA[providerId].buildSearchUrl(query);
+export function buildSearchUrlFromProviderId(
+  providerId: SearchProviderId,
+  query: string,
+  options?: SearchUrlBuildOptions
+): string {
+  return SEARCH_PROVIDER_METADATA[providerId].buildSearchUrl(query, options);
 }
 
 export function getCustomSearchEngineDisplayName(template: string): string {
@@ -146,7 +158,11 @@ export function normalizeSearchSettingsSnapshot(
         : DEFAULT_SEARCH_SETTINGS_SNAPSHOT.customSearchUrlTemplate,
     customSearchSuggestionsProvider: isCustomSearchSuggestionsProviderId(searchSettings.customSearchSuggestionsProvider)
       ? searchSettings.customSearchSuggestionsProvider
-      : DEFAULT_SEARCH_SETTINGS_SNAPSHOT.customSearchSuggestionsProvider
+      : DEFAULT_SEARCH_SETTINGS_SNAPSHOT.customSearchSuggestionsProvider,
+    duckduckgoAiEnabled:
+      typeof searchSettings.duckduckgoAiEnabled === "boolean"
+        ? searchSettings.duckduckgoAiEnabled
+        : DEFAULT_SEARCH_SETTINGS_SNAPSHOT.duckduckgoAiEnabled
   };
 }
 
@@ -170,5 +186,7 @@ export function buildSearchUrlFromSearchSettings(searchSettings: SearchSettingsS
     );
   }
 
-  return buildSearchUrlFromProviderId(searchSettings.searchEngine, query);
+  return buildSearchUrlFromProviderId(searchSettings.searchEngine, query, {
+    duckduckgoAiEnabled: searchSettings.duckduckgoAiEnabled
+  });
 }

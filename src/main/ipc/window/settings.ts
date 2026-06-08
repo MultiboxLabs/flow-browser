@@ -3,6 +3,7 @@ import { BasicSettings, BasicSettingCards } from "@/modules/basic-settings";
 import { getSearchSettingsSnapshot, getSettingValueById, setSettingValueById } from "@/saving/settings";
 import { settings } from "@/controllers/windows-controller/interfaces/settings";
 import { ipcMain } from "electron";
+import type { SettingsChangedEvent } from "~/flow/interfaces/settings/settings";
 
 ipcMain.on("settings:open", () => {
   settings.show();
@@ -35,6 +36,6 @@ ipcMain.on("settings:get-search-settings-snapshot-sync", (event) => {
   event.returnValue = getSearchSettingsSnapshot();
 });
 
-export function fireOnSettingsChanged() {
-  sendMessageToListeners("settings:on-changed");
+export function fireOnSettingsChanged(payload: SettingsChangedEvent) {
+  sendMessageToListeners("settings:on-changed", payload);
 }

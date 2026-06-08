@@ -12,11 +12,12 @@ import {
   validateActiveSearchSettings,
   DEFAULT_SEARCH_SETTINGS_SNAPSHOT
 } from "~/search/search-settings";
+import type { SettingsChangedEvent } from "~/flow/interfaces/settings/settings";
 
 export const SettingsDataStore = getDatastore("settings");
 
 type SettingsEvents = {
-  "settings-changed": [];
+  "settings-changed": [SettingsChangedEvent];
 };
 export const settingsEmitter = new TypedEventEmitter<SettingsEvents>();
 
@@ -39,8 +40,25 @@ function getSearchSettingsSnapshotFromValues(
         : defaults.customSearchUrlTemplate,
     customSearchSuggestionsProvider: isCustomSearchSuggestionsProviderId(values.customSearchSuggestionsProvider)
       ? values.customSearchSuggestionsProvider
-      : defaults.customSearchSuggestionsProvider
+      : defaults.customSearchSuggestionsProvider,
+    duckduckgoAiEnabled:
+      typeof values.duckduckgoAiEnabled === "boolean" ? values.duckduckgoAiEnabled : defaults.duckduckgoAiEnabled
   };
+}
+
+function buildSettingsChangedEvent(changedSettingIds: string[]): SettingsChangedEvent {
+  const includesSearchSettings = changedSettingIds.some((settingId) => isSearchSettingsSnapshotKey(settingId));
+
+  return {
+    changedSettingIds,
+    searchSettingsSnapshot: includesSearchSettings ? getSearchSettingsSnapshot() : undefined
+  };
+}
+
+function notifySettingsChanged(changedSettingIds: string[]) {
+  const event = buildSettingsChangedEvent(changedSettingIds);
+  fireOnSettingsChanged(event);
+  settingsEmitter.emit("settings-changed", event);
 }
 
 function getNextSearchSettingsSnapshot(settingId: string, value: unknown): SearchSettingsSnapshot | null {
@@ -70,6 +88,7 @@ function repairInvalidActiveSearchConfiguration() {
   }
 
   basicSettingsCurrentValues.searchEngine = DEFAULT_SEARCH_SETTINGS_SNAPSHOT.searchEngine;
+  notifySettingsChanged(["searchEngine"]);
   void SettingsDataStore.set("searchEngine", DEFAULT_SEARCH_SETTINGS_SNAPSHOT.searchEngine).catch(() => undefined);
 }
 
@@ -128,8 +147,7 @@ async function setSettingValue<T extends BasicSetting>(setting: T, value: unknow
 
     if (saveSuccess) {
       basicSettingsCurrentValues[setting.id] = value as T["defaultValue"];
-      fireOnSettingsChanged();
-      settingsEmitter.emit("settings-changed");
+      notifySettingsChanged([setting.id]);
       return true;
     }
   }

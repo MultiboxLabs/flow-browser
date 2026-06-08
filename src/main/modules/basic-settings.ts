@@ -115,6 +115,15 @@ export const BasicSettings: BasicSetting[] = [
     options: CUSTOM_SEARCH_SUGGESTION_PROVIDER_OPTIONS.map((option) => ({ ...option }))
   },
 
+  {
+    id: "duckduckgoAiEnabled",
+    name: "DuckDuckGo AI Features",
+    showName: true,
+    description: "Allow DuckDuckGo to open AI-assisted search results instead of forcing classic web results.",
+    type: "boolean",
+    defaultValue: DEFAULT_SEARCH_SETTINGS_SNAPSHOT.duckduckgoAiEnabled
+  },
+
   // New Tab Mode
   {
     id: "newTabMode",
@@ -310,7 +319,7 @@ export const BasicSettingCards: BasicSettingCard[] = [
   {
     title: "Search Engine",
     subtitle: "Choose your default search engine",
-    settings: ["searchEngine", "customSearchUrlTemplate", "customSearchSuggestionsProvider"]
+    settings: ["searchEngine", "duckduckgoAiEnabled", "customSearchUrlTemplate", "customSearchSuggestionsProvider"]
   },
 
   // Sidebar Settings Card

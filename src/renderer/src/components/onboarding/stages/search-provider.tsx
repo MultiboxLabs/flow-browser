@@ -1,6 +1,7 @@
 import { OnboardingAdvanceCallback } from "@/components/onboarding/main";
 import { WebsiteFavicon } from "@/components/main/website-favicon";
 import { CustomSearchEngineFields } from "@/components/search/custom-search-engine-fields";
+import { DuckDuckGoAiToggle } from "@/components/search/duckduckgo-ai-toggle";
 import type {
   CustomSearchSuggestionsProviderId,
   SearchEngineSettingId,
@@ -73,6 +74,7 @@ export function OnboardingSearchProvider({ advance }: { advance: OnboardingAdvan
   const customSearchUrlTemplate = getSetting<string>("customSearchUrlTemplate") ?? "";
   const customSearchSuggestionsProvider =
     (getSetting<string>("customSearchSuggestionsProvider") as CustomSearchSuggestionsProviderId | undefined) ?? "none";
+  const duckduckgoAiEnabled = getSetting<boolean>("duckduckgoAiEnabled") ?? true;
   const [customSearchTemplateValidation, setCustomSearchTemplateValidation] =
     useState<CustomSearchTemplateValidationResult>(() => validateCustomSearchUrlTemplate(customSearchUrlTemplate));
   const canContinue = selectedProviderId !== "custom" || customSearchTemplateValidation.valid;
@@ -184,6 +186,24 @@ export function OnboardingSearchProvider({ advance }: { advance: OnboardingAdvan
               suggestionsProvider={customSearchSuggestionsProvider}
               onSuggestionsProviderChange={(value) => {
                 void setSetting("customSearchSuggestionsProvider", value);
+              }}
+            />
+          </motion.div>
+        )}
+
+        {selectedProviderId === "duckduckgo" && (
+          <motion.div
+            className="mx-auto mt-4 w-full max-w-3xl"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            <DuckDuckGoAiToggle
+              appearance="onboarding"
+              enabled={duckduckgoAiEnabled}
+              onEnabledChange={(value) => {
+                void setSetting("duckduckgoAiEnabled", value);
               }}
             />
           </motion.div>

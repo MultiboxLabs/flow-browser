@@ -1,5 +1,6 @@
 import { useSettings } from "@/components/providers/settings-provider";
 import { CustomSearchEngineFields } from "@/components/search/custom-search-engine-fields";
+import { DuckDuckGoAiToggle } from "@/components/search/duckduckgo-ai-toggle";
 import { BasicSetting, BasicSettingCard } from "~/types/settings";
 import type { CustomSearchSuggestionsProviderId, SearchEngineSettingId } from "@/lib/omnibox-new/search-providers";
 import { Label } from "@/components/ui/label";
@@ -80,6 +81,7 @@ export function BasicSettingsCard({ card, transparent }: { card: BasicSettingCar
   const { settings, getSetting, setSetting } = useSettings();
   const selectedSearchEngine = getSetting<string>("searchEngine");
   const isCustomSearchSelected = selectedSearchEngine === "custom";
+  const isDuckDuckGoSelected = selectedSearchEngine === "duckduckgo";
 
   if (card.title === "INTERNAL_UPDATE") {
     return <UpdateCard />;
@@ -104,6 +106,10 @@ export function BasicSettingsCard({ card, transparent }: { card: BasicSettingCar
               (settingId === "customSearchUrlTemplate" || settingId === "customSearchSuggestionsProvider") &&
               !isCustomSearchSelected
             ) {
+              return null;
+            }
+
+            if (settingId === "duckduckgoAiEnabled" && !isDuckDuckGoSelected) {
               return null;
             }
 
@@ -133,6 +139,18 @@ export function BasicSettingsCard({ card, transparent }: { card: BasicSettingCar
 
             if (settingId === "customSearchSuggestionsProvider") {
               return null;
+            }
+
+            if (settingId === "duckduckgoAiEnabled") {
+              return (
+                <DuckDuckGoAiToggle
+                  key={settingId}
+                  enabled={getSetting<boolean>("duckduckgoAiEnabled") ?? true}
+                  onEnabledChange={(value) => {
+                    void setSetting("duckduckgoAiEnabled", value);
+                  }}
+                />
+              );
             }
 
             const isStringSetting = setting.type === "string";

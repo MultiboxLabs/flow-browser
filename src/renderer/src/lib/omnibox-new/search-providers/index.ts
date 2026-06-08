@@ -8,6 +8,7 @@ import {
   type SearchEngineSettingId,
   type SearchProviderId,
   type SearchSettingsSnapshot,
+  buildSearchUrlFromSearchSettings,
   buildSearchUrlFromProviderId,
   getDefaultSearchSettingsSnapshot,
   isCustomSearchSuggestionsProviderId,
@@ -54,6 +55,20 @@ function createCustomSearchProvider(searchSettings: SearchSettingsSnapshot): Sea
   };
 }
 
+function createConfiguredBuiltInSearchProvider(
+  providerId: SearchProviderId,
+  searchSettings: SearchSettingsSnapshot
+): SearchProvider {
+  const provider = searchProviders[providerId];
+
+  return {
+    ...provider,
+    buildSearchUrl(query: string): string {
+      return buildSearchUrlFromSearchSettings({ ...searchSettings, searchEngine: providerId }, query);
+    }
+  };
+}
+
 function refreshSelectedSearchProvider() {
   currentSearchSettings = readSearchSettingsSnapshot();
 }
@@ -64,10 +79,12 @@ function initializeSearchProviderSetting() {
   }
 
   hasInitializedSearchProviderSetting = true;
-  refreshSelectedSearchProvider();
-  flow.settings.onSettingsChanged(() => {
-    refreshSelectedSearchProvider();
+  flow.settings.onSettingsChanged((event) => {
+    if (event.searchSettingsSnapshot) {
+      currentSearchSettings = event.searchSettingsSnapshot;
+    }
   });
+  refreshSelectedSearchProvider();
 }
 
 initializeSearchProviderSetting();
@@ -81,10 +98,12 @@ export function getSearchProvider(id?: SearchEngineSettingId): SearchProvider {
   initializeSearchProviderSetting();
 
   if (id) {
-    return id === "custom" ? createCustomSearchProvider(currentSearchSettings) : searchProviders[id];
+    return id === "custom"
+      ? createCustomSearchProvider(currentSearchSettings)
+      : createConfiguredBuiltInSearchProvider(id, currentSearchSettings);
   }
 
   return currentSearchSettings.searchEngine === "custom"
     ? createCustomSearchProvider(currentSearchSettings)
-    : searchProviders[currentSearchSettings.searchEngine];
+    : createConfiguredBuiltInSearchProvider(currentSearchSettings.searchEngine, currentSearchSettings);
 }

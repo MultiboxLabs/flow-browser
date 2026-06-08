@@ -45,6 +45,7 @@ import { FlowPasskeyAPI } from "~/flow/interfaces/browser/passkey";
 import type { ConditionalPasskeyRequest, PasskeyCredential } from "~/types/passkey";
 import { FlowPromptsAPI } from "~/flow/interfaces/browser/prompts";
 import type { ActivePrompt } from "~/types/prompts";
+import type { SettingsChangedEvent } from "~/flow/interfaces/settings/settings";
 
 // const isIFrame = !process.isMainFrame;
 
@@ -688,7 +689,7 @@ const settingsAPI: FlowSettingsAPI = {
   getSearchSettingsSnapshotSync: () => {
     return ipcRenderer.sendSync("settings:get-search-settings-snapshot-sync");
   },
-  onSettingsChanged: (callback: () => void) => {
+  onSettingsChanged: (callback: (event: SettingsChangedEvent) => void) => {
     return listenOnIPCChannel("settings:on-changed", callback);
   }
 };
