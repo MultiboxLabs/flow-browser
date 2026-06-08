@@ -3,11 +3,21 @@ import { fireOnSettingsChanged } from "@/ipc/window/settings";
 import { BasicSettings } from "@/modules/basic-settings";
 import { TypedEventEmitter } from "@/modules/typed-event-emitter";
 import { BasicSetting, SettingType } from "~/types/settings";
+import {
+  type SearchSettingsSnapshot,
+  getDefaultSearchSettingsSnapshot,
+  isSearchEngineSettingId,
+  isCustomSearchSuggestionsProviderId,
+  isSearchSettingsSnapshotKey,
+  validateActiveSearchSettings,
+  DEFAULT_SEARCH_SETTINGS_SNAPSHOT
+} from "~/search/search-settings";
+import type { SettingsChangedEvent } from "~/flow/interfaces/settings/settings";
 
 export const SettingsDataStore = getDatastore("settings");
 
 type SettingsEvents = {
-  "settings-changed": [];
+  "settings-changed": [SettingsChangedEvent];
 };
 export const settingsEmitter = new TypedEventEmitter<SettingsEvents>();
 
@@ -17,12 +27,80 @@ export const settingsEmitter = new TypedEventEmitter<SettingsEvents>();
 // Settings: Settings Config //
 const basicSettingsCurrentValues: Record<string, SettingType["defaultValue"]> = {};
 
+function getSearchSettingsSnapshotFromValues(
+  values: Partial<Record<string, SettingType["defaultValue"]>>
+): SearchSettingsSnapshot {
+  const defaults = getDefaultSearchSettingsSnapshot();
+
+  return {
+    searchEngine: isSearchEngineSettingId(values.searchEngine) ? values.searchEngine : defaults.searchEngine,
+    customSearchUrlTemplate:
+      typeof values.customSearchUrlTemplate === "string"
+        ? values.customSearchUrlTemplate
+        : defaults.customSearchUrlTemplate,
+    customSearchSuggestionsProvider: isCustomSearchSuggestionsProviderId(values.customSearchSuggestionsProvider)
+      ? values.customSearchSuggestionsProvider
+      : defaults.customSearchSuggestionsProvider,
+    duckduckgoAiEnabled:
+      typeof values.duckduckgoAiEnabled === "boolean" ? values.duckduckgoAiEnabled : defaults.duckduckgoAiEnabled
+  };
+}
+
+function buildSettingsChangedEvent(changedSettingIds: string[]): SettingsChangedEvent {
+  const includesSearchSettings = changedSettingIds.some((settingId) => isSearchSettingsSnapshotKey(settingId));
+
+  return {
+    changedSettingIds,
+    searchSettingsSnapshot: includesSearchSettings ? getSearchSettingsSnapshot() : undefined
+  };
+}
+
+function notifySettingsChanged(changedSettingIds: string[]) {
+  const event = buildSettingsChangedEvent(changedSettingIds);
+  fireOnSettingsChanged(event);
+  settingsEmitter.emit("settings-changed", event);
+}
+
+function getNextSearchSettingsSnapshot(settingId: string, value: unknown): SearchSettingsSnapshot | null {
+  if (!isSearchSettingsSnapshotKey(settingId)) {
+    return null;
+  }
+
+  return getSearchSettingsSnapshotFromValues({
+    ...basicSettingsCurrentValues,
+    [settingId]: value as SettingType["defaultValue"]
+  });
+}
+
+function wouldCreateInvalidActiveSearchConfiguration(settingId: string, value: unknown): boolean {
+  const nextSearchSettings = getNextSearchSettingsSnapshot(settingId, value);
+  if (!nextSearchSettings) {
+    return false;
+  }
+
+  return !validateActiveSearchSettings(nextSearchSettings).valid;
+}
+
+function repairInvalidActiveSearchConfiguration() {
+  const searchSettings = getSearchSettingsSnapshotFromValues(basicSettingsCurrentValues);
+  if (validateActiveSearchSettings(searchSettings).valid) {
+    return;
+  }
+
+  basicSettingsCurrentValues.searchEngine = DEFAULT_SEARCH_SETTINGS_SNAPSHOT.searchEngine;
+  notifySettingsChanged(["searchEngine"]);
+  void SettingsDataStore.set("searchEngine", DEFAULT_SEARCH_SETTINGS_SNAPSHOT.searchEngine).catch(() => undefined);
+}
+
 function validateSettingValue<T extends SettingType>(setting: T, value: unknown) {
   if (setting.type === "boolean") {
     return typeof value === "boolean";
   }
   if (setting.type === "enum") {
     return setting.options.some((option) => option.id === value);
+  }
+  if (setting.type === "string") {
+    return typeof value === "string";
   }
   return false;
 }
@@ -44,6 +122,7 @@ const settingsCachedPromise = new Promise<void>((resolve) => {
   }
 
   Promise.all(promises).then(() => {
+    repairInvalidActiveSearchConfiguration();
     resolve();
   });
 });
@@ -55,17 +134,20 @@ export function getSettingValueById(settingId: string): SettingType["defaultValu
   return basicSettingsCurrentValues[settingId];
 }
 
+export function getSearchSettingsSnapshot(): SearchSettingsSnapshot {
+  return getSearchSettingsSnapshotFromValues(basicSettingsCurrentValues);
+}
+
 // Export: Set Setting //
 async function setSettingValue<T extends BasicSetting>(setting: T, value: unknown) {
-  if (validateSettingValue(setting, value)) {
+  if (validateSettingValue(setting, value) && !wouldCreateInvalidActiveSearchConfiguration(setting.id, value)) {
     const saveSuccess = await SettingsDataStore.set(setting.id, value)
       .then(() => true)
       .catch(() => false);
 
     if (saveSuccess) {
       basicSettingsCurrentValues[setting.id] = value as T["defaultValue"];
-      fireOnSettingsChanged();
-      settingsEmitter.emit("settings-changed");
+      notifySettingsChanged([setting.id]);
       return true;
     }
   }

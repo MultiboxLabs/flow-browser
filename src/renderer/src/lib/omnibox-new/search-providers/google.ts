@@ -1,10 +1,11 @@
 import type {
   NavigationSearchProviderCompletion,
   QuerySearchProviderCompletion,
-  SearchProviderCompletion,
   SearchProvider,
   SearchProviderRequest
 } from "./types";
+import { normalizeAndValidateUrl } from "./url-utils";
+import { buildSearchUrlFromProviderId } from "~/search/search-settings";
 
 interface GoogleSuggestResponse {
   0?: string;
@@ -20,7 +21,6 @@ interface GoogleSuggestResponse {
 
 type GoogleSuggestType = "QUERY" | "NAVIGATION" | "ENTITY" | "TAIL" | "CALCULATOR";
 
-const GOOGLE_SEARCH_BASE_URL = "https://www.google.com/search";
 const GOOGLE_SUGGEST_BASE_URL = "https://suggestqueries.google.com/complete/search";
 const SEARCH_SUGGESTION_MIN_RELEVANCE = 100;
 const SEARCH_SUGGESTION_MAX_RELEVANCE = 400;
@@ -34,34 +34,8 @@ function mapSuggestionRelevance(serverRelevance: number | undefined, index: numb
   );
 }
 
-function normalizeNavigationUrl(value: string): URL | null {
-  try {
-    return new URL(value);
-  } catch {
-    try {
-      return new URL(`http://${value}`);
-    } catch {
-      return null;
-    }
-  }
-}
-
-const isAllowedProtocol = (url: URL): boolean => ["http:", "https:"].includes(url.protocol.toLowerCase());
-function normalizeAndValidateUrl(value: string): string | null {
-  const url = normalizeNavigationUrl(value);
-  if (!url) {
-    return null;
-  }
-  if (!isAllowedProtocol(url)) {
-    return null;
-  }
-  return url.toString();
-}
-
 function buildSearchUrl(query: string): string {
-  const url = new URL(GOOGLE_SEARCH_BASE_URL);
-  url.searchParams.set("q", query);
-  return url.toString();
+  return buildSearchUrlFromProviderId("google", query);
 }
 
 function parseSuggestion(
@@ -69,7 +43,7 @@ function parseSuggestion(
   type: GoogleSuggestType | undefined,
   relevance: number | undefined,
   index: number
-): SearchProviderCompletion | null {
+): QuerySearchProviderCompletion | NavigationSearchProviderCompletion | null {
   if (type === "NAVIGATION") {
     const url = normalizeAndValidateUrl(text);
     if (!url) {
@@ -99,7 +73,7 @@ async function fetchGoogleSuggestions({
   input,
   limit,
   signal
-}: SearchProviderRequest): Promise<SearchProviderCompletion[]> {
+}: SearchProviderRequest): Promise<Array<QuerySearchProviderCompletion | NavigationSearchProviderCompletion>> {
   const url = new URL(GOOGLE_SUGGEST_BASE_URL);
   url.searchParams.set("client", "chrome");
   url.searchParams.set("q", input);
@@ -115,7 +89,7 @@ async function fetchGoogleSuggestions({
   const types = metadata?.["google:suggesttype"] ?? [];
   const relevances = metadata?.["google:suggestrelevance"] ?? [];
 
-  const completions: SearchProviderCompletion[] = [];
+  const completions: Array<QuerySearchProviderCompletion | NavigationSearchProviderCompletion> = [];
 
   for (let index = 0; index < texts.length && completions.length < limit; index += 1) {
     const text = texts[index];
@@ -136,7 +110,9 @@ export const googleSearchProvider: SearchProvider = {
   id: "google",
   label: "Google",
   buildSearchUrl,
-  async getSuggestions(request: SearchProviderRequest): Promise<SearchProviderCompletion[]> {
+  async getSuggestions(
+    request: SearchProviderRequest
+  ): Promise<Array<QuerySearchProviderCompletion | NavigationSearchProviderCompletion>> {
     const trimmedInput = request.input.trim();
     if (!trimmedInput) {
       return [];

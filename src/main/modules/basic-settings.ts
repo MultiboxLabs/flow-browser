@@ -2,6 +2,12 @@
 // This will make it easier to add new settings and cards.
 
 import type { BasicSetting, BasicSettingCard } from "~/types/settings";
+import {
+  CUSTOM_SEARCH_SUGGESTION_PROVIDER_OPTIONS,
+  DEFAULT_SEARCH_SETTINGS_SNAPSHOT,
+  SEARCH_ENGINE_SETTING_OPTIONS
+} from "~/search/search-settings";
+import { CUSTOM_SEARCH_TEMPLATE_EXAMPLE } from "~/search/custom-search";
 
 /**
  * Maps archive tab duration settings to their equivalent values in seconds.
@@ -76,6 +82,46 @@ export const BasicSettings: BasicSetting[] = [
         name: "Block All (Cookie Notices, etc...)"
       }
     ]
+  },
+
+  // [GENERAL] Search Engine
+  {
+    id: "searchEngine",
+    name: "Search Engine",
+    showName: true,
+    description: "Pick a built-in engine or switch to a custom URL template.",
+    type: "enum",
+    defaultValue: DEFAULT_SEARCH_SETTINGS_SNAPSHOT.searchEngine,
+    options: SEARCH_ENGINE_SETTING_OPTIONS.map((option) => ({ ...option }))
+  },
+
+  {
+    id: "customSearchUrlTemplate",
+    name: "Search URL Template",
+    showName: true,
+    description: "Use {{query}} where Flow should insert the search text.",
+    type: "string",
+    defaultValue: "",
+    placeholder: CUSTOM_SEARCH_TEMPLATE_EXAMPLE
+  },
+
+  {
+    id: "customSearchSuggestionsProvider",
+    name: "Suggestions Source",
+    showName: true,
+    description: "Autocomplete can be disabled or powered by a built-in engine.",
+    type: "enum",
+    defaultValue: DEFAULT_SEARCH_SETTINGS_SNAPSHOT.customSearchSuggestionsProvider,
+    options: CUSTOM_SEARCH_SUGGESTION_PROVIDER_OPTIONS.map((option) => ({ ...option }))
+  },
+
+  {
+    id: "duckduckgoAiEnabled",
+    name: "DuckDuckGo AI Features",
+    showName: true,
+    description: "Allow DuckDuckGo to open AI-assisted search results instead of forcing classic web results.",
+    type: "boolean",
+    defaultValue: DEFAULT_SEARCH_SETTINGS_SNAPSHOT.duckduckgoAiEnabled
   },
 
   // New Tab Mode
@@ -267,6 +313,13 @@ export const BasicSettingCards: BasicSettingCard[] = [
     title: "Command Palette",
     subtitle: "Choose how translucent the command palette should be",
     settings: ["commandPaletteOpacity"]
+  },
+
+  // Search Engine Card
+  {
+    title: "Search Engine",
+    subtitle: "Choose your default search engine",
+    settings: ["searchEngine", "duckduckgoAiEnabled", "customSearchUrlTemplate", "customSearchSuggestionsProvider"]
   },
 
   // Sidebar Settings Card

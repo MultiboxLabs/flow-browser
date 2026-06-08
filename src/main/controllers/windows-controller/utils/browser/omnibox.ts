@@ -1,4 +1,4 @@
-import { BrowserWindow as ElectronBrowserWindow, Rectangle, WebContents, WebContentsView } from "electron";
+import { app, BrowserWindow as ElectronBrowserWindow, Rectangle, WebContents, WebContentsView } from "electron";
 import { debugPrint } from "@/modules/output";
 import { clamp } from "@/modules/utils";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
@@ -34,7 +34,7 @@ type PaddedBounds = {
   shadowPadding: OmniboxShadowPadding;
 };
 
-const OMNIBOX_OPEN_DEVTOOLS = false;
+const OMNIBOX_OPEN_DEVTOOLS = !app.isPackaged && !!process.env.OMNIBOX_DEVTOOLS;
 
 function normalizeBounds(bounds: Electron.Rectangle, windowBounds: Rectangle): Rectangle {
   const width = clamp(Math.round(bounds.width), 0, windowBounds.width);
