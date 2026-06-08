@@ -1,6 +1,6 @@
 import { sendMessageToListeners } from "@/ipc/listeners-manager";
 import { BasicSettings, BasicSettingCards } from "@/modules/basic-settings";
-import { getSettingValueById, setSettingValueById } from "@/saving/settings";
+import { getSearchSettingsSnapshot, getSettingValueById, setSettingValueById } from "@/saving/settings";
 import { settings } from "@/controllers/windows-controller/interfaces/settings";
 import { ipcMain } from "electron";
 
@@ -25,6 +25,14 @@ ipcMain.handle("settings:get-basic-settings", () => {
     settings: BasicSettings,
     cards: BasicSettingCards
   };
+});
+
+ipcMain.handle("settings:get-search-settings-snapshot", () => {
+  return getSearchSettingsSnapshot();
+});
+
+ipcMain.on("settings:get-search-settings-snapshot-sync", (event) => {
+  event.returnValue = getSearchSettingsSnapshot();
 });
 
 export function fireOnSettingsChanged() {

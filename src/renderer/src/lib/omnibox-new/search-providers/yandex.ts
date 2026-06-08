@@ -4,6 +4,7 @@ import type {
   SearchProvider,
   SearchProviderRequest
 } from "./types";
+import { buildSearchUrlFromProviderId } from "~/search/search-settings";
 
 type RawYandexSuggestion =
   | string
@@ -18,13 +19,10 @@ interface YandexSuggestion {
   description?: string;
 }
 
-const YANDEX_SEARCH_BASE_URL = "https://yandex.com/search/";
 const YANDEX_SUGGEST_BASE_URL = "https://suggest.yandex.com/suggest-ff.cgi";
 
 function buildSearchUrl(query: string): string {
-  const url = new URL(YANDEX_SEARCH_BASE_URL);
-  url.searchParams.set("text", query);
-  return url.toString();
+  return buildSearchUrlFromProviderId("yandex", query);
 }
 
 function mapSuggestionRelevance(index: number): number {

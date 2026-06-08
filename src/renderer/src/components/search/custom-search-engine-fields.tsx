@@ -10,6 +10,7 @@ import type { CustomSearchSuggestionsProviderId } from "@/lib/omnibox-new/search
 import { cn } from "@/lib/utils";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import type { CustomSearchTemplateValidationResult } from "~/search/custom-search";
 
 const SUGGESTION_SOURCE_OPTIONS: Array<{ id: CustomSearchSuggestionsProviderId; name: string }> = [
   { id: "none", name: "No suggestions" },
@@ -23,12 +24,16 @@ export function CustomSearchEngineFields({
   onTemplateChange,
   suggestionsProvider,
   onSuggestionsProviderChange,
+  onDraftTemplateChange,
+  onTemplateValidationChange,
   appearance = "settings"
 }: {
   template: string;
   onTemplateChange: (value: string) => void;
   suggestionsProvider: CustomSearchSuggestionsProviderId;
   onSuggestionsProviderChange: (value: CustomSearchSuggestionsProviderId) => void;
+  onDraftTemplateChange?: (value: string) => void;
+  onTemplateValidationChange?: (validation: CustomSearchTemplateValidationResult) => void;
   appearance?: "settings" | "onboarding";
 }) {
   const [draftTemplate, setDraftTemplate] = useState(template);
@@ -38,11 +43,21 @@ export function CustomSearchEngineFields({
   const isOnboarding = appearance === "onboarding";
 
   useEffect(() => {
-    if (!isEditingTemplate && template !== draftTemplate) {
-      setDraftTemplate(template);
+    if (template !== lastCommittedTemplateRef.current) {
+      lastCommittedTemplateRef.current = template;
+      if (!isEditingTemplate) {
+        setDraftTemplate(template);
+      }
     }
-    lastCommittedTemplateRef.current = template;
-  }, [draftTemplate, isEditingTemplate, template]);
+  }, [isEditingTemplate, template]);
+
+  useEffect(() => {
+    onDraftTemplateChange?.(draftTemplate);
+  }, [draftTemplate, onDraftTemplateChange]);
+
+  useEffect(() => {
+    onTemplateValidationChange?.(validation);
+  }, [onTemplateValidationChange, validation]);
 
   useEffect(() => {
     if (!isEditingTemplate) {
@@ -50,7 +65,7 @@ export function CustomSearchEngineFields({
     }
 
     const timeoutId = window.setTimeout(() => {
-      if (draftTemplate !== lastCommittedTemplateRef.current) {
+      if (validation.valid && draftTemplate !== lastCommittedTemplateRef.current) {
         onTemplateChange(draftTemplate);
       }
     }, 350);
@@ -58,11 +73,11 @@ export function CustomSearchEngineFields({
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [draftTemplate, isEditingTemplate, onTemplateChange]);
+  }, [draftTemplate, isEditingTemplate, onTemplateChange, validation.valid]);
 
   const commitDraftTemplate = () => {
     setIsEditingTemplate(false);
-    if (draftTemplate !== lastCommittedTemplateRef.current) {
+    if (validation.valid && draftTemplate !== lastCommittedTemplateRef.current) {
       onTemplateChange(draftTemplate);
     }
   };

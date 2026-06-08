@@ -2,6 +2,12 @@
 // This will make it easier to add new settings and cards.
 
 import type { BasicSetting, BasicSettingCard } from "~/types/settings";
+import {
+  CUSTOM_SEARCH_SUGGESTION_PROVIDER_OPTIONS,
+  DEFAULT_SEARCH_SETTINGS_SNAPSHOT,
+  SEARCH_ENGINE_SETTING_OPTIONS
+} from "~/search/search-settings";
+import { CUSTOM_SEARCH_TEMPLATE_EXAMPLE } from "~/search/custom-search";
 
 /**
  * Maps archive tab duration settings to their equivalent values in seconds.
@@ -85,25 +91,8 @@ export const BasicSettings: BasicSetting[] = [
     showName: true,
     description: "Pick a built-in engine or switch to a custom URL template.",
     type: "enum",
-    defaultValue: "google",
-    options: [
-      {
-        id: "google",
-        name: "Google"
-      },
-      {
-        id: "duckduckgo",
-        name: "DuckDuckGo"
-      },
-      {
-        id: "yandex",
-        name: "Yandex"
-      },
-      {
-        id: "custom",
-        name: "Custom Search Engine"
-      }
-    ]
+    defaultValue: DEFAULT_SEARCH_SETTINGS_SNAPSHOT.searchEngine,
+    options: SEARCH_ENGINE_SETTING_OPTIONS.map((option) => ({ ...option }))
   },
 
   {
@@ -113,7 +102,7 @@ export const BasicSettings: BasicSetting[] = [
     description: "Use {{query}} where Flow should insert the search text.",
     type: "string",
     defaultValue: "",
-    placeholder: "https://www.google.com/search?q={{query}}"
+    placeholder: CUSTOM_SEARCH_TEMPLATE_EXAMPLE
   },
 
   {
@@ -122,25 +111,8 @@ export const BasicSettings: BasicSetting[] = [
     showName: true,
     description: "Autocomplete can be disabled or powered by a built-in engine.",
     type: "enum",
-    defaultValue: "none",
-    options: [
-      {
-        id: "none",
-        name: "None"
-      },
-      {
-        id: "google",
-        name: "Google"
-      },
-      {
-        id: "duckduckgo",
-        name: "DuckDuckGo"
-      },
-      {
-        id: "yandex",
-        name: "Yandex"
-      }
-    ]
+    defaultValue: DEFAULT_SEARCH_SETTINGS_SNAPSHOT.customSearchSuggestionsProvider,
+    options: CUSTOM_SEARCH_SUGGESTION_PROVIDER_OPTIONS.map((option) => ({ ...option }))
   },
 
   // New Tab Mode

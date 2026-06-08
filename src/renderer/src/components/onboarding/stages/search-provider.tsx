@@ -6,13 +6,18 @@ import type {
   SearchEngineSettingId,
   SearchProviderId
 } from "@/lib/omnibox-new/search-providers";
-import { validateCustomSearchUrlTemplate } from "@/lib/omnibox-new/search-providers/custom-utils";
+import {
+  getValidCustomSearchUrlTemplateOrDefault,
+  validateCustomSearchUrlTemplate
+} from "@/lib/omnibox-new/search-providers/custom-utils";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { useSettings } from "@/components/providers/settings-provider";
 import { ArrowRight, SearchCode } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import type { CustomSearchTemplateValidationResult } from "~/search/custom-search";
+import { isSearchEngineSettingId } from "~/search/search-settings";
 
 type AvailableSearchProviderTile = {
   kind: "provider";
@@ -30,14 +35,6 @@ type CustomSearchProviderTile = {
 };
 
 type SearchProviderTile = AvailableSearchProviderTile | CustomSearchProviderTile;
-
-function isSearchProviderId(value: unknown): value is SearchProviderId {
-  return value === "google" || value === "duckduckgo" || value === "yandex";
-}
-
-function isSearchEngineSettingId(value: unknown): value is SearchEngineSettingId {
-  return value === "custom" || isSearchProviderId(value);
-}
 
 const SEARCH_PROVIDER_TILES: SearchProviderTile[] = [
   {
@@ -76,15 +73,29 @@ export function OnboardingSearchProvider({ advance }: { advance: OnboardingAdvan
   const customSearchUrlTemplate = getSetting<string>("customSearchUrlTemplate") ?? "";
   const customSearchSuggestionsProvider =
     (getSetting<string>("customSearchSuggestionsProvider") as CustomSearchSuggestionsProviderId | undefined) ?? "none";
-  const customSearchTemplateValidation = validateCustomSearchUrlTemplate(customSearchUrlTemplate);
+  const [customSearchTemplateValidation, setCustomSearchTemplateValidation] =
+    useState<CustomSearchTemplateValidationResult>(() => validateCustomSearchUrlTemplate(customSearchUrlTemplate));
   const canContinue = selectedProviderId !== "custom" || customSearchTemplateValidation.valid;
+
+  useEffect(() => {
+    setCustomSearchTemplateValidation(validateCustomSearchUrlTemplate(customSearchUrlTemplate));
+  }, [customSearchUrlTemplate]);
 
   const handleSelectProvider = (providerId: SearchEngineSettingId) => {
     if (providerId === selectedProviderId) {
       return;
     }
 
-    void setSetting("searchEngine", providerId);
+    void (async () => {
+      if (providerId === "custom") {
+        const nextTemplate = getValidCustomSearchUrlTemplateOrDefault(customSearchUrlTemplate);
+        if (nextTemplate !== customSearchUrlTemplate) {
+          await setSetting("customSearchUrlTemplate", nextTemplate);
+        }
+      }
+
+      await setSetting("searchEngine", providerId);
+    })();
   };
 
   return (
@@ -169,6 +180,7 @@ export function OnboardingSearchProvider({ advance }: { advance: OnboardingAdvan
               onTemplateChange={(value) => {
                 void setSetting("customSearchUrlTemplate", value);
               }}
+              onTemplateValidationChange={setCustomSearchTemplateValidation}
               suggestionsProvider={customSearchSuggestionsProvider}
               onSuggestionsProviderChange={(value) => {
                 void setSetting("customSearchSuggestionsProvider", value);

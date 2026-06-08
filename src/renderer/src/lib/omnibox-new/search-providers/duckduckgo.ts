@@ -1,4 +1,5 @@
 import type { QuerySearchProviderCompletion, SearchProvider, SearchProviderRequest } from "./types";
+import { buildSearchUrlFromProviderId } from "~/search/search-settings";
 
 type RawDuckDuckGoResponse = [string, string[]];
 
@@ -11,17 +12,10 @@ interface DuckDuckGoSuggestionResponse {
   suggestions: DuckDuckGoSuggestion[] | null;
 }
 
-const DUCKDUCKGO_SEARCH_BASE_URL = "https://www.duckduckgo.com";
 const DUCKDUCKGO_SUGGEST_BASE_URL = "https://duckduckgo.com/ac/";
 
-function buildSearchUrl(query: string, aiEnabled: boolean = true): string {
-  const url = new URL(DUCKDUCKGO_SEARCH_BASE_URL);
-  url.searchParams.set("q", query);
-  if (!aiEnabled) {
-    url.searchParams.set("ia", "web");
-    url.searchParams.set("assist", "false");
-  }
-  return url.toString();
+function buildSearchUrl(query: string): string {
+  return buildSearchUrlFromProviderId("duckduckgo", query);
 }
 
 function mapSuggestionRelevance(index: number): number {

@@ -682,6 +682,12 @@ const settingsAPI: FlowSettingsAPI = {
   getBasicSettings: async () => {
     return ipcRenderer.invoke("settings:get-basic-settings");
   },
+  getSearchSettingsSnapshot: async () => {
+    return ipcRenderer.invoke("settings:get-search-settings-snapshot");
+  },
+  getSearchSettingsSnapshotSync: () => {
+    return ipcRenderer.sendSync("settings:get-search-settings-snapshot-sync");
+  },
   onSettingsChanged: (callback: () => void) => {
     return listenOnIPCChannel("settings:on-changed", callback);
   }

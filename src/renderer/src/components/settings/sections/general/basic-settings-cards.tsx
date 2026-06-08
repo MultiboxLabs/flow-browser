@@ -1,7 +1,7 @@
 import { useSettings } from "@/components/providers/settings-provider";
 import { CustomSearchEngineFields } from "@/components/search/custom-search-engine-fields";
 import { BasicSetting, BasicSettingCard } from "~/types/settings";
-import type { CustomSearchSuggestionsProviderId } from "@/lib/omnibox-new/search-providers";
+import type { CustomSearchSuggestionsProviderId, SearchEngineSettingId } from "@/lib/omnibox-new/search-providers";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,6 +11,7 @@ import { ResetOnboardingCard } from "@/components/settings/sections/general/rese
 import { UpdateCard } from "@/components/settings/sections/general/update-card";
 import { SetAsDefaultBrowserSetting } from "@/components/settings/sections/general/set-as-default-browser-setting";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { getValidCustomSearchUrlTemplateOrDefault } from "@/lib/omnibox-new/search-providers/custom-utils";
 
 export function SettingsInput({ setting }: { setting: BasicSetting }) {
   const { getSetting, setSetting } = useSettings();
@@ -21,9 +22,29 @@ export function SettingsInput({ setting }: { setting: BasicSetting }) {
 
   if (setting.type === "enum") {
     const settingValue = getSetting<string>(setting.id);
+
+    const handleEnumChange = (value: string) => {
+      if (setting.id !== "searchEngine") {
+        void handleSettingChange(value);
+        return;
+      }
+
+      void (async () => {
+        if (value === "custom") {
+          const currentTemplate = getSetting<string>("customSearchUrlTemplate") ?? "";
+          const nextTemplate = getValidCustomSearchUrlTemplateOrDefault(currentTemplate);
+          if (nextTemplate !== currentTemplate) {
+            await setSetting("customSearchUrlTemplate", nextTemplate);
+          }
+        }
+
+        await setSetting(setting.id, value as SearchEngineSettingId);
+      })();
+    };
+
     return (
       <div className={cn(setting.showName === false ? "w-full" : "w-auto")}>
-        <Select value={settingValue} onValueChange={handleSettingChange}>
+        <Select value={settingValue} onValueChange={handleEnumChange}>
           <SelectTrigger className="w-full min-w-45">
             <SelectValue />
           </SelectTrigger>

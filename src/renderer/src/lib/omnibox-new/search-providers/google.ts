@@ -4,6 +4,7 @@ import type {
   SearchProvider,
   SearchProviderRequest
 } from "./types";
+import { buildSearchUrlFromProviderId } from "~/search/search-settings";
 
 interface GoogleSuggestResponse {
   0?: string;
@@ -19,7 +20,6 @@ interface GoogleSuggestResponse {
 
 type GoogleSuggestType = "QUERY" | "NAVIGATION" | "ENTITY" | "TAIL" | "CALCULATOR";
 
-const GOOGLE_SEARCH_BASE_URL = "https://www.google.com/search";
 const GOOGLE_SUGGEST_BASE_URL = "https://suggestqueries.google.com/complete/search";
 const SEARCH_SUGGESTION_MIN_RELEVANCE = 100;
 const SEARCH_SUGGESTION_MAX_RELEVANCE = 400;
@@ -58,9 +58,7 @@ function normalizeAndValidateUrl(value: string): string | null {
 }
 
 function buildSearchUrl(query: string): string {
-  const url = new URL(GOOGLE_SEARCH_BASE_URL);
-  url.searchParams.set("q", query);
-  return url.toString();
+  return buildSearchUrlFromProviderId("google", query);
 }
 
 function parseSuggestion(

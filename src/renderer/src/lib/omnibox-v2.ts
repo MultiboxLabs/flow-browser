@@ -1,5 +1,7 @@
 // THIS IS NOT BEING USED, STORED HERE FOR REFERENCE!
 
+import { createSearchUrl } from "./search";
+
 // ========= Interfaces and Types =========
 
 /** Represents the input state for an autocomplete query. */
@@ -441,7 +443,6 @@ class ShortcutsProvider extends BaseProvider {
 
 class SearchProvider extends BaseProvider {
   name = "SearchProvider";
-  private defaultSearchUrl = "https://www.google.com/search?q="; // Example
 
   // Simulate fetching suggestions from Google Suggest API
   private async fetchSuggestions(query: string): Promise<string[]> {
@@ -481,7 +482,7 @@ class SearchProvider extends BaseProvider {
       relevance: 1300, // High score to appear near top, but below strong nav
       contents: inputText,
       description: `Search for "${inputText}"`, // Or search engine name
-      destinationUrl: `${this.defaultSearchUrl}${encodeURIComponent(inputText)}`,
+      destinationUrl: createSearchUrl(inputText),
       type: "verbatim", // Special type for clarity, often treated as search
       isDefault: true // Usually the fallback default action
     };
@@ -501,7 +502,7 @@ class SearchProvider extends BaseProvider {
           const relevance = 800 - index * 50;
           // Check if suggestion looks like a URL (navigational suggestion)
           let type: AutocompleteMatch["type"] = "search-query";
-          let destinationUrl = `${this.defaultSearchUrl}${encodeURIComponent(suggestion)}`;
+          let destinationUrl = createSearchUrl(suggestion);
           if (suggestion.includes(".") && !suggestion.includes(" ")) {
             // Basic check for URL-like suggestion
             type = "search-navigate";
@@ -692,7 +693,7 @@ class AutocompleteController {
         relevance: 1300, // Default verbatim score
         contents: input.text,
         description: `Search for "${input.text}"`,
-        destinationUrl: `https://www.google.com/search?q=${encodeURIComponent(input.text)}`, // Use default engine
+        destinationUrl: createSearchUrl(input.text),
         type: "verbatim",
         isDefault: true
       };

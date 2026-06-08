@@ -18,7 +18,5 @@ export async function getSearchSuggestions(query: string, signal?: AbortSignal):
     signal: signal ?? new AbortController().signal
   });
 
-  return completions
-    .filter((completion) => completion.kind === "query")
-    .map((completion) => completion.query);
+  return completions.filter((completion) => completion.kind === "query").map((completion) => completion.query);
 }
