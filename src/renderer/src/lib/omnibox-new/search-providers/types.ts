@@ -4,30 +4,35 @@ export interface SearchProviderRequest {
   signal: AbortSignal;
 }
 
+export type SearchProviderCompletionKind = "query" | "navigation";
+
 interface SearchProviderCompletionBase {
   title: string | null;
   relevance: number;
   description?: string;
   isVerbatim?: boolean;
   providerPayload?: unknown;
+  kind: SearchProviderCompletionKind;
 }
 
 export interface QuerySearchProviderCompletion extends SearchProviderCompletionBase {
-  kind: "query";
   query: string;
+  kind: "query";
 }
 
 export interface NavigationSearchProviderCompletion extends SearchProviderCompletionBase {
-  kind: "navigation";
   url: string;
+  kind: "navigation";
 }
+
 export type SearchProviderCompletion = QuerySearchProviderCompletion | NavigationSearchProviderCompletion;
 
-export interface SearchProvider {
+export interface SearchProvider<TCompletion extends SearchProviderCompletion = SearchProviderCompletion> {
   id: string;
   label: string;
   buildSearchUrl(query: string): string;
-  getSuggestions?(request: SearchProviderRequest): Promise<SearchProviderCompletion[]>;
+  getSuggestions?(request: SearchProviderRequest): Promise<TCompletion[]>;
 }
 
-export type SearchProviderResolver = () => SearchProvider;
+export type SearchProviderResolver<TCompletion extends SearchProviderCompletion = SearchProviderCompletion> =
+  () => SearchProvider<TCompletion>;
