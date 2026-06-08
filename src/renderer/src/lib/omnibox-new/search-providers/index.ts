@@ -1,10 +1,12 @@
 import { duckduckgoSearchProvider } from "./duckduckgo";
 import { googleSearchProvider } from "./google";
+import { yandexSearchProvider } from "./yandex";
 import type { SearchProvider } from "./types";
 
 export const searchProviders = {
   duckduckgo: duckduckgoSearchProvider,
-  google: googleSearchProvider
+  google: googleSearchProvider,
+  yandex: yandexSearchProvider
 } satisfies Record<string, SearchProvider>;
 
 export type SearchProviderId = keyof typeof searchProviders;

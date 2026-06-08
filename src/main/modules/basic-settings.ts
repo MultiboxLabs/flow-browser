@@ -93,6 +93,10 @@ export const BasicSettings: BasicSetting[] = [
       {
         id: "duckduckgo",
         name: "DuckDuckGo"
+      },
+      {
+        id: "yandex",
+        name: "Yandex"
       }
     ]
   },
