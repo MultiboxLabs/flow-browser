@@ -1,30 +1,24 @@
-export function createSearchUrl(query: string) {
-  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-}
+import { getSearchProvider } from "@/lib/omnibox-new/search-providers";
 
 type SearchSuggestions = string[];
 
-interface GoogleSuggestResponse {
-  0: string; // Original query
-  1: string[]; // Suggested queries
-  2: string[]; // Description/unused array
-  3: unknown[]; // Unknown/unused array
-  4: {
-    // Metadata
-    "google:clientdata": {
-      bpc: boolean;
-      tlw: boolean;
-    };
-    "google:suggestrelevance": number[];
-    "google:suggestsubtypes": number[][];
-    "google:suggesttype": string[];
-    "google:verbatimrelevance": number;
-  };
+export function createSearchUrl(query: string): string {
+  return getSearchProvider().buildSearchUrl(query);
 }
 
 export async function getSearchSuggestions(query: string, signal?: AbortSignal): Promise<SearchSuggestions> {
-  const baseURL = `https://suggestqueries.google.com/complete/search?client=chrome&q=${encodeURIComponent(query)}`;
-  const response = await fetch(baseURL, { signal });
-  const data = (await response.json()) as GoogleSuggestResponse;
-  return data[1];
+  const searchProvider = getSearchProvider();
+  if (!searchProvider.getSuggestions) {
+    return [];
+  }
+
+  const completions = await searchProvider.getSuggestions({
+    input: query,
+    limit: 10,
+    signal: signal ?? new AbortController().signal
+  });
+
+  return completions
+    .filter((completion) => completion.kind === "query")
+    .map((completion) => completion.query);
 }
