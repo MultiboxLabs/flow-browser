@@ -78,6 +78,25 @@ export const BasicSettings: BasicSetting[] = [
     ]
   },
 
+  // [GENERAL] Search Engine
+  {
+    id: "searchEngine",
+    name: "Search Engine",
+    showName: true,
+    type: "enum",
+    defaultValue: "google",
+    options: [
+      {
+        id: "google",
+        name: "Google"
+      },
+      {
+        id: "duckduckgo",
+        name: "DuckDuckGo"
+      }
+    ]
+  },
+
   // New Tab Mode
   {
     id: "newTabMode",
@@ -267,6 +286,13 @@ export const BasicSettingCards: BasicSettingCard[] = [
     title: "Command Palette",
     subtitle: "Choose how translucent the command palette should be",
     settings: ["commandPaletteOpacity"]
+  },
+
+  // Search Engine Card
+  {
+    title: "Search Engine",
+    subtitle: "Choose your default search engine",
+    settings: ["searchEngine"]
   },
 
   // Sidebar Settings Card
