@@ -6,10 +6,18 @@ import { OnboardingInitialSpace } from "@/components/onboarding/stages/initial-s
 import { OnboardingWelcome } from "@/components/onboarding/stages/welcome";
 import { AnimatePresence } from "motion/react";
 import { useState } from "react";
+import { OnboardingSearchProvider } from "./stages/search-provider";
 
 export type OnboardingAdvanceCallback = () => void;
 
-const stages = [OnboardingWelcome, OnboardingInitialSpace, OnboardingIcon, OnboardingNewTab, OnboardingFinish];
+const stages = [
+  OnboardingWelcome,
+  OnboardingInitialSpace,
+  OnboardingIcon,
+  OnboardingNewTab,
+  OnboardingSearchProvider,
+  OnboardingFinish
+];
 
 export function OnboardingMain() {
   const [stage, setStage] = useState<number>(0);
