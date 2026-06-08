@@ -4,6 +4,7 @@ import type {
   SearchProvider,
   SearchProviderRequest
 } from "./types";
+import { normalizeAndValidateUrl } from "./url-utils";
 import { buildSearchUrlFromProviderId } from "~/search/search-settings";
 
 interface GoogleSuggestResponse {
@@ -31,30 +32,6 @@ function mapSuggestionRelevance(serverRelevance: number | undefined, index: numb
     SEARCH_SUGGESTION_MIN_RELEVANCE +
       (clamped / 1300) * (SEARCH_SUGGESTION_MAX_RELEVANCE - SEARCH_SUGGESTION_MIN_RELEVANCE)
   );
-}
-
-function normalizeNavigationUrl(value: string): URL | null {
-  try {
-    return new URL(value);
-  } catch {
-    try {
-      return new URL(`http://${value}`);
-    } catch {
-      return null;
-    }
-  }
-}
-
-const isAllowedProtocol = (url: URL): boolean => ["http:", "https:"].includes(url.protocol.toLowerCase());
-function normalizeAndValidateUrl(value: string): string | null {
-  const url = normalizeNavigationUrl(value);
-  if (!url) {
-    return null;
-  }
-  if (!isAllowedProtocol(url)) {
-    return null;
-  }
-  return url.toString();
 }
 
 function buildSearchUrl(query: string): string {

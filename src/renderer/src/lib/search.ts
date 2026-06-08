@@ -15,7 +15,7 @@ export async function getSearchSuggestions(query: string, signal?: AbortSignal):
   const completions = await searchProvider.getSuggestions({
     input: query,
     limit: 10,
-    signal: signal ?? new AbortController().signal
+    signal
   });
 
   return completions.filter((completion) => completion.kind === "query").map((completion) => completion.query);

@@ -1,7 +1,7 @@
 export interface SearchProviderRequest {
   input: string;
   limit: number;
-  signal: AbortSignal;
+  signal?: AbortSignal;
 }
 
 export type SearchProviderCompletionKind = "query" | "navigation";

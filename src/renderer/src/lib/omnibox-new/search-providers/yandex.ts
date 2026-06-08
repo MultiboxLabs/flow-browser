@@ -4,6 +4,8 @@ import type {
   SearchProvider,
   SearchProviderRequest
 } from "./types";
+import { mapSuggestionRelevanceByIndex } from "./suggestion-utils";
+import { normalizeAndValidateUrl } from "./url-utils";
 import { buildSearchUrlFromProviderId } from "~/search/search-settings";
 
 type RawYandexSuggestion =
@@ -23,37 +25,6 @@ const YANDEX_SUGGEST_BASE_URL = "https://suggest.yandex.com/suggest-ff.cgi";
 
 function buildSearchUrl(query: string): string {
   return buildSearchUrlFromProviderId("yandex", query);
-}
-
-function mapSuggestionRelevance(index: number): number {
-  return Math.max(100, 400 - index * 40);
-}
-
-function normalizeNavigationUrl(value: string): URL | null {
-  try {
-    return new URL(value);
-  } catch {
-    try {
-      return new URL(`https://${value}`);
-    } catch {
-      return null;
-    }
-  }
-}
-
-const isAllowedProtocol = (url: URL): boolean => ["http:", "https:"].includes(url.protocol.toLowerCase());
-
-function normalizeAndValidateUrl(value: string): string | null {
-  const url = normalizeNavigationUrl(value);
-  if (!url) {
-    return null;
-  }
-
-  if (!isAllowedProtocol(url)) {
-    return null;
-  }
-
-  return url.toString();
 }
 
 function parseRawSuggestion(suggestion: RawYandexSuggestion): YandexSuggestion | null {
@@ -108,7 +79,7 @@ function parseSuggestion(
       title: suggestion.phrase,
       url: suggestion.url,
       description: suggestion.description ?? suggestion.url,
-      relevance: mapSuggestionRelevance(index)
+      relevance: mapSuggestionRelevanceByIndex(index)
     };
 
     return completion;
@@ -119,7 +90,7 @@ function parseSuggestion(
     title: suggestion.phrase,
     query: suggestion.phrase,
     description: suggestion.description,
-    relevance: mapSuggestionRelevance(index)
+    relevance: mapSuggestionRelevanceByIndex(index)
   };
 
   return completion;

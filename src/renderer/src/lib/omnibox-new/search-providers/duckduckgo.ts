@@ -1,4 +1,5 @@
 import type { QuerySearchProviderCompletion, SearchProvider, SearchProviderRequest } from "./types";
+import { mapSuggestionRelevanceByIndex } from "./suggestion-utils";
 import { buildSearchUrlFromProviderId } from "~/search/search-settings";
 
 type RawDuckDuckGoResponse = [string, string[]];
@@ -18,16 +19,12 @@ function buildSearchUrl(query: string): string {
   return buildSearchUrlFromProviderId("duckduckgo", query);
 }
 
-function mapSuggestionRelevance(index: number): number {
-  return Math.max(100, 400 - index * 40);
-}
-
 function parseSuggestion(text: string, index: number): QuerySearchProviderCompletion | null {
   const completion: QuerySearchProviderCompletion = {
     kind: "query",
     title: text,
     query: text,
-    relevance: mapSuggestionRelevance(index)
+    relevance: mapSuggestionRelevanceByIndex(index)
   };
   return completion;
 }

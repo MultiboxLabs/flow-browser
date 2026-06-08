@@ -29,6 +29,7 @@ export function OnboardingMain() {
   const Stage = stages[stage];
   if (!Stage) {
     flow.onboarding.finish();
+    return null;
   }
 
   return (
