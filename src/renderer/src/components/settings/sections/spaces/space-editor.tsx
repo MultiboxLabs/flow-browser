@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Save, Settings, Trash2, PaintBucket, Check } from "lucide-react";
 import type { Space } from "~/flow/interfaces/sessions/spaces";
@@ -23,10 +23,17 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  // Tracks the latest saveSuccess value for the auto-close timeout below,
+  // since a setTimeout closure only ever sees the state at the time it was scheduled.
+  const saveSuccessRef = useRef(false);
 
   // Update edited space
   const updateEditedSpace = (updates: Partial<Space>) => {
     setEditedSpace((prev) => ({ ...prev, ...updates }));
+    // A fresh edit invalidates the previous "Saved" confirmation so the Save
+    // button becomes clickable again instead of staying stuck on "Saved".
+    saveSuccessRef.current = false;
+    setSaveSuccess(false);
   };
 
   // Handle space update
@@ -58,11 +65,12 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
 
         await flow.spaces.updateSpace(space.profileId, space.id, updatedFields);
         onSpacesUpdate(); // Refetch spaces after successful update
+        saveSuccessRef.current = true;
         setSaveSuccess(true);
 
-        // Auto-close after short delay
+        // Auto-close after short delay, unless the user started editing again in the meantime
         setTimeout(() => {
-          if (saveSuccess) {
+          if (saveSuccessRef.current) {
             onClose();
           }
         }, 1500);
@@ -97,6 +105,9 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
       ...editedSpace,
       name: e.target.value
     });
+    // See updateEditedSpace: a fresh edit should re-enable the Save button.
+    saveSuccessRef.current = false;
+    setSaveSuccess(false);
   };
 
   // Detect if there are unsaved changes
