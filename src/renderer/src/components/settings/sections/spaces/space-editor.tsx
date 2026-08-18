@@ -23,16 +23,16 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  // Tracks the latest saveSuccess value for the auto-close timeout below,
-  // since a setTimeout closure only ever sees the state at the time it was scheduled.
-  const saveSuccessRef = useRef(false);
+  // Tracks the current edit generation to prevent old save timeouts from closing the editor
+  // if the user makes a new edit or triggers a new save before the timeout fires.
+  const editGenerationRef = useRef(0);
 
   // Update edited space
   const updateEditedSpace = (updates: Partial<Space>) => {
     setEditedSpace((prev) => ({ ...prev, ...updates }));
     // A fresh edit invalidates the previous "Saved" confirmation so the Save
     // button becomes clickable again instead of staying stuck on "Saved".
-    saveSuccessRef.current = false;
+    editGenerationRef.current += 1;
     setSaveSuccess(false);
   };
 
@@ -40,6 +40,8 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
   const handleSave = async () => {
     setIsSaving(true);
     setSaveSuccess(false);
+    const capturedGeneration = editGenerationRef.current;
+
     try {
       // Only send the fields that have changed
       const updatedFields: Partial<Space> = {};
@@ -65,15 +67,17 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
 
         await flow.spaces.updateSpace(space.profileId, space.id, updatedFields);
         onSpacesUpdate(); // Refetch spaces after successful update
-        saveSuccessRef.current = true;
-        setSaveSuccess(true);
+        
+        if (editGenerationRef.current === capturedGeneration) {
+          setSaveSuccess(true);
 
-        // Auto-close after short delay, unless the user started editing again in the meantime
-        setTimeout(() => {
-          if (saveSuccessRef.current) {
-            onClose();
-          }
-        }, 1500);
+          // Auto-close after short delay, unless the user started editing again in the meantime
+          setTimeout(() => {
+            if (editGenerationRef.current === capturedGeneration) {
+              onClose();
+            }
+          }, 1500);
+        }
       } else {
         // No changes to save
         onClose();
@@ -106,7 +110,7 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
       name: e.target.value
     });
     // See updateEditedSpace: a fresh edit should re-enable the Save button.
-    saveSuccessRef.current = false;
+    editGenerationRef.current += 1;
     setSaveSuccess(false);
   };
 
