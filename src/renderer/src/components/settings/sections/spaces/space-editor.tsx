@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2, Save, Settings, Trash2, PaintBucket, Check } from "lucide-react";
 import type { Space } from "~/flow/interfaces/sessions/spaces";
@@ -23,16 +23,25 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  // Tracks the current edit generation to prevent old save timeouts from closing the editor
+  // if the user makes a new edit or triggers a new save before the timeout fires.
+  const editGenerationRef = useRef(0);
 
   // Update edited space
   const updateEditedSpace = (updates: Partial<Space>) => {
     setEditedSpace((prev) => ({ ...prev, ...updates }));
+    // A fresh edit invalidates the previous "Saved" confirmation so the Save
+    // button becomes clickable again instead of staying stuck on "Saved".
+    editGenerationRef.current += 1;
+    setSaveSuccess(false);
   };
 
   // Handle space update
   const handleSave = async () => {
     setIsSaving(true);
     setSaveSuccess(false);
+    const capturedGeneration = editGenerationRef.current;
+
     try {
       // Only send the fields that have changed
       const updatedFields: Partial<Space> = {};
@@ -58,14 +67,17 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
 
         await flow.spaces.updateSpace(space.profileId, space.id, updatedFields);
         onSpacesUpdate(); // Refetch spaces after successful update
-        setSaveSuccess(true);
+        
+        if (editGenerationRef.current === capturedGeneration) {
+          setSaveSuccess(true);
 
-        // Auto-close after short delay
-        setTimeout(() => {
-          if (saveSuccess) {
-            onClose();
-          }
-        }, 1500);
+          // Auto-close after short delay, unless the user started editing again in the meantime
+          setTimeout(() => {
+            if (editGenerationRef.current === capturedGeneration) {
+              onClose();
+            }
+          }, 1500);
+        }
       } else {
         // No changes to save
         onClose();
@@ -97,6 +109,9 @@ export function SpaceEditor({ space, onClose, onDelete, onSpacesUpdate }: SpaceE
       ...editedSpace,
       name: e.target.value
     });
+    // See updateEditedSpace: a fresh edit should re-enable the Save button.
+    editGenerationRef.current += 1;
+    setSaveSuccess(false);
   };
 
   // Detect if there are unsaved changes
