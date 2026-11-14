@@ -1,5 +1,13 @@
 # Flow Browser
 
+> [!IMPORTANT]
+>
+> ### Flow is now Wren Browser
+>
+> Wren is Flow rewritten from the ground up. It isn't built on Electron, and it runs every Chrome extension, side panels included. Wren runs on macOS on Apple silicon for now, with Windows and Linux planned.
+>
+> **[Check out Wren Browser at wrenbrowser.com](https://wrenbrowser.com)** · [Wren on GitHub](https://github.com/MultiboxLabs/wren-browser)
+
 A modern, tabbed web browser with Chrome extension support—built on Electron.
 
 <p align="center">
