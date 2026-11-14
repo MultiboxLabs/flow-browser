@@ -1,11 +1,11 @@
 import { useSpaces } from "@/components/providers/spaces-provider";
-import { useTabsGroups } from "@/components/providers/tabs-provider";
+import { useTabLayoutNodes } from "@/components/providers/tabs-provider";
 import { usePinnedTabs } from "@/components/providers/pinned-tabs-provider";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { SidebarScrollArea } from "./sidebar-scroll-area";
 import { SpaceTitle } from "./space-title";
 import { NewTabButton } from "./new-tab-button";
-import { TabGroup } from "./tab-group";
+import { TabLayoutNode } from "./tab-layout-node";
 import { TabDropTarget } from "./tab-drop-target";
 import { AnimatePresence } from "motion/react";
 import type { Space } from "~/flow/interfaces/sessions/spaces";
@@ -14,7 +14,7 @@ import { PinGrid } from "@/components/browser-ui/browser-sidebar/_components/pin
 import { useBrowserSidebar } from "@/components/browser-ui/browser-sidebar/provider";
 
 // --- SpaceContentPage --- //
-// Renders the full content for a single space: title, scroll area with tab groups, and drop target.
+// Renders the full content for a single space: title, scroll area with layout nodes, and drop target.
 
 interface SpaceContentPageProps {
   space: Space;
@@ -29,16 +29,16 @@ const SpaceContentPage = memo(function SpaceContentPage({
   slotMachineEnabled,
   withinCarousel = true
 }: SpaceContentPageProps) {
-  const { getTabGroups, getActiveTabGroup, getFocusedTab } = useTabsGroups();
+  const { getLayoutNodes, getActiveLayoutNode, getFocusedTab } = useTabLayoutNodes();
   const { unpinToTabList } = usePinnedTabs();
   const { isProfileEphemeral } = useSpaces();
   const isSpaceLight = useMemo(() => hex_is_light(space.bgStartColor || "#000000"), [space.bgStartColor]);
   const shouldShowPinnedTabs = !isProfileEphemeral(space.profileId);
 
   // Ephemeral tabs (pinned-tab-associated) are already filtered out by the
-  // tabs provider, so getTabGroups returns only visible tab groups.
-  const sortedTabGroups = useMemo(() => getTabGroups(space.id), [space.id, getTabGroups]);
-  const activeTabGroup = useMemo(() => getActiveTabGroup(space.id), [getActiveTabGroup, space.id]);
+  // tabs provider, so getLayoutNodes returns only visible sidebar layout nodes.
+  const sortedLayoutNodes = useMemo(() => getLayoutNodes(space.id), [space.id, getLayoutNodes]);
+  const activeLayoutNode = useMemo(() => getActiveLayoutNode(space.id), [getActiveLayoutNode, space.id]);
   const focusedTab = useMemo(() => getFocusedTab(space.id), [getFocusedTab, space.id]);
 
   return (
@@ -54,15 +54,15 @@ const SpaceContentPage = memo(function SpaceContentPage({
         <div className="flex flex-col gap-1 flex-1 min-h-full pt-1">
           <NewTabButton />
           <AnimatePresence initial={false}>
-            {sortedTabGroups.map((tabGroup) => (
-              <TabGroup
-                key={tabGroup.id}
-                tabGroup={tabGroup}
-                isActive={activeTabGroup?.id === tabGroup.id}
-                isFocused={!!focusedTab && tabGroup.tabs.some((tab) => tab.id === focusedTab.id)}
+            {sortedLayoutNodes.map((layoutNode) => (
+              <TabLayoutNode
+                key={layoutNode.id}
+                layoutNode={layoutNode}
+                isActive={activeLayoutNode?.id === layoutNode.id}
+                isFocused={!!focusedTab && layoutNode.tabs.some((tab) => tab.id === focusedTab.id)}
                 isSpaceLight={isSpaceLight}
-                position={tabGroup.position}
-                groupCount={sortedTabGroups.length}
+                position={layoutNode.position}
+                layoutNodeCount={sortedLayoutNodes.length}
                 moveTab={moveTab}
                 unpinToTabList={unpinToTabList}
               />
@@ -72,7 +72,7 @@ const SpaceContentPage = memo(function SpaceContentPage({
             spaceData={space}
             isSpaceLight={isSpaceLight}
             moveTab={moveTab}
-            biggestIndex={sortedTabGroups.length > 0 ? sortedTabGroups[sortedTabGroups.length - 1].position : -1}
+            biggestIndex={sortedLayoutNodes.length > 0 ? sortedLayoutNodes[sortedLayoutNodes.length - 1].position : -1}
           />
         </div>
       </SidebarScrollArea>
@@ -109,7 +109,7 @@ export function SpacePagesCarousel() {
   }, []);
 
   const moveTab = useCallback((tabId: number, newPosition: number) => {
-    flow.tabs.moveTab(tabId, newPosition);
+    flow.tabService.moveTab(tabId, newPosition);
   }, []);
 
   const currentIndex = useMemo(() => {

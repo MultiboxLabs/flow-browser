@@ -36,7 +36,7 @@ export function BottomExtrasMenu() {
     if (url === "internal://settings") {
       flow.windows.openSettingsWindow();
     } else {
-      flow.tabs.newTab(url, true);
+      flow.tabService.newTab(url, true);
     }
     setOpen(false);
   }, []);

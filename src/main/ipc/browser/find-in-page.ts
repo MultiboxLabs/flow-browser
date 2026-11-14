@@ -1,6 +1,6 @@
 import { ipcMain, WebContents } from "electron";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
-import { tabsController } from "@/controllers/tabs-controller";
+import { tabService } from "@/services/tab-service";
 
 function getFocusedTabWebContents(senderWebContents: Electron.WebContents) {
   const window = browserWindowsController.getWindowFromWebContents(senderWebContents);
@@ -9,7 +9,7 @@ function getFocusedTabWebContents(senderWebContents: Electron.WebContents) {
   const spaceId = window.currentSpaceId;
   if (!spaceId) return null;
 
-  const tab = tabsController.getFocusedTab(window.id, spaceId);
+  const tab = tabService.getFocusedTab(window.id, spaceId);
   if (!tab?.webContents || tab.webContents.isDestroyed()) return null;
 
   return tab.webContents;

@@ -10,7 +10,7 @@
         "arktype": "^2.2.0",
         "better-sqlite3": "^12.9.0",
         "drizzle-orm": "^0.45.2",
-        "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.9.4",
+        "electron-chrome-extensions": "npm:@iamevan/electron-chrome-extensions@4.9.5",
         "electron-chrome-web-store": "npm:@iamevan/electron-chrome-web-store@0.13.3",
         "electron-context-menu": "^4.1.2",
         "electron-updater": "^6.8.3",
@@ -1016,7 +1016,7 @@
 
     "electron-builder-squirrel-windows": ["electron-builder-squirrel-windows@26.8.1", "", { "dependencies": { "app-builder-lib": "26.8.1", "builder-util": "26.8.1", "electron-winstaller": "5.4.0" } }, "sha512-o288fIdgPLHA76eDrFADHPoo7VyGkDCYbLV1GzndaMSAVBoZrGvM9m2IehdcVMzdAZJ2eV9bgyissQXHv5tGzA=="],
 
-    "electron-chrome-extensions": ["@iamevan/electron-chrome-extensions@4.9.4", "", { "dependencies": { "debug": "^4.3.1" } }, "sha512-JPbNppVGFOctuSFzs6DaKs8CTP67e8ifjhEaJOTNFKGDhSXr3uC1sF6IkQGm47O7HBsockhC11Hr5wGTciMqbA=="],
+    "electron-chrome-extensions": ["@iamevan/electron-chrome-extensions@4.9.5", "", { "dependencies": { "debug": "^4.3.1" } }, "sha512-ZBgI2xlFFhJlhd0O5ZF3FUpEfE7DIHewMbDnnZAI/A6f+DuCD2qqgKxbByFxDcCovVYjAJoGYNIPMUbBBuos6A=="],
 
     "electron-chrome-web-store": ["@iamevan/electron-chrome-web-store@0.13.3", "", { "dependencies": { "@types/chrome": "^0.0.287", "adm-zip": "^0.5.16", "debug": "^4.3.7", "pbf": "^4.0.1" } }, "sha512-DactkR+smswJWHsfUqSgujOP72tyyugfmYDapNl2Q+xkKvpXEwtPYMEY+vXCK4AHWQ85t0J6Us9EIkkLZuIi6Q=="],
 

@@ -1,7 +1,8 @@
 import { transformUserAgentHeader } from "@/modules/user-agent";
 import { ProfileData, profilesController } from "@/controllers/profiles-controller";
 import { sessionsController } from "@/controllers/sessions-controller";
-import { NEW_TAB_URL, tabsController } from "@/controllers/tabs-controller";
+import { tabService } from "@/services/tab-service";
+import { NEW_TAB_URL } from "@/services/tab-service/tab-service";
 import { windowsController } from "@/controllers/windows-controller";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { setWindowSpace } from "@/ipc/session/spaces";
@@ -125,7 +126,7 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
       license: "GPL-3.0",
       session: profileSession,
       assignTabDetails: (tabDetails, tabWebContents) => {
-        const tab = tabsController.getTabByWebContents(tabWebContents);
+        const tab = tabService.getTabByWebContents(tabWebContents);
         if (!tab) return;
 
         tabDetails.title = tab.title;
@@ -133,6 +134,8 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
         tabDetails.favIconUrl = tab.faviconURL ?? undefined;
         tabDetails.discarded = tab.asleep;
         tabDetails.autoDiscardable = false;
+
+        tabDetails.index = tabService.getTabIndexInWindowProfile(tab);
       },
 
       // Tabs
@@ -140,11 +143,14 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
         const windowId = tabDetails.windowId;
         const window = windowId ? browserWindowsController.getWindowById(windowId) : undefined;
 
-        const tab = await tabsController.createTab(window?.id, profileId, undefined, undefined, {
+        const targetWindow = window || browserWindowsController.getWindows()[0];
+        if (!targetWindow) throw new Error("No window available");
+
+        const tab = await tabService.createTab(targetWindow.id, profileId, undefined, undefined, {
           url: tabDetails.url
         });
         if (tabDetails.active) {
-          tabsController.activateTab(tab);
+          tabService.activateTab(tab);
         }
 
         const electronWindow = tab.getWindow().browserWindow;
@@ -152,18 +158,31 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
         return [tab.webContents!, electronWindow];
       },
       selectTab: (tabWebContents) => {
-        const tab = tabsController.getTabByWebContents(tabWebContents);
+        const tab = tabService.getTabByWebContents(tabWebContents);
         if (!tab) return;
 
-        // Set the space for the window
+        // Set the space for the window — but only if the tab's space differs
+        // from the current space AND the tab isn't a multi-layout node (pinned tabs).
+        // Pinned tab nodes span all spaces, so their tab.spaceId is just the
+        // creation space and shouldn't force a space switch.
         const window = tab.getWindow();
-        setWindowSpace(window, tab.spaceId);
+        if (window.destroyed) return;
+        const currentSpaceId = window.currentSpaceId;
+        if (currentSpaceId !== tab.spaceId) {
+          // Check if this tab's node is already in the current space's layout
+          const currentLayout = tabService.getLayout(window.id, currentSpaceId!);
+          const nodeInCurrentLayout = currentLayout?.getNodeForTab(tab.id);
+          if (!nodeInCurrentLayout) {
+            // Tab is not in the current space's layout — switch space
+            setWindowSpace(window, tab.spaceId);
+          }
+        }
 
         // Set the active tab
-        tabsController.activateTab(tab);
+        tabService.activateTab(tab);
       },
       removeTab: (tabWebContents) => {
-        const tab = tabsController.getTabByWebContents(tabWebContents);
+        const tab = tabService.getTabByWebContents(tabWebContents);
         if (!tab) return;
 
         tab.destroy();
@@ -184,14 +203,10 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
 
           let tabIndex = 0;
           for (const url of urls) {
-            const currentTabIndex = tabIndex;
-
-            await tabsController.createTab(window.id, profileId, undefined, undefined, { url }).then((tab) => {
-              if (currentTabIndex === 0) {
-                tabsController.activateTab(tab);
-              }
-            });
-
+            const tab = await tabService.createTab(window.id, profileId, undefined, undefined, { url });
+            if (tabIndex === 0) {
+              tabService.activateTab(tab);
+            }
             tabIndex++;
           }
         }
@@ -382,7 +397,7 @@ class LoadedProfilesController extends TypedEventEmitter<LoadedProfilesControlle
     this.emit("profile-unloaded", profileId);
 
     // Destroy all tabs in the profile
-    const tabs = tabsController.getTabsInProfile(profileId);
+    const tabs = tabService.getTabsInProfile(profileId);
     tabs.forEach((tab) => {
       tab.destroy();
     });

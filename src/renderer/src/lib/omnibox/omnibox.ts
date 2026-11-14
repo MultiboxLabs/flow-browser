@@ -75,7 +75,7 @@ export class Omnibox {
   public openMatch(autocompleteMatch: AutocompleteMatch, whereToOpen: "current" | "new_tab"): void {
     if (autocompleteMatch.type === "open-tab") {
       const [, tabId] = autocompleteMatch.destinationUrl.split(":");
-      flow.tabs.switchToTab(parseInt(tabId));
+      flow.tabService.switchToTab(parseInt(tabId));
     } else if (autocompleteMatch.type === "pedal") {
       const pedalAction = autocompleteMatch.destinationUrl;
       // Execute the pedal action
@@ -86,16 +86,16 @@ export class Omnibox {
       } else if (pedalAction === "open_incognito_window") {
         flow.browser.createIncognitoWindow();
       } else if (pedalAction === "open_extensions") {
-        flow.tabs.newTab("flow://extensions", true);
+        flow.tabService.newTab("flow://extensions", true);
       } else if (pedalAction === "open_history") {
-        flow.tabs.newTab("flow://history", true);
+        flow.tabService.newTab("flow://history", true);
       }
     } else {
       const url = autocompleteMatch.destinationUrl;
       if (whereToOpen === "current") {
         flow.navigation.goTo(url, undefined, true);
       } else {
-        flow.tabs.newTab(url, true, undefined, true);
+        flow.tabService.newTab(url, true, undefined, true);
       }
     }
   }

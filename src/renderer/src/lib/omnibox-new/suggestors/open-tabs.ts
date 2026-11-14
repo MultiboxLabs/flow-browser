@@ -1,7 +1,7 @@
 import { generateTitleFromUrl, isValidUrl } from "../helpers";
 import { getOmniboxCurrentSpaceId } from "../states";
 import type { OpenTabSuggestion } from "../types";
-import type { TabData, WindowTabsData } from "~/types/tabs";
+import type { TabData, WindowTabsPayload } from "~/types/tab-service";
 import { stringSimilarity } from "string-similarity-js";
 
 const OPEN_TAB_LIMIT = 3;
@@ -23,7 +23,7 @@ type NormalizedOpenTab = TabData & {
 
 type OpenTabsCacheEntry = {
   tabs: TabData[];
-  focusedTabIds: WindowTabsData["focusedTabIds"];
+  focusedTabIds: WindowTabsPayload["focusedTabIds"];
   loadedAt: number;
   refreshPromise: Promise<void> | null;
 };
@@ -117,7 +117,7 @@ function getEligibleOpenTabs(cacheEntry: OpenTabsCacheEntry, currentSpaceId: str
   const focusedTabId = cacheEntry.focusedTabIds[currentSpaceId] ?? null;
 
   return cacheEntry.tabs
-    .filter((tab) => tab.spaceId === currentSpaceId && !tab.ephemeral && tab.id !== focusedTabId)
+    .filter((tab) => tab.spaceId === currentSpaceId && tab.id !== focusedTabId)
     .map(normalizeOpenTab);
 }
 
@@ -138,7 +138,7 @@ export function primeOpenTabsCache(
     return Promise.resolve();
   }
 
-  const refreshPromise = flow.tabs
+  const refreshPromise = flow.tabService
     .getData()
     .then((tabsData) => {
       openTabsCache.set(currentSpaceId, {

@@ -1,5 +1,5 @@
 import { app } from "electron";
-import { tabsController } from "@/controllers/tabs-controller";
+import { tabService } from "@/services/tab-service";
 import { queuePrompt } from "@/modules/prompts";
 import type { BasicAuthCredentials, PromptResult, PromptState } from "~/types/prompts";
 
@@ -10,7 +10,7 @@ export function setupBasicAuthHandler() {
       return;
     }
 
-    const tabId = tabsController.getTabByWebContents(webContents)?.id;
+    const tabId = tabService.getTabByWebContents(webContents)?.id;
     if (!tabId) {
       callback();
       return;

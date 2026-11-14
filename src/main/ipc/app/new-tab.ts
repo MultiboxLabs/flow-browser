@@ -3,7 +3,7 @@ import { spacesController } from "@/controllers/spaces-controller";
 import { ipcMain } from "electron";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
-import { tabsController } from "@/controllers/tabs-controller";
+import { tabService } from "@/services/tab-service";
 
 export function openNewTab(window: BrowserWindow) {
   const omnibox = window.omnibox;
@@ -26,8 +26,8 @@ export function openNewTab(window: BrowserWindow) {
     spacesController.get(spaceId).then(async (space) => {
       if (!space) return;
 
-      const tab = await tabsController.createTab(window.id, space.profileId, spaceId);
-      tabsController.activateTab(tab);
+      const tab = tabService.createTabInternal(window.id, space.profileId, spaceId);
+      tabService.activateTab(tab);
     });
   }
 }

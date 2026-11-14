@@ -1,22 +1,29 @@
-import { PersistedTabData, PersistedTabGroupData } from "~/types/tabs";
-import { tabPersistenceManager } from "@/saving/tabs";
-import { onSettingsCached } from "@/saving/settings";
-import { tabsController } from "@/controllers/tabs-controller";
+import { tabService, tabPersistenceService } from "@/services/tab-service";
+import { onSettingsCached, getSettingValueById } from "@/saving/settings";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
-import { shouldArchiveTab } from "@/saving/tabs";
+import { loadedProfilesController } from "@/controllers/loaded-profiles-controller";
 import { app } from "electron";
-import { GlanceTabGroup } from "@/controllers/tabs-controller/tab-groups/glance";
 import type { BrowserWindowCreationOptions, BrowserWindowType } from "@/controllers/windows-controller/types/browser";
+import type { PersistedTabData, PersistedTabLayoutNodeData } from "~/types/tab-service";
+import { ArchiveTabValueMap } from "@/modules/basic-settings";
+
+function shouldArchiveTab(lastActiveAt: number): boolean {
+  const archiveAfter = getSettingValueById("archiveTabAfter");
+  if (typeof archiveAfter !== "string" || archiveAfter === "never") return false;
+  const archiveAfterSeconds = ArchiveTabValueMap[archiveAfter as keyof typeof ArchiveTabValueMap];
+  if (typeof archiveAfterSeconds !== "number" || !isFinite(archiveAfterSeconds)) return false;
+  const nowSec = Math.floor(Date.now() / 1000);
+  return nowSec - lastActiveAt >= archiveAfterSeconds;
+}
 
 /**
- * Loads tabs and tab groups from storage, filters archived ones,
- * and restores them into browser windows.
+ * Loads tabs from storage, filters archived ones, and restores them into browser windows.
  */
 export async function restoreSession(): Promise<boolean> {
   await app.whenReady();
   await onSettingsCached();
 
-  const tabs = await loadAndFilterTabs();
+  const tabs = loadAndFilterTabs();
   if (tabs.length > 0) {
     await createTabsFromPersistedData(tabs);
   } else {
@@ -26,17 +33,13 @@ export async function restoreSession(): Promise<boolean> {
   return true;
 }
 
-/**
- * Loads tabs from storage and filters out archived ones.
- */
-async function loadAndFilterTabs(): Promise<PersistedTabData[]> {
-  const allTabs = await tabPersistenceManager.loadAllTabs();
+function loadAndFilterTabs(): PersistedTabData[] {
+  const allTabs = tabPersistenceService.loadAllTabs();
 
   const filtered: PersistedTabData[] = [];
   for (const tabData of allTabs) {
     if (typeof tabData.lastActiveAt === "number" && shouldArchiveTab(tabData.lastActiveAt)) {
-      // Remove archived tab from storage
-      await tabPersistenceManager.removeTab(tabData.uniqueId);
+      tabPersistenceService.removeTab(tabData.uniqueId);
       continue;
     }
     filtered.push(tabData);
@@ -45,11 +48,6 @@ async function loadAndFilterTabs(): Promise<PersistedTabData[]> {
   return filtered;
 }
 
-/**
- * Creates browser windows and tabs from persisted data.
- * Groups tabs by windowGroupId to recreate window layout.
- * Also restores tab groups.
- */
 async function createTabsFromPersistedData(tabDatas: PersistedTabData[]): Promise<void> {
   // Group tabs by windowGroupId
   const windowGroups = new Map<string, PersistedTabData[]>();
@@ -61,14 +59,19 @@ async function createTabsFromPersistedData(tabDatas: PersistedTabData[]): Promis
     windowGroups.get(groupId)!.push(tabData);
   }
 
-  // Load persisted tab groups and window states
-  const persistedGroups = await tabPersistenceManager.loadAllTabGroups();
-  const windowStates = await tabPersistenceManager.loadAllWindowStates();
+  // Pre-load all required profiles before creating tabs
+  const profileIds = new Set(tabDatas.map((t) => t.profileId));
+  for (const profileId of profileIds) {
+    await loadedProfilesController.load(profileId);
+  }
+
+  // Load persisted layout nodes and window states
+  const persistedNodes = tabPersistenceService.loadAllLayoutNodes();
+  const windowStates = tabPersistenceService.loadAllWindowStates();
   const uniqueIdToTabId = new Map<string, number>();
 
   // Create a window for each window group
   for (const [windowGroupId, tabs] of windowGroups) {
-    // Read window state from the dedicated window state store
     const windowState = windowStates.get(windowGroupId);
 
     const windowType: BrowserWindowType = windowState?.isPopup ? "popup" : "normal";
@@ -81,37 +84,41 @@ async function createTabsFromPersistedData(tabDatas: PersistedTabData[]): Promis
     }
     const window = await browserWindowsController.create(windowType, windowOptions);
 
-    for (const tabData of tabs) {
-      const tab = await tabsController.createTab(window.id, tabData.profileId, tabData.spaceId, undefined, {
-        asleep: true,
-        createdAt: tabData.createdAt,
-        lastActiveAt: tabData.lastActiveAt,
-        position: tabData.position,
-        navHistory: tabData.navHistory,
-        navHistoryIndex: tabData.navHistoryIndex,
-        uniqueId: tabData.uniqueId,
-        title: tabData.title,
-        faviconURL: tabData.faviconURL || undefined
-      });
+    tabService.beginBatch();
+    try {
+      for (const tabData of tabs) {
+        // Skip tabs whose profile couldn't be loaded (e.g. deleted profile)
+        if (!loadedProfilesController.get(tabData.profileId)) {
+          tabPersistenceService.removeTab(tabData.uniqueId);
+          continue;
+        }
 
-      uniqueIdToTabId.set(tabData.uniqueId, tab.id);
+        const tab = tabService.createTabInternal(window.id, tabData.profileId, tabData.spaceId, undefined, {
+          asleep: true,
+          createdAt: tabData.createdAt,
+          lastActiveAt: tabData.lastActiveAt,
+          position: tabData.position,
+          navHistory: tabData.navHistory,
+          navHistoryIndex: tabData.navHistoryIndex,
+          uniqueId: tabData.uniqueId,
+          title: tabData.title,
+          faviconURL: tabData.faviconURL || undefined
+        });
+
+        uniqueIdToTabId.set(tabData.uniqueId, tab.id);
+      }
+    } finally {
+      tabService.endBatch();
     }
   }
 
-  await restoreTabGroups(persistedGroups, uniqueIdToTabId);
+  restoreLayoutNodes(persistedNodes, uniqueIdToTabId);
 }
 
-/**
- * Restores tab groups from persisted data using the uniqueId -> tabId mapping.
- */
-async function restoreTabGroups(
-  persistedGroups: PersistedTabGroupData[],
-  uniqueIdToTabId: Map<string, number>
-): Promise<void> {
-  for (const groupData of persistedGroups) {
-    // Resolve uniqueIds to runtime tab IDs
+function restoreLayoutNodes(persistedNodes: PersistedTabLayoutNodeData[], uniqueIdToTabId: Map<string, number>): void {
+  for (const nodeData of persistedNodes) {
     const tabIds: number[] = [];
-    for (const uniqueId of groupData.tabUniqueIds) {
+    for (const uniqueId of nodeData.tabUniqueIds) {
       const tabId = uniqueIdToTabId.get(uniqueId);
       if (tabId !== undefined) {
         tabIds.push(tabId);
@@ -119,27 +126,14 @@ async function restoreTabGroups(
     }
 
     if (tabIds.length < 2) {
-      // Tab groups need at least 2 tabs
-      try {
-        await tabPersistenceManager.removeTabGroup(groupData.groupId);
-      } catch (error) {
-        console.error("Failed to remove stale tab group:", error);
-      }
+      tabPersistenceService.removeLayoutNode(nodeData.id);
       continue;
     }
 
-    try {
-      const group = tabsController.createTabGroup(groupData.mode, tabIds as [number, ...number[]], groupData.groupId);
+    // Get the window from the first tab
+    const firstTab = tabService.getTabById(tabIds[0]);
+    if (!firstTab) continue;
 
-      // Restore glance front tab
-      if (groupData.mode === "glance" && groupData.glanceFrontTabUniqueId) {
-        const frontTabId = uniqueIdToTabId.get(groupData.glanceFrontTabUniqueId);
-        if (frontTabId !== undefined && group instanceof GlanceTabGroup) {
-          group.setFrontTab(frontTabId);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to restore tab group:", error);
-    }
+    tabService.createLayoutNode(firstTab.getWindow().id, nodeData.mode, tabIds);
   }
 }

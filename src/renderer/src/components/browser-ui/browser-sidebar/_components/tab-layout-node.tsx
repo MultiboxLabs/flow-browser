@@ -2,8 +2,8 @@ import { cn, craftActiveFaviconURL } from "@/lib/utils";
 import { XIcon, Volume2, VolumeX } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import type { TabGroup as TabGroupType } from "@/components/providers/tabs-provider";
-import type { TabData } from "~/types/tabs";
+import type { TabLayoutNodeView } from "@/components/providers/tabs-provider";
+import type { TabData } from "~/types/tab-service";
 import {
   draggable,
   dropTargetForElements,
@@ -15,21 +15,21 @@ import { setCustomNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/el
 import { DropIndicator } from "@/components/browser-ui/browser-sidebar/_components/drop-indicator";
 import { isPinnedTabSource } from "@/components/browser-ui/browser-sidebar/_components/drag-utils";
 
-/** Greater than 1 speeds up tab-group enter, exit, and layout motion. */
-const TAB_GROUP_MOTION_SPEED_MULTIPLIER = 2;
+/** Greater than 1 speeds up layout-node enter, exit, and layout motion. */
+const TAB_LAYOUT_NODE_MOTION_SPEED_MULTIPLIER = 2;
 
 // --- Types --- //
 
-export type TabGroupSourceData = {
-  type: "tab-group";
-  tabGroupId: string;
+export type TabLayoutNodeSourceData = {
+  type: "tab-layout-node";
+  layoutNodeId: string;
   primaryTabId: number;
   profileId: string;
   spaceId: string;
   position: number;
 };
 
-function renderTabGroupDragPreview({
+function renderTabLayoutNodeDragPreview({
   container,
   element,
   isSpaceLight
@@ -88,14 +88,14 @@ const SidebarTab = memo(
 
     const handleClick = useCallback(() => {
       if (!tab.id) return;
-      flow.tabs.switchToTab(tab.id);
+      flow.tabService.switchToTab(tab.id);
     }, [tab.id]);
 
     const handleCloseTab = useCallback(
       (e: React.MouseEvent) => {
         if (!tab.id) return;
         e.preventDefault();
-        flow.tabs.closeTab(tab.id);
+        flow.tabService.closeTab(tab.id);
       },
       [tab.id]
     );
@@ -117,7 +117,7 @@ const SidebarTab = memo(
         e.stopPropagation();
         if (!tab.id) return;
         const newMutedState = !tab.muted;
-        flow.tabs.setTabMuted(tab.id, newMutedState);
+        flow.tabService.setTabMuted(tab.id, newMutedState);
       },
       [tab.id, tab.muted]
     );
@@ -125,7 +125,8 @@ const SidebarTab = memo(
     const handleContextMenu = useCallback(
       (e: React.MouseEvent) => {
         e.preventDefault();
-        flow.tabs.showContextMenu(tab.id);
+        if (!tab.id) return;
+        flow.tabService.showContextMenu(tab.id);
       },
       [tab.id]
     );
@@ -221,27 +222,34 @@ const SidebarTab = memo(
   }
 );
 
-// --- TabGroup (memoized, with drag-and-drop) --- //
+// --- TabLayoutNode (memoized, with drag-and-drop) --- //
 
-interface TabGroupProps {
-  tabGroup: TabGroupType;
+interface TabLayoutNodeProps {
+  layoutNode: TabLayoutNodeView;
   isActive: boolean;
   isFocused: boolean;
   isSpaceLight: boolean;
   position: number;
-  groupCount: number;
+  layoutNodeCount: number;
   moveTab: (tabId: number, newPosition: number) => void;
   unpinToTabList: (pinnedTabId: string, position?: number) => Promise<boolean>;
 }
 
-export const TabGroup = memo(
-  function TabGroup({ tabGroup, isFocused, isSpaceLight, position, moveTab, unpinToTabList }: TabGroupProps) {
-    const { tabs, focusedTab } = tabGroup;
+export const TabLayoutNode = memo(
+  function TabLayoutNode({
+    layoutNode,
+    isFocused,
+    isSpaceLight,
+    position,
+    moveTab,
+    unpinToTabList
+  }: TabLayoutNodeProps) {
+    const { tabs, focusedTab } = layoutNode;
     const ref = useRef<HTMLDivElement>(null);
     const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
 
     // Extract stable primitives for the drag-and-drop effect dependencies.
-    // Previously, tabGroup.tabs (a new array each render) was in the dep array,
+    // Previously, layoutNode.tabs (a new array each render) was in the dep array,
     // causing the effect to re-run on every tab data update.
     const primaryTabId = tabs[0]?.id;
 
@@ -272,8 +280,8 @@ export const TabGroup = memo(
           return;
         }
 
-        const tabGroupData = sourceData as TabGroupSourceData;
-        const sourceTabId = tabGroupData.primaryTabId;
+        const layoutNodeData = sourceData as TabLayoutNodeSourceData;
+        const sourceTabId = layoutNodeData.primaryTabId;
 
         let newPos: number | undefined = undefined;
 
@@ -283,11 +291,11 @@ export const TabGroup = memo(
           newPos = position + 0.5;
         }
 
-        if (tabGroupData.spaceId !== tabGroup.spaceId) {
-          if (tabGroupData.profileId !== tabGroup.profileId) {
+        if (layoutNodeData.spaceId !== layoutNode.spaceId) {
+          if (layoutNodeData.profileId !== layoutNode.profileId) {
             // TODO: @MOVE_TABS_BETWEEN_PROFILES not supported yet
           } else {
-            flow.tabs.moveTabToWindowSpace(sourceTabId, tabGroup.spaceId, newPos);
+            flow.tabService.moveTabToSpace(sourceTabId, layoutNode.spaceId, newPos);
           }
         } else if (newPos !== undefined) {
           moveTab(sourceTabId, newPos);
@@ -297,12 +305,12 @@ export const TabGroup = memo(
       const draggableCleanup = draggable({
         element: el,
         getInitialData: () => {
-          const data: TabGroupSourceData = {
-            type: "tab-group",
-            tabGroupId: tabGroup.id,
+          const data: TabLayoutNodeSourceData = {
+            type: "tab-layout-node",
+            layoutNodeId: layoutNode.id,
             primaryTabId: primaryTabId,
-            profileId: tabGroup.profileId,
-            spaceId: tabGroup.spaceId,
+            profileId: layoutNode.profileId,
+            spaceId: layoutNode.spaceId,
             position: position
           };
           return data;
@@ -314,7 +322,7 @@ export const TabGroup = memo(
               element: el,
               input: location.current.input
             }),
-            render: ({ container }) => renderTabGroupDragPreview({ container, element: el, isSpaceLight })
+            render: ({ container }) => renderTabLayoutNodeDragPreview({ container, element: el, isSpaceLight })
           });
         }
       });
@@ -336,17 +344,17 @@ export const TabGroup = memo(
 
           // Accept pinned tab drags (for unpinning)
           if (isPinnedTabSource(sourceData)) {
-            return sourceData.profileId === tabGroup.profileId;
+            return sourceData.profileId === layoutNode.profileId;
           }
 
-          const tabGroupData = sourceData as TabGroupSourceData;
-          if (tabGroupData.type !== "tab-group") {
+          const layoutNodeData = sourceData as TabLayoutNodeSourceData;
+          if (layoutNodeData.type !== "tab-layout-node") {
             return false;
           }
-          if (tabGroupData.tabGroupId === tabGroup.id) {
+          if (layoutNodeData.layoutNodeId === layoutNode.id) {
             return false;
           }
-          if (tabGroupData.profileId !== tabGroup.profileId) {
+          if (layoutNodeData.profileId !== layoutNode.profileId) {
             return false;
           }
           return true;
@@ -364,11 +372,11 @@ export const TabGroup = memo(
     }, [
       moveTab,
       unpinToTabList,
-      tabGroup.id,
+      layoutNode.id,
       position,
       primaryTabId,
-      tabGroup.spaceId,
-      tabGroup.profileId,
+      layoutNode.spaceId,
+      layoutNode.profileId,
       isSpaceLight
     ]);
 
@@ -385,15 +393,15 @@ export const TabGroup = memo(
         transition={{
           layout: {
             type: "spring",
-            stiffness: 500 * TAB_GROUP_MOTION_SPEED_MULTIPLIER,
-            damping: 35 * TAB_GROUP_MOTION_SPEED_MULTIPLIER
+            stiffness: 500 * TAB_LAYOUT_NODE_MOTION_SPEED_MULTIPLIER,
+            damping: 35 * TAB_LAYOUT_NODE_MOTION_SPEED_MULTIPLIER
           },
           height: {
             type: "tween",
-            duration: 0.2 / TAB_GROUP_MOTION_SPEED_MULTIPLIER,
+            duration: 0.2 / TAB_LAYOUT_NODE_MOTION_SPEED_MULTIPLIER,
             ease: "easeOut"
           },
-          opacity: { duration: 0.15 / TAB_GROUP_MOTION_SPEED_MULTIPLIER }
+          opacity: { duration: 0.15 / TAB_LAYOUT_NODE_MOTION_SPEED_MULTIPLIER }
         }}
         style={{ overflow: "hidden" }}
         className="relative flex flex-col gap-0.5"
@@ -415,15 +423,15 @@ export const TabGroup = memo(
       </motion.div>
     );
   },
-  // TabGroup references are stabilized by TabsProvider cache.
+  // TabLayoutNodeView references are stabilized by TabsProvider cache.
   (prev, next) => {
     return (
-      prev.tabGroup === next.tabGroup &&
+      prev.layoutNode === next.layoutNode &&
       prev.isActive === next.isActive &&
       prev.isFocused === next.isFocused &&
       prev.isSpaceLight === next.isSpaceLight &&
       prev.position === next.position &&
-      prev.groupCount === next.groupCount &&
+      prev.layoutNodeCount === next.layoutNodeCount &&
       prev.moveTab === next.moveTab &&
       prev.unpinToTabList === next.unpinToTabList
     );

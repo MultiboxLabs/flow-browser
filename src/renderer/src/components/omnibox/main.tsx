@@ -31,7 +31,7 @@ const OMNIBOX_SHADOW =
 function commitSuggestion(suggestion: OmniboxSuggestion, openIn: "current" | "new_tab") {
   switch (suggestion.type) {
     case "open-tab":
-      flow.tabs.switchToTab(suggestion.tabId);
+      flow.tabService.switchToTab(suggestion.tabId);
       break;
     case "pedal": {
       const a = suggestion.action;
@@ -42,9 +42,9 @@ function commitSuggestion(suggestion: OmniboxSuggestion, openIn: "current" | "ne
       } else if (a === "open_incognito_window") {
         flow.browser.createIncognitoWindow();
       } else if (a === "open_extensions") {
-        flow.tabs.newTab("flow://extensions", true);
+        flow.tabService.newTab("flow://extensions", true);
       } else if (a === "open_history") {
-        flow.tabs.newTab("flow://history", true);
+        flow.tabService.newTab("flow://history", true);
       }
       break;
     }
@@ -53,7 +53,7 @@ function commitSuggestion(suggestion: OmniboxSuggestion, openIn: "current" | "ne
       if (openIn === "current") {
         flow.navigation.goTo(url, undefined, true);
       } else {
-        flow.tabs.newTab(url, true, undefined, true);
+        flow.tabService.newTab(url, true, undefined, true);
       }
       break;
     }
@@ -62,7 +62,7 @@ function commitSuggestion(suggestion: OmniboxSuggestion, openIn: "current" | "ne
       if (openIn === "current") {
         flow.navigation.goTo(url, undefined, true);
       } else {
-        flow.tabs.newTab(url, true, undefined, true);
+        flow.tabService.newTab(url, true, undefined, true);
       }
       break;
     }

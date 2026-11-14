@@ -51,31 +51,31 @@ function openWinnerTabs(domains: [string, string, string]) {
   if (a === b && b === c) {
     // Jackpot: all 3 same -> open 9 tabs
     for (let i = 0; i < 9; i++) {
-      flow.tabs.newTab(url(a), false);
+      flow.tabService.newTab(url(a), false);
     }
   } else if (a === b) {
     // 2 match (a, b) + 1 different (c)
     for (let i = 0; i < 4; i++) {
-      flow.tabs.newTab(url(a), false);
+      flow.tabService.newTab(url(a), false);
     }
-    flow.tabs.newTab(url(c), false);
+    flow.tabService.newTab(url(c), false);
   } else if (a === c) {
     // 2 match (a, c) + 1 different (b)
     for (let i = 0; i < 4; i++) {
-      flow.tabs.newTab(url(a), false);
+      flow.tabService.newTab(url(a), false);
     }
-    flow.tabs.newTab(url(b), false);
+    flow.tabService.newTab(url(b), false);
   } else if (b === c) {
     // 2 match (b, c) + 1 different (a)
     for (let i = 0; i < 4; i++) {
-      flow.tabs.newTab(url(b), false);
+      flow.tabService.newTab(url(b), false);
     }
-    flow.tabs.newTab(url(a), false);
+    flow.tabService.newTab(url(a), false);
   } else {
     // All different -> open 1 tab each
-    flow.tabs.newTab(url(a), false);
-    flow.tabs.newTab(url(b), false);
-    flow.tabs.newTab(url(c), false);
+    flow.tabService.newTab(url(a), false);
+    flow.tabService.newTab(url(b), false);
+    flow.tabService.newTab(url(c), false);
   }
 }
 

@@ -1,4 +1,4 @@
-import { tabsController } from "@/controllers/tabs-controller";
+import { tabService } from "@/services/tab-service";
 import { HonoApp } from ".";
 import { getExtensionAsset } from "@/modules/extensions/assets";
 import { bufferToArrayBuffer } from "@/modules/utils";
@@ -13,7 +13,7 @@ const inFlightFetches = new Map<string, Promise<{ data: ArrayBuffer; contentType
 // Remove cached favicons that are no longer active
 setInterval(() => {
   for (const [tabId, cached] of activeTabFaviconCache.entries()) {
-    const tab = tabsController.getTabById(tabId);
+    const tab = tabService.getTabById(tabId);
     if (!tab || tab.isDestroyed || tab.faviconURL !== cached.faviconURL) {
       activeTabFaviconCache.delete(tabId);
     }
@@ -41,7 +41,7 @@ export function registerActiveFaviconRoutes(app: HonoApp) {
       return c.text("Invalid tab ID", 400);
     }
 
-    const tab = tabsController.getTabById(tabIdInt);
+    const tab = tabService.getTabById(tabIdInt);
     if (!tab) {
       return c.text("No tab found", 404);
     }

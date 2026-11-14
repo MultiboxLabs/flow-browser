@@ -68,7 +68,7 @@ export function UpdateCard() {
   }, [checkForUpdates, updateStatus, isAutoUpdateSupported]);
 
   const openDownloadPage = () => {
-    flow.tabs.newTab(DOWNLOAD_PAGE, true);
+    flow.tabService.newTab(DOWNLOAD_PAGE, true);
   };
 
   const handleInstallUpdate = async () => {

@@ -1,5 +1,4 @@
-import { Tab } from "@/controllers/tabs-controller/tab";
-import { tabsController } from "@/controllers/tabs-controller";
+import { Tab, tabService } from "@/services/tab-service";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { app } from "electron";
 
@@ -36,24 +35,24 @@ class HandoffController {
   }
 
   private observeExistingTabs() {
-    for (const tab of tabsController.tabs.values()) {
+    for (const tab of tabService.tabs.values()) {
       this.observeTab(tab);
     }
   }
 
   private observeTabLifecycle() {
-    tabsController.on("tab-created", (tab) => {
+    tabService.on("tab-created", (tab) => {
       this.observeTab(tab);
     });
   }
 
   private observeTabStateChanges() {
-    tabsController.on("active-tab-changed", (windowId, spaceId) => {
+    tabService.on("active-changed", (windowId, spaceId) => {
       this.syncFocusedWindowHandoffActivity(windowId, spaceId, "active-tab-changed");
     });
 
-    tabsController.on("current-space-changed", (windowId, spaceId) => {
-      this.syncFocusedWindowHandoffActivity(windowId, spaceId, "current-space-changed");
+    tabService.on("focused-tab-changed", (windowId, spaceId) => {
+      this.syncFocusedWindowHandoffActivity(windowId, spaceId, "active-tab-changed");
     });
   }
 
@@ -98,28 +97,8 @@ class HandoffController {
   }
 
   private getDisplayedTab(windowId: number, spaceId: string): Tab | undefined {
-    const activeTabOrGroup = tabsController.getActiveTab(windowId, spaceId);
-    if (!activeTabOrGroup) {
-      return undefined;
-    }
-
-    if (activeTabOrGroup instanceof Tab) {
-      return activeTabOrGroup;
-    }
-
-    const focusedTab = tabsController.getFocusedTab(windowId, spaceId);
-    if (focusedTab && activeTabOrGroup.hasTab(focusedTab.id)) {
-      return focusedTab;
-    }
-
-    if (activeTabOrGroup.mode === "glance") {
-      const frontTab = tabsController.getTabById(activeTabOrGroup.frontTabId);
-      if (frontTab && activeTabOrGroup.hasTab(frontTab.id)) {
-        return frontTab;
-      }
-    }
-
-    return activeTabOrGroup.tabs[0];
+    // In the new system, focused tab is the displayed tab
+    return tabService.getFocusedTab(windowId, spaceId);
   }
 
   private syncFocusedWindowHandoffActivity(
@@ -137,7 +116,7 @@ class HandoffController {
       return;
     }
 
-    const currentSpaceId = tabsController.windowActiveSpaceMap.get(windowId);
+    const currentSpaceId = browserWindowsController.getWindowById(windowId)?.currentSpaceId;
     if (currentSpaceId && currentSpaceId !== spaceId) {
       return;
     }

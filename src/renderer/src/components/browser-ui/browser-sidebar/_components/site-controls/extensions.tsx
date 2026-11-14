@@ -207,7 +207,7 @@ export function ExtensionsList({ setOpen }: { setOpen: (open: boolean) => void }
       <ExtensionButtonContainer
         onClick={(event) => {
           event.stopPropagation();
-          flow.tabs.newTab(CHROME_WEB_STORE_URL, true);
+          flow.tabService.newTab(CHROME_WEB_STORE_URL, true);
           setOpen(false);
         }}
       >
@@ -232,7 +232,7 @@ export function SiteControlExtensions({ setOpen }: { setOpen: (open: boolean) =>
           )}
           tabIndex={-1}
           onClick={(event) => {
-            flow.tabs.newTab("flow://extensions", true);
+            flow.tabService.newTab("flow://extensions", true);
             setOpen(false);
             event.stopPropagation();
           }}

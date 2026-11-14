@@ -1,11 +1,18 @@
+/**
+ * Web page right-click context menu.
+ *
+ * Uses the `electron-context-menu` package to build a rich context menu
+ * for web content: back/forward/reload, open link in new tab, copy/paste,
+ * search selection, save image, inspect element, extension items, etc.
+ */
+
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { BrowserWindow } from "@/controllers/windows-controller/types";
 import contextMenu from "electron-context-menu";
 import { Tab } from "./tab";
-import { TabsController } from "./index";
 import { saveImageAs } from "./save-image-as";
+import { tabService } from "../index";
 
-// Define types for navigation history
 interface NavigationHistory {
   canGoBack: () => boolean;
   canGoForward: () => boolean;
@@ -13,7 +20,6 @@ interface NavigationHistory {
   goForward: () => void;
 }
 
-// Define interface for menu actions
 type MenuItemFunction = (options: Record<string, unknown>) => Electron.MenuItemConstructorOptions;
 type InspectFunction = () => Electron.MenuItemConstructorOptions;
 
@@ -31,13 +37,7 @@ interface MenuActions {
   [key: string]: MenuItemFunction | InspectFunction;
 }
 
-export function createTabContextMenu(
-  tabsController: TabsController,
-  tab: Tab,
-  profileId: string,
-  window: BrowserWindow,
-  spaceId: string
-) {
+export function createWebContextMenu(tab: Tab, window: BrowserWindow) {
   const webContents = tab.webContents;
   if (!webContents) return;
 
@@ -50,19 +50,14 @@ export function createTabContextMenu(
       const lookUpSelection = defaultActions.lookUpSelection({});
       const searchEngine = "Google";
 
-      // Helper function to create a new tab
       const createNewTab = async (url: string, overrideWindow?: BrowserWindow) => {
-        const sourceTab = await tabsController.createTab(
-          overrideWindow ? overrideWindow.id : window.id,
-          profileId,
-          spaceId,
-          undefined,
-          { url }
-        );
-        tabsController.activateTab(sourceTab);
+        const targetWindow = overrideWindow ?? tab.getWindow();
+        const spaceId = targetWindow.currentSpaceId ?? tab.spaceId;
+        if (!spaceId) return;
+        const newTab = await tabService.createTab(targetWindow.id, tab.profileId, spaceId, undefined, { url });
+        tabService.activateTab(newTab);
       };
 
-      // Create all menu sections
       const openLinkItems = createOpenLinkItems(parameters, createNewTab);
       const navigationItems = createNavigationItems(navigationHistory, webContents, canGoBack, canGoForward);
       const extensionItems = createExtensionItems(tab, webContents, parameters);
@@ -76,7 +71,6 @@ export function createTabContextMenu(
       );
       const imageItems = createImageItems(parameters, webContents, window, createNewTab, defaultActions as MenuActions);
 
-      // Assemble sections in correct order
       const sections: Electron.MenuItemConstructorOptions[][] = [];
       const hasDictionarySuggestions = dictionarySuggestions.some((suggestion) => suggestion.visible);
       if (hasDictionarySuggestions) {
@@ -93,10 +87,8 @@ export function createTabContextMenu(
       }
       if (hasLink) {
         sections.push(openLinkItems);
-
         const linkItems = createLinkItems(parameters, webContents, defaultActions, true);
         sections.push(linkItems);
-
         noSpecialActions = false;
       }
       if (parameters.hasImageContents) {
@@ -106,7 +98,6 @@ export function createTabContextMenu(
 
       if (noSpecialActions) {
         sections.push(navigationItems);
-
         const linkItems = createLinkItems(parameters, webContents, defaultActions, false);
         sections.push(linkItems);
       }
@@ -125,7 +116,6 @@ export function createTabContextMenu(
       const devItems = createDevItems(parameters, defaultActions, createNewTab, noSpecialActions);
       sections.push(devItems);
 
-      // Combine all sections with separators
       return combineSections(sections, defaultActions as MenuActions);
     }
   });
@@ -163,20 +153,17 @@ function createLinkItems(
   if (hasLink) {
     const linkURL = parameters.linkURL;
 
-    const saveLinkAs: Electron.MenuItemConstructorOptions = {
+    items.push({
       label: "Save Link As...",
       click: () => {
         webContents.downloadURL(linkURL);
       }
-    };
-    items.push(saveLinkAs);
+    });
 
     const copyLinkItem = defaultActions.copyLink({});
     copyLinkItem.label = "Copy Link Address";
     copyLinkItem.visible = true;
     items.push(copyLinkItem);
-  } else {
-    // TODO: "Save as..." and "Print" items
   }
 
   return items;
@@ -272,8 +259,7 @@ function createSelectionItems(
 
   let displaySelectionText = selectionText;
   if (displaySelectionText.length > 45) {
-    const newDisplaySelectionText = selectionText.slice(0, 45).trim() + "...";
-    displaySelectionText = newDisplaySelectionText;
+    displaySelectionText = selectionText.slice(0, 45).trim() + "...";
   }
 
   return [
@@ -345,8 +331,6 @@ function createImageItems(
     {
       label: "Save Image As...",
       click: () => {
-        // TODO: use a better way
-        // webContents.saveImageAt - https://github.com/electron/electron/pull/51056
         void saveImageAs(parameters, webContents, window);
       }
     },
@@ -362,11 +346,8 @@ function combineSections(
   const combinedSections: Electron.MenuItemConstructorOptions[] = [];
 
   sections.forEach((section, index) => {
-    // Only add non-empty sections
     if (section.length > 0) {
       combinedSections.push(...section);
-
-      // Add separator if this isn't the last section
       if (index < sections.length - 1) {
         combinedSections.push(defaultActions.separator());
       }

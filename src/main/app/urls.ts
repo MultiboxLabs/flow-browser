@@ -1,4 +1,4 @@
-import { tabsController } from "@/controllers/tabs-controller";
+import { tabService } from "@/services/tab-service";
 import { browserWindowsController } from "@/controllers/windows-controller/interfaces/browser";
 import { hasCompletedOnboarding } from "@/saving/onboarding";
 import { debugPrint } from "@/modules/output";
@@ -55,8 +55,8 @@ async function openUrlInWindow(useNewWindow: boolean, url: string) {
   window.show(true);
 
   // Create a new tab with the URL
-  const tab = await tabsController.createTab(window.id, undefined, undefined, undefined, { url });
-  tabsController.activateTab(tab);
+  const tab = await tabService.createTab(window.id, undefined, undefined, undefined, { url });
+  tabService.activateTab(tab);
 }
 
 /**

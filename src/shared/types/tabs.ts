@@ -14,9 +14,9 @@ export type NavigationEntry = {
  * Does NOT include transient runtime state (isLoading, audible, fullScreen, etc.)
  * or ephemeral IDs (webContents.id, runtime windowId).
  *
- * To add a new persisted field:
- * 1. Add it here
- * 2. Update serializeTab() in saving/tabs/serialization.ts
+ * To add a new persisted field for Tab Service v2:
+ * 1. Add it to PersistedTabData in ~/types/tab-service.ts
+ * 2. Update TabPersistenceService.serializeTab() in services/tab-service/persistence/
  */
 export type PersistedTabData = {
   schemaVersion: number;

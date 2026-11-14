@@ -20,7 +20,7 @@ import {
   useFocusedTab,
   useFocusedTabFullscreen,
   useFocusedTabLoading,
-  useTabsGroups
+  useTabLayoutNodes
 } from "@/components/providers/tabs-provider";
 import { TabDisabler } from "@/components/logic/tab-disabler";
 import { BrowserActionProvider } from "@/components/providers/browser-action-provider";
@@ -114,16 +114,16 @@ const WindowTitle = memo(function WindowTitle() {
 });
 
 function AutoNewTab({ isReady }: { isReady: boolean }) {
-  const { tabGroups } = useTabsGroups();
+  const { layoutNodes } = useTabLayoutNodes();
   const openedNewTabRef = useRef(false);
   useEffect(() => {
     if (isReady && !openedNewTabRef.current) {
       openedNewTabRef.current = true;
-      if (tabGroups.length === 0) {
+      if (layoutNodes.length === 0) {
         flow.newTab.open();
       }
     }
-  }, [isReady, tabGroups.length]);
+  }, [isReady, layoutNodes.length]);
   return null;
 }
 
