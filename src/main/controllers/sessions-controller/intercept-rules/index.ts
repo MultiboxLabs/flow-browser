@@ -1,5 +1,5 @@
 import { setupBetterPdfViewer } from "@/controllers/sessions-controller/intercept-rules/better-pdf-viewer";
-import { setupCorsBypassForCustomProtocols } from "@/controllers/sessions-controller/intercept-rules/cors-bypass-custom-protocols";
+import { setupCorsForCustomProtocols } from "@/controllers/sessions-controller/intercept-rules/custom-protocol-cors";
 import { setupUserAgentTransformer } from "@/controllers/sessions-controller/intercept-rules/user-agent-transformer";
 import type { Session } from "electron";
 
@@ -8,8 +8,8 @@ export function setupInterceptRules(session: Session) {
   // Transform the User-Agent header
   setupUserAgentTransformer(session);
 
-  // Bypass CORS for flow and flow-internal protocols
-  setupCorsBypassForCustomProtocols(session);
+  // Enforce CORS for Flow's custom protocols
+  setupCorsForCustomProtocols(session);
 
   // Setup redirects required for the better PDF viewer
   setupBetterPdfViewer(session);
