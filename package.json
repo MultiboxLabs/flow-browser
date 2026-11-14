@@ -20,6 +20,8 @@
     "dev": "electron-vite dev",
     "dev:watch": "electron-vite dev --watch",
     "dev:devtools": "cross-env BROWSER_WINDOW_DEVTOOLS=true bun run dev",
+    "dev:omnibox-devtools": "cross-env OMNIBOX_DEVTOOLS=true bun run dev",
+    "dev:all-devtools": "cross-env BROWSER_WINDOW_DEVTOOLS=true OMNIBOX_DEVTOOLS=true bun run dev",
     "build": "bun run typecheck && cross-env PRODUCTION_BUILD=true electron-vite build && bun run script:prune-frontend-routes",
     "build:unpack": "bun run build && electron-builder --dir",
     "build:win": "bun run build && electron-builder --win",

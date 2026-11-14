@@ -4,6 +4,8 @@ import contextMenu from "electron-context-menu";
 import { Tab } from "./tab";
 import { TabsController } from "./index";
 import { saveImageAs } from "./save-image-as";
+import { getSearchSettingsSnapshot } from "@/saving/settings";
+import { buildSearchUrlFromSearchSettings, getSearchEngineDisplayName } from "~/search/search-settings";
 
 // Define types for navigation history
 interface NavigationHistory {
@@ -48,7 +50,8 @@ export function createTabContextMenu(
       const canGoBack = navigationHistory.canGoBack();
       const canGoForward = navigationHistory.canGoForward();
       const lookUpSelection = defaultActions.lookUpSelection({});
-      const searchEngine = "Google";
+      const searchSettings = getSearchSettingsSnapshot();
+      const searchEngine = getSearchEngineDisplayName(searchSettings);
 
       // Helper function to create a new tab
       const createNewTab = async (url: string, overrideWindow?: BrowserWindow) => {
@@ -72,7 +75,8 @@ export function createTabContextMenu(
         defaultActions as MenuActions,
         parameters,
         createNewTab,
-        searchEngine
+        searchEngine,
+        searchSettings
       );
       const imageItems = createImageItems(parameters, webContents, window, createNewTab, defaultActions as MenuActions);
 
@@ -266,7 +270,8 @@ function createSelectionItems(
   defaultActions: MenuActions,
   parameters: Electron.ContextMenuParams,
   createNewTab: (url: string) => Promise<void>,
-  searchEngine: string
+  searchEngine: string,
+  searchSettings: ReturnType<typeof getSearchSettingsSnapshot>
 ): Electron.MenuItemConstructorOptions[] {
   const selectionText = parameters.selectionText;
 
@@ -281,9 +286,7 @@ function createSelectionItems(
     {
       label: `Search ${searchEngine} for "${displaySelectionText}"`,
       click: () => {
-        const searchURL = new URL("https://www.google.com/search");
-        searchURL.searchParams.set("q", selectionText);
-        createNewTab(searchURL.toString());
+        createNewTab(buildSearchUrlFromSearchSettings(searchSettings, selectionText));
       }
     }
   ];

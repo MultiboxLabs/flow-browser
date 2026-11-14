@@ -19,13 +19,21 @@ type SettingTypeEnum = {
   options: SettingTypeEnumOption[];
 };
 
-export type SettingType = SettingTypeBoolean | SettingTypeEnum;
+// Setting Type: String //
+type SettingTypeString = {
+  type: "string";
+  defaultValue: string;
+  placeholder?: string;
+};
+
+export type SettingType = SettingTypeBoolean | SettingTypeEnum | SettingTypeString;
 
 // Setting //
 export type BasicSetting = {
   id: string;
   name: string;
   showName?: boolean;
+  description?: string;
 } & SettingType;
 
 // Setting Card //

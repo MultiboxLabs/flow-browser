@@ -112,7 +112,7 @@ export function createVerbatimMatch(input: OmniboxInput): OmniboxMatch {
         : getURLFromInput(input.text) || "about:blank"
       : createSearchUrl(input.text),
     content: input.text,
-    description: isUrl ? "" : "Search Google for",
+    description: isUrl ? "" : "Search for",
     allowedToBeDefault: true,
     allowInlineAutocompletion: false,
     type: isUrl ? "verbatim" : "search",
@@ -188,7 +188,7 @@ export function createSearchSuggestionMatches(input: OmniboxInput, suggestions: 
     return {
       destinationUrl: createSearchUrl(suggestion),
       content: suggestion,
-      description: "Search Google for",
+      description: "Search for",
       allowedToBeDefault: true,
       // Only allow inline autocompletion if the suggestion starts with the input text
       // and autocompletion is allowed for this input

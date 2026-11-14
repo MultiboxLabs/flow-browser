@@ -54,15 +54,13 @@ export const SettingsProvider = ({ children }: SettingsProviderProps) => {
   }, [fetchSettings]);
 
   useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
-
-  useEffect(() => {
     const unsub = flow.settings.onSettingsChanged(() => {
-      revalidate();
+      void revalidate();
     });
+
+    void fetchSettings();
     return () => unsub();
-  }, [revalidate]);
+  }, [fetchSettings, revalidate]);
 
   const getSetting = useCallback(
     (settingId: string) => {
